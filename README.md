@@ -132,18 +132,18 @@ Use kebab case in naming files.
 		nlp-engine.py
 
 
-Use PascalCase for classes
+Use PascalCase for functions
 
 	Example:
 	
-		ProductTitleVerification
+		ProductTitleVerification()
 		
 
-Use snake_case for functions
+Use snake_case for classes
 
 	Example:
 	
-		product_extraction()
+		product_extraction
 		
 
 Use all lowercase for folder
