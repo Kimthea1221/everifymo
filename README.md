@@ -74,20 +74,17 @@ Check if git is installed
 
 ** FOR BACKEND DEVELOPER**
 
-3. Python setup
-		cd backend
-		python -m venv .venv //this creates a vitual environment
+ Python setup
+
+		1. cd backend
+		2. python -m venv .venv //this creates a vitual environment
 
 		activate the venv to run project/ run code / install dependencies
 
-   		.\.venv\Scripts\activate
+   		3. .\.venv\Scripts\activate
 
-   		pip install -r .\requirements.txt // this command installs fastapi, uvicorn, pydantic
+   		4. pip install -r .\requirements.txt // this command installs fastapi, uvicorn, pydantic
 
-
-   4. Also, we need to create an env file.
-      
-      copy the template from env.example
       
 	FASTAPI official documentation
 	
@@ -113,8 +110,12 @@ Check if git is installed
 	- Electron: https://www.electronjs.org/docs
 
 **** FOR EXTENSION DEVELOPER**
+
 Load the extension folder in Chrome/Edge using Developer Mode.
-	------------------------------------------------------------------------------------------
+
+	-----------------------------------------------------------------------------------------
+
+	Also, we need to create an env file. copy the contents from env.example
 
 **Naming convention and rules:**
 
