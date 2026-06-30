@@ -1,0 +1,131 @@
+.FdaSidebarMain{
+    width: 280px;
+    height: 100vh;
+    background: #1B4332;
+}
+.FdaSidebarTop{
+    width: 280px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    color: #fdfdfd;                                                
+    font-size: small;
+    border-bottom: 1px solid rgba(253, 253, 253, 0.2);
+}
+.FdaSidebarTop img{
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+.FdaSidebarMenu{
+    display: flex;
+    flex-direction: column;
+    padding: 12px 8px;
+    gap: 4px;
+    align-items: center;
+}
+.FdaMenuBtn{
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.FdaMenuBtn:hover{
+    background: rgba(255, 255, 255, 0.1);
+}
+.FdaMenuBtn.active{
+    background: rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+}
+.FdaDashboardMain{
+    display: flex;
+    height: 100vh;
+}
+.FdaContentContainer{
+    display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+}
+.FdaMainfeed{
+    flex: 1;
+    padding: 32px;
+    background: #f5f5f5;
+    overflow-y: auto;
+}
+.FdaSidebarBottom{
+    width: 280px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    color: #fdfdfd;                                                
+    font-size: 10px;
+    border-top: 1px solid rgba(253, 253, 253, 0.2);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    margin-bottom: 0;
+}
+.FdasidebarUser{
+        width: 280px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    color: #fdfdfd;                                                
+    font-size: 13px;
+    border-bottom: rgba(253, 253, 253, 0.2);
+}
+.FDASidebarUserContainer{
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+.FDASidebarUserContainer img{
+  width: 35px;
+  height: 33px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+.FdaSidebarEndSession{
+    width: 280px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    align-items: center;
+    font-size: 12px;
+    padding: 7px;
+    color: #fdfdfd;                                                
+    border-bottom: rgba(253, 253, 253, 0.2);
+}
+.FdaSidebarBottom button{
+      font-size: 11px;
+}
+.FdaMenuIcons img{
+  width: 25px;
+  padding: 2px;
+}
+.FdaLogoutIcon img{
+  width: 25px;
+  padding: 2px;
+}

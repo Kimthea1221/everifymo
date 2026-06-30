@@ -1,0 +1,1337 @@
+/*LEA SIDEBAR*/
+.LeaSidebarMain{
+    width: 280px;
+    height: 100vh;
+    background: #1a1a2e;
+}
+.LeaSidebarTop{
+    width: 280px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    color: #fdfdfd;                                                
+    font-size: small;
+    border-bottom: 1px solid rgba(253, 253, 253, 0.2);
+}
+.LeaSidebarTop img{
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+.LeaSidebarMenu {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 4px;
+  align-items: center;
+}
+
+.MenuBtn {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  
+}
+
+.MenuBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.MenuBtn.active {
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.LeaDashboardMain {
+  display: flex;
+  height: 100vh;
+}
+
+.LeaMainfeed {
+  flex: 1;
+  padding: 32px;
+  background: #f5f5f5;
+  overflow-y: auto;
+}
+
+.LeaSidebarBottom{
+    width: 280px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    color: #fdfdfd;                                                
+    font-size: 10px;
+    border-top: 1px solid rgba(253, 253, 253, 0.2);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    margin-bottom: 0;
+}
+.LeaSidebarUser{
+    width: 280px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    color: #fdfdfd;                                                
+    font-size: 13px;
+    border-bottom: rgba(253, 253, 253, 0.2);
+}
+.SidebarUserContainer{
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+.SidebarUserContainer img{
+  width: 35px;
+  height: 33px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+.LeaSidebarEndSession{
+    width: 280px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    align-items: center;
+    font-size: 12px;
+    padding: 7px;
+    color: #fdfdfd;                                                
+    border-bottom: rgba(253, 253, 253, 0.2);
+}
+.LeaSidebarBottom button{
+  font-size: 11px;
+}
+
+
+.LeaContentContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/*WALK IN COMPLAINT PAGE*/
+.LeaDashboardMain {
+  display: flex;
+  height: 100vh;
+}
+
+.LeaMainfeed {
+  flex: 1;
+  padding: 32px;
+  background: #EDEDED;
+  overflow-y: auto;
+}
+
+.LeaHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.LeaHeader div p:first-child {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.LeaHeader div p:last-child {
+  font-size: 24px;
+  font-weight: 700;
+  color: #13213C;
+}
+
+.WalkinButtonActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.BtnExportCSV {
+  background: #FDFDFD;
+  color: #030303;
+  border: 1.5px solid #d8d8d8;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.BtnExportCSV:hover {
+  background: #EDEDED;
+}
+
+.BtnNewComplaint {
+  background: #13213C;
+  color: #FDFDFD;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.BtnNewComplaint:hover {
+  background: #FCA311;
+  color: #030303;
+}
+
+
+.TableCard {
+  background: #FDFDFD;
+  border-radius: 12px;
+  border: 1px solid #d8d8d8;
+  overflow: hidden;
+    width: 100%;
+    max-width: 1100px;
+    justify-self: center;
+}
+
+.ComplaintsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ComplaintsTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #EDEDED;
+  background: #f7f7f7;
+}
+
+.ComplaintsTable td {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #030303;
+  border-bottom: 1px solid #EDEDED;
+}
+
+.ComplaintsTable tr:hover {
+  background: #f5f5f5;
+}
+
+.row-selected {
+  background: rgba(252, 163, 17, 0.08) !important;
+}
+
+.ClassId {
+  font-weight: 600;
+  color: #13213C;
+  font-size: 13px;
+}
+
+.ProductName {
+  font-weight: 600;
+  color: #030303;
+  font-size: 13px;
+}
+
+.ManufacturerName {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.StatusBadge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-pending {
+  background: #fff4e5;
+  color: #b76e00;
+  border: 1px solid #f5c97a;
+}
+
+.status-verified-by-lea {
+  background: #e6f9f0;
+  color: #1a7a4a;
+  border: 1px solid #7dd9a8;
+}
+
+.status-forwarded-to-nbi {
+  background: #e8f0fe;
+  color: #1a4a9c;
+  border: 1px solid #92b4f5;
+}
+
+.status-nbi-verified {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #c084fc;
+}
+
+.status-closed {
+  background: #EDEDED;
+  color: #555;
+  border: 1px solid #ccc;
+}
+
+.status-for-follow-up {
+  background: #fff0f0;
+  color: #cc0000;
+  border: 1px solid #f5a0a0;
+}
+
+
+.BtnView {
+  background: transparent;
+  border: 1.5px solid #d8d8d8;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #030303;
+}
+
+.BtnView:hover {
+  background: #EDEDED;
+}
+.Pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid #EDEDED;
+}
+
+.Pagination p {
+  font-size: 13px;
+  color: #888;
+}
+
+.PaginationBtn {
+  display: flex;
+  gap: 8px;
+}
+
+.BtnPage {
+  padding: 8px 16px;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 8px;
+  background: #FDFDFD;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.BtnPage:hover {
+  background: #EDEDED;
+}
+.BtnDelete {
+  background: #cc0000;
+  color: #FDFDFD;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.BtnDelete:hover {
+  background: #aa0000;
+}
+
+/* ---- MODAL ---- */
+.ModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(3, 3, 3, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.ModalBox {
+  background: #FDFDFD;
+  border-radius: 12px;
+  padding: 32px;
+  width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.ModalBox h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #13213C;
+  margin-bottom: 12px;
+}
+.ModalOverlay h4{
+  font-size: 20px;
+  font-weight: 600;
+  color: #13213C;
+}
+.ModalBox p {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.ModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.BtnCancelModal {
+  padding: 10px 20px;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 8px;
+  background: #FDFDFD;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #030303;
+}
+
+.BtnCancelModal:hover {
+  background: #EDEDED;
+}
+
+.BtnConfirmDelete {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #cc0000;
+  color: #FDFDFD;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.BtnConfirmDelete:hover {
+  background: #aa0000;
+}
+
+.MenuIcons img{
+  width: 25px;
+  padding: 2px;
+}
+.logouticon img{
+  width: 25px;
+  padding: 2px;
+}
+.ModalViewButton{
+  background: #FDFDFD;
+  border-radius: 12px;
+  padding: 32px;
+  width: 700px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+.ModalViewButton h4{
+  font-size: 20px;
+  font-weight: 900;
+}
+.ModalSummary{
+  display: flex;
+  grid-template-columns: 1fr 1fr;
+  gap: 100px;
+  margin: 10px 0 15px 0;
+}
+.StatementBox{
+  width: 100%;
+  height: 100px;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 10px 2px 10px 2px;
+  box-shadow: #EDEDED 1px 1px 1px 1px;
+}
+.StatementBox p{
+  color: #8d8f91;
+  font-size: 12px;
+}
+.ModalSummary strong, .Statementcomp{
+  color: #8d8f91;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 2;
+}
+
+/* LEA NEW INTAKE PAGE*/
+
+.LeaMainfeed {
+    flex: 1;
+    background: #EDEDED;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+
+.LeaHeader {
+    margin-bottom: 24px;
+}
+
+.LeaHeader p:first-child {
+    font-size: 12px;
+    font-weight: 500;
+    color: #7a8899;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.LeaHeader p:last-child {
+    font-size: 28px;
+    font-weight: 700;
+    color: #13213C;
+}
+
+
+
+.FormForWalkin {
+    width: 100%;
+    max-width: 1000px;
+    justify-self: center;
+}
+
+.FormForWalkin form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+
+
+.FormSection {
+    background: #FDFDFD;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+}
+.FormSectionAttach{
+    background: #FDFDFD;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.FormSectionAttach h3{
+    font-size: 14px;
+    font-weight: 700;
+    color: #13213C;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+.FormSectionAttach p{
+    font-size: 12px;
+    color: #7a8899;
+    text-transform: uppercase;
+}
+.FormSection h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #13213C;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+
+.FormSection > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.FormSection > div:last-child {
+    margin-bottom: 0;
+}
+
+
+.FormSection > div:has(input[type="text"]:only-child) {
+    grid-template-columns: 1fr;
+}
+
+
+
+.FormSection label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+
+.FormSection input,
+.FormSection select,
+.FormSection textarea {
+    width: 100%;
+    height: 44px;
+    border: 1px solid #d1d9e0;
+    border-radius: 8px;
+    padding: 0 14px;
+    font-size: 14px;
+    background: #FDFDFD;
+    transition: .2s;
+    outline: none;
+}
+
+.FormSection input:focus,
+.FormSection select:focus,
+.FormSection textarea:focus {
+    border-color: #13213C;
+    box-shadow: 0 0 0 3px rgba(19, 33, 60, .12);
+}
+
+
+
+.FormSection textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 10px;
+}
+
+
+.FormSection textarea[placeholder="Statement of the complainant."] {
+    font-family: 'Poppins', sans-serif;
+    min-height: 140px;
+    padding: 14px;
+}
+
+
+
+.FormSection p {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 14px;
+}
+
+.FormSection:last-of-type input {
+    height: 140px;
+    border: 2px dashed #d8d8d8;
+    background: #f8f8f8;
+    cursor: pointer;
+}
+
+
+.FormForWalkin form > div:last-child {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.UploadArea {
+    width: 100%;
+}
+.UploadBox {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 100px;
+    border: 2px dashed #d8d8d8;
+    border-radius: 10px;
+    background: #f8f8f8;
+    cursor: pointer;
+    transition: .2s;
+    box-sizing: border-box;
+    padding: 10px 15px 10px 15px;
+}
+
+.UploadBox:hover {
+    border-color: #FCA311;
+    background: rgba(252, 163, 17, 0.05);
+}
+
+.UploadContent {
+    text-align: center;
+}
+
+.UploadIcon {
+    display: block;
+    font-size: 32px;
+    margin-bottom: 8px;
+    color: #6b7280;
+}
+
+.UploadContent h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.UploadContent p {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.UploadedFiles {
+    margin-top: 12px;
+}
+
+.FileItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    background: #FDFDFD;
+    font-size: 13px;
+}
+
+.BtnRemoveFile {
+    background: none;
+    border: none;
+    color: #8899a6;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .2s, transform .2s;
+}
+
+.BtnRemoveFile:hover {
+    color: #e02424;
+    transform: scale(1.15);
+}
+
+.CancelButton,
+.DraftButton,
+.LogButton,
+.SendReqBtn {
+    border: none;
+    border-radius: 8px;
+    height: 44px;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .2s;
+}
+
+
+.CancelButton {
+    background: #FDFDFD;
+    border: 1px solid #d1d5db;
+    color: #030303;
+}
+
+.CancelButton:hover {
+    background: #EDEDED;
+}
+
+
+.DraftButton {
+    background: #EDEDED;
+    color: #030303;
+}
+
+.DraftButton:hover {
+    background: #d8d8d8;
+}
+
+
+.LogButton, .SendReqBtn {
+    background: #13213C;
+    color: #FDFDFD;
+}
+
+.LogButton:hover, .SendReqBtn:hover {
+    background: #FCA311 !important;
+    color: #030303 !important;
+}
+
+
+@media (max-width: 768px) {
+
+    .FormSection > div {
+        grid-template-columns: 1fr;
+    }
+
+    .FormForWalkin form > div:last-child {
+        flex-direction: column;
+    }
+
+    .CancelButton,
+    .DraftButton,
+    .SendReqBtn {
+        width: 100%;
+    }
+}
+
+
+/*VERIFICATION REQUEST PAGE */
+
+.VerificationContainer {
+    margin: 0 30px 50px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+
+
+.VerificationTabs {
+    display: flex;
+    gap: 8px;
+}
+.VerificationTabsButton{
+    display: flex; 
+    background: #EDEDED; 
+    border: 1px solid #d8d8d8; 
+    box-shadow: #d8d8d8 0.5px 0.5px 0.5px 0.5px;
+    border-radius: 20px; 
+    overflow: hidden; 
+}
+.VerificationTabs button {
+    border: none;
+    background: #EDEDED;
+    color: #51606f;
+    padding: 10px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 600;
+}
+.ButtonTab{
+    padding: 10px 20px; 
+    background: transparent; 
+    border-radius: 20px;
+    color: #51606f; 
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem; 
+    cursor: pointer; 
+    transition: all 0.3s ease; 
+    white-space: nowrap;
+}
+.ButtonTab.active {
+    border-radius: 20px;
+    background: #13213C !important;
+    color: #FDFDFD !important;
+}
+.VerificationTabs button:hover {
+    background: #d8d8d8;
+}
+
+
+
+
+.VerificationContent {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+}
+
+/*LEFT PANEL*/
+
+.ReadytoSendQueue, .AwaitingFDAQueue, .FDAResponseQueue{
+    background: #FDFDFD;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 650px;
+}
+
+.ReadytoSendHeader, .AwaitingHeader, .FDAResponseHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #EDEDED;
+}
+
+.ReadytoSendHeader p, .AwaitingHeader p, .FDAResponseHeader p {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.ReadytoSendHeader span, .AwaitingHeader span, .FDAResponseHeader span {
+    background: rgba(252, 163, 17, 0.12);
+    border: 1px solid rgba(252, 163, 17, 0.4);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #13213C;
+}
+
+.QueueCard {
+    width: 100%;
+    padding: 16px;
+    border-bottom: 1px solid #EDEDED;
+    cursor: pointer;
+    transition: .2s;
+    display: inline-flex;
+    gap: 30px;
+}
+
+.QueueCard:hover {
+    background: #f5f5f5;
+}
+
+.ActiveQueueCard {
+    background: rgba(252, 163, 17, 0.08);
+}
+
+.QueueCard h4 {
+    margin: 0;
+    font-size: 15px;
+    color: #13213C;
+}
+
+.QueueCard p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.QueueCard small {
+    color: #8895a7;
+    font-size: 11px;
+}
+
+.QueueTag {
+    margin: 10px 0;
+}
+
+.QueueTag span {
+    background: rgba(252, 163, 17, 0.12);
+    color: #13213C;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/*  RIGHT PANEL*/
+
+.VerificationDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.VerificationCard {
+    background: #FDFDFD;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.VerificationCard small {
+    color: #8a97a8;
+    font-size: 12px;
+}
+
+.VerificationCard h2 {
+    margin: 8px 0 4px;
+    font-size: 28px;
+    color: #13213C;
+}
+
+.VerificationCard h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: #13213C;
+}
+
+.VerificationCard > p {
+    color: #6b7280;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+.VerificationRequestCard p{
+    color: #6b7280;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+.CaseInfoTitle{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0 10px 0;
+}
+.CaseInfoTitle img{
+  width: 40px;
+  height: 40px;
+  padding: 10px;
+  margin-right: 5px;
+  background: rgba(252, 163, 17, 0.15);
+  border-radius: 10px;
+}
+.CaseInfoTitle h2{
+    font-size: 20px;
+}
+.CaseInfoGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin: 20px 0 30px 0;
+    padding: 20px 0 20px 0;
+    border-top: 1px solid #EDEDED;
+    border-bottom: 1px solid #EDEDED;
+}
+
+.CaseInfoGrid label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #7a8796;
+    margin-bottom: 6px;
+}
+
+.CaseInfoGrid p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+
+.VerificationRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.VerificationRow label,
+.VerificationNotes label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #030303;
+}
+
+.VerificationRow input,
+.VerificationRow select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid #d1d9e0;
+    border-radius: 8px;
+    padding: 0 12px;
+    outline: none;
+}
+
+.VerificationRow input:focus,
+.VerificationRow select:focus,
+.VerificationNotes textarea:focus {
+    border-color: #13213C;
+    box-shadow: 0 0 0 3px rgba(19, 33, 60, .12);
+}
+
+
+.VerificationNotes {
+    margin-top: 18px;
+}
+
+.VerificationNotes textarea {
+    width: 100%;
+    border: 1px solid #d1d9e0;
+    border-radius: 8px;
+    padding: 12px;
+    resize: vertical;
+    min-height: 120px;
+    outline: none;
+}
+
+
+.AttachedFiles {
+    margin-top: 18px;
+    padding: 15px;
+    background: #f7f7f7;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+}
+
+.AttachedFiles h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #13213C;
+}
+
+.AttachedFiles p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+
+.VerificationActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.VerificationActions button {
+    border: none;
+    border-radius: 8px;
+    height: 42px;
+    padding: 0 18px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.DraftButton {
+    background: #EDEDED;
+    color: #030303;
+}
+
+.DraftButton:hover {
+    background: #d8d8d8;
+}
+
+.LogButton {
+    background: #13213C;
+    color: #FDFDFD;
+}
+
+.LogButton:hover {
+    background: #FCA311;
+    color: #030303;
+}
+.UpdateForResponse{
+  width: 100%;
+}
+.StatusTitle{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: left;
+  gap: 10px;
+}
+.StatusTitle img{
+  width: 20px;
+  height: 20px;
+}
+.StatusTitle p{
+  font-size: 13px;
+}
+.TitleHolder{
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  gap: 10px;
+}
+.ButtonsForResponse{
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: right;
+  justify-content: right;
+  margin: 30px 10px 0 10px ;
+}
+.SendReminderBtn, .RecallRequestBtn{
+  padding: 10px 20px;
+  color: #030303;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: .2s;
+  width: 180px;
+  border: 1px solid #d1d9e0;
+}
+.SendReminderBtn img{
+  width: 16px;
+  height: 16px;
+}
+.SendReminderBtn{
+  display: inline-flex;
+  gap: 10px;
+  justify-content: center;
+}
+.SendReminderBtn:hover{
+  background-color: #FCA311 !important;
+  color: #030303 !important;
+  border-color: #FCA311 !important;
+}
+.RecallRequestBtn:hover{
+  background-color: red !important;
+  color: #FDFDFD !important;
+}
+.ResponseQueueTag span{
+    background-color: rgba(224, 21, 21, 0.1);
+    border: 1px solid #ff0000a8;
+    color: #030303;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    width: 130px;
+}
+
+.ConfirmationReturnedBox{
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: left;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+.ConfirmationReturnedBox img{
+  width: 20px;
+  height: auto; 
+  background-color: #a9e5c7;
+  border-radius: 5px;
+  padding: 3px;
+}
+
+.ConfirmationHeader h3{
+  margin: 0 0 8px 0;
+  color: #13213C;
+}
+.StatementReturn p{
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.ResponseBox{
+  width: 100%;
+  height: 100px;
+  border: 2px solid #ff0000a8;
+  background-color: rgba(224, 21, 21, 0.1);
+  border-radius: 10px;
+  padding: 20px;
+}
+.ResponseStatus{
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ResponseStatus img{
+  width: 25px;
+  height: auto;
+}
+.ResponseBox h4{
+  font-size: 13px;
+}
+.ReasonDetail{
+  font-size: 14px;
+}
+.ResponseUpdateBox{
+  width: 100%;
+  margin-top: 25px;
+}
+.ResponseUpdateBox textarea{
+  border-radius: 10px;
+  width: 100%;
+  height: 80px;
+  padding: 10px;
+}
+.ResponseUpdateBox textarea:focus{
+  border: 1px solid #13213C;
+  box-shadow: 0 0 0 3px rgba(19, 33, 60, .12);
+  outline: none;
+}
+.ResponseUpdateBox h6{
+  color: #030303;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 2;
+}
+.ResponseBtn{
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 8px 0 8px 0 ;
+}
+.ResponseBtn button{
+  width: 200px;
+  height: 40px;
+  padding: 7px;
+  border-radius: 10px;
+  background-color: #13213C;
+  color: #FDFDFD;
+  border: none;
+}
+.ResponseBtn button:hover{
+  background-color: #FCA311;
+  color: #030303;
+}
+@media (max-width: 1024px) {
+
+    .VerificationContent {
+        grid-template-columns: 1fr;
+    }
+
+    .CaseInfoGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+
+    .VerificationRow {
+        grid-template-columns: 1fr;
+    }
+
+    .CaseInfoGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .VerificationActions {
+        flex-direction: column;
+    }
+
+    .VerificationActions button {
+        width: 100%;
+    }
+}
