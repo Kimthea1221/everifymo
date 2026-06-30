@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-VERIFYMO | Sign In</title>
+  <link rel="stylesheet" href="../css/global.css" />
+</head>
+<body>
+  <main class="auth-card">
+    <div class="header-row">
+      <div class="header-left">
+        <img
+          src="../assets/images/extension_icon.png"
+          alt="E-VERIFYMO Logo"
+          class="logo-placeholder"
+          width="36"
+          height="36"
+        />
+        <h1 class="header-title">E-VerifyMo</h1>
+      </div>
+    </div>
+
+    <div class="notice-banner">
+      <div>
+        <p class="notice-title" id="auth-notice-title">Signing in is optional</p>
+        <p class="notice-text" id="auth-notice-text">You can still verify products and submit complaints as a guest. Sign in or Sign up to view your verification history, complaints, and report status.</p>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Authentication tabs">
+      <button class="tab-button active" type="button" data-auth-mode="signin" aria-selected="true">Sign In</button>
+      <button class="tab-button inactive" type="button" data-auth-mode="signup" aria-selected="false">Sign up</button>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <label class="field-label" for="email">EMAIL</label>
+      </div>
+      <div class="input-wrap">
+        <div class="icon-placeholder-email" aria-hidden="true"></div>
+        <input id="email" class="auth-input" type="email" placeholder="Enter Email" />
+      </div>
+      <div class="field-error" id="email-error" aria-live="polite"></div>
+    </div>
+
+    <div class="field" id="signin-password-field">
+      <div class="field-row">
+        <label class="field-label" for="password">PASSWORD</label>
+        <a href="#" class="forgot-link">Forgot?</a>
+      </div>
+      <div class="input-wrap">
+        <div class="icon-placeholder-password" aria-hidden="true"></div>
+        <input id="password" class="auth-input password-input" type="password" placeholder="••••••••" />
+        <div class="icon-placeholder-eye" aria-hidden="true"></div>
+      </div>
+      <div class="field-error" id="password-error" aria-live="polite"></div>
+    </div>
+
+    <div class="signup-password-fields" id="signup-password-fields" hidden>
+      <div class="field">
+        <div class="field-row">
+          <label class="field-label" for="create-password">CREATE PASSWORD</label>
+        </div>
+        <div class="input-wrap">
+          <div class="icon-placeholder-password" aria-hidden="true"></div>
+          <input id="create-password" class="auth-input password-input" type="password" placeholder="Create a password" />
+          <div class="icon-placeholder-eye" aria-hidden="true"></div>
+        </div>
+        <div class="field-error" id="create-password-error" aria-live="polite"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-row">
+          <label class="field-label" for="confirm-password">CONFIRM PASSWORD</label>
+        </div>
+        <div class="input-wrap">
+          <div class="icon-placeholder-password" aria-hidden="true"></div>
+          <input id="confirm-password" class="auth-input password-input" type="password" placeholder="Confirm your password" />
+          <div class="icon-placeholder-eye" aria-hidden="true"></div>
+        </div>
+        <div class="field-error" id="confirm-password-error" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <button class="btn-primary-green" type="button" id="auth-primary-button">Sign In</button>
+
+    <div class="or-divider" aria-hidden="true">
+      <div class="or-line"></div>
+      <div class="or-text">OR</div>
+      <div class="or-line"></div>
+    </div>
+
+    <button class="btn-guest" type="button">
+      <div class="icon-placeholder-guest" aria-hidden="true"></div>
+      <span>Continue as Guest</span>
+    </button>
+  </main>
+
+  <script src="../js/auth.js"></script>
+</body>
+</html>
