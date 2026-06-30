@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-VERIFYMO</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+
+    <!-- HEADER -->
+    <header class="header">
+      <img src="../assets/images/extension_icon.png" alt="E-VERIFYMO Logo" class="logo" />
+      <h1 class="extension-name">E-VerifyMo</h1>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+      <!-- STATE 1: IDLE -->
+      <div class="state hiden" id="state-idle">
+        <p class="state-message">Open a product page on Shopee, Lazada, TikTok Shop, or Facebook Marketplace to verify.</p>
+      </div>
+
+      <!-- STATE 2: REGISTERED (GREEN) -->
+      <div class="state hidden" id="state-registered">
+        <div class="verified-banner">
+          <div class="icon-placeholder" aria-hidden="true"></div>
+          <div class="verified-copy">
+            <div class="verified-title">Verified Product!</div>
+            <div class="verified-product">Product: <span id="product-name-registered"></span></div>
+          </div>
+        </div>
+
+        <div class="top-matches">
+          <div class="top-matches-title">Top Matches</div>
+          <div class="top-matches-subtitle">Closest registered products to the detected listing.</div>
+          <div class="match-legend">
+            <div class="legend-item">
+              <span class="legend-dot dot-best"></span>
+              <span class="legend-label">Best Match</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot dot-high"></span>
+              <span class="legend-label">High Match</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot dot-partial"></span>
+              <span class="legend-label">Partial Match</span>
+            </div>
+          </div>
+
+          <div class="match-list">
+            <div class="match-card">
+              <div class="rank-badge">#1</div>
+              <div class="match-content">
+                <div class="match-title">Keratin Avocado Oil Shampoo</div>
+                <div class="match-meta">FDA Reg. No. NN-1000011613931</div>
+                <div class="progress-bar">
+                  <div class="progress-fill fill-best" style="width:95%;"></div>
+                </div>
+              </div>
+              <div class="match-score match-score-best">
+                <span class="match-percent">95%</span>
+                <span class="match-label">Match</span>
+              </div>
+            </div>
+            <div class="match-card">
+              <div class="rank-badge">#2</div>
+              <div class="match-content">
+                <div class="match-title">Keratin Avocado Oil Shampoo</div>
+                <div class="match-meta">FDA Reg. No. NN-1000011613931</div>
+                <div class="progress-bar">
+                  <div class="progress-fill fill-best" style="width:89%;"></div>
+                </div>
+              </div>
+              <div class="match-score match-score-best">
+                <span class="match-percent">89%</span>
+                <span class="match-label">Match</span>
+              </div>
+            </div>
+            <div class="match-card">
+              <div class="rank-badge">#3</div>
+              <div class="match-content">
+                <div class="match-title">Keratin Avocado Oil Shampoo</div>
+                <div class="match-meta">FDA Reg. No. NN-1000011613931</div>
+                <div class="progress-bar">
+                  <div class="progress-fill fill-best" style="width:82%;"></div>
+                </div>
+              </div>
+              <div class="match-score match-score-best">
+                <span class="match-percent">82%</span>
+                <span class="match-label">Match</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-history" type="button" id="btn-history-registered">
+            <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
+            <span>View History</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STATE 3: UNVERIFIED (ORANGE) -->
+      <div class="state hidden" id="state-unverified">
+        <div class="not-found-banner">
+          <div class="icon-placeholder-orange" aria-hidden="true"></div>
+          <div class="not-found-copy">
+            <div class="not-found-title">Product Not Found!</div>
+            <div class="not-found-product">Product: <span id="product-name-unverified"></span></div>
+          </div>
+        </div>
+
+        <div class="further-checking-section">
+          <div class="further-checking-title">Further Checking Required</div>
+          <div class="further-checking-text">This product was not found in our verified or unverified databases. The system cannot guarantee its registration status.</div>
+        </div>
+
+        <div class="quick-check-guide">
+          <div class="quick-check-title">Quick Check Guide</div>
+          <div class="quick-check-tip">Look for an FDA CPR (Certificate of Product Registration) number printed on the back label imagery.</div>
+          <div class="quick-check-tip">Verify if the manufacturer, country of origin, and complete ingredients list are clearly stated in the product description.</div>
+          <div class="quick-check-tip">Be cautious if the price is unrealistically low compared to official brand flagship stores.</div>
+        </div>
+
+        <button class="btn-history" type="button" id="btn-history-unverified">
+          <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
+          <span>View History</span>
+        </button>
+      </div>
+
+      <!-- STATE 4: UNREGISTERED (RED) -->
+      <div class="state hidden" id="state-unregistered">
+        <div class="unverified-banner">
+          <div class="icon-placeholder-red" aria-hidden="true"></div>
+          <div class="unverified-copy">
+            <div class="unverified-title">Unverified Product!</div>
+            <div class="unverified-message">Product: <span id="product-name-unregistered"></span></div>
+          </div>
+        </div>
+
+        <div class="top-matches-red">
+          <div class="top-matches-title-red">Top Matches</div>
+          <div class="top-matches-subtitle-red">Closest UNREGISTERED products to the detected listing.</div>
+          <div class="match-legend-red">
+            <div class="legend-item-red">
+              <span class="legend-dot-red dot-best-red"></span>
+              <span class="legend-label-red">Best Match</span>
+            </div>
+            <div class="legend-item-red">
+              <span class="legend-dot-red dot-high-red"></span>
+              <span class="legend-label-red">High Match</span>
+            </div>
+            <div class="legend-item-red">
+              <span class="legend-dot-red dot-partial-red"></span>
+              <span class="legend-label-red">Partial Match</span>
+            </div>
+          </div>
+
+          <div class="match-list-red">
+            <div class="match-card-red">
+              <div class="rank-badge-red">#1</div>
+              <div class="match-content-red">
+                <div class="match-title-red">Keratin Avocado Oil Shampoo</div>
+                <div class="match-meta-red">FDA Reg. No. NN-1000011613931</div>
+                <div class="progress-bar-red">
+                  <div class="progress-fill-red fill-best-red" style="width:95%;"></div>
+                </div>
+              </div>
+              <div class="match-score-red match-score-best-red">
+                <span class="match-percent-red">95%</span>
+                <span class="match-label-red">Match</span>
+              </div>
+            </div>
+            <div class="match-card-red">
+              <div class="rank-badge-red">#2</div>
+              <div class="match-content-red">
+                <div class="match-title-red">Keratin Avocado Oil Shampoo</div>
+                <div class="match-meta-red">FDA Reg. No. NN-1000011613931</div>
+                <div class="progress-bar-red">
+                  <div class="progress-fill-red fill-best-red" style="width:89%;"></div>
+                </div>
+              </div>
+              <div class="match-score-red match-score-best-red">
+                <span class="match-percent-red">89%</span>
+                <span class="match-label-red">Match</span>
+              </div>
+            </div>
+            <div class="match-card-red">
+              <div class="rank-badge-red">#3</div>
+              <div class="match-content-red">
+                <div class="match-title-red">Keratin Avocado Oil Shampoo</div>
+                <div class="match-meta-red">FDA Reg. No. NN-1000011613931</div>
+                <div class="progress-bar-red">
+                  <div class="progress-fill-red fill-best-red" style="width:95%;"></div>
+                </div>
+              </div>
+              <div class="match-score-red match-score-best-red">
+                <span class="match-percent-red">95%</span>
+                <span class="match-label-red">Match</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-buttons-red">
+            <button class="btn-report-red" type="button" id="btn-report">Report</button>
+            <button class="btn-skip-red" type="button" id="btn-skip">Skip</button>
+          </div>
+
+          <button class="btn-history" type="button" id="btn-history-unregistered">
+            <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
+            <span>View History</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STATE 5: HOME -->
+      <div class="state hidden" id="state-home">
+        <!-- 1. EXTENSION STATUS BADGE -->
+          <div class="home-status-badge">
+            <span class="home-status-dot"></span>
+            <span class="home-status-text">Extension is Active</span>
+          </div>
+
+          <!-- 2. GUEST BANNER -->
+          <div class="home-banner">
+            <div class="home-title">Welcome to E-VerifyMo!</div>
+            <div class="home-message">
+              You are browsing as a guest. Sign in or Sign up
+              to view your verification history, complaints, and report status.
+            </div>
+            <a class="link-sign-in-up" id="link-sign-in-up">Proceed to Sign In / Sign Up</a>
+          </div>
+
+          <!-- 3. RECENT SCANS -->
+          <div class="home-section">
+            <div class="home-section-header">
+              <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
+              <span class="home-section-title">Recent Scans</span>
+            </div>
+            <div class="home-section-empty">No scans yet this session. Browse a product to start.</div>
+          </div>
+
+          <!-- 4. QUICK LINKS -->
+         <a class="btn" type="button" id="btn-complaint-history">
+          <img src="../assets/images/report.png" alt="report_icon" class="small-icons" />
+          <span>My Complaints</span>
+        </a>
+
+        <!-- 5. ABOUT BUTTON -->
+        <a class="btn" id="btn-about">
+          <img src="../assets/images/about.png" alt="about_icon" class="small-icons" />
+          <span>About E-VerifyMo</span>
+        </a>
+      </div>  
+
+      <!-- STATE 6: SCANNING -->
+      <div class="state hidden" id="state-scanning">
+        <div class="scanning-banner"> 
+          <div class="scan-spinner"></div>
+          <div class="scanning-copy">
+            <div class="scanning-title">Scanning Product...</div>
+            <div class="scanning-message">Please wait while we check the FDA database.</div>
+          </div>
+        </div>
+      </div>
+      
+
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
