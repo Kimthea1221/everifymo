@@ -1,122 +1,71 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import {BrowserRouter, Routes, Route} from 'react-router-dom'
+import Login from './pages/login-user.jsx'
+ {/* LEA-CIDG PAGES */}
+import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
+import LeaWalkinComplaints from './pages/leacidgfolder/lea-walkin-complaints.jsx';
+import LeaVerificationRequest from './pages/leacidgfolder/lea-verification-request.jsx';
+import LeaNewIntake from './pages/leacidgfolder/lea-new-intake.jsx';
+import LeaSavedDraft from './pages/leacidgfolder/lea-saved-draft.jsx';
 
-function App() {
-  const [count, setCount] = useState(0)
+{/* OTP EMAIL TEMPLATE */}
+import OtpEmailTemplate from './pages/emailtemplates/otp-email-template.jsx';
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+{/* SUPERADMIN PAGES */}
+import SuperAdminLogin from './pages/superadminfolder/superadmin-login.jsx';
+import ForgotPassword from './pages/forgot-password.jsx';
+import SuperAdminUserManagement from './pages/superadminfolder/superadmin-user-management.jsx';
+import SuperAdminAuditLog from './pages/superadminfolder/superadmin-audit-log.jsx';
+import UserRegistration from './pages/user-registration-form.jsx';
+import ChangePassword from './pages/change-password.jsx';
+import UserEmailRegistration from './pages/emailtemplates/user-email-registration.jsx';
+import UserEmailActivation from './pages/emailtemplates/user-email-activation.jsx';
 
-      <div className="ticks"></div>
+{/* FDA PAGES */}
+import FDADashboard from './pages/fdafolder/fda-dashboard.jsx';
+import FDAViewReports from './pages/fdafolder/fda-view-reports.jsx';
+import FDAVerification from './pages/fdafolder/fda-verification.jsx';
+import FDAStatus from './pages/fdafolder/fda-status.jsx';
+import FDAProductDB from './pages/fdafolder/fda-product-db.jsx';
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+export default function App(){
+  return(
+    <BrowserRouter>
+      <Routes>
+          {/*CHANGE THIS LINE ONLY WHEN TESTING */}
+          <Route path='/' element={<SuperAdminUserManagement />} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {/* AUTH ROUTES */}
+        <Route path='/login' element={<Login />} />
+        <Route path='/superadmin-login' element={<SuperAdminLogin />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/change-password' element={<ChangePassword />} />
+        <Route path='/user-registration' element={<UserRegistration />} />
+
+        {/* LEA-CIDG ROUTES */}
+        <Route path='/leacidgfolder/lea-dashboard' element={<LeaDashboard />} />
+        <Route path='/leacidgfolder/lea-walkin-complaints' element={<LeaWalkinComplaints />} />
+        <Route path='/leacidgfolder/lea-verification-request' element={<LeaVerificationRequest />} />
+        <Route path='/leacidgfolder/lea-new-intake' element={<LeaNewIntake />} />
+        <Route path='/leacidgfolder/lea-saved-draft' element={<LeaSavedDraft />} />
+
+        {/* SUPERADMIN ROUTES */}
+        <Route path='/superadminfolder/superadmin-user-management' element={<SuperAdminUserManagement />} />
+        <Route path='/superadminfolder/superadmin-audit-log' element={<SuperAdminAuditLog />} />
+
+        {/* EMAIL PREVIEW ROUTES:
+        *makikita niyo lang to sa localhost:15173/preview-email/
+        */}
+        <Route path='/preview-email' element={<OtpEmailTemplate />} />
+        <Route path='/preview-email/registration' element={<UserEmailRegistration />} />
+        <Route path='/preview-email/activation' element={<UserEmailActivation />} />
+
+        {/* FDA ROUTES */}
+        <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
+        <Route path='/fdafolder/fda-view-reports' element={<FDAViewReports />} />
+        <Route path='/fdafolder/fda-verification' element={<FDAVerification />} />
+        <Route path='/fdafolder/fda-status' element={<FDAStatus />} />
+        <Route path='/fdafolder/fda-product-db' element={<FDAProductDB />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
-
-export default App
