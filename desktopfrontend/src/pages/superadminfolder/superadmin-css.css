@@ -1,0 +1,951 @@
+.AdminLoginContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #1E293B 0%, #111827 100%);
+  color: #1F2937;
+}
+
+.AdminLoginWrapper {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: LoginSlideUp 0.3s ease;
+}
+
+@keyframes LoginSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.AdminLoginHeader {
+  background: linear-gradient(135deg, #1E293B 0%, #111827 100%);
+  padding: 32px 32px 28px;
+  border-bottom: 1px solid #0D9488;
+  text-align: center;
+  margin: -28px -32px 28px -32px;
+}
+
+.AdminLoginHeader h3 {
+  font-family: var(--font-headings);
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  margin: 0 0 0;
+}
+
+.AdminLoginHeader p {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 8px 0 0 0;
+}
+
+.AdminLoginWrapper form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px 32px 36px;
+}
+
+.AdminLoginWrapper label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 7px;
+  letter-spacing: 0.2px;
+}
+
+.AdminLoginWrapper input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
+  font-size: 14px;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+
+.AdminLoginWrapper input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.AdminLoginWrapper input:focus {
+  border-color: #0D9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+  background: rgba(13, 148, 136, 0.1);
+  outline: none;
+}
+
+.AdminLoginWrapper button[type="submit"] {
+  width: 100%;
+  margin-top: 6px;
+  padding: 13px;
+  background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(13, 148, 136, 0.35);
+  letter-spacing: 0.3px;
+}
+
+.AdminLoginWrapper button[type="submit"]:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+}
+
+.AdminLoginWrapper button[type="submit"]:active {
+  transform: translateY(0);
+}
+
+/* Password show/hide wrapper */
+.PasswordInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.PasswordInputWrapper input {
+  padding-right: 64px;
+}
+
+.TogglePasswordBtn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #0D9488;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.TogglePasswordBtn:hover {
+  color: #5eead4;
+}
+
+/* Forgot password link */
+.ForgotPasswordLink {
+  display: block;
+  margin: 2px 0 6px 0;
+  cursor: pointer;
+  color: #0D9488;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.ForgotPasswordLink:hover {
+  color: #5eead4;
+}
+
+/* OTP Section */
+.OtpContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.OtpInstructions {
+  color: #cbd5e1;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.OtpInstructions span {
+  color: #0D9488;
+  font-weight: 600;
+}
+
+.OtpTestHint {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
+  display: block;
+  margin-top: 6px;
+}
+
+.OtpInputGrid {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.OtpDigitInput {
+  width: 48px !important;
+  height: 56px;
+  padding: 0 !important;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 10px;
+  caret-color: #0D9488;
+  transition: all 0.2s ease;
+}
+
+.OtpDigitInput:focus {
+  border-color: #0D9488 !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25) !important;
+  background: rgba(13, 148, 136, 0.06);
+  outline: none;
+}
+
+.OtpTimerContainer {
+  color: #94a3b8;
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.OtpTimerContainer strong {
+  color: #0D9488;
+  font-weight: 700;
+}
+
+.ResendButton {
+  background: transparent;
+  border: none;
+  color: #0D9488;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.ResendButton:hover {
+  color: #5eead4;
+}
+
+.BackToLoginBtn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  display: block;
+  margin: 4px auto;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.BackToLoginBtn:hover {
+  color: #f1f5f9;
+}
+
+.AdminLoginErrorMsgContainer {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+@keyframes LoginShake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-5px); }
+  75%       { transform: translateX(5px); }
+}
+
+.AdminLoginErrorMsg {
+  color: #fca5a5;
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* WORKSPACE LAYOUT STYLES */
+.SuperadminMainContainer {
+  display: flex;
+  height: 100vh;
+  background: #fdfdfd;
+}
+
+.SuperadminContentContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.SuperadminMainfeed {
+  flex: 1;
+  padding: 32px;
+  background: #f5f5f5;
+  overflow-y: auto;
+}
+
+/* SuperAdmin Sidebar Styles */
+.SuperAdminSidebarMain {
+  width: 280px;
+  height: 100vh;
+  background: #1E293B ;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.SuperAdminSidebarTop {
+  width: 280px;
+  height: fit-content;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+  padding: 20px 10px;
+  color: #fdfdfd;
+  font-size: small;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(253, 253, 253, 0.2);
+}
+
+.SuperAdminSidebarMenu {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 4px;
+  align-items: center;
+  flex: 1;
+}
+
+.SuperAdminSidebarMenu .MenuBtn {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.SuperAdminSidebarMenu .MenuBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.SuperAdminSidebarMenu .MenuBtn.active {
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.SuperAdminSidebarBottom {
+  width: 280px;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  color: #fdfdfd;
+  border-top: 1px solid rgba(253, 253, 253, 0.2);
+  margin-top: auto;
+}
+
+.SuperAdminSidebarUser {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  font-size: 13px;
+  justify-content: space-between;
+}
+
+.SuperAdminSidebarUser p {
+  flex: 1;
+  margin: 0;
+}
+
+.SuperAdminSidebarUser button {
+  background: transparent;
+  border: none;
+  color: #fdfdfd;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border-radius: 10px;
+}
+
+.SuperAdminSidebarUser button:hover {
+  color: #ff4d4f;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.logouticon img {
+  width: 16px;
+  height: 16px;
+}
+
+.SidebarUserContainer {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+  overflow: hidden;
+}
+
+.SidebarUserContainer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.AdminLoginWrapper label span{
+  color: red;
+}
+
+/* SUPERADMIN USER MANAGEMENT */
+
+.UMPageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+
+.UMPageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.UMPageTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.UMPageTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.UMPageSubtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Add Personnel Button ── */
+.UMAddPersonnelBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+  white-space: nowrap;
+}
+
+.UMAddPersonnelBtn:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
+}
+
+.UMAddPersonnelBtn:active {
+  transform: translateY(0);
+}
+
+.UMBtnIcon {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 400;
+}
+
+/* ── Stats Row ── */
+.UMStatsRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.UMStatCard {
+  flex: 1;
+  min-width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.18s ease;
+}
+
+.UMStatCard:hover {
+  transform: translateY(-2px);
+}
+
+.UMStatValue {
+  font-size: 26px;
+  font-weight: 700;
+  font-family: 'Poppins', sans-serif;
+}
+
+.UMStatLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-total  { border-top: 3px solid #1E293B; }
+.stat-total  .UMStatValue { color: #1E293B; }
+
+.stat-active { border-top: 3px solid #16a34a; }
+.stat-active .UMStatValue { color: #16a34a; }
+
+.stat-pending { border-top: 3px solid #d97706; }
+.stat-pending .UMStatValue { color: #d97706; }
+
+.stat-activation { border-top: 3px solid #2563eb; }
+.stat-activation .UMStatValue { color: #2563eb; }
+
+.stat-suspended { border-top: 3px solid #dc2626; }
+.stat-suspended .UMStatValue { color: #dc2626; }
+
+/* ── Table ── */
+.UMTableWrapper {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.UMTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.UMTable thead tr {
+  background: #1E293B;
+}
+
+.UMTable thead th {
+  padding: 13px 16px;
+  text-align: left;
+  color: #cbd5e1;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+}
+
+.UMTable tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.UMTable tbody tr:last-child {
+  border-bottom: none;
+}
+
+.UMTable tbody tr:hover {
+  background: #f8fafc;
+}
+
+.UMTable tbody td {
+  padding: 13px 16px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.UMTdCenter {
+  text-align: center;
+  color: #94a3b8 !important;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.UMEmailCell {
+  color: #0D9488 !important;
+  font-size: 13px;
+}
+
+.UMEmpty {
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+/* ── Status Badges ── */
+.UMStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.badge-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-for-activation {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.badge-active {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-suspended {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ── Action Buttons ── */
+.UMActionBtn {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-resend {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.btn-resend:hover {
+  background: #fde68a;
+}
+
+.btn-activate {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+.btn-activate:hover {
+  background: #bfdbfe;
+}
+
+.btn-suspend {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.btn-suspend:hover {
+  background: #fecaca;
+}
+
+.btn-reactivate {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.btn-reactivate:hover {
+  background: #bbf7d0;
+}
+
+/* ── Modal Overlay ── */
+.UMModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: UMFadeIn 0.2s ease;
+}
+
+@keyframes UMFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal Card ── */
+.UMModal {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  animation: UMSlideUp 0.25s ease;
+  overflow: hidden;
+}
+
+@keyframes UMSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Add Modal */
+.UMAddModal {
+  width: 100%;
+  max-width: 440px;
+  padding: 32px;
+}
+
+.UMModalHeader {
+  margin-bottom: 24px;
+}
+
+.UMModalTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 6px;
+}
+
+.UMModalSubtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Confirm Modal */
+.UMConfirmModal {
+  width: 100%;
+  max-width: 400px;
+  padding: 36px 32px;
+  text-align: center;
+}
+
+.UMConfirmIcon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.UMConfirmMessage {
+  font-size: 14px;
+  color: #64748b;
+  margin: 8px 0 28px;
+  line-height: 1.6;
+}
+
+/* ── Form Elements ── */
+.UMFormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.UMLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.UMRequired {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.UMInput {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  font-size: 14px;
+  color: #111827;
+  background: #f9fafb;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+.UMRegionAgencyRow{
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  margin-top: 20px;
+}
+.UMRegionAgencyRow label{
+  color: #1E293B;
+}
+ 
+.UMRegionSelect, .UMAgencySelect{
+  width: 50%;
+  height: 30px;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+}
+.UMRegionSelect:focus, .UMAgencySelect:focus{
+  border-color: #0D9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  outline: none;
+}
+
+.UMInput:focus {
+  border-color: #0D9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  background: #fff;
+}
+
+.UMInput.input-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.UMFieldError {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+/* ── Modal Footer ── */
+.UMModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.UMFooterCenter {
+  justify-content: center;
+}
+
+.UMCancelBtn {
+  padding: 10px 20px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.UMCancelBtn:hover {
+  background: #e2e8f0;
+}
+
+.UMConfirmBtn {
+  padding: 10px 22px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.UMConfirmBtn.primary {
+  background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+.UMConfirmBtn.primary:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  transform: translateY(-1px);
+}
+
+.UMConfirmBtn.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.UMConfirmBtn.danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+}
+
+.UMConfirmBtn:disabled,
+.UMCancelBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Success Box ── */
+.UMSuccessBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.UMSuccessIcon {
+  font-size: 36px;
+}
+
+.UMSuccessMsg {
+  font-size: 14px;
+  color: #166534;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0;
+}
