@@ -1,37 +1,47 @@
-from dataclasses import EmailStr, Field
-
-from pydantic import BaseModel
 from uuid import UUID
 
+from pydantic import BaseModel, Field
+from enum import Enum
 
-class ValidateTokenResponse(BaseModel):   
-    email: str                         
-    role: str
-    region_id: UUID | None
-    region_name: str | None        
+
+class TokenStatus(str, Enum):
+    valid = "valid"
+    expired = "expired"
+    used = "used"
+    invalid = "invalid"
+
+
+class ValidateTokenResponse(BaseModel):
+    status: TokenStatus
+    message: str | None = None
+
+    email: str | None = None
+    role: str | None = None
+    region_id: UUID | None = None
+    region_name: str | None = None
 
 
 class RegistrationCompleteRequest(BaseModel):
     invite_token: str
 
-    first_name: str = Field(..., min_length=1, max_length=100)               
+    first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
-    position: str = Field(..., min_length=1, max_length=100)
+    position: str = Field(..., min_length=1, max_length=150)
 
-    middle_name: str | None = Field(None, max_length=100)   
+    middle_name: str | None = Field(None, max_length=100)
     employee_id: str | None = Field(None, max_length=50)
     contact_number: str | None = Field(None, max_length=20)
-    department: str | None = Field(None, max_length=100)
-
-#chatgpt recommended adding this
-class ResendInviteRequest(BaseModel):
-    invite_token: str
-
-#this one as well
-class ResendInviteResponse(BaseModel):
-    message: str
+    department: str | None = Field(None, max_length=150)
 
 
 class RegistrationCompleteResponse(BaseModel):
     message: str
     status: str
+
+
+class ResendInviteRequest(BaseModel):
+    invite_token: str
+
+
+class ResendInviteResponse(BaseModel):
+    message: str
