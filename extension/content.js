@@ -9,7 +9,7 @@ function isProductPage() {
 
     const currentUrl = location.href;
 
-    if (currentUrl.includes("shopee.ph") && currentUrl.includes("-i.")) {
+    if ((currentUrl.includes("shopee.ph") && currentUrl.includes("-i.")) || currentUrl.includes("shopee.ph/product")) {
         console.log("Product page of shopee");
         return true;
     }    
@@ -77,45 +77,58 @@ observer.observe(document.body, {
 // ==== Product title Extraction ====
 
 // A list of generic/placeholder values that are NOT real titles
-const INVALID_TITLES = ['marketplace', 'facebook', ''];
+const INVALID_TITLES = [
+    'marketplace', 
+    'facebook', 
+    'shopee philippines',
+    'shop online with promos and vouchers',
+];
 
 function isValidTitle(title) {
     if (!title) return false;
     const normalized = title.trim().toLowerCase();
-    return !INVALID_TITLES.includes(normalized);
+    return !INVALID_TITLES.some(generic => normalized.includes(generic));
 }
 
 function shopeeExtraction() {
 
-    // extract through the h1 tag
+    // h1
     const h1 = document.querySelector('h1');
-    if (h1?.textContent?.trim()) return h1.textContent.trim();
+    const h1Text = h1?.textContent?.trim();
+    if (isValidTitle(h1Text)) return h1Text;
 
-    // extract span that is inside h1
+    // span inside h1
     const spanInH1 = document.querySelector('h1 span');
-    if (spanInH1?.textContent?.trim()) return spanInH1.textContent.trim();
+    const spanText = spanInH1?.textContent?.trim();
+    if (isValidTitle(spanText)) return spanText;
 
-    // extract in the title inside meta tag
+    // meta og:title
     const metaTitle = document.querySelector('meta[property="og:title"]');
     if (metaTitle?.getAttribute('content')?.trim()) {
-        return metaTitle.getAttribute('content').replace(/\s*[\|\-–]\s*Shopee.*$/i, '').trim();
+        const content = metaTitle.getAttribute('content')
+            .replace(/\s*[\|\-–]\s*Shopee.*$/i, '')
+            .trim();
+        if (isValidTitle(content)) return content;
     }
 
-    // extract through page title
-    return document.title.split('|')[0].split('-')[0].trim() || null;
+    // document.title
+    const docTitleCandidate = document.title.split('|')[0].split('-')[0].trim();
+    if (isValidTitle(docTitleCandidate)) return docTitleCandidate;
+
+    return null; // nothing valid yet
 }
 
 function lazadaExtraction() {
 
-    // extract through class name for the product title
+    // class name
     const pdpTitle = document.querySelector('[class*="pdp-mod-product-badge-title-v2');
     if (pdpTitle?.textContent?.trim()) return pdpTitle.textContent.trim();
 
-    // extract through h1
+    // h1
     const h1 = document.querySelector('h1');
     if (h1?.textContent.trim()) return h1.textContent.trim();
 
-    // extract in the title inside meta tag
+    // title inside meta tag
     const metaTitle = document.querySelector('meta[property="og:title"]');
     if (metaTitle?.getAttribute('content')?.trim()) {
         return metaTitle.getAttribute('content').replace(/\s*[\|\-–]\s*Lazada.*$/i, '').trim();
@@ -126,15 +139,15 @@ function lazadaExtraction() {
 
 function tiktokExtraction() {
     
-    // extract through span inside h1
+    // span inside h1
     const spanInH1 = document.querySelector('h1 span');
     if (spanInH1?.textContent?.trim()) return spanInH1.textContent.trim();
 
-    // extract through h1
+    // h1
     const h1 = document.querySelector('h1');
     if (h1?.textContent?.trim()) return h1.textContent.trim();
 
-    // extract through class name for the product title
+    // class name 
     const byClass = document.querySelector('[class*="H2-Semibold"], [class*="UIText1Display"]');
     if (byClass?.textContent?.trim()) return byClass.textContent.trim();
 
@@ -144,23 +157,25 @@ function tiktokExtraction() {
 
 function facebookExtraction() {
 
+    console.log('title:', document.title, '| h1:', document.querySelector('h1')?.textContent);
+
     const pageTitle = document.title;
-    if (pageTitle.includes('Buy and Sell in') || pageTitle === 'Facebook' || !pageTitle) {
+    if (pageTitle.toLowerCase() === 'search' || pageTitle.toLowerCase() === 'facebook' || !pageTitle) {
         return null;
     }
-    
-    // remove facebook branding (Facebook markeplace after |)
+
+    // document.title
     let title = pageTitle.split('|')[0].trim();
-    title = title.split(' - ')[0].trim();
-    
-    if (title && title !== 'Marketplace') return title;
+    const dashIndex = title.indexOf(' - ');
+    if (dashIndex !== -1) {
+        title = title.substring(dashIndex + 3).trim();
+    }
 
-    // extract span inside h1
-    const spanInH1 = document.querySelector('h1 span');
-    const spanText = spanInH1?.textContent?.trim();
-    if (isValidTitle(spanText)) return spanText;
+    if (isValidTitle(title) && title.toLowerCase() !== 'marketplace' && title.toLowerCase() !== 'search') {
+        return title;
+    }
 
-    // extract through meta tags
+    // meta tags
     const metaTitle = document.querySelector('meta[property="og:title"]');
     if (metaTitle?.getAttribute('content')?.trim()) {
         const content = metaTitle.getAttribute('content').replace(/\s*[\|\-–]\s*Facebook.*$/i, '')
@@ -169,6 +184,11 @@ function facebookExtraction() {
         
         if (isValidTitle(content)) return content;
     }
+
+    // span inside h1
+    const spanInH1 = document.querySelector('h1 span');
+    const spanText = spanInH1?.textContent?.trim();
+    if (isValidTitle(spanText)) return spanText;
 
     return null;
 }
@@ -201,7 +221,6 @@ function tryExtract(attempt = 1) {
     }
 
     console.log('tryExtract() called, attempt:', attempt);
-
     if (!isProductPage()) return;
  
     const platform = whatPlatform();
@@ -263,9 +282,9 @@ function tryExtract(attempt = 1) {
 
 tryExtract();
 
-// // ==== Overlay ====
+// ==== Overlay ====
 
-// // Creates and injects a result banner onto the product page
+// Creates and injects a result banner onto the product page
 function showOverlay(result) {
 
     // Remove any existing overlay first
@@ -348,7 +367,7 @@ function showOverlay(result) {
     // Auto-remove after 10 seconds
     setTimeout(() => {
         if (overlay.parentElement) overlay.remove();
-    }, 10000);
+    }, 8000);
 }
 
 // Listen for the result coming back from background.js
