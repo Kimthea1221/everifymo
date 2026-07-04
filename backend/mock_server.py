@@ -22,9 +22,13 @@ class productRequest(BaseModel):
 @app.post("/check")
 def check_product(product: productRequest):
     print(f"Recieved: {product.title} from {product.platform}")
+    result = run_verification(product.title)
+    return result
 
+# will be replaced when the NLP pipeline is done
+def run_verification(title: str) -> dict:
     return {
-        "title": product.title,
+        "title": title,
         "status": "mock_result",
         "registered": True,
         "message": "For testing purpose only. Real validation is not connected yet."
