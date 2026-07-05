@@ -7,50 +7,174 @@
   <link rel="stylesheet" href="../css/global.css" />
 </head>
 <body>
-  <main class="auth-card">
-    <div class="header-row">
-      <div class="header-left">
-        <button class="btn-back" type="button" aria-label="Back">←</button>
-        <img src="../assets/images/extension_icon.png" alt="E-VERIFYMO Logo" class="logo-placeholder" width="36" height="36" />
-        <h1 class="header-title">Product Complaint</h1>
-      </div>
-      <a href="#" class="header-link">Log In</a>
-    </div>
+  <main class="report-complaint-card">
+    <div id="header-slot"></div>
+        <div id="overlay-slot"></div>
+        
+        <div id="blur-target">
+            <div id="nav-slot"></div>
+            <div id="page-content">
 
-    <div class="guest-notice">
-      <div class="icon-placeholder-guest-notice" aria-hidden="true"></div>
-      <div>
-        <p class="guest-notice-title">Submitting as guest</p>
-        <p class="guest-notice-text">Log in to track this report's status. <span class="guest-notice-link">Log in</span></p>
-      </div>
-    </div>
+              <div id="report-default-view" class="report-view">
+                <div class="notice-banner">
+                   <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
+                  <div class="notice-text-container">
+                    <p class="notice-title">This is Your Complaint Report Page.</p> 
+                    <p class="notice-text">Reporting is optional. Toggle the extension on 
+                      while browsing cosmetic products on supported platforms to detect 
+                      unregistered FDA products and file a complaint. See About for details.</p> 
+                  </div>  
+                </div>
+              </div>
 
-    <div class="captured-box">
-      <div class="captured-top">
-        <div class="icon-placeholder-check" aria-hidden="true"></div>
-        <div class="captured-label">AUTO-CAPTURED</div>
-      </div>
-      <div class="captured-name" id="complaint-product-name">Miracle Glow Whitening Setting Spray 60ml</div>
-      <div class="captured-url" id="complaint-product-url">shopee.ph/Miracle-Glow-Whitening-...</div>
-    </div>
+              <div id="report-form-view" class="report-view hidden">
+                <div class="notice-banner">
+                   <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
+                  <div class="notice-text-container">
+                    <p class="notice-title">Reporting a Complaint as Username</p> 
+                    <p class="notice-text">This report will be saved to your account for tracking.</p> 
+                  </div>  
+                </div>
 
-    <div class="field">
-      <label class="field-label" for="complaint-description">DESCRIPTION (optional)</label>
-      <textarea id="complaint-description" class="complaint-textarea" placeholder="Tell us what made this product look suspicious..."></textarea>
-    </div>
+                <div class="detected-container">
+                  <div class="detected-top">
+                    <div class="detected-label">Unregistered Product Detected:</div>
+                  </div>
+                  <div class="detected-name" id="complaint-product-name">Miracle Glow Whitening Setting Spray 60ml</div>
+                  <div class="detected-url" id="complaint-product-url">shopee.ph/Miracle-Glow-Whitening-...</div>
+                </div>
+                
+                <div class="field">
+                  <label class="field-label" for="store-name">Name of the Store</label>
+                  <textarea id="store-name" class="complaint-input" placeholder="Enter Store Name"></textarea>
+                </div>
 
-    <div class="attach-box" role="button" tabindex="0">
-      <div class="icon-placeholder-upload" aria-hidden="true"></div>
-      <div class="attach-text">Attach screenshot (optional)</div>
-    </div>
+                <div class="field">
+                  <label class="field-label" for="complaint-description">Description (optional)</label>
+                  <textarea id="complaint-description" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
+                </div>
 
-    <div class="action-row">
-      <button class="btn-cancel" type="button">Cancel</button>
-      <button class="btn-submit-report" type="button">Submit Report</button>
-    </div>
+                <div class="attach-box" role="button" tabindex="0">
+                  <div class="icon-placeholder-upload" aria-hidden="true"></div>
+                  <div > <img src="../assets/images/upload_icon.png" alt="Upload Icon" class="upload-icon" />
+                    <span class="attach-text">Attach screenshot (optional)</span>
+                  </div>
+                </div>
+
+                <div class="action-row">
+                  <button id="cancel-btn" class="btn-cancel" type="button">Cancel</button>
+                  <button id="submit-report-btn" class="btn-submit-report" type="button">Submit Report</button>
+                </div>
+
+              </div>
+
+              <div id="report-success-view" class="report-view hidden">
+                <div class="notice-banner">
+                   <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
+                  <div class="notice-text-container">
+                    <p class="notice-title">Complaint Successfully Reported!</p> 
+                    <p class="notice-text">You can now view your complaint status,  
+                      complaint history and verification history by clicking the buttons below.</p> 
+                  </div>  
+                </div>
+              </div>
+
+              <div id="report-cancelled-view" class="report-view hidden">
+                <div class="notice-banner">
+                   <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
+                  <div class="notice-text-container">
+                    <p class="notice-title">Complaint Report Cancelled</p> 
+                    <p class="notice-text">No changes were saved. You can start a new report 
+                      anytime an unregistered product is detected.</p> 
+                  </div>  
+                </div>
+              </div>
+
+              <!-- Guest View -->
+
+               <div id="report-default-view-guest" class="report-view-guest hidden">
+                <div class="notice-banner">
+                   <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
+                  <div class="notice-text-container">
+                    <p class="notice-title">This is Your Complaint Report Page.</p> 
+                    <p class="notice-text">Reporting is optional. Toggle the extension on 
+                      while browsing cosmetic products on supported platforms to detect 
+                      unregistered FDA products and file a complaint. See About for details.</p> 
+                  </div>  
+                </div>
+              </div>
+
+              <div id="report-form-view-guest" class="report-view-guest hidden">
+                <div class="notice-banner">
+                   <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
+                  <div class="notice-text-container">
+                    <p class="notice-title">Reporting a Complaint as a Guest</p> 
+                    <p class="notice-text">This report will not be saved. Sign in/up for tracking.</p> 
+                  </div>  
+                </div>
+
+                <div class="detected-container">
+                  <div class="detected-top">
+                    <div class="detected-label">Unregistered Product Detected:</div>
+                  </div>
+                  <div class="detected-name" id="complaint-product-name">Miracle Glow Whitening Setting Spray 60ml</div>
+                  <div class="detected-url" id="complaint-product-url">shopee.ph/Miracle-Glow-Whitening-...</div>
+                </div>
+                
+                <div class="field">
+                  <label class="field-label" for="store-name">Name of the Store</label>
+                  <textarea id="store-name" class="complaint-input" placeholder="Enter Store Name"></textarea>
+                </div>
+
+                <div class="field">
+                  <label class="field-label" for="complaint-description">Description (optional)</label>
+                  <textarea id="complaint-description" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
+                </div>
+
+                <div class="attach-box" role="button" tabindex="0">
+                  <div class="icon-placeholder-upload" aria-hidden="true"></div>
+                  <div > <img src="../assets/images/upload_icon.png" alt="Upload Icon" class="upload-icon" />
+                    <span class="attach-text">Attach screenshot (optional)</span>
+                  </div>
+                </div>
+
+                <div class="action-row">
+                  <button id="cancel-btn" class="btn-cancel" type="button">Cancel</button>
+                  <button id="submit-report-btn" class="btn-submit-report" type="button">Submit Report</button>
+                </div>
+
+              </div>
+
+              <div id="report-success-view-guest" class="report-view-guest hidden">
+                <div class="notice-banner">
+                   <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
+                  <div class="notice-text-container">
+                    <p class="notice-title">Complaint Successfully Reported!</p> 
+                    <p class="notice-text">This report is not saved. Sign in/up for tracking.</p> 
+                  </div>  
+                </div>
+              </div>
+
+              <div id="report-cancelled-view-guest" class="report-view-guest hidden">
+                <div class="notice-banner">
+                   <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
+                  <div class="notice-text-container">
+                    <p class="notice-title">Complaint Report Cancelled</p> 
+                    <p class="notice-text">No changes were saved. You can start a new report 
+                      anytime an unregistered product is detected.</p> 
+                  </div>  
+                </div>
+              </div>
+
+            </div>
+        </div>
+    
   </main>
 </body>
-
-<script src="../js/report.js"></script>
+  <script src="../js/report.js"></script>
+  <script src="../js/partial-loader.js"></script>
+  <script src="../utils/api.js"></script>
+  <script src="../js/header.js"></script>
+  <script src="../js/nav.js"></script>
 </html>
 

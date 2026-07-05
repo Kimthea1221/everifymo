@@ -144,7 +144,7 @@ body {
   gap: 14px;
 }
 
-#state-registered .verified-banner {
+#state-registered .registered-banner {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -162,20 +162,20 @@ body {
   flex-shrink: 0;
 }
 
-#state-registered .verified-copy {
+#state-registered .registered-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-#state-registered .verified-title {
+#state-registered .registered-title {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 16px;
   color: #2E7D32;
 }
 
-#state-registered .verified-product {
+#state-registered .registered-product {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: #66BB6A;
@@ -337,15 +337,15 @@ body {
 }
 
 /* ================================
-   UNVERIFIED STATE (ORANGE)
+   SUSPICIOUS STATE (ORANGE)
 ================================ */
-#state-unverified {
+#state-suspicious {
   align-items: stretch;
   text-align: left;
   gap: 14px;
 }
 
-#state-unverified .not-found-banner {
+#state-suspicious .not-found-banner {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -355,7 +355,7 @@ body {
   background-color: #FFF8EB;
 }
 
-#state-unverified .icon-placeholder-orange {
+#state-suspicious .icon-placeholder-orange {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -363,28 +363,28 @@ body {
   flex-shrink: 0;
 }
 
-#state-unverified .not-found-copy {
+#state-suspicious .not-found-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-#state-unverified .not-found-title {
+#state-suspicious .not-found-title {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 14px;
   color: #D97706;
 }
 
-#state-unverified .not-found-product {
+#state-suspicious .not-found-product {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: #D97706;
 }
 
-#state-unverified .further-checking-section { margin-bottom: 0; }
+#state-suspicious .further-checking-section { margin-bottom: 0; }
 
-#state-unverified .further-checking-title {
+#state-suspicious .further-checking-title {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 13px;
@@ -392,14 +392,14 @@ body {
   margin-bottom: 4px;
 }
 
-#state-unverified .further-checking-text {
+#state-suspicious .further-checking-text {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: #777777;
   line-height: 1.5;
 }
 
-#state-unverified .quick-check-guide {
+#state-suspicious .quick-check-guide {
   background-color: #FFF8EB;
   border: 1px solid #D97706;
   border-radius: 12px;
@@ -411,7 +411,7 @@ body {
   scrollbar-color: #D97706 #f0f0f0;
 }
 
-#state-unverified .quick-check-title {
+#state-suspicious .quick-check-title {
   text-align: center;
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
@@ -420,7 +420,7 @@ body {
   margin-bottom: 10px;
 }
 
-#state-unverified .quick-check-tip {
+#state-suspicious .quick-check-tip {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: #030303;
@@ -428,7 +428,7 @@ body {
   margin-bottom: 8px;
 }
 
-#state-unverified .quick-check-tip:last-child { margin-bottom: 0; }
+#state-suspicious .quick-check-tip:last-child { margin-bottom: 0; }
 
 /* ================================
    UNREGISTERED STATE (RED)
@@ -439,7 +439,7 @@ body {
   gap: 14px;
 }
 
-#state-unregistered .unverified-banner {
+#state-unregistered .unregistered-banner {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -457,20 +457,20 @@ body {
   flex-shrink: 0;
 }
 
-#state-unregistered .unverified-copy {
+#state-unregistered .unregistered-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-#state-unregistered .unverified-title {
+#state-unregistered .unregistered-title {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 16px;
   color: #B22222;
 }
 
-#state-unregistered .unverified-message {
+#state-unregistered .unregistered-message {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: #B22222;
