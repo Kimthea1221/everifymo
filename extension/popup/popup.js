@@ -6,8 +6,17 @@
 
       // TEMPORARY HARDCODE FOR TESTING — remove later
       const title = 'Maybelline Fit Me Foundation';
-      const status = 'home'; // change to: 'registered', 'unverified', 'home', 'idle'
+      const url = 'shopee.ph/Maybelline-Fit-Me-Foundation';
+      const status = 'unregistered'; // change to: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
 
+       // Write the same test data into storage so report-complaint.html
+      // (opened in a new tab) reads consistent values
+      chrome.storage.local.set({
+        productTitle: title,
+        productUrl: url,
+        productStatus: status
+      });
+      
       if (status === 'registered') {
         const el = document.getElementById('product-name-registered');
         if (el) el.textContent = title;
@@ -18,10 +27,10 @@
         if (el) el.textContent = title;
         showState('unregistered');
 
-      } else if (status === 'unverified') {
-        const el = document.getElementById('product-name-unverified');
+      } else if (status === 'suspicious') {
+        const el = document.getElementById('product-name-suspicious');
         if (el) el.textContent = title;
-        showState('unverified');
+        showState('suspicious');
 
       } else if (status === 'home') {
         showState('home');
@@ -35,6 +44,13 @@
       }
     }
   );
+
+  function showReportView(viewId) {
+  const views = document.querySelectorAll('.report-view');
+  views.forEach(view => {
+    view.classList.toggle('hidden', view.id !== viewId);
+  });
+}
 
   const btnReport = document.getElementById('btn-report');
   if (btnReport) {
@@ -57,10 +73,10 @@
     });
   }
 
-    const btnComplaintHistory = document.getElementById('btn-complaint-history');
+    const btnComplaintHistory = document.getElementById('history-btn');
   if (btnComplaintHistory) {
     btnComplaintHistory.addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('pages/complaint-history.html') });
+      chrome.tabs.create({ url: chrome.runtime.getURL('pages/history.html') });
     });
   }
 
@@ -78,8 +94,15 @@ if (btnGuest) {
   });
 }
 
+const btnExit = document.getElementById('exit-btn');
+if (btnExit) {
+  btnExit.addEventListener('click', () => {
+    window.close(); // closes the tab, returns to extension
+  });
+}
+
 function showState(state) {
-  const states = ['idle', 'registered', 'unverified', 'unregistered', 'home', 'scanning'];
+  const states = ['idle', 'registered', 'suspicious', 'unregistered', 'home', 'scanning'];
   states.forEach(s => {
     const el = document.getElementById(`state-${s}`);
     if (el) el.classList.add('hidden');

@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>E-VERIFYMO</title>
+    <title>E-VERIFY</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
 
     <!-- HEADER -->
     <header class="header">
-      <img src="../assets/images/extension_icon.png" alt="E-VERIFYMO Logo" class="logo" />
-      <h1 class="extension-name">E-VerifyMo</h1>
+      <img src="../assets/images/extension_icon.png" alt="E-VERIFY Logo" class="logo" />
+      <h1 class="extension-name">E-Verify</h1>
     </header>
 
     <!-- MAIN CONTENT -->
@@ -24,11 +24,11 @@
 
       <!-- STATE 2: REGISTERED (GREEN) -->
       <div class="state hidden" id="state-registered">
-        <div class="verified-banner">
+        <div class="registered-banner">
           <div class="icon-placeholder" aria-hidden="true"></div>
-          <div class="verified-copy">
-            <div class="verified-title">Verified Product!</div>
-            <div class="verified-product">Product: <span id="product-name-registered"></span></div>
+          <div class="registered-copy">
+            <div class="registered-title">Registered Product!</div>
+            <div class="registered-product">Product: <span id="product-name-registered"></span></div>
           </div>
         </div>
 
@@ -96,25 +96,25 @@
           </div>
 
           <button class="btn-history" type="button" id="btn-history-registered">
-            <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
+            <img src="../assets/images/clock_icon.png" alt="clock_icon" class="small-icons" />
             <span>View History</span>
           </button>
         </div>
       </div>
 
-      <!-- STATE 3: UNVERIFIED (ORANGE) -->
-      <div class="state hidden" id="state-unverified">
+      <!-- STATE 3: SUSPICIOUS (ORANGE) -->
+      <div class="state hidden" id="state-suspicious">
         <div class="not-found-banner">
           <div class="icon-placeholder-orange" aria-hidden="true"></div>
           <div class="not-found-copy">
             <div class="not-found-title">Product Not Found!</div>
-            <div class="not-found-product">Product: <span id="product-name-unverified"></span></div>
+            <div class="not-found-product">Product: <span id="product-name-suspicious"></span></div>
           </div>
         </div>
 
         <div class="further-checking-section">
           <div class="further-checking-title">Further Checking Required</div>
-          <div class="further-checking-text">This product was not found in our verified or unverified databases. The system cannot guarantee its registration status.</div>
+          <div class="further-checking-text">This product was not found in our registered or unregistered databases. The system cannot guarantee its registration status.</div>
         </div>
 
         <div class="quick-check-guide">
@@ -124,19 +124,19 @@
           <div class="quick-check-tip">Be cautious if the price is unrealistically low compared to official brand flagship stores.</div>
         </div>
 
-        <button class="btn-history" type="button" id="btn-history-unverified">
-          <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
+        <button class="btn-history" type="button" id="btn-history-suspicious">
+          <img src="../assets/images/clock_icon.png" alt="clock_icon" class="small-icons" />
           <span>View History</span>
         </button>
       </div>
 
       <!-- STATE 4: UNREGISTERED (RED) -->
       <div class="state hidden" id="state-unregistered">
-        <div class="unverified-banner">
+        <div class="unregistered-banner">
           <div class="icon-placeholder-red" aria-hidden="true"></div>
-          <div class="unverified-copy">
-            <div class="unverified-title">Unverified Product!</div>
-            <div class="unverified-message">Product: <span id="product-name-unregistered"></span></div>
+          <div class="unregistered-copy">
+            <div class="unregistered-title">Unregistered Product!</div>
+            <div class="unregistered-message">Product: <span id="product-name-unregistered"></span></div>
           </div>
         </div>
 
@@ -209,7 +209,7 @@
           </div>
 
           <button class="btn-history" type="button" id="btn-history-unregistered">
-            <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
+            <img src="../assets/images/clock_icon.png" alt="clock_icon" class="small-icons" />
             <span>View History</span>
           </button>
         </div>
@@ -225,7 +225,7 @@
 
           <!-- 2. GUEST BANNER -->
           <div class="home-banner">
-            <div class="home-title">Welcome to E-VerifyMo!</div>
+            <div class="home-title">Welcome to E-Verify!</div>
             <div class="home-message">
               You are browsing as a guest. Sign in or Sign up
               to view your verification history, complaints, and report status.
@@ -236,14 +236,14 @@
           <!-- 3. RECENT SCANS -->
           <div class="home-section">
             <div class="home-section-header">
-              <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
+              <img src="../assets/images/clock_icon.png" alt="clock_icon" class="small-icons" />
               <span class="home-section-title">Recent Scans</span>
             </div>
             <div class="home-section-empty">No scans yet this session. Browse a product to start.</div>
           </div>
 
           <!-- 4. QUICK LINKS -->
-         <a class="btn" type="button" id="btn-complaint-history">
+         <a class="btn" type="button" id="history-btn">
           <img src="../assets/images/report.png" alt="report_icon" class="small-icons" />
           <span>My Complaints</span>
         </a>
@@ -251,7 +251,7 @@
         <!-- 5. ABOUT BUTTON -->
         <a class="btn" id="btn-about">
           <img src="../assets/images/about.png" alt="about_icon" class="small-icons" />
-          <span>About E-VerifyMo</span>
+          <span>About E-Verify</span>
         </a>
       </div>  
 

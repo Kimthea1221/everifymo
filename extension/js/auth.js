@@ -22,13 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
       title: 'Signing in is optional',
       text: 'You can still verify products and submit complaints as a guest. Sign in or Sign up to view your verification history, complaints, and report status.',
       buttonLabel: 'Sign In',
-      documentTitle: 'E-VERIFYMO | Sign In'
+      documentTitle: 'E-VERIFY | Sign In'
     },
     signup: {
       title: 'Signing up is optional',
       text: 'You can still verify products and submit complaints as a guest. Sign in or Sign up to view your verification history, complaints, and report status.',
       buttonLabel: 'Sign Up',
-      documentTitle: 'E-VERIFYMO | Sign Up'
+      documentTitle: 'E-VERIFY | Sign Up'
     }
   };
 
@@ -174,9 +174,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  if (primaryButton) {
-    primaryButton.addEventListener('click', () => {
-      validateForm();
-    });
-  }
+  const guestBtn = document.getElementById('btn-guest');
+if (guestBtn) {
+  guestBtn.addEventListener('click', () => {
+    window.location.href = 'report-complaint.html';
+  });
+}
+
+if (primaryButton) {
+  primaryButton.addEventListener('click', () => {
+    const isValid = validateForm();
+    if (isValid) {
+      // TEMPORARY: no real backend yet, so we just redirect on successful validation.
+      // Later this becomes: call the sign-in/sign-up API, then redirect only on success.
+      window.location.href = 'report-complaint.html';
+    }
+  });
+}
+
 });

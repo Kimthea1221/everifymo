@@ -1,5 +1,5 @@
 /* ================================
-   E-VERIFYMO — GLOBAL STYLES
+   E-VERIFY — GLOBAL STYLES
   Used by: auth.html,
    report-complaint.html
 ================================ */
@@ -61,14 +61,23 @@ body {
 /* ================================
    CARD
 ================================ */
-.auth-card, .about-card,
-.complaint-card {
+.auth-card,
+.report-complaint-card, .history-card {
   width: 100%;
   max-width: 560px;
+  min-height: 500px;
   background: #FDFDFD;
   border-radius: 16px;
   padding: 40px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card,
+.report-complaint-card,
+.history-card,
+.about-card {
+  position: relative;
+  /* ...keep all your existing properties below this */
 }
 
 /* ================================
@@ -81,19 +90,500 @@ body {
   position: relative;
   margin-bottom: 24px;
   margin-top: 0;
+  border-bottom: 2px solid #d9d9d9;
+  padding-bottom: 4px;
+}
+
+.header-right-buttons {
+  display: flex;
+  flex-direction: row;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 10px;
 }
 
 .header-left {
   display: flex;
-  align-items: center;
+  align-items: left;
   gap: 10px;
   min-width: 0;
   width: 100%;
-  justify-content: center;
+  justify-content: left;
   margin-top: 0;
 }
 
+#blur-target.blurred {
+  filter: blur(4px);
+  pointer-events: none;
+  transition: filter 0.2s ease;
+}
 
+.about-card {
+  margin: 0;
+  width: 100%;
+  max-width: 560px;
+  background: #FDFDFD;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  overflow: hidden;        /* clips anything that tries to overflow */
+}
+
+.header-row-about-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  position: relative;       /* anchor for the exit button overlay */
+  line-height: 0;            /* removes inline-image whitespace gap */
+}
+
+.header-left-about-page {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  position: relative;
+  line-height: 0;
+}
+
+/* ================================
+   NAVIGATION ROW
+================================ */
+.navigation-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px;
+  padding: 2px;
+  position: relative;       /* anchor for the exit button overlay */
+  line-height: 0;            /* removes inline-image whitespace gap */
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  background: #f3f3f3;
+  min-height: 50px;
+  border-radius: 18px;
+  width: 100%;
+}
+
+.navigation-buttons-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap: 12px;
+  width: 100%;
+}
+
+.navigation-button {
+  flex: 1;
+  display: flex;
+  align-items: center;      /* vertical centering */
+  justify-content: center;  /* horizontal centering */
+  height: 30px;              /* fixed, same for all states */
+  text-align: center;
+  font-family: 'inter', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #777777;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.navigation-button.active {
+  background: #91a9ca;
+  color: #1f2937;
+  border-radius: 12px;
+}
+
+/* OVERLAY */
+.overlay {
+  display: none;
+  position: absolute;
+  top: 85px;
+  right: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  z-index: 100;
+  min-width: 300px;
+}
+
+.overlay.visible { display: block; }
+
+#page-content.blurred {
+  filter: blur(4px);
+  pointer-events: none;
+  transition: filter 0.2s ease;
+}
+
+.hidden { display: none; }
+
+/* ABOUT PAGE */
+.about-pageheader-image {
+  width: 560px;              /* fix a width so it can't overflow horizontally */
+  height: 315px;             /* fix a height so it can't overflow vertically */
+  object-fit: cover;         /* fills the box without distorting */
+  display: block;            /* removes the inline-image bottom gap */
+  margin: 0;
+  padding: 0;
+  border-radius: 0 0 20px 20px;
+  flex-shrink: 0; 
+  object-position: center;                  /* prevents the image from shrinking in flex layouts */
+}
+
+.about-header-buttons {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #b91c1c;
+  border-radius: 50%;
+}
+
+.notif-badge.hidden { display: none; }
+
+/* Since the dropdown icon is an <img>, rotate the image itself */
+.profile-dropdown-btn img {
+  transition: transform 0.2s ease;
+}
+.profile-dropdown-btn img.open {
+  transform: rotate(180deg);
+}
+
+.notif-btn, .profile-dropdown-btn, .exit-btn {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+   background: none;   /* removes the default gray button background */
+  border: none;        /* removes the default button border */
+  padding: 0;           /* removes default button padding */
+}
+
+
+
+ .notif-btn img, .profile_dropdown-btn img, .exit-btn img{
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.notification-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #E5E5E5;
+}
+
+.notification-item.unread {
+  background-color: #EEF0F3;
+  font-weight: 700;
+}
+
+.notification-message {
+  margin: 0;
+  font-size: 13px;
+  color: #030303;
+}
+
+.notification-time {
+  font-size: 11px;
+  color: #777777;
+}
+
+.about-everify-details{
+  margin: 20px auto;
+  padding: 20px;
+  background: #FDFDFD;
+  border-radius: 16px;
+  max-width: 490px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: center;
+}
+
+.about-everify-guide {
+  margin: 20px auto;
+  padding: 20px;
+  background: #FDFDFD;
+  border-radius: 16px;
+  max-width: 490px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;   /* stack title block */
+}
+
+.about-everify-guide-top {
+  margin-bottom: 8px;
+}
+
+.about-everify-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.about-everify-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.about-everify-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 30px;
+  color: #1f2937;
+  margin: 0;
+}
+
+.about-everify-version {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1f2937;
+  margin: 2px 0 12px 0;
+}
+
+.about-everify-description {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1f2937;
+  text-align: left;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.about-everify-guide-title{
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #1f2937;
+  margin: 0;
+  text-align: center;
+}
+
+.about-everify-guide-subtitle, .about-everify-terms-subtitle{
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1f2937;
+  text-align: center;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.about-everify-guide-steps{
+  display: flex;
+  flex-direction: row;  
+  gap: 12px;
+  margin-top: 16px;             /* keeps icon from shrinking */
+}
+
+.about-everify-icon img {
+  width: 190px;
+  height: 190px;
+  object-fit: contain;
+}
+
+.about-everify-guide-step-icon {
+  width: 60px;
+  height: 60px;
+  align-self: center;           /* centers the icon in the step box */
+  object-fit: contain;
+  margin-bottom: 4px;
+}
+
+.about-everify-guide-step1,
+.about-everify-guide-step2,
+.about-everify-guide-step3 {
+  flex: 1;                      /* each step takes equal width */
+  min-width: 0;                 /* allows shrinking below content size */
+  background-color: #FDFDFD;
+  border-radius: 16px;
+  border: 1px solid #1f2937;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step-title{
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #1f2937;
+  margin: 0;
+  text-align: center;
+}
+
+.step-description{
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1f2937;
+  line-height: 1.4;
+  margin: 0;
+  overflow-wrap: break-word;  /* allows long words to break and wrap */
+  overflow:hidden;
+}
+
+.about-everify-platforms{
+  margin: 20px auto;
+  padding: 20px;
+  background: #FDFDFD;
+  border-radius: 16px;
+  max-width: 490px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;   /* stack title block */
+  align-items: center;
+  padding-top: 0;                   /* remove top padding to align with title */
+}
+
+.about-everify-platforms-title{
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #1f2937;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.platforms-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* 2 equal columns */
+  gap: 24px 40px;                   /* row gap, column gap */
+  width: 100%;
+}
+
+.platform-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  border: 1px solid #1f2937;
+  padding: 16px;
+}
+
+.platform-logo {
+  width: 133px;
+  height: 133px;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+.platform-name{
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #1f2937;
+  margin: 0;
+  text-align: center;
+  margin: 0px;
+}
+
+.about-everify-agencies{
+  margin: 20px auto;
+  padding: 20px;
+  background: #FDFDFD;
+  border-radius: 16px;
+  max-width: 490px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;   /* stack title block */
+  align-items: center;
+  padding-top: 0; 
+}
+
+.about-everify-agencies-title{
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #1f2937;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.agencies-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* 2 equal columns */
+  gap: 24px 40px;                   /* row gap, column gap */
+  width: 100%;
+}
+
+.agency-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  border: 1px solid #1f2937;
+  padding: 16px;
+}
+
+.agency-logo {
+  width: 143px;
+  height: 145px;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+.agency-name{
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #1f2937;
+  margin: 0;
+  text-align: center;
+  margin: 0px;
+}
+
+.about-everify-terms{
+  margin: 20px auto;
+  padding: 20px;
+  background: #FDFDFD;
+  border-radius: 16px;
+  max-width: 490px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;  
+  align-items: center;
+  padding-top: 0;
+}
+
+.about-everify-terms-title{
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #1f2937;
+  margin-top: 20px;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.about-everify-terms-description{
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1f2937;
+  text-align: center;
+  margin-top: 4px;
+  margin-bottom: 2px;
+  line-height: 1.5;
+}
 
 .logo-placeholder {
   width: 36px;
@@ -131,6 +621,10 @@ body {
    NOTICE BANNER (login/signup)
 ================================ */
 .notice-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
   margin-bottom: 20px;
   padding: 12px 14px;
   background-color: #EEF0F3;
@@ -151,6 +645,18 @@ body {
   font-size: 13px;
   line-height: 1.5;
   color: #777777;
+}
+
+.notice-icon{
+  width: 50px;
+  height: 60px;
+  flex-shrink: 0;
+  margin-top: 2px; /* nudges icon to align with title text */
+}
+
+.notice-text-container {
+  display: flex;
+  flex-direction: column;
 }
 
 /* ================================
@@ -193,6 +699,8 @@ body {
 ================================ */
 .field {
   margin-bottom: 16px;
+  width: 100%;
+  overflow: hidden; /* prevents overflowing content */
 }
 
 .field-row {
@@ -208,7 +716,7 @@ body {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 12px;
-  color: #777777;
+  color: #1f2937;
   letter-spacing: 1px;
   margin-bottom: 6px;
 }
@@ -394,9 +902,9 @@ body {
    REPORT COMPLAINT PAGE
 ================================ */
 .guest-notice,
-.captured-box {
-  background-color: #F9F9F9;
-  border: 1px solid #E5E5E5;
+.detected-container {
+  background-color: #ebd4d4;
+  border: 1px solid #b91c1c;
   border-radius: 10px;
   padding: 12px 14px;
   margin-bottom: 16px;
@@ -452,13 +960,13 @@ body {
   font-weight: 700;
 }
 
-.captured-top {
+.detected-top {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.captured-label {
+.detected-label {
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 10px;
@@ -466,19 +974,19 @@ body {
   letter-spacing: 1px;
 }
 
-.captured-name {
+.detected-name {
   margin-top: 6px;
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 14px;
-  color: #030303;
+  color: #1F2937;
 }
 
-.captured-url {
+.detected-url {
   margin-top: 2px;
   font-family: 'Inter', sans-serif;
   font-size: 11px;
-  color: #777777;
+  color: #1F2937;
   word-break: break-word;
 }
 
@@ -532,4 +1040,28 @@ body {
   display: flex;
   gap: 12px;
   width: 100%;
+}
+
+.upload-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.complaint-input{
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #E5E5E5;
+  border-radius: 10px;
+  background-color: #F9F9F9;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #030303;
+  outline: none;
+  field-sizing: content;
+  resize: none;         /* Removes the manual resize handle in the corner */
+  overflow: hidden;     /* Hides accidental scrollbars during typing */
+  width: 100%;          /* Controls the fixed width so it only expands vertically */
+  min-height: 2em;      /* Optional: Ensures a minimum visible height */
+  max-height: 200px;    /* Optional: Caps the growth to prevent breaking the layout */
 }
