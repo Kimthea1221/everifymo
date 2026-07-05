@@ -1,6 +1,6 @@
 import './superadmin-css.css';
 import { useState } from 'react';
-import SuperAdminSidebar from './superadmin-sidebar';
+import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 
 const DUMMY_USERS = [
@@ -438,7 +438,7 @@ function SuperAdminUserManagement() {
 
   return (
     <div className="SuperadminMainContainer">
-      <SuperAdminSidebar />
+      <Sidebar sidebarType="SUPER_ADMIN" />
       <div className="SuperadminContentContainer">
         <TopBar />
         <div className="SuperadminMainfeed">

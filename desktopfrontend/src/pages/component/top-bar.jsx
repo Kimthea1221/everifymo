@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
-import ImgNotif from '../../images/notification_img.png'
+
+import {Bell} from 'lucide-react'
 
 const allNotifications = [
     // CIDG notifications
@@ -117,14 +118,14 @@ function TopBar() {
                     position: relative;
                 }
 
-                .TopbarBox img {
+                .TopbarBox svg {
                     width: 24px;
                     height: 24px;
                     object-fit: contain;
                     transition: transform 0.2s ease;
                 }
 
-                .TopbarBox img:hover {
+                .TopbarBox svg:hover {
                     transform: scale(1.1);
                 }
 
@@ -269,7 +270,7 @@ function TopBar() {
 
             <div className='TopbarContainer' ref={modalRef}>
                 <div className='TopbarBox' onClick={() => setIsOpen(!isOpen)}>
-                    <img src={ImgNotif} alt="Notifications" />
+                    <Bell/>
                     {unreadCount > 0 && <span className='BellBadge'>{unreadCount}</span>}
                 </div>
 
