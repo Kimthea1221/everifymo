@@ -1,17 +1,51 @@
 import { useState } from 'react';
 import './lea-css.css'
-import LeaSideBar from './lea-sidebar'
+import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
 import WaitingICon from '../../images/waiting_img.png'
 import ReminderBtnIcon from '../../images/reminder_img.png'
 import ComposeRequestIcon from '../../images/compose_img.png'
 import ConfirmReturnIcon from '../../images/confirmreturn_img.png'
 import UnregisteredIcon from '../../images/unregistered_img.png'
+import RegisteredIcon from '../../images/check_img.png'
+
+const responseCases = [
+  {
+    id: 1,
+    status: "Unregistered",
+    caseNumber: "ICM-2025-00185",
+    product: "HerbalSlim Capsules",
+    manufacturer: "NatureFit Labs",
+    complainant: "M. Reyes",
+    category: "Supplement",
+    loggedDate: "2026-05-17 10:42",
+    source: "Walk-in Intake",
+    returnedDate: "2026-05-17 16:02",
+    sentDate: "2026-05-17 14:33",
+    description: "No CPR or LTO found for manufacturer. Recommend takedown coordination."
+  },
+  {
+    id: 2,
+    status: "Registered",
+    caseNumber: "ICM-2026-00412",
+    product: "GlowSkin Cream",
+    manufacturer: "Radiant Beauty Co.",
+    complainant: "A. Santos",
+    category: "Cosmetic",
+    loggedDate: "2026-06-01 09:15",
+    source: "Online Portal",
+    returnedDate: "2026-06-03 14:20",
+    sentDate: "2026-06-02 10:00",
+    description: "Valid CPR and LTO found. Product is fully registered and compliant."
+  }
+];
 
 function LeaVerificationRequest(){
     
+    
     //FOR BUTTON TABS ON VERIFICATION REQUEST
     const [activeTab, setActiveTab] = useState('Ready to Send');
+    const [selectedResponse, setSelectedResponse] = useState(responseCases[0]);
     const tabs = ['Ready to Send', 'Awaiting FDA', 'FDA Response'];
     const handleTabClick =(tabName)=>{
         if (activeTab === tabName) return;
@@ -28,7 +62,7 @@ function LeaVerificationRequest(){
 
     return(
         <div className='LeaDashboardMain'>
-            <LeaSideBar />
+            <Sidebar sidebarType="LEA" />
             <div className='LeaContentContainer'>
                 <TopBar />
                 <div className='LeaMainfeed'>
@@ -48,7 +82,9 @@ function LeaVerificationRequest(){
                                 ))}
                             </div>
                         </div>
+                        {/*CONTENT FOR EACH TAB */}
 
+                        {/*READY TO SEND TAB CONTENT*/}
                         <div className='VerificationTabContent ReadySendButtonContent'>
                             {activeTab === 'Ready to Send' && 
                             <div className="VerificationContent">
@@ -172,7 +208,7 @@ function LeaVerificationRequest(){
 
                             </div>}
 
-                            {/* */}
+                            {/*AWAITING FDA TAB CONTENT*/}
                             {activeTab === 'Awaiting FDA' && 
                             <div className='VerificationContent AwaitingButtonContent'>
                                 {/* LEFT PANEL */}
@@ -249,28 +285,38 @@ function LeaVerificationRequest(){
                                 </div>
                             
                             </div>}
-
+                            
+                            {/*FDA RESPONSE TAB CONTENT*/}
                             {activeTab === 'FDA Response' && 
                             <div className='VerificationContent FDAResponseButtonContent'>
                                 {/* LEFT PANEL */}
                                 <div className="FDAResponseQueue">
                                     <div className="FDAResponseHeader">
-                                        <p>Request Pending FDA Review</p>
-                                        <span>1</span> {/*walk in cases count need backend*/}
+                                        <p>FDA confirmations received</p>
+                                        <span>{responseCases.length}</span> {/*walk in cases count need backend*/}
                                     </div>
 
-                                    <div className="QueueCard ActiveQueueCard" id=''>
-                                        <div>
-                                            <h4>HerbalSlim Capsules</h4>
-                                            <p>NatureFit Labs</p>
-                                            <small>
-                                                ICM-2025-00185 · 2026-05-17 10:42
-                                            </small>
+                                    {responseCases.map((item) => (
+                                        <div 
+                                            key={item.id} 
+                                            className={`QueueCard ${selectedResponse.id === item.id ? 'ActiveQueueCard' : ''}`} 
+                                            id=''
+                                            onClick={() => setSelectedResponse(item)}
+                                        >
+                                            <div>
+                                                <h4>{item.product}</h4>
+                                                <p>{item.manufacturer}</p>
+                                                <small>
+                                                    {item.caseNumber} · {item.loggedDate}
+                                                </small>
+                                            </div>
+                                            <div className="ResponseQueueTag">
+                                                <span className={item.status === 'Registered' ? 'registered' : ''}>
+                                                    {item.status}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="ResponseQueueTag">
-                                            <span>Unregistered</span>
-                                        </div>
-                                    </div>
+                                    ))}
 
                                 </div>
 
@@ -278,29 +324,29 @@ function LeaVerificationRequest(){
                                 <div className='VerificationDetails'>
                                    <div className='VerificationCard'>
                                         <div>
-                                        <small>ICM-2025-00185</small>
-                                        <h2>HerbalSlim Capsules</h2>
-                                        <p>NatureFit Labs</p>
+                                            <small>{selectedResponse.caseNumber}</small>
+                                            <h2>{selectedResponse.product}</h2>
+                                            <p>{selectedResponse.manufacturer}</p>
 
                                             <div className="CaseInfoGrid">
                                                 <div>
                                                     <label>Complainant</label>
-                                                    <p>M. Reyes</p>
+                                                    <p>{selectedResponse.complainant}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Cetegory</label>
-                                                    <p>Supplement</p>
+                                                    <p>{selectedResponse.category}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Logged</label>
-                                                    <p>2026-05-17 10:42</p>
+                                                    <p>{selectedResponse.loggedDate}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Source</label>
-                                                    <p>Walk-in Intake</p>
+                                                    <p>{selectedResponse.source}</p>
                                                 </div>
                                             </div>
                                     </div>
@@ -310,22 +356,28 @@ function LeaVerificationRequest(){
                                                     <img src={ConfirmReturnIcon} alt="icon for FDA digital confirmation received" />
                                                     <div className='StatementReturn'>
                                                         <h3>FDA digital confirmation received</h3>
-                                                        <p>Returned 2026-05-17 16:02 · sent 2026-05-17 14:33</p>
+                                                        <p>Returned {selectedResponse.returnedDate} · sent {selectedResponse.sentDate}</p>
                                                     </div> 
                                                 </div>
-                                                <div className='ResponseBox'>
+                                                <div className={`ResponseBox ${selectedResponse.status === 'Registered' ? 'ResponseRegistered' : 'ResponseUnregistered'}`}>
                                                     <div className='ResponseStatus'>
-                                                        <img src={UnregisteredIcon} alt="Unregistered icon" />
-                                                        <h4>Unregistered — not in FDA registry</h4>
+                                                        <img src={selectedResponse.status === 'Registered' ? RegisteredIcon : UnregisteredIcon} alt={selectedResponse.status === 'Registered' ? "Registered icon" : "Unregistered icon"} />
+                                                        <h4>
+                                                            {selectedResponse.status === 'Registered' 
+                                                                ? 'Registered with FDA' 
+                                                                : 'Unregistered — not in FDA registry'}
+                                                        </h4>
                                                     </div>
-                                                    <p className='ReasonDetail'>No CPR or LTO found for manufacturer. Recommend takedown coordination.</p>
+                                                    <p className='ReasonDetail'>{selectedResponse.description}</p>
                                                 </div>
                                                 <div className='ResponseUpdateBox'>
                                                     <h6>Field operation status update</h6>
                                                     <textarea name="" id="" placeholder="Operation conducted at seller's address on 2026-05-18. Product siezed, takedown notice served."></textarea>
                                                 </div>
                                                 <div className='ResponseBtn'>
-                                                    <button>Marked takedown initiated</button>
+                                                    <button>
+                                                        {selectedResponse.status === 'Registered' ? 'Dismiss Case' : 'Mark Takedown Initiated'}
+                                                    </button>
                                                 </div>
                                                 
 

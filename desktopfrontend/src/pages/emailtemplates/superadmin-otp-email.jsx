@@ -1,7 +1,11 @@
-import React from 'react';
-//THIS TEMPLATE INTENDED FOR INETERAGENCY (FDA & LEA) USE.
-//SAMPLE OTP CODE
-const OtpEmailTemplate = ({ otpCode = "123456" }) => {
+
+
+{/**
+*   THIS OTP INTENDED ONLY FOR SUPERADMIN OTP TEMPLATE SIDE
+*   SAMPLE OTP CODE TO BE REPLACE BY BACKEND
+*
+*/}
+const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
   return (
     <>
       <style>
@@ -45,10 +49,10 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
           }
           .EmailHeader {
-            background: linear-gradient(135deg, #1a1a2e 0%, #161626 100%);
+            background: linear-gradient(135deg, #1E293B 0%, #0f172a 100%);
             padding: 30px 20px;
             text-align: center;
-            border-bottom: 3px solid #f7931a;
+            border-bottom: 3px solid #0D9488;
           }
           .EmailHeader h2 {
             color: #ffffff;
@@ -93,7 +97,7 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
             font-size: 36px;
             font-weight: 800;
             letter-spacing: 6px;
-            color: #f7931a;
+            color: #0D9488;
             margin: 0;
             font-family: 'Courier New', Courier, monospace;
           }
@@ -146,7 +150,7 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
               <tr>
                 <td className="EmailHeader">
                   <h2>INTERAGENCY COMPLAINT MANAGEMENT SYSTEM</h2>
-                  <p>FDA & LEA-CIDG Secure Verification</p>
+                  <p>ICMDA Secure Verification</p>
                 </td>
               </tr>
               
@@ -164,7 +168,7 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
                   </div>
                   
                   <p className="EmailInstructions">
-                    If you did not initiate this login request, please contact your systems administrator immediately and secure your account credentials.
+                      If you did not request this verification code, do not proceed with the login. Immediately review your account security, change your password if necessary, and investigate any suspicious activity.
                   </p>
                   
                   <div className="EmailDivider"></div>
@@ -172,9 +176,9 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
                   <div className="EmailSecurityNotice">
                     <div className="EmailSecurityNoticeTitle">Security Information:</div>
                     <ul>
-                      <li>Never share this verification code with anyone, including system administrators.</li>
-                      <li>Ensure you are signing in through the official ICMDA portal provided by your agency.</li>
-                      <li>Do not reply to this email with your verification code or share it through phone calls or messaging applications.</li>
+                      <li>Never share this verification code with anyone.</li>
+                      <li>This Super Administrator account has full system privileges. Always ensure you are signing in to the official administrator portal.</li>
+                      <li>If you did not request this verification code, immediately secure your account and inform the system owner.</li>
                     </ul>
                   </div>
                 </td>
@@ -184,8 +188,8 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
               <tr>
                 <td className="EmailFooter">
                  
-                  <p>Food and Drug Administration (FDA) | Criminal Investigation and Detection Group (PNP-CIDG)</p>
-                  <p>This is an automated security transmission. Please do not reply directly to this email.</p>
+                  <p>Interagency Complaint Management System (ICMDA)</p>
+                  <p>For authorized Super Administrator use only. This is an automated email. Please do not reply.</p>
                 </td>
               </tr>
             </tbody>
@@ -196,4 +200,4 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
   );
 };
 
-export default OtpEmailTemplate;
+export default SuperadminOtpEmail;
