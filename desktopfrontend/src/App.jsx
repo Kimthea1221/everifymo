@@ -38,7 +38,7 @@ export default function App(){
     <BrowserRouter>
       <Routes>
           {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-          <Route path='/' element={<Login />} />
+          <Route path='/' element={<SuperAdminUserManagement />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
