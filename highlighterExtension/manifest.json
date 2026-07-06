@@ -1,0 +1,20 @@
+{
+  "name": "eVerifyMo",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "permissions": ["activeTab", "storage"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.shopee.ph/*",
+        "https://*.lazada.com.ph/*",
+        "https://*.tiktok.com/*",
+        "https://*.facebook.com/*"
+      ],
+      "js": ["content.js"]
+    }
+  ]
+}
