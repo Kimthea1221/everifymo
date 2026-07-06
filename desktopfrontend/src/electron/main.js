@@ -53,7 +53,7 @@ if (process.env.VITE_DEV_SERVER_URL) {
 // Only one copy of the app should ever run at once
 const gotLock = app.requestSingleInstanceLock()
 
-if (!gotLock) {   
+/* if (!gotLock) {   
   app.quit()  // Another copy is already running — quit this redundant one immediately
 } else {
   // Windows/Linux: app was already running, link was clicked again
@@ -69,16 +69,16 @@ if (!gotLock) {
     const launchUrl = process.argv.find((arg) => arg.startsWith('everifymo://'))
     if (launchUrl) handleDeepLink(launchUrl)
   })
-}
+} */
 
     // temporary testing TT remove before packaging or handing off
-/* app.whenReady().then(() => {
+app.whenReady().then(() => {
   createWindow()
 
   setTimeout(() => {
     handleDeepLink('everifymo://complete-registration?token=cSRpf1gf8TRJE-qT4eX3up_2c6ZPxXCBdz1CzjmojVg')
   }, 2000)
-}) */
+})
 
 
 // Mac: fires for both cold-start and already-running cases
