@@ -1,11 +1,11 @@
 import './lea-css.css'
-import LeaSideBar from './lea-sidebar';
+import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 
 function LeaDashboard(){
   return(
     <div className='LeaDashboardMain'>
-       <LeaSideBar />
+       <Sidebar sidebarType="LEA" />
        <div className='LeaContentContainer'>
           <TopBar />
           <div className='LeaMainfeed'>
