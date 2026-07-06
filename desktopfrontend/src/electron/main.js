@@ -14,8 +14,12 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs'),   // This tells Electron "run this specific file as the bridge before loading React"
     }
   })
+
+  // Open DevTools
+  mainWindow.webContents.openDevTools();
 
   // Stash the token here if it arrives before React has finished loading and
   // listening — we'll deliver it below, once did-finish-load confirms React is ready.
@@ -35,6 +39,8 @@ function createWindow() {
 
 // Register our custom protocol so the OS knows to send everifymo:// links to us
 // Tell the OS: send everifymo:// links to this app
+console.log('argv:', process.argv)
+console.log('execPath:', process.execPath)
 
 if (process.env.VITE_DEV_SERVER_URL) {
     // Dev mode needs extra info so Windows knows how to relaunch our dev setup
@@ -64,6 +70,16 @@ if (!gotLock) {
     if (launchUrl) handleDeepLink(launchUrl)
   })
 }
+
+    // temporary testing TT remove before packaging or handing off
+/* app.whenReady().then(() => {
+  createWindow()
+
+  setTimeout(() => {
+    handleDeepLink('everifymo://complete-registration?token=cSRpf1gf8TRJE-qT4eX3up_2c6ZPxXCBdz1CzjmojVg')
+  }, 2000)
+}) */
+
 
 // Mac: fires for both cold-start and already-running cases
 // Mac: one event covers both "already open" and "just launched" cases
