@@ -1,3 +1,4 @@
+<!-- complaint-status -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +15,27 @@
         <div id="blur-target">
             <div id="nav-slot"></div>
             <div id="page-content">
-                <!-- your page's actual content -->
+                <div id="status-empty-view" class="status-view hidden">
+                    <div class="notice-banner">
+                        <img class="notice-icon" src="../assets/images/report.png" alt="Status Icon" />
+                        <div class="notice-text-container">
+                        <p class="notice-title">Complaint Status</p>
+                        <p class="notice-text" id="status-empty-text-main">Complaint Status page is currently empty.</p>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div id="status-populated-view" class="status-view hidden">
+                    <div class="notice-banner">
+                        <img class="notice-icon" src="../assets/images/report.png" alt="Status Icon" />
+                        <div class="notice-text-container">
+                        <p class="notice-title">Complaint Status</p>
+                        <p class="notice-text">Transparent updates on your complaints — whether each one is being reviewed, has been taken care of, or has been acted upon.</p>
+                        </div>
+                    </div>
+
+                    <div id="status-list"></div>
+                </div>
             </div>
         </div>
    
@@ -23,5 +44,6 @@
     <script src="../utils/api.js"></script>
     <script src="../js/header.js"></script>
     <script src="../js/nav.js"></script>
+    <script src="../js/status.js"></script>
 </body>
 </html>

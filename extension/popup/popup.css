@@ -95,7 +95,7 @@ body {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* ================================
@@ -111,7 +111,7 @@ body {
    SHARED HISTORY BUTTON
    (used by all states)
 ================================ */
-.btn-history {
+.home-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,6 +135,12 @@ body {
   object-fit: contain;
 }
 
+.btn.btn-disabled-guest {
+  color: #A0A0A0;
+  background-color: #F3F3F3;
+  cursor: not-allowed;
+}
+
 /* ================================
    REGISTERED STATE (GREEN)
 ================================ */
@@ -152,14 +158,6 @@ body {
   border: 1px solid #66BB6A;
   border-radius: 12px;
   background-color: #eaf7ea;
-}
-
-#state-registered .icon-placeholder {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #66BB6A;
-  flex-shrink: 0;
 }
 
 #state-registered .registered-copy {
@@ -355,13 +353,7 @@ body {
   background-color: #FFF8EB;
 }
 
-#state-suspicious .icon-placeholder-orange {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #D97706;
-  flex-shrink: 0;
-}
+
 
 #state-suspicious .not-found-copy {
   display: flex;
@@ -447,14 +439,6 @@ body {
   border: 1px solid #B22222;
   border-radius: 12px;
   background-color: #FDECEA;
-}
-
-#state-unregistered .icon-placeholder-red {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #B22222;
-  flex-shrink: 0;
 }
 
 #state-unregistered .unregistered-copy {
@@ -868,4 +852,21 @@ body {
   to { transform: rotate(360deg); }
 }
 
-  
+/* STATES ICONS */
+
+#state-suspicious .icon-placeholder-orange, 
+#state-unregistered .icon-placeholder-red,
+#state-registered .icon-placeholder-green {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+#state-suspicious .icon-placeholder-orange img, 
+#state-unregistered .icon-placeholder-red img,
+#state-registered .icon-placeholder-green img{
+  width: 59px;
+  height: 59px;
+  object-fit: contain;
+}
