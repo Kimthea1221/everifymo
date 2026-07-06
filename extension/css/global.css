@@ -283,6 +283,12 @@ body {
   object-fit: contain;
 }
 
+.notif-btn.hidden,
+.profile-dropdown-btn.hidden,
+.exit-btn.hidden {
+  display: none;
+}
+
 .notification-item {
   padding: 10px 0;
   border-bottom: 1px solid #E5E5E5;
@@ -585,6 +591,119 @@ body {
   line-height: 1.5;
 }
 
+/* Status Page */
+
+.status-card {
+  background: #FDFDFD;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.status-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.status-product-name {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.status-badge {
+  flex-shrink: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.badge-acted-upon { 
+  background: #DCFCE7; 
+  color: #16A34A; 
+  border: 1px solid #16A34A; 
+  border-radius: 15px; 
+}
+
+.badge-reviewing  { 
+  background: #FEF3C7; 
+  color: #D97706; 
+  border: 1px solid #D97706; 
+  border-radius: 15px; 
+}
+
+.badge-received   { 
+  background: #F3F3F3; 
+  color: #777777; 
+  border: 1px solid #777777; 
+  border-radius: 15px; 
+}
+
+.progress-track {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+}
+
+.step-complete { background: #16A34A; }
+.step-current  { background: #D97706; }
+.step-upcoming { background: #D1D5DB; color: #777777; }
+
+.step-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.step-connector {
+  flex: 1;
+  height: 3px;
+  background: #D1D5DB;
+  margin: 0 4px;
+  margin-bottom: 24px; /* aligns the line with the circle centers, not the labels below */
+}
+
+.status-note {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #777777;
+  line-height: 1.5;
+}
+
+.step-connector.connector-complete {
+  background: #16A34A;
+}
+
 .logo-placeholder {
   width: 36px;
   height: 36px;
@@ -615,6 +734,138 @@ body {
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+}
+
+/* History Page */
+.history-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.history-tab {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #777777;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.history-tab.active {
+  background: #F3F3F3;
+  color: #030303;
+}
+
+.history-list-header {
+  text-align: right;
+  margin-bottom: 8px;
+}
+
+.resolved-counter {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1f2937;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  border: 1px solid;
+}
+
+.history-item.status-resolved,
+.history-item.status-registered {
+  background: #DCFCE7;
+  border-color: #16A34A;
+}
+
+.history-item.status-pending,
+.history-item.status-suspicious {
+  background: #FEF3C7;
+  border-color: #D97706;
+}
+
+.history-item.status-denied,
+.history-item.status-unregistered {
+  background: #FEE2E2;
+  border-color: #DC2626;
+}
+
+.history-item-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.history-item-icon-img {
+  width: 59px;
+  height: 59px;
+  object-fit: contain;
+}
+
+.history-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-item-name {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #1f2937;
+  line-height: 1.3;
+}
+
+.history-item-meta {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #777777;
+}
+
+.history-item-status {
+  flex-shrink: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.status-resolved .history-item-status, .status-registered .history-item-status { color: #16A34A; }
+.status-pending .history-item-status, .status-suspicious .history-item-status { color: #D97706; }
+.status-denied .history-item-status, .status-unregistered .history-item-status { color: #DC2626; }
+
+.see-details-link {
+  color: #1F2937;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.history-empty-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #777777;
+  text-align: center;
+  padding: 24px 0;
+}
+
+#history-list {
+  max-height: 420px;
+  overflow-y: auto;
 }
 
 /* ================================
@@ -649,7 +900,7 @@ body {
 
 .notice-icon{
   width: 50px;
-  height: 60px;
+  height: 50px;
   flex-shrink: 0;
   margin-top: 2px; /* nudges icon to align with title text */
 }
@@ -777,6 +1028,10 @@ body {
   font-size: 14px;
   color: #030303;
   outline: none;
+}
+
+#username-input.auth-input {
+  padding-left: 12px;
 }
 
 .auth-input.password-input {

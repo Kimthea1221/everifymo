@@ -1,3 +1,4 @@
+<!-- History -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +15,36 @@
         <div id="blur-target">
             <div id="nav-slot"></div>
             <div id="page-content">
-                <!-- your page's actual content -->
+                <div id="history-empty-view" class="history-view hidden">
+                    <div class="notice-banner">
+                        <img class="notice-icon" src="../assets/images/clock_icon.png" alt="History Icon" />
+                        <div class="notice-text-container">
+                        <p class="notice-title">History</p>
+                        <p class="notice-text" id="history-empty-text-main">History page is currently empty.</p>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div id="history-populated-view" class="history-view hidden">
+                    <div class="notice-banner">
+                        <img class="notice-icon" src="../assets/images/clock_icon.png" alt="History Icon" />
+                        <div class="notice-text-container">
+                        <p class="notice-title">History</p>
+                        <p class="notice-text">You can view your Complaints and Verification History below.</p>
+                        </div>
+                    </div>
+
+                    <div class="history-tabs">
+                        <button id="tab-complaints" class="history-tab active" data-tab="complaints">Complaints History</button>
+                        <button id="tab-verification" class="history-tab" data-tab="verification">Verification History</button>
+                    </div>
+
+                    <div class="history-list-header">
+                        <span id="resolved-counter" class="resolved-counter"></span>
+                    </div>
+
+                    <div id="history-list"></div>
+                </div>
             </div>
         </div>
    
@@ -23,5 +53,6 @@
     <script src="../utils/api.js"></script>
     <script src="../js/header.js"></script>
     <script src="../js/nav.js"></script>
+    <script src="../js/history.js"></script>
 </body>
 </html>

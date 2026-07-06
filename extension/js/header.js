@@ -1,21 +1,20 @@
+// header.js
 document.addEventListener('DOMContentLoaded', async () => {
-  // Only runs on pages that actually have a header-slot placeholder
-  const headerSlot = document.getElementById('header-slot');
-  if (headerSlot) {
-    await loadPartial('partials/header.html', 'header-slot');
-  }
+  whenSessionReady(async () => {
+    const headerSlot = document.getElementById('header-slot');
+    if (headerSlot) await loadPartial('partials/header.html', 'header-slot');
 
-  // Overlays are needed by both the shared header AND about.html's custom header,
-  // so load them whenever an overlay-slot exists, regardless of which header is present
-  const overlaySlot = document.getElementById('overlay-slot');
-  if (overlaySlot) {
-    await loadPartial('partials/overlays.html', 'overlay-slot');
-  }
+    const overlaySlot = document.getElementById('overlay-slot');
+    if (overlaySlot) await loadPartial('partials/overlays.html', 'overlay-slot');
 
-  initProfileOverlay();
-  initNotifications();
-  initExitButton();
+    initProfileOverlay();
+    initNotifications();
+    initExitButton();
+    renderProfileContent();
+    applyGuestHeaderVisibility(); // new — see Step 5
+  });
 });
+
 
 function initProfileOverlay() {
   const dropdownBtn = document.getElementById('profile-dropdown-btn');
@@ -95,4 +94,26 @@ function initExitButton() {
   exitBtn.addEventListener('click', () => {
     window.close();
   });
+}
+
+function renderProfileContent() {
+  const contentEl = document.getElementById('profile-content');
+  if (!contentEl || typeof getCurrentUser !== 'function') return;
+
+  const user = getCurrentUser();
+  contentEl.innerHTML = `
+    <p><strong>Welcome to your profile page, ${user.username}!</strong></p>
+    <p>Email: ${user.email}</p>
+    <p>Username: ${user.username}</p>
+  `;
+}
+
+function applyGuestHeaderVisibility() {
+  const loggedIn = typeof isUserLoggedIn === 'function' ? isUserLoggedIn() : false;
+
+  const notifBtn = document.getElementById('notif-btn');
+  const dropdownBtn = document.getElementById('profile-dropdown-btn');
+
+  if (notifBtn) notifBtn.classList.toggle('hidden', !loggedIn);
+  if (dropdownBtn) dropdownBtn.classList.toggle('hidden', !loggedIn);
 }
