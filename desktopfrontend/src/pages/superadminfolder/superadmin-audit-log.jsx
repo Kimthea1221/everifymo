@@ -1,11 +1,11 @@
 import './superadmin-css.css'
-import SuperadminSidebar from './superadmin-sidebar'
+import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
 
 function SuperAdminAuditLog() {
     return (
         <div className='SuperadminMainContainer'>
-            <SuperadminSidebar />
+            <Sidebar sidebarType="SUPER_ADMIN" />
             <div className='SuperadminContentContainer'>
                 <TopBar />
                 <div className='SuperadminMainfeed'>

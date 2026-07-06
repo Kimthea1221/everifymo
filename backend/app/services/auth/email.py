@@ -26,7 +26,7 @@ def render_invite_email(agency_name: str, deep_link: str) -> str:
 
 
 async def send_invite_email(to_email: str, agency_name: str, token: str):
-    deep_link = f"everifymo://register?token={token}"
+    deep_link = f"everifymo://complete-registration?token={token}"
     html_body = render_invite_email(agency_name, deep_link)
 
     message = MessageSchema(
