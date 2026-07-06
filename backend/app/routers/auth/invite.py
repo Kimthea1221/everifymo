@@ -22,8 +22,13 @@ async def invite_personnel(payload: InvitePersonnelRequest, db: Session = Depend
     if existing:
         raise HTTPException(400, "A user with this email already exists.")
 
+    db_role = {
+        "FDA": "fda_personnel",
+        "LEA-CIDG": "lea_personnel",
+    }.get(payload.role, payload.role)
+
     user, token = create_invited_user(
-        db, payload.email, payload.region_id, payload.role,
+        db, payload.email, payload.region_id, db_role,
         created_by=None,
     )
 
