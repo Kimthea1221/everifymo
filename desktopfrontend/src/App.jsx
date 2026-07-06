@@ -52,11 +52,10 @@ console.log('DeepLinkListener mounted, waiting for token...')
                     console.log('Validate response:', data)
 
           if (data.status === 'valid') {
-            navigate('/user-registration', {
-              state: { ...data, invite_token: token }
-            })
+            navigate('/user-registration', { state: { ...data, invite_token: token } })
+          } else {
+            navigate('/invitation-status', { state: {status: data.status, invite_token: token } })
           }
-          // expired/used/invalid routes — pending her reply
         })
     })
   }, [])
@@ -100,7 +99,7 @@ export default function App(){
         <Route path='/preview-email/superadmin-otp'element={<SuperadminOtpEmail/>}/>
 
         {/* DEEP LINK ROUTES */}
-        <Route path='/preview-email/invitation-status' element={<DeepLinkStatus />} />
+        <Route path='/invitation-status' element={<DeepLinkStatus />} />
 
         {/* FDA ROUTES */}
         <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
