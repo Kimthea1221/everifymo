@@ -226,7 +226,7 @@ function UserRegistration() {
                 className="RegInput reg-input-readonly"
                 type="email"
                 name="email"
-                value={officerData.email}
+                value={officerData.email || ''}
                 readOnly
               />
             </div>
@@ -241,7 +241,7 @@ function UserRegistration() {
                   className="RegInput reg-input-readonly"
                   type="text"
                   name="agency"
-                  value={officerData.role}
+                  value={officerData.role || ''}
                   readOnly
                 />
               </div>
@@ -255,7 +255,7 @@ function UserRegistration() {
                   className="RegInput reg-input-readonly"
                   type="text"
                   name="region"
-                  value={officerData.region_name}
+                  value={officerData.region_name || ''}
                   readOnly
                 />
               </div>
