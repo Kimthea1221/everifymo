@@ -11,6 +11,12 @@ import LeaSavedDraft from './pages/leacidgfolder/lea-saved-draft.jsx';
 
 {/* OTP EMAIL TEMPLATE */}
 import OtpEmailTemplate from './pages/emailtemplates/otp-email-template.jsx';
+import SuperadminOtpEmail from './pages/emailtemplates/superadmin-otp-email.jsx';
+
+
+import DeepLinkStatus from './pages/emailtemplates/invitation-status.jsx'
+
+
 
 {/* SUPERADMIN PAGES */}
 import SuperAdminLogin from './pages/superadminfolder/superadmin-login.jsx';
@@ -64,8 +70,8 @@ export default function App(){
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-          <Route path='/' element={<UserRegistration/>} />
+          {/*CHANGE THIS LINE ONLY WHEN TESTING */}
+          <Route path='/' element={<Login />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
@@ -88,9 +94,13 @@ export default function App(){
         {/* EMAIL PREVIEW ROUTES:
         *makikita niyo lang to sa localhost:15173/preview-email/
         */}
-        <Route path='/preview-email' element={<OtpEmailTemplate />} />
+        <Route path='/preview-email/interagency-otp' element={<OtpEmailTemplate />} />
         <Route path='/preview-email/registration' element={<UserEmailRegistration />} />
         <Route path='/preview-email/activation' element={<UserEmailActivation />} />
+        <Route path='/preview-email/superadmin-otp'element={<SuperadminOtpEmail/>}/>
+
+        {/* DEEP LINK ROUTES */}
+        <Route path='/preview-email/invitation-status' element={<DeepLinkStatus />} />
 
         {/* FDA ROUTES */}
         <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
