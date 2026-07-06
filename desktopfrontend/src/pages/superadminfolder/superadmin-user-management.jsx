@@ -2,6 +2,7 @@ import './superadmin-css.css';
 //import { useState } from 'react';  i changed it into useEffect to fetch regions from backend
 import { useState, useEffect } from 'react';
 import SuperAdminSidebar from './superadmin-sidebar';
+import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 
 
@@ -561,7 +562,7 @@ function SuperAdminUserManagement() {
 
   return (
     <div className="SuperadminMainContainer">
-      <SuperAdminSidebar />
+      <Sidebar sidebarType="SUPER_ADMIN" />
       <div className="SuperadminContentContainer">
         <TopBar />
         <div className="SuperadminMainfeed">
