@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Complaint</title>
+  <link rel="stylesheet" href="../css/global.css" />
+</head>
+<body>
+  <main class="auth-card">
+    <div class="header-row">
+      <div class="header-left">
+        <button class="btn-back" type="button" aria-label="Back">←</button>
+        <img src="../assets/images/extension_icon.png" alt="E-VERIFYMO Logo" class="logo-placeholder" width="36" height="36" />
+        <h1 class="header-title">Product Complaint</h1>
+      </div>
+      <a href="#" class="header-link">Log In</a>
+    </div>
+
+    <div class="guest-notice">
+      <div class="icon-placeholder-guest-notice" aria-hidden="true"></div>
+      <div>
+        <p class="guest-notice-title">Submitting as guest</p>
+        <p class="guest-notice-text">Log in to track this report's status. <span class="guest-notice-link">Log in</span></p>
+      </div>
+    </div>
+
+    <div class="captured-box">
+      <div class="captured-top">
+        <div class="icon-placeholder-check" aria-hidden="true"></div>
+        <div class="captured-label">AUTO-CAPTURED</div>
+      </div>
+      <div class="captured-name" id="complaint-product-name">Miracle Glow Whitening Setting Spray 60ml</div>
+      <div class="captured-url" id="complaint-product-url">shopee.ph/Miracle-Glow-Whitening-...</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="complaint-description">DESCRIPTION (optional)</label>
+      <textarea id="complaint-description" class="complaint-textarea" placeholder="Tell us what made this product look suspicious..."></textarea>
+    </div>
+
+    <div class="attach-box" role="button" tabindex="0">
+      <div class="icon-placeholder-upload" aria-hidden="true"></div>
+      <div class="attach-text">Attach screenshot (optional)</div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-cancel" type="button">Cancel</button>
+      <button class="btn-submit-report" type="button">Submit Report</button>
+    </div>
+  </main>
+</body>
+
+<script src="../js/report.js"></script>
+</html>
+

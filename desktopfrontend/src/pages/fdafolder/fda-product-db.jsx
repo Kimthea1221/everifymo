@@ -1,11 +1,11 @@
-import FDASidebar from "./fda-sidebar";
+import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
 import './fda-css.css'
 
 function FDAProductDB(){
     return(
         <div className="FdaDashboardMain">
-            <FDASidebar />
+            <Sidebar sidebarType="FDA" />
             <div className="FdaContentContainer">
                 <TopBar />
                 <div className="FdaMainFeed">
