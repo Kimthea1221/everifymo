@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from app.database.sessions import get_db
 from app.models.users import User
@@ -15,11 +15,20 @@ from app.schemas.auth.registration import (
 
 from app.core.constants import UserStatus
 
+from app.schemas.auth.registration import ResendInviteRequest, ResendInviteResponse
+import secrets
+
 
 # All registration-related endpoints will start with /registration
 router = APIRouter(prefix="/registration", tags=["Registration"])
 
-# GET /registration/validate/{invite_token}
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /registration/validate/{invite_token}
 @router.get("/validate/{invite_token}", response_model=ValidateTokenResponse)
 def validate_token(invite_token: str, db: Session = Depends(get_db)):
     # invite_token comes straight from the URL, e.g. /registration/validate/abc123
@@ -60,8 +69,12 @@ def validate_token(invite_token: str, db: Session = Depends(get_db)):
         region_name=region_row.region_name if region_row else None,
     )
 
-
-
+    #
+    #
+    #
+    #
+    #
+    #
     # POST /registration/complete
 @router.post("/complete", response_model=RegistrationCompleteResponse)
 def complete_registration(data: RegistrationCompleteRequest, db: Session = Depends(get_db)):
@@ -85,7 +98,7 @@ def complete_registration(data: RegistrationCompleteRequest, db: Session = Depen
 
     if token_row.used_at is not None:
         # 409 = the token exists, but its state conflicts with what we're trying to do
-        raise HTTPException(status_code=409, detail="This invitation has already been used.")   
+        raise HTTPException(status_code=409, detail="This invitation has already been used to complete registration.")   
 
     if token_row.expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="This invitation has expired.")
@@ -114,4 +127,54 @@ def complete_registration(data: RegistrationCompleteRequest, db: Session = Depen
     return RegistrationCompleteResponse(
         message="Registration submitted successfully.",
         status=UserStatus.PENDING_APPROVAL,   
+    )
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # POST /registration/resend-invite
+@router.post("/resend-invite", response_model=ResendInviteResponse)
+def resend_invite(data: ResendInviteRequest, db: Session = Depends(get_db)):
+
+    # Same as the other two endpoints — officer isn't logged in,
+    # so we need this to be allowed to look at these tables at all
+    db.execute(text("SET app.bypass_rls = 'true'"))   
+
+    # Find the old, presumably-expired token the officer is trying to resend
+    old_token_row = db.query(AccountInvitationToken).filter(
+        AccountInvitationToken.invite_token == data.invite_token   
+    ).first()
+
+    # If registration was never started with this token, there's nothing to resend
+    if not old_token_row:
+        raise HTTPException(status_code=404, detail="Invitation not found.")
+    
+    # If registration was already completed with this token, there's
+    # nothing to resend — the account has already moved on.
+    if old_token_row.used_at is not None:
+        raise HTTPException(status_code=409, detail="This invitation was already used to complete registration.")
+
+    # Resending only makes sense if the old one is genuinely expired —
+    # otherwise someone could keep generating new tokens for a link that still works fine
+    if old_token_row.expires_at > datetime.now(timezone.utc):   
+        raise HTTPException(status_code=400, detail="This invitation has not expired yet.")
+
+    # Build a brand new token, pointing at the same user.
+    # We don't touch or delete the old row — it stays in the table for audit purposes.
+    new_token = AccountInvitationToken(
+        user_id=old_token_row.user_id,                        
+        invite_token=secrets.token_urlsafe(32),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
+    )
+
+    # This is a brand new row, never fetched from the database, so we
+    # need add() before commit() will know to save it.
+    db.add(new_token)   
+    db.commit()
+
+    return ResendInviteResponse(
+        message="A new invitation has been generated.",
     )
