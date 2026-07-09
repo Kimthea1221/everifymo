@@ -452,6 +452,36 @@ function Sidebar({ sidebarType, role, agency }) {
         }
     }
 
+    //added this for end session button to redirect to login page
+
+    async function handleLogout() {
+    const refreshToken = localStorage.getItem('refresh_token');
+
+        try {
+            if (refreshToken) {
+                await fetch('http://127.0.0.1:8000/auth/token/revoke', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken }),
+                });
+            }
+        } catch (err) {
+            console.error('Failed to revoke session:', err);
+            // proceed with logout locally even if the server call fails
+        }
+
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+
+        if (type === 'SUPER_ADMIN') {
+            navigate('/');
+        } else {
+            navigate('/login');
+        }
+    }
+
+
+
     const renderStyles = () => (
         <style dangerouslySetInnerHTML={{ __html: sidebarStyles }} />
     )
@@ -481,9 +511,13 @@ function Sidebar({ sidebarType, role, agency }) {
                                 <User />
                             </div>
                             <p>Admin</p>
-                            <button>
-                                <span className='logouticon'><LogOut /></span>End Session
+                            {/*<button>
+                               <span className='logouticon'><LogOut /></span>End Session
                             </button>
+                            old button*/} 
+                            <button onClick={handleLogout}>
+                                <span className='logouticon'><LogOut /></span>End Session
+                            </button> 
                         </div>
                     </div>
                 </div>
