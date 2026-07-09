@@ -76,7 +76,7 @@ app.whenReady().then(() => {
   createWindow()
 
   setTimeout(() => {
-    handleDeepLink('everifymo://complete-registration?token=cSRpf1gf8TRJE-qT4eX3up_2c6ZPxXCBdz1CzjmojVg')
+    handleDeepLink('everifymo://complete-registration?token=test-token-expired-xyz')
   }, 2000)
 })
 
