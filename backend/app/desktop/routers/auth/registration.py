@@ -8,14 +8,14 @@ from app.models.users import User
 from app.models.account_invitation_tokens import AccountInvitationToken
 from app.models.regions import Region
 
-from app.schemas.auth.registration import (
+from app.desktop.schemas.auth.registration import (
     ValidateTokenResponse, TokenStatus,
     RegistrationCompleteRequest, RegistrationCompleteResponse,
 )
 
 from app.core.constants import UserStatus
 
-from app.schemas.auth.registration import ResendInviteRequest, ResendInviteResponse
+from app.desktop.schemas.auth.registration import ResendInviteRequest, ResendInviteResponse
 import secrets
 
 
