@@ -672,6 +672,7 @@
 .UMFormGroup {
   display: flex;
   flex-direction: column;
+  
   gap: 6px;
   margin-bottom: 24px;
   width: 100%;
@@ -702,6 +703,7 @@
 }
 .UMRegionAgencyRow{
   display: flex;
+  width: 100%;
   flex-direction: row;
   gap: 6px;
   margin-top: 20px;
@@ -711,7 +713,7 @@
 }
  
 .UMRegionSelect, .UMAgencySelect{
-  width: 50%;
+  width: 80%;
   height: 30px;
   padding: 3px;
   border-radius: 10px;
@@ -745,6 +747,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+
 }
 
 .UMFooterCenter {
