@@ -1,184 +1,469 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+*{
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+body{
+  font-family: 'Poppins', sans-serif;
 }
 
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+/* LOGIN PAGE */
+.LoginPage {
+  background-color: #041d20; 
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 80px clamp(30px, 6vw, 80px);
+  color: #fdfdfd;
+  gap: clamp(100px, 13vw, 250px);
+  overflow: auto;
 }
 
-#center {
+.LeftPanel{
+  flex: 1;
+  max-width: 600px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
 }
-
-#next-steps {
+.Agency{
   display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
+  align-items: center;
+  gap: 15px;
+  flex-direction: row;
 
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
+}
+.Agency img{
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 50%;
 }
 
-#docs {
-  border-right: 1px solid var(--border);
 
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
+.AgencyTop img{
+  width: 65px;
+  height: 65px;
+}
+.Agency h3{
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.Agency p{
+  color: #cfcfcf;
+  font-size: 12px;
+  font-weight: 400;
+}
+.Hero h1{
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1.1;
+  font-weight: 700;
+}
+.Hero h4{
+  font-size: 1.2rem;
+  color: #cfcfcf;
+
 }
 
-#next-steps ul {
-  list-style: none;
-  padding: 0;
+.Hero span{
+  color: #f7931a;
+}
+
+.RightPanel{
+  width: 100%;
+  max-width: 460px;
+  height: auto;
+  background: #f8f8f8;
+  padding: 40px;
+  border-radius: 30px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+.RightPanel h2{
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+}
+.RightPanel small{
+  display: block;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 7px;
+}
+.RightPanel p{
+  font-size: 13px;
+  color: #666;
+  margin-top: -5px;
+  margin-bottom: 20px;
+}
+.LoginForm{
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+.LoginForm label{
+  display: block;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 5px;
+}
+.LoginForm input{
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+.LoginForm input:focus{
+  border-color: #f7931a;
+  outline: none;
+}
+.LoginForm span{
+  color: #f7931a;
+}
+
+.AgencyButtons input[type="radio"] {
+  display: none;
+}
+.AgencyButtons label {
+  color: #030303;
+  font-weight: 500;
+}
+.AgencyButtons {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  flex-direction: row;
+  justify-content: center;
+}
+.InterButtons {
+  padding: 12px 24px;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  text-align: center;
+}
+
+.AgencyButtonFDA {
+  background: #fdfdfd;
+  border-color: #1b4322;
+}
+
+.AgencyButtonFDA:hover {
+  border-color: #1b4322;
+  background: #1b4322;
+  color: #fdfdfd;
+}
+
+.AgencyButtonCIDG {
+  background: #fdfdfd;
+  border-color: #1f2937;
+}
+
+.AgencyButtonCIDG:hover {
+  background: #1f2937;
+  border-color: #1f2937;
+  color: #fdfdfd;
+}
+
+input[type="radio"]#fda:checked + label {
+  border-color: #2d6c39;
+  background: #2d6c39;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(45, 108, 57, 0.3);
+  transform: scale(1.05);
+}
+
+input[type="radio"]#cidg:checked + label {
+  border-color: #1f2937;
+  background: #1f2937;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(56, 96, 151, 0.3);
+  transform: scale(1.05);
+}
+
+.RememberMe {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.RememberMe label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px;
+  margin: 0 !important;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+}
+
+.RememberMe input[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  cursor: pointer;
+}
+
+.ForgetPass {
+  color: #f7931a;
+  font-size: 14px;
+  text-align: right;
+  margin: 0 !important;
+}
+
+.ForgetPass a {
+  color: #f7931a;
+  text-decoration: none;
+}
+
+.ForgetPass:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.LoginErrorMsgContainer {
+  background-color: #eb83835b;
+  border: 1px solid red;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  min-height: unset;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.LoginErrorMsg {
+  color: #cc0000 !important;
+  font-size: 12px;
+  font-weight: 400;
+  align-items: center;
+  text-align: center;
+  margin: 0 !important;
+}
+
+.LoginButton{
+  width: 100%;
+  margin-top: 5px;
+  padding: 10px;
+  background: #26262a;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.LoginButton:hover{
+  background: #050b07;
+  transition: all 0.2s ease;
+  transform: scale(1.05);
+}
+
+/* OTP Code Layout */
+.OtpContainer {
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.OtpInstructions {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.OtpInstructions span {
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.LoginOtpInputGrid {
   display: flex;
   gap: 8px;
-  margin: 32px 0 0;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
 
-  .logo {
-    height: 18px;
+.LoginOtpDigitInput {
+  width: 46px;
+  height: 50px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1.5px solid #011329 !important;
+  background-color: #ffffff;
+  color: #1a1a2e;
+  transition: all 0.2s ease;
+  margin-bottom: 0 !important; 
+}
+
+.LoginOtpDigitInput:focus {
+  border-color: #f7931a !important;
+  box-shadow: 0 0 0 3px rgba(247, 147, 26, 0.25);
+  outline: none;
+}
+
+.LoginOtpTimerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #666;
+}
+
+.LoginResendButton {
+  background: none;
+  border: none;
+  color: #f7931a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.LoginResendButton:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.LoginBackToLoginBtn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+.LoginBackToLoginBtn:hover {
+  color: #1a1a2e;
+  text-decoration: underline;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
+@media (max-width: 1024px) {
+  .LoginPage {
+    flex-direction: column;
+    justify-content: flex-start;
     align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
+    padding: 60px 24px;
+    height: auto;
+    min-height: 100vh;
+    gap: 40px;
+    overflow-y: auto;
   }
 
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
+  .LeftPanel {
+    width: 100%;
+    max-width: 480px;
+    height: auto;
     justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 30px;
+    padding: 0;
+  }
 
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
+  .Agency {
+    justify-content: center;
+    text-align: left;
+  }
+  .AgencyTop{
+    transform: translateX(-40px);
+  }
+  .AgencyBottom {
+    transform: none;
+  }
 
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
+  .Hero {
+    margin: 20px 0;
+  }
+
+  .Hero h1 {
+    font-size: 2.2rem;
+  }
+
+  .RightPanel {
+    width: 100%;
+    max-width: 420px;
+    margin-right: 0;
   }
 }
 
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
+.PasswordInputWrapper {
   position: relative;
+  display: flex;
+  align-items: center;
   width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
+  margin-bottom: 20px;
 }
+
+.PasswordInputWrapper input {
+  padding-right: 64px !important;
+  margin-bottom: 0 !important;
+}
+
+.TogglePasswordBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #f7931a;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.TogglePasswordBtn:hover {
+  color: #ffb85c;
+}
+
