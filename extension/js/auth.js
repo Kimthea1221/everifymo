@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const tabs = document.querySelectorAll('[data-auth-mode]');
+  const usernameField = document.getElementById('signup-username-field');
+  const usernameInput = document.getElementById('username');
+  const usernameError = document.getElementById('username-error');
   const emailInput = document.getElementById('email');
   const signinPasswordField = document.getElementById('signin-password-field');
   const passwordInput = document.getElementById('password');
@@ -22,13 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
       title: 'Signing in is optional',
       text: 'You can still verify products and submit complaints as a guest. Sign in or Sign up to view your verification history, complaints, and report status.',
       buttonLabel: 'Sign In',
-      documentTitle: 'E-VERIFYMO | Sign In'
+      documentTitle: 'E-VERIFY | Sign In'
     },
     signup: {
       title: 'Signing up is optional',
       text: 'You can still verify products and submit complaints as a guest. Sign in or Sign up to view your verification history, complaints, and report status.',
       buttonLabel: 'Sign Up',
-      documentTitle: 'E-VERIFYMO | Sign Up'
+      documentTitle: 'E-VERIFY | Sign Up'
     }
   };
 
@@ -55,6 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
       primaryButton.textContent = settings.buttonLabel;
     }
 
+    if (usernameField) {
+      usernameField.hidden = mode !== 'signup';
+    }
+
     if (signupPasswordFields) {
       signupPasswordFields.hidden = mode !== 'signup';
     }
@@ -74,13 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const clearErrors = () => {
-    [emailError, passwordError, createPasswordError, confirmPasswordError].forEach((errorNode) => {
+    [emailError, passwordError, createPasswordError, confirmPasswordError, usernameError].forEach((errorNode) => {
       if (errorNode) {
         errorNode.textContent = '';
       }
     });
 
-    [emailInput, passwordInput, createPasswordInput, confirmPasswordInput].forEach((inputNode) => {
+    [emailInput, passwordInput, createPasswordInput, confirmPasswordInput, usernameInput].forEach((inputNode) => {
       if (inputNode) {
         inputNode.classList.remove('is-invalid');
       }
@@ -123,7 +130,15 @@ document.addEventListener('DOMContentLoaded', () => {
       isValid = false;
     }
 
+    
+
     if (currentMode === 'signup') {
+      const usernameValue = usernameInput ? usernameInput.value.trim() : '';
+        if (!usernameValue) {
+          setError(usernameError, 'Username is required.');
+          if (usernameInput) usernameInput.classList.add('is-invalid');
+          isValid = false;
+        }
       const createPasswordValue = createPasswordInput ? createPasswordInput.value : '';
       const confirmPasswordValue = confirmPasswordInput ? confirmPasswordInput.value : '';
 
@@ -154,7 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         isValid = false;
       }
-    } else if (!passwordInput || !passwordInput.value) {
+    } 
+    
+    else if (!passwordInput || !passwordInput.value) {
       setError(passwordError, 'Password is required.');
       if (passwordInput) {
         passwordInput.classList.add('is-invalid');
@@ -174,9 +191,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  if (primaryButton) {
-    primaryButton.addEventListener('click', () => {
-      validateForm();
+  const guestBtn = document.getElementById('btn-guest');
+if (guestBtn) {
+  guestBtn.addEventListener('click', () => {
+    logoutUser(() => {
+      window.location.href = 'report-complaint.html';
     });
-  }
+  });
+}
+
+if (primaryButton) {
+  primaryButton.addEventListener('click', () => {
+    const isValid = validateForm();
+    if (!isValid) return;
+
+    const emailValue = emailInput.value.trim();
+
+    if (currentMode === 'signup') {
+      const usernameValue = usernameInput.value.trim();
+      const passwordValue = createPasswordInput.value;
+
+      registerUser({ username: usernameValue, email: emailValue, password: passwordValue }, (success, errorMsg) => {
+        if (success) {
+          window.location.href = 'report-complaint.html';
+        } else {
+          setError(emailError, errorMsg || 'Could not create account.');
+          emailInput.classList.add('is-invalid');
+        }
+      });
+
+    } else {
+      const passwordValue = passwordInput.value;
+
+      loginUser(emailValue, passwordValue, (success) => {
+        if (success) {
+          window.location.href = 'report-complaint.html';
+        } else {
+          setError(passwordError, 'Incorrect email or password.');
+          passwordInput.classList.add('is-invalid');
+        }
+      });
+    }
+  });
+}
+
 });
