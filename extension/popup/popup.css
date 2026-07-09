@@ -336,8 +336,6 @@ body {
 
 /* ================================
    SUSPICIOUS STATE (ORANGE)
-================================ */
-#state-suspicious {
   align-items: stretch;
   text-align: left;
   gap: 14px;
