@@ -432,6 +432,30 @@ input[type="radio"]#cidg:checked + label {
   }
 }
 
+.LoginInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.LoginInputWrapper input {
+  width: 100%;
+  padding: 11px 12px 11px 40px !important;
+  margin-bottom: 0 !important;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  background: #ffffff;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.LoginInputWrapper input:focus {
+  border-color: #f7931a;
+}
+
 .PasswordInputWrapper {
   position: relative;
   display: flex;
@@ -441,29 +465,48 @@ input[type="radio"]#cidg:checked + label {
 }
 
 .PasswordInputWrapper input {
-  padding-right: 64px !important;
+  width: 100%;
+  padding: 11px 45px 11px 40px !important;
   margin-bottom: 0 !important;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  background: #ffffff;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.PasswordInputWrapper input:focus {
+  border-color: #f7931a;
+}
+
+.LoginInputIcon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .TogglePasswordBtn {
   position: absolute;
-  right: 12px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
   border: none;
-  color: #f7931a;
-  font-size: 12px;
-  font-weight: 600;
+  color: #94a3b8;
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.15s ease;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
 }
 
 .TogglePasswordBtn:hover {
-  color: #ffb85c;
+  color: #f7931a;
 }
 
