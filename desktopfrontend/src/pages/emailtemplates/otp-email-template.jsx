@@ -1,5 +1,5 @@
 import React from 'react';
-
+//THIS TEMPLATE INTENDED FOR INETERAGENCY (FDA & LEA) USE.
 //SAMPLE OTP CODE
 const OtpEmailTemplate = ({ otpCode = "123456" }) => {
   return (
@@ -173,8 +173,8 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
                     <div className="EmailSecurityNoticeTitle">Security Information:</div>
                     <ul>
                       <li>Never share this verification code with anyone, including system administrators.</li>
-                      <li>Ensure the URL starts with your department's official domain.</li>
-                      <li>The system will never ask you to verify this code over phone, email, or messaging channels.</li>
+                      <li>Ensure you are signing in through the official ICMDA portal provided by your agency.</li>
+                      <li>Do not reply to this email with your verification code or share it through phone calls or messaging applications.</li>
                     </ul>
                   </div>
                 </td>
