@@ -18,6 +18,8 @@ from app.core.constants import UserStatus
 from app.desktop.schemas.auth.registration import ResendInviteRequest, ResendInviteResponse
 import secrets
 
+from app.desktop.schemas.auth.registration import RequestResendRequest, RequestResendResponse
+
 
 # All registration-related endpoints will start with /registration
 router = APIRouter(prefix="/registration", tags=["Registration"])
@@ -177,4 +179,43 @@ def resend_invite(data: ResendInviteRequest, db: Session = Depends(get_db)):
 
     return ResendInviteResponse(
         message="A new invitation has been generated.",
+    )
+
+  #
+  #
+  #
+  #
+  #
+  #
+  # POST /registration/request-resend
+@router.post("/request-resend", response_model=RequestResendResponse)
+def request_resend(data: RequestResendRequest, db: Session = Depends(get_db)):
+    # Officer isn't logged in, same bypass as every other registration endpoint
+    db.execute(text("SET app.bypass_rls = 'true'"))
+
+    # Find the token the officer is asking to have resent
+    token_row = db.query(AccountInvitationToken).filter(
+        AccountInvitationToken.invite_token == data.invite_token
+    ).first()
+
+    if not token_row:
+        raise HTTPException(status_code=404, detail="Invitation not found.")
+
+    if token_row.used_at is not None:
+        raise HTTPException(status_code=409, detail="This invitation was already used.")
+
+    # Only makes sense to request a resend if the link is actually expired
+    if token_row.expires_at > datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This invitation has not expired yet.")
+
+    # Don't let the same expired token flood SuperAdmin with repeat requests
+    if token_row.resend_requested_at is not None:
+        raise HTTPException(status_code=409, detail="A resend has already been requested for this invitation.")
+
+    # Just flag the request — SuperAdmin decides whether to actually resend
+    token_row.resend_requested_at = datetime.now(timezone.utc)
+    db.commit()
+
+    return RequestResendResponse(
+        message="Your request has been sent to the administrator.",
     )

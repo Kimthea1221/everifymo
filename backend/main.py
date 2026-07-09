@@ -22,7 +22,7 @@ app.add_middleware(
 
 app.include_router(invite_router)
 app.include_router(regions_router)
-app.imclude_router(registration.router)
+app.include_router(registration.router)
 
 @app.get("/")
 def root():

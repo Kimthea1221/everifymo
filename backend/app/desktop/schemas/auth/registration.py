@@ -45,3 +45,10 @@ class ResendInviteRequest(BaseModel):
 
 class ResendInviteResponse(BaseModel):
     message: str
+
+# added for resend request and response
+class RequestResendRequest(BaseModel):
+    invite_token: str
+
+class RequestResendResponse(BaseModel):
+    message: str
