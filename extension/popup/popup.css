@@ -26,9 +26,7 @@
   font-style: normal;
 }
 
-/* ================================
-   BASE / RESET
-================================ */
+/* BASE / RESET */
 * {
   margin: 0;
   padding: 0;
@@ -46,9 +44,7 @@ body {
   color: #333333;
 }
 
-/* ================================
-   HEADER
-================================ */
+/* HEADER */
 .header {
   display: flex;
   align-items: center;
@@ -79,9 +75,7 @@ body {
   cursor: pointer;
 }
 
-/* ================================
-   MAIN CONTENT
-================================ */
+/* MAIN CONTENT */
 .main-content {
   padding: 16px;
 }
@@ -98,19 +92,15 @@ body {
   display: none !important;
 }
 
-/* ================================
-   IDLE STATE
-================================ */
+/* IDLE STATE */
 .state-message {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: #777777;
 }
 
-/* ================================
-   SHARED HISTORY BUTTON
-   (used by all states)
-================================ */
+/* SHARED HISTORY BUTTON
+   (used by all states) */
 .home-btn {
   display: flex;
   align-items: center;
@@ -141,9 +131,7 @@ body {
   cursor: not-allowed;
 }
 
-/* ================================
-   REGISTERED STATE (GREEN)
-================================ */
+/* REGISTERED STATE (GREEN) */
 #state-registered {
   align-items: stretch;
   text-align: left;
@@ -334,9 +322,7 @@ body {
   line-height: 1;
 }
 
-/* ================================
-   SUSPICIOUS STATE (ORANGE)
-================================ */
+/*SUSPICIOUS STATE (ORANGE) */
 #state-suspicious {
   align-items: stretch;
   text-align: left;
@@ -352,8 +338,6 @@ body {
   border-radius: 12px;
   background-color: #FFF8EB;
 }
-
-
 
 #state-suspicious .not-found-copy {
   display: flex;
@@ -422,9 +406,7 @@ body {
 
 #state-suspicious .quick-check-tip:last-child { margin-bottom: 0; }
 
-/* ================================
-   UNREGISTERED STATE (RED)
-================================ */
+/* UNREGISTERED STATE (RED) */
 #state-unregistered {
   align-items: stretch;
   text-align: left;
@@ -615,14 +597,22 @@ body {
   line-height: 1;
 }
 
-#state-unregistered .action-buttons-red {
+/* STATE BUTTONS */
+
+#state-unregistered .action-buttons-red, 
+#state-registered .action-buttons-green, 
+#state-suspicious .action-buttons-orange {
   display: flex;
   gap: 10px;
   width: 100%;
 }
 
 #state-unregistered .btn-report-red,
-#state-unregistered .btn-skip-red {
+#state-unregistered .btn-skip-red,
+#state-suspicious .btn-report-orange,
+#state-suspicious .btn-skip-orange,
+#state-registered .btn-report-green,
+#state-registered .btn-skip-green {
   flex: 1;
   border-radius: 10px;
   padding: 14px;
@@ -636,17 +626,55 @@ body {
 #state-unregistered .btn-report-red {
   background-color: #B22222;
   color: #FFFFFF;
+  transition: background-color 0.3s ease-in-out;
 }
 
-#state-unregistered .btn-skip-red {
+#state-unregistered .btn-skip-red, 
+#state-suspicious .btn-skip-orange, 
+#state-registered .btn-skip-green {
   background-color: #FFFFFF;
   color: #030303;
   border: 1px solid #E0E0E0;
 }
 
-/* ================================
-   HOME STATE
-================================ */
+#state-registered .btn-report-green {
+  background-color: #2E7D32;
+  color: #FFFFFF;
+  transition: background-color 0.3s ease-in-out;
+}
+
+#state-suspicious .btn-report-orange {
+  background-color: #d97706;
+  color: #FFFFFF;
+  transition: background-color 0.3s ease-in-out;
+
+}
+
+#state-suspicious .btn-report-orange:hover {
+  background-color: #fca311; 
+}
+
+#state-registered .btn-report-green:hover {
+  background-color: #66bb6a; 
+}
+
+#state-unregistered .btn-report-red:hover {
+  background-color: #f22424; 
+}
+
+#state-unregistered .btn-skip, 
+#state-suspicious .btn-skip, 
+#state-registered .btn-skip {
+  transition: background-color 0.2s ease;
+}
+
+#state-unregistered .btn-skip:hover, 
+#state-suspicious .btn-skip:hover, 
+#state-registered .btn-skip:hover {
+  background-color: #F3F3F3;
+}
+
+/* HOME STATE */
 #state-home {
   align-items: center;
   gap: 12px;
@@ -805,6 +833,8 @@ body {
 .btn:hover { 
   background-color: #F3F3F3; 
 }
+
+/* SCANNING STATE */
 
 #state-scanning .scanning-banner {
   display: flex;

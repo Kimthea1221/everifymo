@@ -18,11 +18,50 @@ function getCurrentUser() {
   return _session || { username: '', email: '' };
 }
 
+function updateUsername(newUsername, callback) {
+  if (!_session) {
+    callback(false);
+    return;
+  }
+
+  _session.username = newUsername;
+
+  getRegisteredUsers((users) => {
+    const updatedUsers = users.map(u =>
+      u.email === _session.email ? { ...u, username: newUsername } : u
+    );
+    chrome.storage.local.set(
+      { session: _session, registeredUsers: updatedUsers },
+      () => callback(true)
+    );
+  });
+}
+
+function deleteAccount(callback) {
+  if (!_session) {
+    callback(false);
+    return;
+  }
+
+  getRegisteredUsers((users) => {
+    const remainingUsers = users.filter(u => u.email !== _session.email);
+    chrome.storage.local.set({ registeredUsers: remainingUsers }, () => {
+      chrome.storage.local.remove('session', () => {
+        _session = null;
+        callback(true);
+      });
+    });
+  });
+}
+
 function getRegisteredUsers(callback) {
   chrome.storage.local.get(['registeredUsers'], (data) => {
     callback(data.registeredUsers || []);
   });
 }
+
+// loginUser, updateUsername, deleteAccount all stay exactly as they are —
+// they were already correctly calling getRegisteredUsers, it just didn't exist yet
 
 function registerUser(user, callback) {
   getRegisteredUsers((users) => {
@@ -41,15 +80,17 @@ function registerUser(user, callback) {
 
 function loginUser(email, password, callback) {
   getRegisteredUsers((users) => {
-    const match = users.find(u => u.email === email && u.password === password);
-    if (!match) {
-      callback(false);
+    const accountExists = users.some(u => u.email === email);
+    if (!accountExists) {
+      callback(false, 'Account does not exist.');
       return;
     }
-    chrome.storage.local.set(
-      { session: { username: match.username, email: match.email } },
-      () => callback(true)
-    );
+    const match = users.find(u => u.email === email && u.password === password);
+    if (!match) {
+      callback(false, 'Incorrect email or password.');
+      return;
+    }
+    chrome.storage.local.set({ session: { username: match.username, email: match.email } }, () => callback(true));
   });
 }
 
@@ -62,9 +103,14 @@ function logoutUser(callback) {
 // ================================
 
 let _notifications = [
-  { id: 1, message: 'Miracle Glow Whitening Setting Spray 60ml has been resolved.', time: 'Just now', read: false },
-  { id: 2, message: 'Miracle Glow Whitening Setting Spray 60ml has been denied.', time: '1 hour ago', read: true },
-  { id: 3, message: 'Miracle Glow Whitening Setting Spray 60ml is now being reviewed.', time: '2 hours ago', read: true }
+  { id: 1, message: 'Miracle Glow Whitening Setting Spray 60ml has been completed and moved to your Complaints History.', time: 'Just now', read: false, target: { type: 'history', id: 101 } },
+  { id: 2, message: 'Miracle Glow Whitening Setting Spray 60ml has been dismissed and moved to your Complaints History.', time: '1 hour ago', read: true, target: { type: 'history', id: 102 } },
+  { id: 3, message: 'Miracle Glow Whitening Setting Spray 60ml is now under review.', time: '2 hours ago', read: true, target: { type: 'status', id: 2 } },
+  { id: 4, message: 'Miracle Glow Whitening Setting Spray 60ml is now under review.', time: '2 hours ago', read: true, target: { type: 'status', id: 2 } },
+  { id: 5, message: 'Miracle Glow Whitening Setting Spray 60ml is now under review.', time: '2 hours ago', read: true, target: { type: 'status', id: 2 } },
+    { id: 6, message: 'Miracle Glow Whitening Setting Spray 60ml is now under review.', time: '2 hours ago', read: true, target: { type: 'status', id: 2 } }
+
+
 ];
 
 function getNotifications() {
@@ -81,11 +127,46 @@ function markAllNotificationsRead() {
 
 function getComplaintsHistory() {
   return [
-    { id: 1, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'resolved' },
-    { id: 2, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'pending' },
-    { id: 3, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Tiktok Shop', time: '2 hrs ago', status: 'pending' },
-    { id: 4, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hours ago', status: 'denied' },
-    { id: 5, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'resolved' }
+    {
+      id: 101,
+      productName: 'Miracle Glow Whitening Setting S.....',
+      platform: 'Shopee',
+      time: '2 hrs ago',
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    },
+    {
+      id: 102,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hrs ago',
+      status: 'dismissed',
+      note: 'This complaint was dismissed because the product was found to be registered under a different FDA record not yet reflected in our database at the time of the report.'
+    },
+    {
+      id: 103,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Tiktok Shop',
+      time: '2 hrs ago',
+      status: 'dismissed',
+      note: 'This complaint was dismissed because the product\'s registration is currently in process with the FDA and could not be confirmed unregistered at this time.'
+    },
+    {
+      id: 104,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hours ago',
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    },
+    {
+      id: 105,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hours ago',
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    }
   ];
 }
 
@@ -103,6 +184,51 @@ function getVerificationHistory() {
   ];
 }
 
+function getComplaintsHistory() {
+  return [
+    {
+      id: 101,
+      productName: 'Miracle Glow Whitening Setting S.....',
+      platform: 'Shopee',
+      time: '2 hrs ago',
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    },
+    {
+      id: 102,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hrs ago',
+      status: 'dismissed',
+      note: 'This complaint was dismissed because the product was found to be registered under a different FDA record not yet reflected in our database at the time of the report.'
+    },
+    {
+      id: 103,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Tiktok Shop',
+      time: '2 hrs ago',
+      status: 'dismissed',
+      note: 'This complaint was dismissed because the product\'s registration is currently in process with the FDA and could not be confirmed unregistered at this time.'
+    },
+    {
+      id: 104,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hours ago',
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    },
+    {
+      id: 105,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hours ago',
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    }
+  ];
+}
+
 // ================================
 // MOCK DATA — COMPLAINT STATUSES
 // ================================
@@ -112,19 +238,19 @@ function getComplaintStatuses() {
     {
       id: 1,
       productName: 'Miracle Glow Whitening Setting Spray 60ml',
-      stage: 'acted_upon', // 'received' | 'reviewing' | 'acted_upon'
-      note: 'FDA issued takedown notice to seller. Listing removed from Shopee on May 17.'
+      stage: 'takedown_requested', // 'open' | 'under_review' | 'takedown_requested'
+      note: 'Takedown has been requested to CIDG. Awaiting enforcement action.'
     },
     {
       id: 2,
       productName: 'Miracle Glow Whitening Setting Spray 60ml',
-      stage: 'reviewing',
+      stage: 'under_review',
       note: 'Under review by FDA enforcement team. Evidence verified.'
     },
     {
       id: 3,
       productName: 'Miracle Glow Whitening Setting Spray 60ml',
-      stage: 'received',
+      stage: 'open',
       note: 'Report received. Queued for initial review.'
     }
   ];
