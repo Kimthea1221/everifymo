@@ -1,89 +1,149 @@
 ﻿document.addEventListener("DOMContentLoaded", () => {
 
-  chrome.storage.local.get(
-    ['productTitle', 'productPlatform', 'productUrl', 'productStatus'],
-    (data) => {
+  whenSessionReady(() => {
 
-      // TEMPORARY HARDCODE FOR TESTING — remove later
-      const title = 'Maybelline Fit Me Foundation';
-      const status = 'home'; // change to: 'registered', 'unverified', 'home', 'idle'
+    chrome.storage.local.get(
+      ['productTitle', 'productPlatform', 'productUrl', 'productStatus'],
+      (data) => {
 
-      if (status === 'registered') {
-        const el = document.getElementById('product-name-registered');
-        if (el) el.textContent = title;
-        showState('registered');
+        // TEMPORARY HARDCODE FOR TESTING — remove later
+        const title = 'Maybelline Fit Me Foundation';
+        const url = 'shopee.ph/Maybelline-Fit-Me-Foundation';
+        const status = 'unregistered'; // change to: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
 
-      } else if (status === 'unregistered') {
-        const el = document.getElementById('product-name-unregistered');
-        if (el) el.textContent = title;
-        showState('unregistered');
+        chrome.storage.local.set({
+          productTitle: title,
+          productUrl: url,
+          productStatus: status
+        });
 
-      } else if (status === 'unverified') {
-        const el = document.getElementById('product-name-unverified');
-        if (el) el.textContent = title;
-        showState('unverified');
+        if (status === 'registered') {
+          const el = document.getElementById('product-name-registered');
+          if (el) el.textContent = title;
+          showState('registered');
 
-      } else if (status === 'home') {
-        showState('home');
+        } else if (status === 'unregistered') {
+          const el = document.getElementById('product-name-unregistered');
+          if (el) el.textContent = title;
+          showState('unregistered');
 
-      } else if (status === 'scanning') {
-        showState('scanning');
+        } else if (status === 'suspicious') {
+          const el = document.getElementById('product-name-suspicious');
+          if (el) el.textContent = title;
+          showState('suspicious');
+
+        } else if (status === 'home') {
+          showState('home');
+
+        } else if (status === 'scanning') {
+          showState('scanning');
+
+        } else {
+          showState('idle');
+        }
       }
+    );
 
-      else {
-        showState('idle');
-      }
+    applyAuthView();
+
+    const btnReport = document.getElementById('btn-report');
+    if (btnReport) {
+      btnReport.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('pages/report-complaint.html') });
+      });
     }
-  );
 
-  const btnReport = document.getElementById('btn-report');
-  if (btnReport) {
-    btnReport.addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('pages/report-complaint.html') });
+    const btnSigninHeader = document.getElementById('link-sign-in-up');
+    if (btnSigninHeader) {
+      btnSigninHeader.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('pages/auth.html') });
+      });
+    }
+
+    const btnAbout = document.getElementById('btn-about');
+    if (btnAbout) {
+      btnAbout.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('pages/about.html') });
+      });
+    }
+
+    const btnComplaintHistory = document.getElementById('history-btn');
+    if (btnComplaintHistory) {
+      btnComplaintHistory.addEventListener('click', (e) => {
+        if (!isUserLoggedIn()) {
+          e.preventDefault();
+          chrome.tabs.create({ url: chrome.runtime.getURL('pages/auth.html') });
+          return;
+        }
+        chrome.tabs.create({ url: chrome.runtime.getURL('pages/history.html') });
+      });
+    }
+
+    const btnComplaintStatus = document.getElementById('status-btn');
+    if (btnComplaintStatus) {
+      btnComplaintStatus.addEventListener('click', (e) => {
+        if (!isUserLoggedIn()) {
+          e.preventDefault();
+          chrome.tabs.create({ url: chrome.runtime.getURL('pages/auth.html') });
+          return;
+        }
+        chrome.tabs.create({ url: chrome.runtime.getURL('pages/complaint-status.html') });
+      });
+    }
+
+    document.querySelectorAll('.back-to-home-btn').forEach(btn => {
+      btn.addEventListener('click', () => showState('home'));
     });
-  }
 
-  const btnSigninHeader = document.getElementById('link-sign-in-up');
-  if (btnSigninHeader) {
-    btnSigninHeader.addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('pages/auth.html') });
-    });
-  }
+    const btnSkip = document.getElementById('btn-skip');
+    if (btnSkip) {
+      btnSkip.addEventListener('click', () => window.close());
+    }
 
-  const btnAbout = document.getElementById('btn-about');
-  if (btnAbout) {
-    btnAbout.addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('pages/about.html') });
-    });
-  }
+    const btnGuest = document.getElementById('btn-guest');
+    if (btnGuest) {
+      btnGuest.addEventListener('click', () => window.close());
+    }
 
-    const btnComplaintHistory = document.getElementById('btn-complaint-history');
-  if (btnComplaintHistory) {
-    btnComplaintHistory.addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('pages/complaint-history.html') });
-    });
-  }
+    const btnExit = document.getElementById('exit-btn');
+    if (btnExit) {
+      btnExit.addEventListener('click', () => window.close());
+    }
 
-  const btnSkip = document.getElementById('btn-skip');
-  if (btnSkip) {
-    btnSkip.addEventListener('click', () => window.close());
-  }
+  }); // end whenSessionReady
 
-});
+}); // end DOMContentLoaded
 
-const btnGuest = document.getElementById('btn-guest');
-if (btnGuest) {
-  btnGuest.addEventListener('click', () => {
-    window.close(); // closes the tab, returns to extension
-  });
-}
+
+// --- Functions below can stay outside, since they don't touch the DOM until called ---
 
 function showState(state) {
-  const states = ['idle', 'registered', 'unverified', 'unregistered', 'home', 'scanning'];
+  const states = ['idle', 'registered', 'suspicious', 'unregistered', 'home', 'scanning'];
   states.forEach(s => {
     const el = document.getElementById(`state-${s}`);
     if (el) el.classList.add('hidden');
   });
   const target = document.getElementById(`state-${state}`);
   if (target) target.classList.remove('hidden');
+}
+
+function applyAuthView() {
+  const loggedIn = typeof isUserLoggedIn === 'function' ? isUserLoggedIn() : false;
+
+  const guestBanner = document.getElementById('home-banner-guest');
+  const userBanner = document.getElementById('home-banner-user');
+  const complaintsBtn = document.getElementById('status-btn');
+  const historyBtn = document.getElementById('history-btn');
+
+  if (guestBanner) guestBanner.classList.toggle('hidden', loggedIn);
+  if (userBanner) userBanner.classList.toggle('hidden', !loggedIn);
+
+  [complaintsBtn, historyBtn].forEach(btn => {
+    if (btn) btn.classList.toggle('btn-disabled-guest', !loggedIn);
+  });
+
+  if (loggedIn && typeof getCurrentUser === 'function') {
+    const usernameEl = document.getElementById('home-username');
+    if (usernameEl) usernameEl.textContent = getCurrentUser().username;
+  }
 }
