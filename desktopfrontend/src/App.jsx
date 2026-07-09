@@ -71,7 +71,7 @@ export default function App(){
       <DeepLinkListener />
       <Routes>
           {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-          <Route path='/' element={<LeaDashboard />} />
+          <Route path='/' element={<UserRegistration />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
