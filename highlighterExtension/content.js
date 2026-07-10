@@ -25,7 +25,7 @@ document.addEventListener("mouseup", () => {
             const range = window.getSelection().getRangeAt(0).getBoundingClientRect();
           
             verifyBtn.style.left = range.left + "px";
-            verifyBtn.style.top = (range.top - 35) + "px";
+            verifyBtn.style.top = (range.bottom + 8) + "px";
             verifyBtn.style.display = "block";
         } else {
             verifyBtn.style.display = "none";
