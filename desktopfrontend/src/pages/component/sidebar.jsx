@@ -9,6 +9,8 @@ import {
   FileText, // view reports menu icon
   CirclePlus, //new walk in intake menu icon
   Bookmark, // saved draft menu icon
+  UsersRound, // user management icon
+  ScrollText, // audit logs icon
 } from "lucide-react";
 
 // Images
@@ -16,8 +18,8 @@ import CIDGLogo from '../../images/pnp-cidg.jpg'
 import FDALogo from '../../images/FDA.png'
 
 const SuperAdminMenuItems = [
-    { label: 'User Management', path: '/superadminfolder/superadmin-user-management' },
-    { label: 'Audit Logs', path: '/superadminfolder/superadmin-audit-log' },
+    { icon: UsersRound, label: 'User Management', path: '/superadminfolder/superadmin-user-management' },
+    { icon: ScrollText, label: 'Audit Logs', path: '/superadminfolder/superadmin-audit-log' },
 ]
 
 const FDAMenuItems = [
@@ -37,7 +39,7 @@ const LeaMenuItems = [
 ]
 
 const sidebarStyles = `
-/* SuperAdmin Sidebar Styles                  */
+/* SuperAdmin Sidebar Styles*/
 
 .SuperAdminSidebarMain {
   width: 280px;
@@ -260,15 +262,19 @@ function Sidebar({ sidebarType, role, agency }) {
                         <p>ICMDA: Superadmin Workspace</p>
                     </div>
                     <div className='SuperAdminSidebarMenu'>
-                        {SuperAdminMenuItems.map((item) => (
-                            <button
-                                key={item.path}
-                                className={`MenuBtn ${location.pathname === item.path ? 'active' : ''}`}
-                                onClick={() => navigate(item.path)}
-                            >
-                                <span className='MenuLabels'>{item.label}</span>
-                            </button>
-                        ))}
+                        {SuperAdminMenuItems.map((item) => {
+                            const Icon = item.icon
+                            return (
+                                <button
+                                    key={item.path}
+                                    className={`MenuBtn ${location.pathname === item.path ? 'active' : ''}`}
+                                    onClick={() => navigate(item.path)}
+                                >
+                                    <span className='MenuIcons'>{Icon && <Icon />}</span>
+                                    <span className='MenuLabels'>{item.label}</span>
+                                </button>
+                            )
+                        })}
                     </div>
                 </div>
             </>
