@@ -70,7 +70,7 @@ export default function App(){
       <DeepLinkListener />
       <Routes>
           {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-          <Route path='/' element={<UserRegistration />} />
+          <Route path='/' element={<SuperAdminUserManagement />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
