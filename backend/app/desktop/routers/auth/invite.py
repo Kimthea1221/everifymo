@@ -9,9 +9,9 @@ from sqlalchemy import text
 from app.database.sessions import get_db
 from app.models.users import User
 from app.models.account_invitation_tokens import AccountInvitationToken
-from app.schemas.auth.invite import InvitePersonnelRequest
-from app.services.auth.invite import create_invited_user
-from app.services.auth.email import send_invite_email
+from app.desktop.schemas.auth.invite import InvitePersonnelRequest
+from app.desktop.services.auth.invite import create_invited_user
+from app.desktop.services.auth.email import send_invite_email
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 

@@ -69,8 +69,8 @@ export default function App(){
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-          <Route path='/' element={<SuperAdminUserManagement/>} />
+          {/*CHANGE THIS LINE ONLY WHEN TESTING */}
+          <Route path='/' element={<UserRegistration />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
