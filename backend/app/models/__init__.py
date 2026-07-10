@@ -6,3 +6,20 @@ from .user_sessions import UserSession
 
 from .consumer_accounts import ConsumerAccount
 from .verification_history import VerificationHistory
+
+from .registered_products import RegisteredProduct
+from .unregistered_advisories import UnregisteredAdvisory
+
+from .walkin_complainants import WalkinComplainant
+from .complaints import Complaint
+from .complaints_status_history import ComplaintStatusHistory
+
+from .walkin_intake_drafts import WalkinIntakeDraft
+from .verification_request_drafts import VerificationRequestDraft
+from .draft_attachments import DraftAttachment
+
+from .verification_requests import VerificationRequest
+
+from .notifications import Notification
+from .shared_files import SharedFile
+from .audit_logs import AuditLog
