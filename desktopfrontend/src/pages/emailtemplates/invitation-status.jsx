@@ -3,46 +3,47 @@
 // This page handles three invalid deep link states:
 // 1. Invitation link expired
 // 2. Invalid invitation link
-// 3. Registration already complete
+// 3. Registration already used/completed ***CHINANGE KO YUNG NAMING NG STATUS INTO "used" PARA HINDI MAGKA-CONFLICT SA "completed" STATUS NA GINAGAMIT SA BACKEND
 
-
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import {ClockAlert, Link, CircleCheckBig} from 'lucide-react'
 
 function DeepLinkStatus() {
-    const [searchParams] = useSearchParams()
+    const location = useLocation()
 
    {/*CHANGE LANG TO PARA MAKITA YUNG STATUS
     const [linkStatus, setLinkStatus] = useState('expired')    
     const [linkStatus, setLinkStatus] = useState('invalid')    
-    const [linkStatus, setLinkStatus] = useState('completed')
+    const [linkStatus, setLinkStatus] = useState('used')
     */}
-    const [linkStatus, setLinkStatus] = useState('completed')
+    const { status: linkStatus, invite_token } = location.state || {}
 
-    // ⚠️ REMOVE THIS useEffect when backend is connected
-    // 🔌 BACKEND: call API here to validate the deep link token
-    // const token = searchParams.get('token')
-    // const response = await fetch(`/api/validate-invite?token=${token}`)
-    // const data = await response.json()
-    // setLinkStatus(data.status)
-    useEffect(() => {}, [])
-
+    const [requested, setRequested] = useState(false)
     // content config for each status
     const statusContent = {
         expired: {
-            icon: <ClockAlert size={32} color="#D97706" />,
-            iconBg: '#FEF3C7',
-            title: 'Invitation Link Expired',
-            message: 'Your registration link has expired. Invitation links are only valid for a limited time. Please request a new invitation from your administrator.',
-            showButton: true,
-            buttonLabel: 'Request New Invitation',
-            buttonAction: () => {
-                // 🔌 BACKEND: trigger API to notify admin to resend invite
-                alert('Your request has been sent to the administrator.')
-            },
-            accentColor: '#D97706',
+        icon: <ClockAlert size={32} color="#D97706" />,
+        iconBg: '#FEF3C7',
+        title: 'Invitation Link Expired',
+        message: 'Your registration link has expired. Invitation links are only valid for a limited time. Please request a new invitation from your administrator.',
+        showButton: !requested,
+        buttonLabel: 'Request New Invitation',
+        buttonAction: () => {
+            fetch('http://localhost:8000/registration/request-resend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ invite_token }),
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error('Request failed')
+                    return res.json()
+                })
+                .then(() => setRequested(true))
+                .catch(() => alert('Something went wrong. Please contact your administrator directly.'))
         },
+        accentColor: '#D97706',
+    },
         invalid: {
             icon: <Link size={32} color="#B91C1C" />,
             iconBg: '#FEE2E2',
@@ -51,7 +52,7 @@ function DeepLinkStatus() {
             showButton: false,
             accentColor: '#B91C1C',
         },
-        completed: {
+        used: {
             icon: <CircleCheckBig size={32} color="#0D9488" />,
             iconBg: '#D1FAE5',
             title: 'Registration Already Complete',
@@ -62,6 +63,8 @@ function DeepLinkStatus() {
     }
 
     const content = statusContent[linkStatus]
+
+    if (!content) return <p>Something went wrong.</p>   // safety fallback
 
     return (
         <>
@@ -200,7 +203,7 @@ function DeepLinkStatus() {
                     <h2 className='DeepLinkTitle'>{content.title}</h2>
 
                     {/* special alert box for completed status only */}
-                    {linkStatus === 'completed' && (
+                    {linkStatus === 'used' && (
                         <div className='DeepLinkAlertBox'>
                             <p>✓ Your registration details have been received.</p>
                         </div>
@@ -220,6 +223,11 @@ function DeepLinkStatus() {
                         >
                             {content.buttonLabel}
                         </button>
+                    )}
+
+                    {/* shown after a successful resend request */}
+                    {linkStatus === 'expired' && requested && (
+                        <p className='DeepLinkMessage'>Your request has been sent. Please wait for your administrator.</p>
                     )}
 
                     {/* system name at bottom */}

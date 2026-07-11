@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import ImgSuccess from '../images/success_img.png'
 import ImgTime from '../images/time_img.png'
 import { 
@@ -17,6 +17,9 @@ import {
 // REGISTRATION PAGE FOR ADDED PERSONNEL
 function UserRegistration() {
   const navigate = useNavigate();
+  const location = useLocation()
+  const officerData = location.state || {}   // fallback in case someone visits this page directly
+
   const [form, setForm] = useState({
     firstName: '',
     middleName: '',
@@ -75,8 +78,35 @@ function UserRegistration() {
       setErrors(validationErrors);
       return;
     }
-    setSubmitted(true);
-  }
+
+    // Submit the form data to the backend
+  fetch('http://localhost:8000/registration/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      invite_token: officerData.invite_token,
+      first_name: form.firstName,
+      middle_name: form.middleName || null,
+      last_name: form.lastName,
+      employee_id: form.employeeId,
+      contact_number: form.contactNumber,
+      department: form.department,
+      position: form.position,
+    }),
+  })
+    .then((res) => {
+    if (!res.ok) {
+      throw new Error('Submission failed')
+    }
+    return res.json()
+  })
+  .then(() => setSubmitted(true))
+  .catch((error) => {
+    console.error(error)
+    // For now, at minimum, avoid silently pretending success
+    alert('Something went wrong submitting your registration. Please try again.')
+  })
+}
 
   /*Success Screen*/
   if (submitted) {
@@ -314,6 +344,7 @@ function UserRegistration() {
     </>
   );
 }
+
 
 
 const styles = `
