@@ -1,7 +1,6 @@
 import './superadmin-css.css';
-
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { Send, UserCheck, UserX, RefreshCw,  TriangleAlert, CircleCheckBig, Mail} from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 
@@ -64,28 +63,28 @@ function ActionButton({ status, onAction }) {
   if (status === 'Pending') {
     return (
       <button className="UMActionBtn btn-resend" onClick={() => onAction('resend')}>
-        Resend Link
+        <Send size={13} /> Resend Link
       </button>
     );
   }
   if (status === 'For Activation') {
     return (
       <button className="UMActionBtn btn-activate" onClick={() => onAction('activate')}>
-        Activate
+        <UserCheck size={13} /> Activate
       </button>
     );
   }
   if (status === 'Active') {
     return (
       <button className="UMActionBtn btn-suspend" onClick={() => onAction('suspend')}>
-        Suspend
+        <UserX size={13} /> Suspend
       </button>
     );
   }
   if (status === 'Suspended') {
     return (
       <button className="UMActionBtn btn-reactivate" onClick={() => onAction('reactivate')}>
-        Reactivate
+        <RefreshCw size={13} /> Reactivate
       </button>
     );
   }
@@ -124,7 +123,13 @@ function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
     <div className="UMModalOverlay">
       <div className="UMModal UMConfirmModal">
         <div className="UMConfirmIcon">
-          {actionType === 'suspend' ? '⚠️' : actionType === 'activate' || actionType === 'reactivate' ? '✅' : '📧'}
+          {actionType === 'suspend' ? (
+            <TriangleAlert size={40} color="#D97706" strokeWidth={3} />
+          ) : actionType === 'activate' || actionType === 'reactivate' ? (
+            <CircleCheckBig size={40} color="#149660ff" strokeWidth={3} />
+          ) : (
+            <Mail size={40} color="#07338dff" strokeWidth={3} />
+          )}
         </div>
         <h3 className="UMModalTitle">{meta.title}</h3>
         <p className="UMConfirmMessage">{meta.message}</p>
