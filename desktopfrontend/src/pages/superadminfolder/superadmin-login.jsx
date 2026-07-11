@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import './superadmin-css.css';
 import { useNavigate } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 //LOGIN PAGE EXCLUSIVELY FOR SUPERADMIN
 
@@ -157,6 +158,7 @@ function SuperAdminLogin() {
 
         // BACKEND: Replace this block with OTP verification API
         if (otpCode === '123456') {
+            localStorage.setItem('agency', 'superadmin');
             navigate('/superadminfolder/superadmin-user-management');
         } else {
             setAdminLoginError('Invalid verification code. Please try again.');
@@ -179,7 +181,8 @@ function SuperAdminLogin() {
 
                             <div>
                                 <label htmlFor="email">Email <span>*</span></label>
-                                <div className="PasswordInputWrapper">
+                                <div className="LoginInputWrapper">
+                                    <Mail className="LoginInputIcon" size={16} />
                                     <input
                                         id="email"
                                         type="email"
@@ -194,6 +197,7 @@ function SuperAdminLogin() {
                             <div style={{ marginTop: '15px' }}>
                                 <label htmlFor="password">Password <span>*</span></label>
                                 <div className="PasswordInputWrapper">
+                                    <Lock className="LoginInputIcon" size={16} />
                                     <input
                                         id="password"
                                         type={showPassword ? 'text' : 'password'}
@@ -208,7 +212,7 @@ function SuperAdminLogin() {
                                         onClick={() => setShowPassword(v => !v)}
                                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                                     >
-                                        {showPassword ? 'Hide' : 'Show'}
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                     </button>
                                 </div>
                             </div>
