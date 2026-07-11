@@ -149,6 +149,8 @@ function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
   );
 }
 
+/* initial version of AddPersonnelModal, not yet connected to backend
+
 function AddPersonnelModal({ open, onClose }) {
   const [email, setEmail] = useState('');
   const [region, setRegion] = useState('');
@@ -176,6 +178,50 @@ function AddPersonnelModal({ open, onClose }) {
     onClose(null);
   }
 
+  */
+
+  //new code for AddPersonnelModal with region fetching from backend
+
+  function AddPersonnelModal({ open, onClose }) {
+  const [email, setEmail] = useState('');
+  const [region, setRegion] = useState('');
+  const [agency, setAgency] = useState('');
+  const [regions, setRegions] = useState([]); // NEW: holds the list fetched from GET /regions
+
+  const [emailError, setEmailError] = useState('');
+  const [regionError, setRegionError] = useState('');
+  const [agencyError, setAgencyError] = useState('');
+
+  const [successMsg, setSuccessMsg] = useState('');
+  const [sending, setSending] = useState(false);
+
+  // NEW: fetch the real region list from the backend whenever the modal opens
+  useEffect(() => {
+    if (open) {
+      fetch('http://127.0.0.1:8000/regions')
+        .then((res) => res.json())
+        .then((data) => setRegions(data))
+        .catch((err) => console.error('Failed to load regions', err));
+    }
+  }, [open]);
+
+
+  function handleClose() {
+    setEmail('');
+    setRegion('');
+    setAgency('');
+
+    setEmailError('');
+    setRegionError('');
+    setAgencyError('');
+
+    setSuccessMsg('');
+    setSending(false);
+
+    onClose(null);
+  }
+
+/* initial version of handleSend, not yet connected to backend
   function handleSend() {
     setEmailError('');
     setRegionError('');
@@ -217,6 +263,61 @@ function AddPersonnelModal({ open, onClose }) {
       setSending(false);
       setSuccessMsg(`Registration link has been sent to ${email}`);
     }, 800);
+  }
+*/
+
+// new version of handleSend, connected to backend
+async function handleSend() {
+    setEmailError('');
+    setRegionError('');
+    setAgencyError('');
+
+    if (!email.trim()) {
+      setEmailError('Email address is required.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+
+    if (!region) {
+      setRegionError('Please select a region.');
+      return;
+    }
+
+    if (!agency) {
+      setAgencyError('Please select an agency.');
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/admin/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          region_id: region,
+          role: agency,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to send invite.');
+      }
+
+      setSending(false);
+      setSuccessMsg(`Registration link has been sent to ${email}`);
+    } catch (err) {
+      setSending(false);
+      setEmailError(err.message);
+    }
   }
 
   function handleDone() {
@@ -284,6 +385,7 @@ function AddPersonnelModal({ open, onClose }) {
                   Region <span className="UMRequired">*</span>
                 </label>
 
+{/* initial version of region select, hardcoded options
                 <select
                   className="UMRegionSelect"
                   value={region}
@@ -312,6 +414,25 @@ function AddPersonnelModal({ open, onClose }) {
                   <option value="Region 12">Region 12</option>
                   <option value="Region 13">Region 13</option>
                   <option value="BARMM">BARMM</option>
+                </select>
+*/}
+
+
+                <select
+                  className="UMRegionSelect"
+                  value={region}
+                  onChange={(e) => {
+                    setRegion(e.target.value);
+                    setRegionError('');
+                  }}
+                  disabled={sending}
+                >
+                  <option value="">Select Region</option>
+                  {regions.map((r) => (
+                    <option key={r.region_id} value={r.region_id}>
+                      {r.region_name}
+                    </option>
+                  ))}
                 </select>
 
                 {regionError && (

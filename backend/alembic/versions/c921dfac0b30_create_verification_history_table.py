@@ -1,19 +1,19 @@
-"""create_verification_history_table
+"""create verification history table
 
-Revision ID: 095a09c0561b
-Revises: e6cf30432b43
-Create Date: 2026-07-03 19:45:22.390312
+Revision ID: c921dfac0b30
+Revises: c3ae958d3b04
+Create Date: 2026-07-10 17:01:51.132342
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
 
 # revision identifiers, used by Alembic.
-revision: str = '095a09c0561b'
-down_revision: Union[str, Sequence[str], None] = 'e6cf30432b43'
+revision: str = 'c921dfac0b30'
+down_revision: Union[str, Sequence[str], None] = 'c3ae958d3b04'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -24,18 +24,11 @@ def upgrade() -> None:
     op.create_table('verification_history',
     sa.Column('history_id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('consumer_id', sa.UUID(), nullable=True),
-    sa.Column('session_token', sa.String(length=100), nullable=True),
-    sa.Column('platform', sa.String(length=50), nullable=False),
+    sa.Column('platform', sa.String(length=100), nullable=False),
     sa.Column('product_title', sa.Text(), nullable=False),
-    sa.Column('product_url', sa.Text(), nullable=True),
     sa.Column('verification_result', sa.String(length=50), nullable=False),
-    sa.Column('matched_product_name', sa.Text(), nullable=True),
     sa.Column('confidence_score', sa.Numeric(precision=5, scale=2), nullable=True),
-    sa.Column('top_matches', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('complaint_filed', sa.Boolean(), server_default=sa.text('false'), nullable=False),
-    sa.Column('complaint_id', sa.UUID(), nullable=True),
     sa.Column('checked_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['complaint_id'], ['complaints_table.complaint_id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['consumer_id'], ['consumer_account_table.consumer_id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('history_id')
     )
