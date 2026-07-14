@@ -5,6 +5,13 @@ import { useState, useEffect } from 'react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 
+
+// helper to provide auth token for API calls
+function getAuthToken() {
+  return localStorage.getItem('access_token') || localStorage.getItem('authToken') || localStorage.getItem('token') || '';
+}
+// ...existing code...
+
 const DUMMY_USERS = [
   {
     id: 1,
@@ -293,14 +300,13 @@ async function handleSend() {
 
     try {
       const response = await fetch('http://127.0.0.1:8000/admin/users/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          region_id: region,
-          role: agency,
-        }),
-      });
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getAuthToken()}`,   // ← add this
+      },
+      body: JSON.stringify({ email, region_id: region, role: agency }),
+    });
 
       if (!response.ok) {
         const errorData = await response.json();
