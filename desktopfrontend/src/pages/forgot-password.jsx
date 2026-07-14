@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import check_img from '../images/check_img.png';
+import { CircleCheckBig } from 'lucide-react';
 
 // FORGET PASSWORD FOR LEA-FDA SIDE & SUPERADMIN (PWEDE NAMAN YATA MAREUSE)
 
@@ -305,9 +305,14 @@ function ForgotPassword(){
             .SuccessIcon {
               width: 64px;
               height: 64px;
-              object-fit: contain;
+              color: #10B981;
               margin-bottom: 10px;
               animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+              transition: color .2s ease, transform .2s ease;
+            }
+
+            .SuccessIcon:hover {
+              transform: scale(1.08);
             }
 
             @keyframes popIn {
@@ -457,7 +462,7 @@ function ForgotPassword(){
         {/* FOR SUMACCESS MAGRESET PASS */}
         {step === 'success' && (
           <div className="SuccessContainer" style={{ textAlign: 'center', marginTop: '20px' }}>
-            <img src={check_img} alt="Success" className="SuccessIcon" />
+            <CircleCheckBig className="SuccessIcon" />
             <button 
               type="button" 
               className="BtnBackToLogin"

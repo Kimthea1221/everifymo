@@ -1,3 +1,4 @@
+// report.js
 function showReportView(viewId) {
   const views = document.querySelectorAll('.report-view, .report-view-guest');
   views.forEach(view => {
@@ -12,31 +13,62 @@ function populateDetectedProduct(title, url) {
   if (urlEl) urlEl.textContent = url;
 }
 
+function initAttachBoxes() {
+  document.querySelectorAll('.report-attach-box').forEach(attachBox => {
+    const attachInput = attachBox.querySelector('.report-attach-input');
+    const attachText = attachBox.querySelector('.report-attach-text');
+    const uploadIcon = attachBox.querySelector('.report-upload-icon');
+
+    if (!attachInput) return;
+
+    attachBox.addEventListener('click', () => attachInput.click());
+
+    attachInput.addEventListener('change', () => {
+      if (attachInput.files.length > 0) {
+        const file = attachInput.files[0];
+
+        let previewImg = attachBox.querySelector('.attach-preview-img');
+        if (!previewImg) {
+          previewImg = document.createElement('img');
+          previewImg.className = 'attach-preview-img';
+          attachBox.appendChild(previewImg);
+        }
+        previewImg.src = URL.createObjectURL(file);
+
+        if (attachText) attachText.classList.add('hidden');
+        if (uploadIcon) uploadIcon.classList.add('hidden');
+      }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   whenSessionReady(() => {
-    const cancelBtn = document.getElementById('cancel-btn');
-    const submitBtn = document.getElementById('submit-report-btn');
+     initAttachBoxes();
 
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => {
-        showReportView('report-cancelled-view');
+    document.querySelectorAll('.report-cancel-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const isGuest = !isUserLoggedIn();
+        showReportView(isGuest ? 'report-cancelled-view-guest' : 'report-cancelled-view');
       });
-    }
+    });
 
-    if (submitBtn) {
-      submitBtn.addEventListener('click', () => {
-        showReportView('report-success-view');
+    document.querySelectorAll('.report-submit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const isGuest = !isUserLoggedIn();
+        showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
       });
-    }
+    });
 
     applyAuthView();
 
     chrome.storage.local.get(
       ['productTitle', 'productUrl', 'productStatus'],
       (data) => {
-        const isGuest = !isUserLoggedIn(); // real check, not hardcoded
+        const isGuest = !isUserLoggedIn();
+        const status = data.productStatus;
 
-        if (data.productStatus === 'unregistered') {
+        if (status === 'unregistered' || status === 'registered' || status === 'suspicious') {
           populateDetectedProduct(data.productTitle, data.productUrl);
           showReportView(isGuest ? 'report-form-view-guest' : 'report-form-view');
         } else {
@@ -55,3 +87,4 @@ function applyAuthView() {
     if (usernameEl) usernameEl.textContent = getCurrentUser().username;
   }
 }
+
