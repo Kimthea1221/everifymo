@@ -452,8 +452,8 @@ async function handleSend() {
                   disabled={sending}
                 >
                   <option value="">Select Agency</option>
-                  <option value="FDA">FDA</option>
-                  <option value="LEA-CIDG">LEA-CIDG</option>
+                  <option value="fda_personnel">FDA</option>
+                  <option value="lea_personnel">LEA-CIDG</option>
                 </select>
 
                 {agencyError && (
