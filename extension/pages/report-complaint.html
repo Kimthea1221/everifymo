@@ -20,9 +20,9 @@
                    <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
                   <div class="notice-text-container">
                     <p class="notice-title">This is Your Complaint Report Page.</p> 
-                    <p class="notice-text">Reporting is optional. Toggle the extension on 
-                      while browsing cosmetic products on supported platforms to detect 
-                      unregistered FDA products and file a complaint. See About for details.</p> 
+                    <p class="notice-text">Optional. Highlight a cosmetic product on supported platforms to 
+                        check its FDA registration — if unregistered, file a complaint 
+                        right here. See About for details.</p> 
                   </div>  
                 </div>
               </div>
@@ -36,12 +36,14 @@
                   </div>  
                 </div>
 
-                <div class="detected-container">
-                  <div class="detected-top">
-                    <div class="detected-label">Unregistered Product Detected:</div>
-                  </div>
-                  <div class="detected-name" id="complaint-product-name">Miracle Glow Whitening Setting Spray 60ml</div>
-                  <div class="detected-url" id="complaint-product-url">shopee.ph/Miracle-Glow-Whitening-...</div>
+                <div class="field">
+                  <label class="field-label" for="complaint-product-name">Product Name/Title</label>
+                  <textarea id="complaint-product-name" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
+                </div>
+
+                <div class="field">
+                  <label class="field-label" for="complaint-product-url">Link/URL</label>
+                  <textarea id="complaint-product-url" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
                 </div>
                 
                 <div class="field">
@@ -54,16 +56,15 @@
                   <textarea id="complaint-description" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
                 </div>
 
-                <div class="attach-box" role="button" tabindex="0">
-                  <div class="icon-placeholder-upload" aria-hidden="true"></div>
-                  <div > <img src="../assets/images/upload_icon.png" alt="Upload Icon" class="upload-icon" />
-                    <span class="attach-text">Attach screenshot (optional)</span>
-                  </div>
+                <div class="attach-box report-attach-box" role="button" tabindex="0">
+                  <input type="file" class="report-attach-input hidden" accept="image/*" />
+                  <img src="../assets/images/upload_icon.png" alt="Upload Icon" class="upload-icon report-upload-icon" />
+                  <span class="attach-text report-attach-text">Attach screenshot (optional)</span>
                 </div>
 
                 <div class="action-row">
-                  <button id="cancel-btn" class="btn-cancel" type="button">Cancel</button>
-                  <button id="submit-report-btn" class="btn-submit-report" type="button">Submit Report</button>
+                  <button class="btn-cancel report-cancel-btn" type="button">Cancel</button>
+                  <button class="btn-submit-report report-submit-btn" type="button">Submit Report</button>
                 </div>
 
               </div>
@@ -112,13 +113,15 @@
                     <p class="notice-text">This report will not be saved. Sign in/up for tracking.</p> 
                   </div>  
                 </div>
+                
+                 <div class="field">
+                  <label class="field-label" for="complaint-product-name">Product Name/Title</label>
+                  <textarea id="complaint-product-name" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
+                </div>
 
-                <div class="detected-container">
-                  <div class="detected-top">
-                    <div class="detected-label">Unregistered Product Detected:</div>
-                  </div>
-                  <div class="detected-name" id="complaint-product-name">Miracle Glow Whitening Setting Spray 60ml</div>
-                  <div class="detected-url" id="complaint-product-url">shopee.ph/Miracle-Glow-Whitening-...</div>
+                <div class="field">
+                  <label class="field-label" for="complaint-product-url">Link/URL</label>
+                  <textarea id="complaint-product-url" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
                 </div>
                 
                 <div class="field">
@@ -131,16 +134,15 @@
                   <textarea id="complaint-description" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
                 </div>
 
-                <div class="attach-box" role="button" tabindex="0">
-                  <div class="icon-placeholder-upload" aria-hidden="true"></div>
-                  <div > <img src="../assets/images/upload_icon.png" alt="Upload Icon" class="upload-icon" />
-                    <span class="attach-text">Attach screenshot (optional)</span>
-                  </div>
+                <div class="attach-box report-attach-box" role="button" tabindex="0">
+                  <input type="file" class="report-attach-input hidden" accept="image/*" />
+                  <img src="../assets/images/upload_icon.png" alt="Upload Icon" class="upload-icon report-upload-icon" />
+                  <span class="attach-text report-attach-text">Attach screenshot (optional)</span>
                 </div>
 
                 <div class="action-row">
-                  <button id="cancel-btn" class="btn-cancel" type="button">Cancel</button>
-                  <button id="submit-report-btn" class="btn-submit-report" type="button">Submit Report</button>
+                  <button class="btn-cancel report-cancel-btn" type="button">Cancel</button>
+                  <button class="btn-submit-report report-submit-btn" type="button">Submit Report</button>
                 </div>
 
               </div>

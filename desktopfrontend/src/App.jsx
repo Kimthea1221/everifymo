@@ -15,7 +15,7 @@ import SuperadminOtpEmail from './pages/emailtemplates/superadmin-otp-email.jsx'
 
 
 import DeepLinkStatus from './pages/emailtemplates/invitation-status.jsx'
-
+import ProfileSetting from './pages/profile-setting.jsx';
 
 
 {/* SUPERADMIN PAGES */}
@@ -100,6 +100,8 @@ export default function App(){
 
         {/* DEEP LINK ROUTES */}
         <Route path='/invitation-status' element={<DeepLinkStatus />} />
+
+        <Route path='/profile-setting' element={<ProfileSetting />} />
 
         {/* FDA ROUTES */}
         <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />

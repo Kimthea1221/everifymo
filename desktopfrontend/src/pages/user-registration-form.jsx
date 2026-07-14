@@ -2,6 +2,17 @@ import { useState } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import ImgSuccess from '../images/success_img.png'
 import ImgTime from '../images/time_img.png'
+import { 
+  User, 
+  Mail, 
+  Building2, 
+  MapPin, 
+  Phone, 
+  Briefcase, 
+  Fingerprint,
+  Shield,
+  AlertCircle
+} from 'lucide-react';
 
 // REGISTRATION PAGE FOR ADDED PERSONNEL
 function UserRegistration() {
@@ -14,9 +25,9 @@ function UserRegistration() {
     middleName: '',
     lastName: '',
     employeeId: '',
-    email: officerData.email || '', // pre-filled from deep link token
-    agency: officerData.role || '', // pre-filled from superadmin side
-    region: officerData.region_name || '', // pre-filled from superadmin side
+    email: 'invited.user@gmail.com', // pre-filled from deep link token
+    agency: 'LEA-CIDG', // pre-filled from superadmin side
+    region: 'Region 3', // pre-filled from superadmin side
     contactNumber: '',
     department: '',
     position: '',
@@ -144,42 +155,51 @@ function UserRegistration() {
                 <label className="RegLabel">
                   First Name <span className="RegRequired">*</span>
                 </label>
-                <input
-                  className={`RegInput ${errors.firstName ? 'reg-input-error' : ''}`}
-                  type="text"
-                  name="firstName"
-                  placeholder="Juan"
-                  value={form.firstName}
-                  onChange={handleChange}
-                />
-                {errors.firstName && <span className="RegError">{errors.firstName}</span>}
+                <div className="RegInputWrapper">
+                  <User className="RegInputIcon" size={16} />
+                  <input
+                    className={`RegInput ${errors.firstName ? 'reg-input-error' : ''}`}
+                    type="text"
+                    name="firstName"
+                    placeholder="Juan"
+                    value={form.firstName}
+                    onChange={handleChange}
+                  />
+                </div>
+                {errors.firstName && <span className="RegError"><AlertCircle size={12} /> {errors.firstName}</span>}
               </div>
 
               <div className="RegFormGroup">
                 <label className="RegLabel">Middle Name</label>
-                <input
-                  className="RegInput"
-                  type="text"
-                  name="middleName"
-                  placeholder="Optional"
-                  value={form.middleName}
-                  onChange={handleChange}
-                />
+                <div className="RegInputWrapper">
+                  <User className="RegInputIcon" size={16} />
+                  <input
+                    className="RegInput"
+                    type="text"
+                    name="middleName"
+                    placeholder="Optional"
+                    value={form.middleName}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
 
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Last Name <span className="RegRequired">*</span>
                 </label>
-                <input
-                  className={`RegInput ${errors.lastName ? 'reg-input-error' : ''}`}
-                  type="text"
-                  name="lastName"
-                  placeholder="Dela Cruz"
-                  value={form.lastName}
-                  onChange={handleChange}
-                />
-                {errors.lastName && <span className="RegError">{errors.lastName}</span>}
+                <div className="RegInputWrapper">
+                  <User className="RegInputIcon" size={16} />
+                  <input
+                    className={`RegInput ${errors.lastName ? 'reg-input-error' : ''}`}
+                    type="text"
+                    name="lastName"
+                    placeholder="Dela Cruz"
+                    value={form.lastName}
+                    onChange={handleChange}
+                  />
+                </div>
+                {errors.lastName && <span className="RegError"><AlertCircle size={12} /> {errors.lastName}</span>}
               </div>
             </div>
 
@@ -189,30 +209,36 @@ function UserRegistration() {
                 <label className="RegLabel">
                   Employee ID <span className="RegRequired">*</span>
                 </label>
-                <input
-                  className={`RegInput ${errors.employeeId ? 'reg-input-error' : ''}`}
-                  type="text"
-                  name="employeeId"
-                  placeholder="EMP-00123"
-                  value={form.employeeId}
-                  onChange={handleChange}
-                />
-                {errors.employeeId && <span className="RegError">{errors.employeeId}</span>}
+                <div className="RegInputWrapper">
+                  <Fingerprint className="RegInputIcon" size={16} />
+                  <input
+                    className={`RegInput ${errors.employeeId ? 'reg-input-error' : ''}`}
+                    type="text"
+                    name="employeeId"
+                    placeholder="EMP-00123"
+                    value={form.employeeId}
+                    onChange={handleChange}
+                  />
+                </div>
+                {errors.employeeId && <span className="RegError"><AlertCircle size={12} /> {errors.employeeId}</span>}
               </div>
 
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Contact Number <span className="RegRequired">*</span>
                 </label>
-                <input
-                  className={`RegInput ${errors.contactNumber ? 'reg-input-error' : ''}`}
-                  type="text"
-                  name="contactNumber"
-                  placeholder="09XX XXX XXXX"
-                  value={form.contactNumber}
-                  onChange={handleChange}
-                />
-                {errors.contactNumber && <span className="RegError">{errors.contactNumber}</span>}
+                <div className="RegInputWrapper">
+                  <Phone className="RegInputIcon" size={16} />
+                  <input
+                    className={`RegInput ${errors.contactNumber ? 'reg-input-error' : ''}`}
+                    type="text"
+                    name="contactNumber"
+                    placeholder="09XX XXX XXXX"
+                    value={form.contactNumber}
+                    onChange={handleChange}
+                  />
+                </div>
+                {errors.contactNumber && <span className="RegError"><AlertCircle size={12} /> {errors.contactNumber}</span>}
               </div>
             </div>
 
@@ -222,13 +248,16 @@ function UserRegistration() {
                 Email Address{' '}
                 <span className="RegReadonlyTag">pre-filled</span>
               </label>
-              <input
-                className="RegInput reg-input-readonly"
-                type="email"
-                name="email"
-                value={officerData.email || ''}
-                readOnly
-              />
+              <div className="RegInputWrapper">
+                <Mail className="RegInputIcon" size={16} />
+                <input
+                  className="RegInput reg-input-readonly"
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  readOnly
+                />
+              </div>
             </div>
 
             <div className="RegFieldRow">
@@ -237,13 +266,16 @@ function UserRegistration() {
                   Agency{' '}
                   <span className="RegReadonlyTag">pre-filled</span>
                 </label>
-                <input
-                  className="RegInput reg-input-readonly"
-                  type="text"
-                  name="agency"
-                  value={officerData.role || ''}
-                  readOnly
-                />
+                <div className="RegInputWrapper">
+                  <Building2 className="RegInputIcon" size={16} />
+                  <input
+                    className="RegInput reg-input-readonly"
+                    type="text"
+                    name="agency"
+                    value={form.agency}
+                    readOnly
+                  />
+                </div>
               </div>
 
               <div className="RegFormGroup">
@@ -251,13 +283,16 @@ function UserRegistration() {
                   Region{' '}
                   <span className="RegReadonlyTag">pre-filled</span>
                 </label>
-                <input
-                  className="RegInput reg-input-readonly"
-                  type="text"
-                  name="region"
-                  value={officerData.region_name || ''}
-                  readOnly
-                />
+                <div className="RegInputWrapper">
+                  <MapPin className="RegInputIcon" size={16} />
+                  <input
+                    className="RegInput reg-input-readonly"
+                    type="text"
+                    name="region"
+                    value={form.region}
+                    readOnly
+                  />
+                </div>
               </div>
             </div>
 
@@ -267,30 +302,36 @@ function UserRegistration() {
                 <label className="RegLabel">
                   Department <span className="RegRequired">*</span>
                 </label>
-                <input
-                  className={`RegInput ${errors.department ? 'reg-input-error' : ''}`}
-                  type="text"
-                  name="department"
-                  placeholder="e.g. Operations Division"
-                  value={form.department}
-                  onChange={handleChange}
-                />
-                {errors.department && <span className="RegError">{errors.department}</span>}
+                <div className="RegInputWrapper">
+                  <Building2 className="RegInputIcon" size={16} />
+                  <input
+                    className={`RegInput ${errors.department ? 'reg-input-error' : ''}`}
+                    type="text"
+                    name="department"
+                    placeholder="e.g. Operations Division"
+                    value={form.department}
+                    onChange={handleChange}
+                  />
+                </div>
+                {errors.department && <span className="RegError"><AlertCircle size={12} /> {errors.department}</span>}
               </div>
 
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Position <span className="RegRequired">*</span>
                 </label>
-                <input
-                  className={`RegInput ${errors.position ? 'reg-input-error' : ''}`}
-                  type="text"
-                  name="position"
-                  placeholder="e.g. Senior Analyst"
-                  value={form.position}
-                  onChange={handleChange}
-                />
-                {errors.position && <span className="RegError">{errors.position}</span>}
+                <div className="RegInputWrapper">
+                  <Briefcase className="RegInputIcon" size={16} />
+                  <input
+                    className={`RegInput ${errors.position ? 'reg-input-error' : ''}`}
+                    type="text"
+                    name="position"
+                    placeholder="e.g. Senior Analyst"
+                    value={form.position}
+                    onChange={handleChange}
+                  />
+                </div>
+                {errors.position && <span className="RegError"><AlertCircle size={12} /> {errors.position}</span>}
               </div>
             </div>
 
@@ -415,8 +456,26 @@ const styles = `
     letter-spacing: 0.5px;
   }
 
+  .RegInputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .RegInputIcon {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .RegInput {
-    padding: 11px 14px;
+    width: 100%;
+    padding: 11px 12px 11px 38px;
     border: 1.5px solid #e2e8f0;
     border-radius: 9px;
     font-size: 14px;
@@ -425,7 +484,6 @@ const styles = `
     outline: none;
     transition: all 0.2s ease;
     box-sizing: border-box;
-    width: 100%;
     font-family: 'Inter', sans-serif;
   }
 
@@ -459,7 +517,10 @@ const styles = `
   .RegError {
     font-size: 12px;
     color: #ef4444;
-    margin-top: 2px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   /* Submit Button*/

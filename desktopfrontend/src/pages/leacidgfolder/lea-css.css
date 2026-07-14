@@ -105,7 +105,7 @@
   border: 1px solid #d8d8d8;
   overflow: hidden;
     width: 100%;
-    max-width: 1100px;
+    max-width: 1150px;
     justify-self: center;
 }
 
@@ -895,13 +895,20 @@
     gap: 10px;
     padding: 5px 0 10px 0;
 }
-.CaseInfoTitle img{
+.CaseInfoTitle svg{
   width: 40px;
   height: 40px;
   padding: 10px;
   margin-right: 5px;
   background: rgba(252, 163, 17, 0.15);
   border-radius: 10px;
+  color: #16264C;
+  transition: color .2s ease, transform .2s ease;
+  cursor: pointer;
+}
+.CaseInfoTitle svg:hover{
+  color: #F59E0B;
+  transform: scale(1.08);
 }
 .CaseInfoTitle h2{
     font-size: 20px;
@@ -1044,9 +1051,15 @@
   align-items: left;
   gap: 10px;
 }
-.StatusTitle img{
+.StatusTitle svg{
   width: 20px;
   height: 20px;
+  color: #F59E0B;
+  transition: color .2s ease, transform .2s ease;
+  cursor: pointer;
+}
+.StatusTitle svg:hover{
+  transform: scale(1.08);
 }
 .StatusTitle p{
   font-size: 13px;
@@ -1075,9 +1088,16 @@
   width: 180px;
   border: 1px solid #d1d9e0;
 }
-.SendReminderBtn img{
+.SendReminderBtn svg{
   width: 16px;
   height: 16px;
+  color: #16264C;
+  transition: color .2s ease, transform .2s ease;
+  cursor: pointer;
+}
+.SendReminderBtn:hover svg{
+  color: #030303;
+  transform: scale(1.08);
 }
 .SendReminderBtn{
   display: inline-flex;
@@ -1118,12 +1138,18 @@
   padding: 10px;
   margin-bottom: 20px;
 }
-.ConfirmationReturnedBox img{
+.ConfirmationReturnedBox svg{
   width: 20px;
-  height: auto; 
+  height: 20px;
   background-color: #a9e5c7;
   border-radius: 5px;
   padding: 3px;
+  color: #10B981;
+  transition: color .2s ease, transform .2s ease;
+  cursor: pointer;
+}
+.ConfirmationReturnedBox svg:hover{
+  transform: scale(1.08);
 }
 
 .ConfirmationHeader h3{
@@ -1151,9 +1177,20 @@
   gap: 10px;
   margin-bottom: 10px;
 }
-.ResponseStatus img{
+.ResponseStatus svg{
   width: 25px;
-  height: auto;
+  height: 25px;
+  transition: color .2s ease, transform .2s ease;
+  cursor: pointer;
+}
+.ResponseStatus svg:hover{
+  transform: scale(1.08);
+}
+.ResponseRegistered .ResponseStatus svg{
+  color: #10B981;
+}
+.ResponseUnregistered .ResponseStatus svg{
+  color: #EF4444;
 }
 .ResponseBox h4{
   font-size: 13px;
@@ -1255,7 +1292,7 @@
     gap: 16px;
     flex-wrap: wrap;
     width: 100%;
-    max-width: 1100px;
+    max-width: 1150px;
     justify-self: center;
 }
 
@@ -1449,35 +1486,297 @@
     color: #FCA311;
 }
 
-/* Footer Banner Styling */
-.FooterInfoBanner {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 10px;
-    padding: 14px 20px;
-    margin-top: 30px;
-    margin-bottom: 20px;
-    width: 100%;
-    max-width: 1100px;
-    justify-self: center;
+/* tab separator between process tabs and tracking tabs */
+.TabSeparator {
+  width: 1px;
+  background-color: #d8d8d8;
+  margin: 6px 4px;
+  align-self: stretch;
 }
 
-.FooterInfoBanner p {
-    margin: 0;
-    font-size: 13px;
-    color: #1e40af;
-    font-weight: 500;
-    line-height: 1.4;
+/* badge for operation in progress status */
+.OperationInProgressBadge {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  border: 1px solid #f59e0b !important;
+  color: #d97706 !important;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  text-align: center;
 }
 
-.FooterInfoIcon {
-    font-size: 18px;
-    color: #2563eb;
-    display: flex;
+/* badge for dismissed status */
+.DismissedBadge {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  border: 1px solid #10b981 !important;
+  color: #059669 !important;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  text-align: center;
+}
+
+/* badge for completed/takedown complete status */
+.CompletedBadge {
+  background-color: rgba(107, 114, 128, 0.1) !important;
+  border: 1px solid #6b7280 !important;
+  color: #4b5563 !important;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  text-align: center;
+}
+
+/* badge for rejected status */
+.RejectedBadge {
+  background-color: rgba(249, 115, 22, 0.1) !important;
+  border: 1px solid #f97316 !important;
+  color: #ea580c !important;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  text-align: center;
+}
+
+/* box showing FDA rejection reason */
+.RejectionReasonBox {
+  background-color: rgba(249, 115, 22, 0.1);
+  border: 1.5px solid #f97316;
+  border-radius: 10px;
+  padding: 16px;
+  margin: 15px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+/* read only field operation notes for dismissed cases */
+.ReadOnlyNotes {
+  border-radius: 10px;
+  width: 100%;
+  height: 80px;
+  padding: 10px;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  cursor: not-allowed;
+  font-family: 'Inter', sans-serif;
+}
+
+/* modal overlay background */
+.ModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(3, 3, 3, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+/* modal content box */
+.ModalBox {
+  background: #FDFDFD;
+  border-radius: 12px;
+  padding: 32px;
+  width: 450px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  font-family: 'Inter', sans-serif;
+}
+
+.ModalBox h3 {
+  font-family: 'Poppins', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #13213C;
+  margin-bottom: 12px;
+}
+
+.ModalBox p {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* modal action buttons row */
+.ModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* success alert shown after action completes */
+.SuccessAlert {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: #10B981;
+  color: #FDFDFD;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+.SuccessAlert p {
+  margin: 0;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* styles the text showing which FDA officer verified the request */
+.VerifiedByText {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #6b7280;
+  margin: 4px 0;
+  font-weight: 500;
+}
+
+/* dismissed cases full-width table container — wraps the filter bar and table */
+.DismissedTableContainer {
+
+  border-radius: 12px;
+  padding: 20px 24px 28px 24px;
+  width: 100%;
+}
+
+/* dismissed cases filter controls row — holds date range and category filters */
+.DismissedFilters {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #f7f7f7;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+/* dismissed cases table — full width data grid for closed complaints */
+.DismissedTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.DismissedTable th {
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #EDEDED;
+  background: #f7f7f7;
+  text-transform: uppercase;
+}
+
+.DismissedTable td {
+  padding: 13px 14px;
+  font-size: 13px;
+  color: #030303;
+  border-bottom: 1px solid #EDEDED;
+}
+
+.DismissedTable tr:hover {
+  background: #f5f5f5;
+}
+
+/* reason closed badge — product was confirmed registered with FDA */
+.ReasonRegistered {
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid #10b981;
+  color: #059669;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* reason closed badge — case was rejected by FDA and acknowledged by LEA */
+.ReasonRejected {
+  background-color: rgba(249, 115, 22, 0.1);
+  border: 1px solid #f97316;
+  color: #ea580c;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* WALK-IN COMPLAINTS IMPROVEMENTS */
+.LeaWalkinComplaintsMain .status-ready-to-send {
+    background: #FFF7D6 !important;
+    color: #B7791F !important;
+}
+.LeaWalkinComplaintsMain .status-pending {
+    background: #DBEAFE !important;
+    color: #1D4ED8 !important;
+}
+.LeaWalkinComplaintsMain .status-confirmed-registered {
+    background: #DCFCE7 !important;
+    color: #15803D !important;
+}
+.LeaWalkinComplaintsMain .status-confirmed-unregistered {
+    background: #FEE2E2 !important;
+    color: #B91C1C !important;
+}
+.LeaWalkinComplaintsMain .status-rejected {
+    background: #FFE4E6 !important;
+    color: #BE123C !important;
+}
+.LeaWalkinComplaintsMain .status-recalled {
+    background: #F3F4F6 !important;
+    color: #4B5563 !important;
+}
+
+.LeaWalkinComplaintsMain .BtnEdit {
+    background: transparent;
+    border: 1.5px solid #13213C;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #13213C;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+}
+.LeaWalkinComplaintsMain .BtnEdit:hover {
+    background: #EDEDED;
+}
+.LeaWalkinComplaintsMain .BtnEdit svg {
+    display: inline-block;
     flex-shrink: 0;
 }
