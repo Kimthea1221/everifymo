@@ -1,19 +1,22 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import ImgSuccess from '../images/success_img.png'
 import ImgTime from '../images/time_img.png'
 
 // REGISTRATION PAGE FOR ADDED PERSONNEL
 function UserRegistration() {
   const navigate = useNavigate();
+  const location = useLocation()
+  const officerData = location.state || {}   // fallback in case someone visits this page directly
+
   const [form, setForm] = useState({
     firstName: '',
     middleName: '',
     lastName: '',
     employeeId: '',
-    email: 'invited.user@icmda.gov.ph', // pre-filled from deep link token
-    agency: 'LEA-CIDG', // pre-filled from superadmin side
-    region: 'NCR', // pre-filled from superadmin side
+    email: officerData.email || '', // pre-filled from deep link token
+    agency: officerData.role || '', // pre-filled from superadmin side
+    region: officerData.region_name || '', // pre-filled from superadmin side
     contactNumber: '',
     department: '',
     position: '',
@@ -64,8 +67,35 @@ function UserRegistration() {
       setErrors(validationErrors);
       return;
     }
-    setSubmitted(true);
-  }
+
+    // Submit the form data to the backend
+  fetch('http://localhost:8000/registration/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      invite_token: officerData.invite_token,
+      first_name: form.firstName,
+      middle_name: form.middleName || null,
+      last_name: form.lastName,
+      employee_id: form.employeeId,
+      contact_number: form.contactNumber,
+      department: form.department,
+      position: form.position,
+    }),
+  })
+    .then((res) => {
+    if (!res.ok) {
+      throw new Error('Submission failed')
+    }
+    return res.json()
+  })
+  .then(() => setSubmitted(true))
+  .catch((error) => {
+    console.error(error)
+    // For now, at minimum, avoid silently pretending success
+    alert('Something went wrong submitting your registration. Please try again.')
+  })
+}
 
   /*Success Screen*/
   if (submitted) {
@@ -196,7 +226,7 @@ function UserRegistration() {
                 className="RegInput reg-input-readonly"
                 type="email"
                 name="email"
-                value={form.email}
+                value={officerData.email || ''}
                 readOnly
               />
             </div>
@@ -211,7 +241,7 @@ function UserRegistration() {
                   className="RegInput reg-input-readonly"
                   type="text"
                   name="agency"
-                  value={form.agency}
+                  value={officerData.role || ''}
                   readOnly
                 />
               </div>
@@ -225,7 +255,7 @@ function UserRegistration() {
                   className="RegInput reg-input-readonly"
                   type="text"
                   name="region"
-                  value={form.region}
+                  value={officerData.region_name || ''}
                   readOnly
                 />
               </div>
@@ -273,6 +303,7 @@ function UserRegistration() {
     </>
   );
 }
+
 
 
 const styles = `

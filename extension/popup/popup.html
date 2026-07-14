@@ -3,32 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>E-VERIFYMO</title>
+    <title>E-VERIFY</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
 
     <!-- HEADER -->
     <header class="header">
-      <img src="../assets/images/extension_icon.png" alt="E-VERIFYMO Logo" class="logo" />
-      <h1 class="extension-name">E-VerifyMo</h1>
+      <img src="../assets/images/extension_icon.png" alt="E-VERIFY Logo" class="logo" />
+      <h1 class="extension-name">E-Verify</h1>
     </header>
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
 
       <!-- STATE 1: IDLE -->
-      <div class="state hiden" id="state-idle">
+      <div class="state hidden" id="state-idle">
         <p class="state-message">Open a product page on Shopee, Lazada, TikTok Shop, or Facebook Marketplace to verify.</p>
       </div>
 
       <!-- STATE 2: REGISTERED (GREEN) -->
       <div class="state hidden" id="state-registered">
-        <div class="verified-banner">
-          <div class="icon-placeholder" aria-hidden="true"></div>
-          <div class="verified-copy">
-            <div class="verified-title">Verified Product!</div>
-            <div class="verified-product">Product: <span id="product-name-registered"></span></div>
+        <div class="registered-banner">
+          <div class="icon-placeholder-green" aria-hidden="true">
+            <img src="../assets/images/check_green_icon.png" alt="check_icon" />
+          </div>
+          <div class="registered-copy">
+            <div class="registered-title">Registered Product!</div>
+            <div class="registered-product">Product: <span id="product-name-registered"></span></div>
           </div>
         </div>
 
@@ -95,26 +97,27 @@
             </div>
           </div>
 
-          <button class="btn-history" type="button" id="btn-history-registered">
-            <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
-            <span>View History</span>
+          <button class="home-btn btn back-to-home-btn" id="btn-back-home" type="button" id="btn-home-registered">
+            <span>Back to Home</span>
           </button>
         </div>
       </div>
 
-      <!-- STATE 3: UNVERIFIED (ORANGE) -->
-      <div class="state hidden" id="state-unverified">
+      <!-- STATE 3: SUSPICIOUS (ORANGE) -->
+      <div class="state hidden" id="state-suspicious">
         <div class="not-found-banner">
-          <div class="icon-placeholder-orange" aria-hidden="true"></div>
+          <div class="icon-placeholder-orange" aria-hidden="true" >
+            <img src="../assets/images/sus_icon.png" alt="warning_icon" />
+          </div>
           <div class="not-found-copy">
             <div class="not-found-title">Product Not Found!</div>
-            <div class="not-found-product">Product: <span id="product-name-unverified"></span></div>
+            <div class="not-found-product">Product: <span id="product-name-suspicious"></span></div>
           </div>
         </div>
 
         <div class="further-checking-section">
           <div class="further-checking-title">Further Checking Required</div>
-          <div class="further-checking-text">This product was not found in our verified or unverified databases. The system cannot guarantee its registration status.</div>
+          <div class="further-checking-text">This product was not found in our registered or unregistered databases. The system cannot guarantee its registration status.</div>
         </div>
 
         <div class="quick-check-guide">
@@ -124,19 +127,20 @@
           <div class="quick-check-tip">Be cautious if the price is unrealistically low compared to official brand flagship stores.</div>
         </div>
 
-        <button class="btn-history" type="button" id="btn-history-unverified">
-          <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
-          <span>View History</span>
+        <button class="home-btn btn back-to-home-btn" id="btn-back-home" type="button" id="btn-home-suspicious">
+            <span>Back to Home</span>
         </button>
       </div>
 
       <!-- STATE 4: UNREGISTERED (RED) -->
       <div class="state hidden" id="state-unregistered">
-        <div class="unverified-banner">
-          <div class="icon-placeholder-red" aria-hidden="true"></div>
-          <div class="unverified-copy">
-            <div class="unverified-title">Unverified Product!</div>
-            <div class="unverified-message">Product: <span id="product-name-unregistered"></span></div>
+        <div class="unregistered-banner">
+          <div class="icon-placeholder-red" aria-hidden="true">
+            <img src="../assets/images/x_icon.png" alt="cross_icon" />
+          </div>
+          <div class="unregistered-copy">
+            <div class="unregistered-title">Unregistered Product!</div>
+            <div class="unregistered-message">Product: <span id="product-name-unregistered"></span></div>
           </div>
         </div>
 
@@ -208,52 +212,50 @@
             <button class="btn-skip-red" type="button" id="btn-skip">Skip</button>
           </div>
 
-          <button class="btn-history" type="button" id="btn-history-unregistered">
-            <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
-            <span>View History</span>
+          <button class="home-btn btn back-to-home-btn" id="btn-back-home" type="button" id="btn-home-unregistered">
+            <span>Back to Home</span>
           </button>
         </div>
       </div>
 
       <!-- STATE 5: HOME -->
-      <div class="state hidden" id="state-home">
-        <!-- 1. EXTENSION STATUS BADGE -->
-          <div class="home-status-badge">
-            <span class="home-status-dot"></span>
-            <span class="home-status-text">Extension is Active</span>
-          </div>
+<div class="state hidden" id="state-home">
+  <div class="home-status-badge">
+    <span class="home-status-dot"></span>
+    <span class="home-status-text">Extension is Active</span>
+  </div>
 
-          <!-- 2. GUEST BANNER -->
-          <div class="home-banner">
-            <div class="home-title">Welcome to E-VerifyMo!</div>
-            <div class="home-message">
-              You are browsing as a guest. Sign in or Sign up
-              to view your verification history, complaints, and report status.
-            </div>
-            <a class="link-sign-in-up" id="link-sign-in-up">Proceed to Sign In / Sign Up</a>
-          </div>
+  <!-- Guest banner -->
+  <div class="home-banner" id="home-banner-guest">
+    <div class="home-title">Welcome to E-Verify!</div>
+    <div class="home-message">
+      You are browsing as a guest. Sign in or Sign up
+      to view your verification history, complaints, and report status.
+    </div>
+    <a class="link-sign-in-up" id="link-sign-in-up">Proceed to Sign In / Sign Up</a>
+  </div>
 
-          <!-- 3. RECENT SCANS -->
-          <div class="home-section">
-            <div class="home-section-header">
-              <img src="../assets/images/clock.png" alt="clock_icon" class="small-icons" />
-              <span class="home-section-title">Recent Scans</span>
-            </div>
-            <div class="home-section-empty">No scans yet this session. Browse a product to start.</div>
-          </div>
+  <!-- Signed-in banner -->
+  <div class="home-banner hidden" id="home-banner-user">
+    <div class="home-title">Welcome back, <span id="home-username"></span>!</div>
+    <div class="home-message">Check your latest complaints and verification history below.</div>
+  </div>
 
-          <!-- 4. QUICK LINKS -->
-         <a class="btn" type="button" id="btn-complaint-history">
-          <img src="../assets/images/report.png" alt="report_icon" class="small-icons" />
-          <span>My Complaints</span>
-        </a>
+  <a class="btn" type="button" id="status-btn">
+    <img src="../assets/images/report.png" alt="report_icon" class="small-icons" />
+    <span>My Complaints</span>
+  </a>
 
-        <!-- 5. ABOUT BUTTON -->
-        <a class="btn" id="btn-about">
-          <img src="../assets/images/about.png" alt="about_icon" class="small-icons" />
-          <span>About E-VerifyMo</span>
-        </a>
-      </div>  
+  <a class="btn" type="button" id="history-btn">
+    <img src="../assets/images/report.png" alt="report_icon" class="small-icons" />
+    <span>My History</span>
+  </a>
+
+  <a class="btn" id="btn-about">
+    <img src="../assets/images/about.png" alt="about_icon" class="small-icons" />
+    <span>About E-Verify</span>
+  </a>
+</div>  
 
       <!-- STATE 6: SCANNING -->
       <div class="state hidden" id="state-scanning">
@@ -268,7 +270,7 @@
       
 
     </main>
-
+    <script src="../utils/api.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>
