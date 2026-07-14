@@ -4,21 +4,127 @@
   align-items: center;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(135deg, #1E293B 0%, #111827 100%);
-  color: #1F2937;
+  /* background: linear-gradient(135deg, #1E293B 0%, #111827 100%); */
+  /* color: #0000; */
+  background: #1E293B;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: auto;
 }
 
 .AdminLoginWrapper {
-  width: 100%;
+  /* width: 100%;
   max-width: 420px;
   background: rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12); */
+
+  display: flex;
+  width: 1000px;
+  max-width: 100%;
+  height: 622px;
+  max-height: 95vh;
   border-radius: 20px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   animation: LoginSlideUp 0.3s ease;
+}
+
+/* ── LEFT PANEL ── */
+.AdminLoginLeftPanel {
+  width: 450px;
+  flex: 1 1 300px;
+  min-width: 280px;
+  height: 100%;
+  background: linear-gradient(135deg, #111827 0%, #13213c 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 32px;
+  box-sizing: border-box;
+}
+
+.AdminLoginLogoContainer {
+  width: 306px;
+  max-width: 100%;
+  height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  margin: 0;
+  margin-left: 18px;
+}
+
+.AdminLoginLogoContainer img {
+  max-width: 45%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  flex-shrink: 1;
+}
+
+.AdminLoginTextWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  margin-left: 10px;
+}
+
+.AdminLoginWelcomeText {
+  font-family: 'Poppins', sans-serif;
+  font-size: 25px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: left;
+}
+
+.AdminLoginSubtitleText {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #ffffff;
+  margin: 0;
+  text-align: left;
+}
+
+/* ── RIGHT PANEL ── */
+.AdminLoginRightPanel {
+  width: 550px;
+  flex: 1 1 320px;
+  min-width: 550px;
+  height: 100%;
+  background: linear-gradient(135deg, #13213c 0%, #1E293B 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0;
+  overflow:hidden;
+}
+
+.AdminLoginRightPanel.OtpPanelActive {
+  justify-content: flex-start;
+}
+
+.AdminLoginRightPanel form.OtpFormActive .OtpContainer {
+  padding: 0 48px;
+  margin-top: 24px;
+}
+
+.AdminLoginRightPanel form.OtpFormActive {
+  padding: 0 0 36px;
+  justify-content: flex-start;
+}
+
+.AdminLoginRightPanel form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px 48px 36px;
 }
 
 @keyframes LoginSlideUp {
@@ -27,11 +133,40 @@
 }
 
 .AdminLoginHeader {
+  margin: -28px -48px 28px -48px;
+  padding: 20px 48px 28px;
+}
+
+.AdminLoginHeader_otp {
+  width: 100%;
+  box-sizing: border-box;
   background: linear-gradient(135deg, #1E293B 0%, #111827 100%);
   padding: 32px 32px 28px;
   border-bottom: 1px solid #0D9488;
   text-align: center;
-  margin: -28px -32px 28px -32px;
+  margin: 0;
+  padding: 32px 48px 28px;
+  border-bottom: 1px solid #0D9488;
+}
+
+.AdminLoginHeader_otp h3 {
+  font-family: var(--font-headings);
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  margin: 0;
+  text-align: center;
+}
+
+.AdminLoginHeader_otp p {
+  /* font-size: 13px;
+  color: #94a3b8; */
+  font-family: 'Poppins', sans-serif;
+  font-size: 15px;
+  color: #a6a6a6;
+  margin: 8px 0 0 0;
+  text-align: center;
 }
 
 .AdminLoginHeader h3 {
@@ -41,12 +176,17 @@
   color: #ffffff;
   letter-spacing: 0.3px;
   margin: 0 0 0;
+  text-align: center;
 }
 
 .AdminLoginHeader p {
-  font-size: 13px;
-  color: #94a3b8;
+  /* font-size: 13px;
+  color: #94a3b8; */
+  font-family: 'Poppins', sans-serif;
+  font-size: 15px;
+  color: #a6a6a6;
   margin: 8px 0 0 0;
+  text-align: center;
 }
 
 .AdminLoginWrapper form {
@@ -57,12 +197,19 @@
 }
 
 .AdminLoginWrapper label {
-  display: block;
+  /* display: block;
   font-size: 13px;
   font-weight: 600;
   color: #cbd5e1;
   margin-bottom: 7px;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.2px; */
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #e2e2e2;
+}
+
+.AdminLoginWrapper label span {
+  color: #B91C1C;
 }
 
 .AdminLoginWrapper input {
@@ -75,6 +222,7 @@
   font-size: 14px;
   transition: all 0.25s ease;
   box-sizing: border-box;
+  margin-top: 4px;
 }
 
 .AdminLoginWrapper input::placeholder {
@@ -90,7 +238,7 @@
 
 .AdminLoginWrapper button[type="submit"] {
   width: 100%;
-  margin-top: 6px;
+  margin-top: 30px;
   padding: 13px;
   background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
   color: #fff;
@@ -105,7 +253,7 @@
 }
 
 .AdminLoginWrapper button[type="submit"]:hover {
-  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  background: linear-gradient(135deg, #2dd4a8 0%, #115e59 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
 }
@@ -123,6 +271,20 @@
 
 .PasswordInputWrapper input {
   padding-right: 64px;
+}
+
+.PasswordLabelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.PasswordLabelRow label {
+  margin: 0;
+}
+
+.PasswordLabelRow .ForgotPasswordLink {
+  margin: 0;
 }
 
 .TogglePasswordBtn {
@@ -147,7 +309,7 @@
 
 /* Forgot password link */
 .ForgotPasswordLink {
-  display: block;
+  /* display: block;
   margin: 2px 0 6px 0;
   cursor: pointer;
   color: #0D9488;
@@ -155,7 +317,11 @@
   text-underline-offset: 3px;
   font-size: 13px;
   font-weight: 500;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease; */
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #2dd4a8;
+  cursor: pointer;
 }
 
 .ForgotPasswordLink:hover {
@@ -266,13 +432,13 @@
   color: #f1f5f9;
 }
 
-.AdminLoginErrorMsgContainer {
+/* .AdminLoginErrorMsgContainer {
   padding: 10px 14px;
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.5);
   border-radius: 8px;
   margin-top: 4px;
-}
+} */
 
 @keyframes LoginShake {
   0%, 100% { transform: translateX(0); }
@@ -281,11 +447,16 @@
 }
 
 .AdminLoginErrorMsg {
-  color: #fca5a5;
+  /* color: #fca5a5;
   margin: 0;
   font-size: 13px;
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.5; */
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  font-size: 10px;
+  color: #B91C1C;
+  padding-top: 0;
 }
 
 /* WORKSPACE LAYOUT STYLES */
@@ -1315,6 +1486,32 @@
 
 .AuditTextCenter {
   text-align: center;
+}
+
+/* ── Responsive stacking for narrow windows ── */
+@media (max-width: 640px) {
+  .AdminLoginContainer {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .AdminLoginWrapper {
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    max-height: none;
+  }
+
+  .AdminLoginLeftPanel,
+  .AdminLoginRightPanel {
+    width: 100%;
+    min-width: 0;
+    flex: none;
+  }
+
+  .AdminLoginLeftPanel {
+    padding: 32px 24px;
+  }
 }
 
 
