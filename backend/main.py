@@ -9,6 +9,7 @@ from app.routers.auth.password_reset import router as password_reset_router
 from app.routers.auth.sessions import router as sessions_router
 # registration endpoints are in a separate file, so we import the router here and attach it to the main app
 from app.routers.auth import registration
+from app.routers.user_management.management import router as user_management_router
 
 app = FastAPI()
 
@@ -34,4 +35,8 @@ def root():
 app.include_router(superadmin_login_router)
 app.include_router(password_reset_router)
 app.include_router(sessions_router)
+
+app.include_router(user_management_router)
+
+
 

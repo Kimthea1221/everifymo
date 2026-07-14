@@ -27,8 +27,15 @@ def render_invite_email(agency_name: str, deep_link: str) -> str:
 
 
 async def send_invite_email(to_email: str, agency_name: str, token: str):
+    display_name = {
+        "fda_personnel": "FDA",
+        "lea_personnel": "LEA-CIDG",
+        "FDA": "FDA",
+        "LEA-CIDG": "LEA-CIDG"
+    }.get(agency_name, agency_name)
+
     deep_link = f"everifymo://complete-registration?token={token}"
-    html_body = render_invite_email(agency_name, deep_link)
+    html_body = render_invite_email(display_name, deep_link)
 
     message = MessageSchema(
         subject="You're invited to register — ICMDA",
