@@ -6,10 +6,10 @@
       ['productTitle', 'productPlatform', 'productUrl', 'productStatus'],
       (data) => {
 
-        // TEMPORARY HARDCODE FOR TESTING — remove later
+        // TEMPORARY HARDCODE FOR TESTING — should be remove later
         const title = 'Maybelline Fit Me Foundation';
         const url = 'shopee.ph/Maybelline-Fit-Me-Foundation';
-        const status = 'unregistered'; // change to: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
+        const status = 'unregistered'; // here are the states: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
 
         chrome.storage.local.set({
           productTitle: title,
@@ -46,12 +46,22 @@
 
     applyAuthView();
 
-    const btnReport = document.getElementById('btn-report');
-    if (btnReport) {
-      btnReport.addEventListener('click', () => {
+    // const btnReport = document.getElementById('btn-report');
+    // if (btnReport) {
+    //   btnReport.addEventListener('click', () => {
+    //     chrome.tabs.create({ url: chrome.runtime.getURL('pages/report-complaint.html') });
+    //   });
+    // }
+
+    document.querySelectorAll('.btn-report').forEach(btn => {
+      btn.addEventListener('click', () => {
         chrome.tabs.create({ url: chrome.runtime.getURL('pages/report-complaint.html') });
       });
-    }
+    });
+
+    document.querySelectorAll('.btn-skip').forEach(btn => {
+      btn.addEventListener('click', () => window.close());
+    });
 
     const btnSigninHeader = document.getElementById('link-sign-in-up');
     if (btnSigninHeader) {
@@ -95,10 +105,10 @@
       btn.addEventListener('click', () => showState('home'));
     });
 
-    const btnSkip = document.getElementById('btn-skip');
-    if (btnSkip) {
-      btnSkip.addEventListener('click', () => window.close());
-    }
+    // const btnSkip = document.getElementById('btn-skip');
+    // if (btnSkip) {
+    //   btnSkip.addEventListener('click', () => window.close());
+    // }
 
     const btnGuest = document.getElementById('btn-guest');
     if (btnGuest) {
