@@ -295,11 +295,6 @@ function LeaSavedDraft() {
                         </div>
                     )}
 
-                    {/* Footer Informational Banner */}
-                    <div className="FooterInfoBanner">
-                        <span className="FooterInfoIcon"><Info size={18} /></span>
-                        <p>Drafts are saved locally while you're working. Remember to submit them when you're ready.</p>
-                    </div>
                 </div>
             </div>
 

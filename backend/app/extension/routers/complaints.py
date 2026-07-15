@@ -3,11 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
-from app.schemas.complaints import CreateComplaint
-from app.services import complaints_service
+from app.extension.schemas.complaints import CreateComplaint
+from app.extension.services import complaints_service
 from app.core.security import get_current_user
 from app.models.complaints import Complaint
-from app.schemas.complaints import ToPrintComplaint
+from app.extension.schemas.complaints import ToPrintComplaint
 
 router = APIRouter()
 db_dependency = Annotated[Session, Depends(get_db)]
