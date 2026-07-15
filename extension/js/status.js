@@ -1,21 +1,17 @@
-// In js/status.js
-
-const STAGE_ORDER = ['received', 'reviewing', 'acted_upon'];
-const STAGE_LABELS = { received: 'RECEIVED', reviewing: 'REVIEWING', acted_upon: 'ACTED UPON' };
-const STEP_LABELS = ['Recieved', 'Reviewing', 'Acted Upon'];
+//status.js
+const STAGE_ORDER = ['open', 'under_review', 'takedown_requested'];
+const STAGE_LABELS = { open: 'OPEN', under_review: 'UNDER REVIEW', takedown_requested: 'TAKEDOWN REQUESTED' };
+const STEP_LABELS = ['Open', 'Under Review', 'Takedown Requested'];
 
 function renderComplaintCard(complaint) {
   const currentIndex = STAGE_ORDER.indexOf(complaint.stage);
-  const isFinalStage = complaint.stage === 'acted_upon';
-
   let trackHtml = '';
 
   STEP_LABELS.forEach((label, i) => {
-    const isComplete = i < currentIndex || (isFinalStage && i === currentIndex);
     let circleClass = 'step-upcoming';
     let circleContent = i + 1;
 
-    if (isComplete) {
+    if (i < currentIndex) {
       circleClass = 'step-complete';
       circleContent = '✓';
     } else if (i === currentIndex) {
@@ -30,17 +26,18 @@ function renderComplaintCard(complaint) {
       </div>
     `;
 
-    // Add a connector after every step except the last one
     if (i < STEP_LABELS.length - 1) {
       const connectorClass = i < currentIndex ? 'connector-complete' : '';
-      trackHtml += `<div class="step-connector ${connectorClass}"></div>`;
+      const isLastConnector = i === STEP_LABELS.length - 2; // second-to-last step index = last connector
+      const lastClass = isLastConnector ? 'connector-last' : '';
+      trackHtml += `<div class="step-connector ${connectorClass} ${lastClass}"></div>`;
     }
   });
 
   const badgeClass = `badge-${complaint.stage.replace('_', '-')}`;
 
   return `
-    <div class="status-card">
+    <div class="status-card" id="status-card-${complaint.id}">
       <div class="status-card-top">
         <h3 class="status-product-name">${complaint.productName}</h3>
         <span class="status-badge ${badgeClass}">${STAGE_LABELS[complaint.stage]}</span>

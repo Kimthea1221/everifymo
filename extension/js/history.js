@@ -1,7 +1,7 @@
-const COMPLAINT_STATUS_LABELS = { resolved: 'RESOLVED', pending: 'PENDING', denied: 'DENIED' };
+// history.js
+const COMPLAINT_STATUS_LABELS = { completed: 'COMPLETED', dismissed: 'DISMISSED' };
 const VERIFICATION_STATUS_LABELS = { registered: 'REGISTERED', suspicious: 'SUSPICIOUS', unregistered: 'UNREGISTERED' };
-
-const COMPLAINT_ICONS = { resolved: 'check_green_icon.png', pending: 'sus_icon.png', denied: 'x_icon.png' };
+const COMPLAINT_ICONS = { completed: 'check_green_icon.png', dismissed: 'x_icon.png' };
 const VERIFICATION_ICONS = { registered: 'check_green_icon.png', suspicious: 'sus_icon.png', unregistered: 'x_icon.png' };
 
 let currentHistoryTab = 'complaints';
@@ -12,7 +12,6 @@ function iconTag(status, iconMap) {
 
 function renderComplaintsHistoryList() {
   const items = getComplaintsHistory();
-
   const counterEl = document.getElementById('resolved-counter');
 
   if (items.length === 0) {
@@ -20,15 +19,16 @@ function renderComplaintsHistoryList() {
     return `<p class="history-empty-text">Complaints History page is currently empty.</p>`;
   }
 
-  const resolvedCount = items.filter(i => i.status === 'resolved').length;
-  if (counterEl) counterEl.textContent = `RESOLVED: ${resolvedCount}`;
+  const completedCount = items.filter(i => i.status === 'completed').length;
+  if (counterEl) counterEl.textContent = `COMPLETED: ${completedCount}`;
 
   return items.map(item => `
-    <div class="history-item status-${item.status}">
+    <div class="history-item status-${item.status}" data-complaint-id="${item.id}">
       <div class="history-item-icon icon-${item.status}">${iconTag(item.status, COMPLAINT_ICONS)}</div>
       <div class="history-item-text">
         <p class="history-item-name">${item.productName}</p>
-        <span class="history-item-meta">${item.platform} • ${item.time} • <a href="../pages/complaint-status.html" class="see-details-link">See Details</a></span>
+        <span class="history-item-meta">${item.platform} • ${item.time} • <a href="#" class="see-details-link" data-toggle-note="${item.id}">See Details</a></span>
+        <p class="history-item-note hidden" id="note-${item.id}">${item.note}</p>
       </div>
       <span class="history-item-status">${COMPLAINT_STATUS_LABELS[item.status]}</span>
     </div>
@@ -38,7 +38,7 @@ function renderComplaintsHistoryList() {
 function renderVerificationHistoryList() {
   const items = getVerificationHistory();
   const counterEl = document.getElementById('resolved-counter');
-  if (counterEl) counterEl.textContent = ''; // verification tab never shows a resolved counter
+  if (counterEl) counterEl.textContent = ''; // this verification tab never shows a resolved counter
 
   if (items.length === 0) {
     return `<p class="history-empty-text">Verification History page is currently empty.</p>`;
@@ -63,6 +63,15 @@ function renderHistoryList() {
   listEl.innerHTML = currentHistoryTab === 'complaints'
     ? renderComplaintsHistoryList()
     : renderVerificationHistoryList();
+
+  // this wire up "See Details" toggles for complaints (verification tab has no notes)
+  document.querySelectorAll('[data-toggle-note]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const noteEl = document.getElementById(`note-${link.dataset.toggleNote}`);
+      if (noteEl) noteEl.classList.toggle('hidden');
+    });
+  });
 }
 
 function switchHistoryTab(tab) {
@@ -78,7 +87,7 @@ function renderHistoryPage() {
   const populatedView = document.getElementById('history-populated-view');
   const emptyText = document.getElementById('history-empty-text-main');
 
-  // Guest check takes priority over data — a guest never has tracked history,
+  // guest check takes priority over data — a guest never has tracked history,
   // regardless of what the mock arrays contain
   const isGuest = typeof isUserLoggedIn === 'function' ? !isUserLoggedIn() : false;
 
