@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers.auth.invite import router as invite_router
-from app.routers.regions.regions import router as regions_router
+""" from app.routers.auth.invite import router as invite_router
+from app.routers.regions.regions import router as regions_router """
 
-from app.routers.auth.superadmin_login import router as superadmin_login_router
-from app.routers.auth.password_reset import router as password_reset_router
-from app.routers.auth.sessions import router as sessions_router
-# registration endpoints are in a separate file, so we import the router here and attach it to the main app
-from app.routers.auth import registration
-from app.routers.user_management.management import router as user_management_router
+from app.desktop.routers.auth.superadmin_login import router as superadmin_login_router
+from app.desktop.routers.auth.password_reset import router as password_reset_router
+from app.desktop.routers.auth.sessions import router as sessions_router
+from app.desktop.routers.auth import registration
+from app.desktop.routers.auth.invite import router as invite_router
+from app.desktop.routers.regions.regions import router as regions_router
+from app.desktop.routers.user_management.management import router as user_management_router
 
 app = FastAPI()
 
