@@ -157,3 +157,34 @@ function applyAuthView() {
     if (usernameEl) usernameEl.textContent = getCurrentUser().username;
   }
 }
+
+// //auto-fill url
+// document.addEventListener('DOMContentLoaded', async () => {
+//     const { access_token } = await chrome.storage.local.get(['access_token']);
+//     showView(access_token ? 'complaintContainer' : 'loginContainer');
+
+//     // auto-fill shop URL field
+//     try {
+//         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+//         if (tab && tab.url && tab.url.startsWith('http')) {
+//             document.getElementById('shopUrl').value = tab.url;
+//         }
+//     } catch (e) {
+//         console.error('Could not read current tab URL:', e);
+//     }
+// });
+
+// function sanitizeUrl(rawUrl) {
+//     try {
+//         const url = new URL(rawUrl);
+//         const suspiciousPatterns = /token|session|auth|sp_atk|spm/i;
+//         [...url.searchParams.keys()].forEach(key => {
+//             if (suspiciousPatterns.test(key)) {
+//                 url.searchParams.delete(key);
+//             }
+//         });
+//         return url.toString();
+//     } catch {
+//         return rawUrl;
+//     }
+// }

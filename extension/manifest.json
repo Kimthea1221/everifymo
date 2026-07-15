@@ -18,7 +18,8 @@
     "https://shopee.ph/*",
     "https://www.lazada.com.ph/*",
     "https://www.tiktok.com/*",
-    "https://www.facebook.com/marketplace/*"
+    "https://www.facebook.com/marketplace/*",
+    "http://localhost:8000/*"
   ],
 
   "content_scripts": [
