@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
-from app.core.security import bcrypt_context
+from app.core.security import pwd_context
 from app.models.consumer_accounts import ConsumerAccount
 from app.extension.schemas.consumer_acc import CreateConsumerAcc
 
@@ -10,7 +10,7 @@ def create_user(db: Session, create_user_request: CreateConsumerAcc) -> Consumer
     consumer_acc = ConsumerAccount(
         email = create_user_request.email,
         username = create_user_request.username,
-        password_hash = bcrypt_context.hash(create_user_request.password),
+        password_hash = pwd_context.hash(create_user_request.password),
         consumer_type = "verified account",
         auth_provider = "local",
     )

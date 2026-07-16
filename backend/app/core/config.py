@@ -13,9 +13,7 @@
 #settings = Settings()
 
 #contents before i replaced it with the following code
-
 from pydantic_settings import BaseSettings
-
 
 class Settings(BaseSettings):
     DATABASE_URL: str
@@ -38,6 +36,8 @@ class Settings(BaseSettings):
 
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # add to settings if you want this configurable
 
+    DEFAULT_EXTENSION_REGION_ID: str
+    
     class Config:
         env_file = ".env"
 

@@ -5,8 +5,10 @@ from typing import Optional
 
 class CreateComplaint(BaseModel):
     product_title: str
-    seller_name: str
+    store_name: str
     product_url: HttpUrl
+    consumer_description: str
+    platform: str
     verification_result: str = "pending...(nlp not attached yet)"
 
 class ToPrintComplaint(BaseModel):

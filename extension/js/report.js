@@ -43,6 +43,11 @@ function initAttachBoxes() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  let productNameInput = document.getElementById('complaint-product-name');
+  let productUrlInput = document.getElementById('complaint-product-url');
+  let storeNameInput = document.getElementById('store-name');
+  let descriptionInput = document.getElementById('complaint-description');
+
   whenSessionReady(() => {
      initAttachBoxes();
 
@@ -53,10 +58,25 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    let platformName = platform(productUrlInput.value);
+
     document.querySelectorAll('.report-submit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const isGuest = !isUserLoggedIn();
         showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
+
+        submitComplaint({ 
+            productName: productNameInput.value, 
+            productUrl: productUrlInput.value, 
+            storeName: storeNameInput.value, 
+            platform: platformName,
+            description: descriptionInput.value 
+          }, (success, e) => {
+            if (!success) {
+              console.error("Complaint submission failed:", e);
+            }
+          }
+        );
       });
     });
 
@@ -77,7 +97,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     );
   });
+
+  autoFillUrl();
 });
+
+function platform(url) {
+  if (url.includes("shopee")) return "shopee";
+  if (url.includes("lazada")) return "lazada";
+  if (url.includes("facebook")) return "facebook";
+  if (url.includes("tiktok")) return "tiktok";
+  return "no platform detected";
+}
 
 function applyAuthView() {
   const loggedIn = typeof isUserLoggedIn === 'function' ? isUserLoggedIn() : false;
@@ -88,3 +118,28 @@ function applyAuthView() {
   }
 }
 
+//auto-fill url
+function autoFillUrl() {
+  let params = new URLSearchParams(window.location.search);
+  let productUrl = params.get('productUrl');
+  if (productUrl) {
+    document.querySelectorAll('[id="complaint-product-url"]').forEach(el => {
+      el.value = decodeURIComponent(productUrl);
+    });
+  }
+}
+
+function sanitizeUrl(rawUrl) {
+    try {
+        let url = new URL(rawUrl);
+        let suspiciousPatterns = /token|session|auth|sp_atk|spm/i;
+        [...url.searchParams.keys()].forEach(key => {
+            if (suspiciousPatterns.test(key)) {
+                url.searchParams.delete(key);
+            }
+        });
+        return url.toString();
+    } catch {
+        return rawUrl;
+    }
+}

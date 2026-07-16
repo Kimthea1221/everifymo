@@ -1,3 +1,11 @@
+let productName = document.getElementById('complaint-product-name');
+let productUrl = document.getElementById('complaint-product-url');
+let storeName = document.getElementById('store-name');
+let description = document.getElementById('complaint-description');
+
+
+
+
 
 // complaints data to backend
 document.getElementById('submitComplaint').addEventListener('submit', async (e) => {

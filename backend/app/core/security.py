@@ -14,7 +14,7 @@ from app.database.sessions import get_db
 from app.models.consumer_accounts import ConsumerAccount
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -43,6 +43,7 @@ def generate_refresh_token() -> str:
 def hash_refresh_token(refresh_token: str) -> str:
     return hashlib.sha256(refresh_token.encode("utf-8")).hexdigest()
 
+#extension
 def authenticate_consumer(email:str, password:str, db:Session):
     user = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
     if not user:
@@ -61,7 +62,9 @@ def create_access_token(username:str, consumer_id, expires_delta:timedelta):
 
     return jwt.encode(encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+def get_current_user(token: Annotated[str | None, Depends(oauth2_bearer)]):
+    if token is None:
+        return None
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")

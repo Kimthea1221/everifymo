@@ -15,8 +15,12 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 @router.post('/submitComplaint')
 async def InsertComplaint(complaint: CreateComplaint, db: db_dependency, current_user: user_dependency):
-    try: 
-        return complaints_service.create_complaints(db, complaint, current_user["id"]) 
+    try:     
+        if current_user:
+            consumer_id = current_user["id"]
+        else:
+            consumer_id = None
+        return complaints_service.create_complaints(db, complaint, consumer_id) 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
