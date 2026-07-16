@@ -67,7 +67,7 @@ function getCurrentUser() {
 function registerUser(user, callback) {
   apiSignUp({ email: user.email, username: user.username, password: user.password })
       .then(() => callback(true))
-      .catch(err => callback(false, err.message));
+      .catch(e => callback(false, e.message));
 }
 
 function loginUser(email, password, callback) {
@@ -79,10 +79,24 @@ function loginUser(email, password, callback) {
               () => callback(true)
           );
       })
-      .catch(err => callback(false, err.message));
+      .catch(e => callback(false, e.message));
 }
 
 function logoutUser(callback) {
   _session = null;
   chrome.storage.local.remove(['access_token', 'token_type', 'username', 'email'], callback);
+}
+
+function submitComplaint(complaints, callback) {
+  const token = _session ? _session.access_token : null;
+
+  apiSubmitComplaint({ 
+    product_title: complaints.productName, 
+    product_url: complaints.productUrl, 
+    store_name: complaints.storeName, 
+    consumer_description: complaints.description, 
+    platform: complaints.platform 
+  }, token)
+      .then(() => callback(true))
+      .catch(e => callback(false, e.message));
 }

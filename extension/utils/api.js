@@ -45,12 +45,12 @@ async function apiLogin(username, password) {
 
 async function apiSubmitComplaint(complaintData, token){
   
+    let headers = { 'Content-Type': 'application/json'};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const res = await fetch(`${API_BASE}/submitComplaint`, {
         method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify(complaintData)
     });
 
