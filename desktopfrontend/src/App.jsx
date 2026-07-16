@@ -69,7 +69,7 @@ export default function App(){
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-          <Route path='/' element={<SuperAdminLogin />} />
+          <Route path='/' element={<LeaDashboard />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
