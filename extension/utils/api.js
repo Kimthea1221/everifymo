@@ -62,7 +62,6 @@ async function apiSubmitComplaint(complaintData, token){
     return res.json();
 }
 
-
 // ================================
 // MOCK DATA — NOTIFICATIONS
 // ================================

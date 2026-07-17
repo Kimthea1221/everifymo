@@ -2,13 +2,14 @@
 
   whenSessionReady(() => {
 
+    //babalikan 3
     chrome.storage.local.get(
       ['productTitle', 'productPlatform', 'productUrl', 'productStatus'],
       (data) => {
 
         // TEMPORARY HARDCODE FOR TESTING — should be remove later
-        const title = 'Maybelline Fit Me Foundation';
-        const url = 'shopee.ph/Maybelline-Fit-Me-Foundation';
+        const title = document.getElementById('complaint-product-name');
+        const url = document.getElementById('complaint-product-url');
         const status = 'unregistered'; // here are the states: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
 
         chrome.storage.local.set({
@@ -19,17 +20,17 @@
 
         if (status === 'registered') {
           const el = document.getElementById('product-name-registered');
-          if (el) el.textContent = title;
+          if (el) el.value = title;
           showState('registered');
 
         } else if (status === 'unregistered') {
           const el = document.getElementById('product-name-unregistered');
-          if (el) el.textContent = title;
+          if (el) el.value = title;
           showState('unregistered');
 
         } else if (status === 'suspicious') {
           const el = document.getElementById('product-name-suspicious');
-          if (el) el.textContent = title;
+          if (el) el.value = title;
           showState('suspicious');
 
         } else if (status === 'home') {
@@ -53,6 +54,7 @@
     //   });
     // }
 
+    // passed the extracted url on report.js
     document.querySelectorAll('.btn-report').forEach(btn => {
       btn.addEventListener('click', async() => {
         let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
