@@ -43,10 +43,6 @@ function initAttachBoxes() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  let productNameInput = document.getElementById('complaint-product-name');
-  let productUrlInput = document.getElementById('complaint-product-url');
-  let storeNameInput = document.getElementById('store-name');
-  let descriptionInput = document.getElementById('complaint-description');
 
   whenSessionReady(() => {
      initAttachBoxes();
@@ -58,18 +54,23 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    let platformName = platform(productUrlInput.value);
-
     document.querySelectorAll('.report-submit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const isGuest = !isUserLoggedIn();
         showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
 
+        let productNameInput = isActive('complaint-product-name');
+        let productUrlInput = isActive('complaint-product-url');
+        let storeNameInput = isActive('store-name');
+        let descriptionInput = isActive('complaint-description');
+
+        let url = sanitizeUrl(productUrlInput.value);
+
         submitComplaint({ 
             productName: productNameInput.value, 
-            productUrl: productUrlInput.value, 
+            productUrl: url, 
             storeName: storeNameInput.value, 
-            platform: platformName,
+            platform: platform(url),
             description: descriptionInput.value 
           }, (success, e) => {
             if (!success) {
@@ -82,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyAuthView();
 
+    //babalikan 2
     chrome.storage.local.get(
       ['productTitle', 'productUrl', 'productStatus'],
       (data) => {
@@ -101,14 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
   autoFillUrl();
 });
 
-function platform(url) {
-  if (url.includes("shopee")) return "shopee";
-  if (url.includes("lazada")) return "lazada";
-  if (url.includes("facebook")) return "facebook";
-  if (url.includes("tiktok")) return "tiktok";
-  return "no platform detected";
-}
-
+//babalikan 1
 function applyAuthView() {
   const loggedIn = typeof isUserLoggedIn === 'function' ? isUserLoggedIn() : false;
 
@@ -118,14 +113,27 @@ function applyAuthView() {
   }
 }
 
+// who's logged/active
+function isActive(id){
+  let type = isUserLoggedIn() ? '-user' : '-guest';
+  return document.getElementById(id + type);
+}
+
+function platform(url) {
+  if (url.includes("shopee")) return "shopee";
+  if (url.includes("lazada")) return "lazada";
+  if (url.includes("facebook")) return "facebook";
+  if (url.includes("tiktok")) return "tiktok";
+  return "no platform detected";
+}
+
 //auto-fill url
 function autoFillUrl() {
   let params = new URLSearchParams(window.location.search);
   let productUrl = params.get('productUrl');
   if (productUrl) {
-    document.querySelectorAll('[id="complaint-product-url"]').forEach(el => {
-      el.value = decodeURIComponent(productUrl);
-    });
+    let input = isActive('complaint-product-url');
+    if (input) input.value = decodeURIComponent(productUrl);
   }
 }
 
@@ -143,3 +151,4 @@ function sanitizeUrl(rawUrl) {
         return rawUrl;
     }
 }
+
