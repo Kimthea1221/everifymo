@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import '../App.css'
 import FDALogo from '../images/FDA.png'
 import PNPLogo from '../images/pnp-cidg.jpg'
@@ -8,7 +9,7 @@ import PNPLogo from '../images/pnp-cidg.jpg'
 {/*for Test Accounts*/}
 const TestAccount=[
     { agency: 'fda', email:'admin.fda@gmail.com', password:'@Fda12345'},
-    { agency:'cidg', email:'admin.cidg@gmail.com', password:'@Cidg12345'},
+    { agency:'lea', email:'admin.cidg@gmail.com', password:'@Cidg12345'},
 ]
 
 function Login(){
@@ -235,15 +236,19 @@ function Login(){
                   <input type="radio" id="fda" name="agency" value="fda" onChange={() => setAgency('fda')} checked={agency === 'fda'} />
                   <label htmlFor="fda" className="InterButtons AgencyButtonFDA">FDA</label>
 
-                  <input type="radio" id="cidg" name="agency" value="cidg" onChange={() => setAgency('cidg')} checked={agency === 'cidg'} />
+                  <input type="radio" id="cidg" name="agency" value="lea" onChange={() => setAgency('lea')} checked={agency === 'lea'} />
                   <label htmlFor="cidg" className="InterButtons AgencyButtonCIDG">LEA-CIDG</label>
                 </div>
 
                 <label htmlFor="email">Email <span>*</span></label>
-                <input type="email" id="email" placeholder="youremail@gmail.com" value={email} onChange={(e)=> setEmail(e.target.value)} required/>
+                <div className="LoginInputWrapper">
+                  <Mail className="LoginInputIcon" size={16} />
+                  <input type="email" id="email" placeholder="youremail@gmail.com" value={email} onChange={(e)=> setEmail(e.target.value)} required/>
+                </div>
 
                 <label htmlFor="password">Password <span>*</span></label>
                 <div className="PasswordInputWrapper">
+                  <Lock className="LoginInputIcon" size={16} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     id="password"
@@ -258,7 +263,7 @@ function Login(){
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? 'Hide' : 'Show'}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
 

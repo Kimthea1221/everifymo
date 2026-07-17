@@ -1,9 +1,15 @@
 import './superadmin-css.css';
-
-
 import { useState, useEffect } from 'react';
+import { Send, UserCheck, UserX, RefreshCw,  TriangleAlert, CircleCheckBig, Mail} from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
+
+
+// helper to provide auth token for API calls
+function getAuthToken() {
+  return localStorage.getItem('access_token') || localStorage.getItem('authToken') || localStorage.getItem('token') || '';
+}
+// ...existing code...
 
 const DUMMY_USERS = [
   {
@@ -50,7 +56,10 @@ const DUMMY_USERS = [
 
 const STATUS_META = {
   Pending: { label: 'Pending', className: 'badge-pending' },
+  Invited: { label: 'Pending', className: 'badge-pending' },
+  'Invite Requested': { label: 'Pending', className: 'badge-pending' },
   'For Activation': { label: 'For Activation', className: 'badge-for-activation' },
+  'Pending Approval': { label: 'For Activation', className: 'badge-for-activation' },
   Active: { label: 'Active', className: 'badge-active' },
   Suspended: { label: 'Suspended', className: 'badge-suspended' },
 };
@@ -61,31 +70,31 @@ function StatusBadge({ status }) {
 }
 
 function ActionButton({ status, onAction }) {
-  if (status === 'Pending') {
+  if (status === 'Pending' || status === 'Invited' || status === 'Invite Requested') {
     return (
       <button className="UMActionBtn btn-resend" onClick={() => onAction('resend')}>
-        Resend Link
+        <Send size={13} /> Resend Link
       </button>
     );
   }
-  if (status === 'For Activation') {
+  if (status === 'For Activation' || status === 'Pending Approval') {
     return (
       <button className="UMActionBtn btn-activate" onClick={() => onAction('activate')}>
-        Activate
+        <UserCheck size={13} /> Activate
       </button>
     );
   }
   if (status === 'Active') {
     return (
       <button className="UMActionBtn btn-suspend" onClick={() => onAction('suspend')}>
-        Suspend
+        <UserX size={13} /> Suspend
       </button>
     );
   }
   if (status === 'Suspended') {
     return (
       <button className="UMActionBtn btn-reactivate" onClick={() => onAction('reactivate')}>
-        Reactivate
+        <RefreshCw size={13} /> Reactivate
       </button>
     );
   }
@@ -124,7 +133,13 @@ function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
     <div className="UMModalOverlay">
       <div className="UMModal UMConfirmModal">
         <div className="UMConfirmIcon">
-          {actionType === 'suspend' ? '⚠️' : actionType === 'activate' || actionType === 'reactivate' ? '✅' : '📧'}
+          {actionType === 'suspend' ? (
+            <TriangleAlert size={40} color="#D97706" strokeWidth={3} />
+          ) : actionType === 'activate' || actionType === 'reactivate' ? (
+            <CircleCheckBig size={40} color="#149660ff" strokeWidth={3} />
+          ) : (
+            <Mail size={40} color="#07338dff" strokeWidth={3} />
+          )}
         </div>
         <h3 className="UMModalTitle">{meta.title}</h3>
         <p className="UMConfirmMessage">{meta.message}</p>
@@ -293,14 +308,13 @@ async function handleSend() {
 
     try {
       const response = await fetch('http://127.0.0.1:8000/admin/users/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          region_id: region,
-          role: agency,
-        }),
-      });
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getAuthToken()}`,   // ← add this
+      },
+      body: JSON.stringify({ email, region_id: region, role: agency }),
+    });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -452,8 +466,8 @@ async function handleSend() {
                   disabled={sending}
                 >
                   <option value="">Select Agency</option>
-                  <option value="FDA">FDA</option>
-                  <option value="LEA-CIDG">LEA-CIDG</option>
+                  <option value="fda_personnel">FDA</option>
+                  <option value="lea_personnel">LEA-CIDG</option>
                 </select>
 
                 {agencyError && (
@@ -506,7 +520,7 @@ async function handleSend() {
 }
 
 function SuperAdminUserManagement() {
-  const [users, setUsers] = useState(DUMMY_USERS);
+  const [users, setUsers] = useState([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({
     open: false,
@@ -514,44 +528,70 @@ function SuperAdminUserManagement() {
     targetId: null,
   });
 
-  let nextId = users.length ? Math.max(...users.map((u) => u.id)) + 1 : 1;
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  async function fetchUsers() {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/admin/users', {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        console.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  }
 
   function handleAddModalClose(data) {
-  setAddModalOpen(false);
-
-  if (data) {
-    setUsers((prev) => [
-      ...prev,
-      {
-        id: nextId++,
-        fullname: '',
-        employeeid: '',
-        email: data.email,
-        agency: data.agency,
-        region: data.region,
-        department: '',
-        position: '',
-        contactno: '',
-        status: 'Pending',
-      },
-    ]);
+    setAddModalOpen(false);
+    if (data) {
+      fetchUsers();
+    }
   }
-}
 
   function openConfirm(actionType, userId) {
     setConfirmModal({ open: true, actionType, targetId: userId });
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     const { actionType, targetId } = confirmModal;
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== targetId) return u;
-        if (actionType === 'activate' || actionType === 'reactivate') return { ...u, status: 'Active' };
-        if (actionType === 'suspend') return { ...u, status: 'Suspended' };
-        return u; // resend → stays Pending
-      })
-    );
+    let url = '';
+    if (actionType === 'resend') {
+      url = `http://127.0.0.1:8000/admin/users/${targetId}/resend`;
+    } else if (actionType === 'activate') {
+      url = `http://127.0.0.1:8000/admin/users/${targetId}/activate`;
+    } else if (actionType === 'suspend') {
+      url = `http://127.0.0.1:8000/admin/users/${targetId}/suspend`;
+    } else if (actionType === 'reactivate') {
+      url = `http://127.0.0.1:8000/admin/users/${targetId}/reactivate`;
+    }
+
+    if (url) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
+        });
+        if (!response.ok) {
+          const errData = await response.json();
+          alert(errData.detail || `Failed to perform action: ${actionType}`);
+        } else {
+          fetchUsers();
+        }
+      } catch (error) {
+        console.error(`Error performing action ${actionType}:`, error);
+      }
+    }
     setConfirmModal({ open: false, actionType: '', targetId: null });
   }
 
@@ -586,22 +626,22 @@ function SuperAdminUserManagement() {
                 { label: 'Total Users', value: users.length, className: 'stat-total' },
                 {
                   label: 'Active',
-                  value: users.filter((u) => u.status === 'Active').length,
+                  value: users.filter((u) => (u.display_status || u.status) === 'Active').length,
                   className: 'stat-active',
                 },
                 {
                   label: 'Pending',
-                  value: users.filter((u) => u.status === 'Pending').length,
+                  value: users.filter((u) => ['Pending', 'Invited', 'Invite Requested'].includes(u.display_status || u.status)).length,
                   className: 'stat-pending',
                 },
                 {
                   label: 'For Activation',
-                  value: users.filter((u) => u.status === 'For Activation').length,
+                  value: users.filter((u) => ['For Activation', 'Pending Approval'].includes(u.display_status || u.status)).length,
                   className: 'stat-activation',
                 },
                 {
                   label: 'Suspended',
-                  value: users.filter((u) => u.status === 'Suspended').length,
+                  value: users.filter((u) => (u.display_status || u.status) === 'Suspended').length,
                   className: 'stat-suspended',
                 },
               ].map((s) => (
@@ -630,21 +670,21 @@ function SuperAdminUserManagement() {
                 </thead>
                 <tbody>
                   {users.map((user, idx) => (
-                    <tr key={user.id}>
+                    <tr key={user.user_id || user.id}>
                       <td className="UMTdCenter">{idx + 1}</td>
                       <td>{user.fullname || <span className="UMEmpty">—</span>}</td>
-                      <td>{user.employeeid || <span className="UMEmpty">—</span>}</td>
+                      <td>{user.employee_id || user.employeeid || <span className="UMEmpty">—</span>}</td>
                       <td className="UMEmailCell">{user.email}</td>
                       <td>{user.department || <span className="UMEmpty">—</span>}</td>
                       <td>{user.position || <span className="UMEmpty">—</span>}</td>
-                      <td>{user.contactno || <span className="UMEmpty">—</span>}</td>
+                      <td>{user.contact_number || user.contactno || <span className="UMEmpty">—</span>}</td>
                       <td>
-                        <StatusBadge status={user.status} />
+                        <StatusBadge status={user.display_status || user.status} />
                       </td>
                       <td>
                         <ActionButton
-                          status={user.status}
-                          onAction={(type) => openConfirm(type, user.id)}
+                          status={user.display_status || user.status}
+                          onAction={(type) => openConfirm(type, user.user_id || user.id)}
                         />
                       </td>
                     </tr>

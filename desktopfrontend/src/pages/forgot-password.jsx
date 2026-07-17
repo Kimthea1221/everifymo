@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import check_img from '../images/check_img.png';
+import { CircleCheckBig } from 'lucide-react';
 
 // FORGET PASSWORD FOR LEA-FDA SIDE & SUPERADMIN (PWEDE NAMAN YATA MAREUSE)
 
@@ -28,30 +28,78 @@ function ForgotPassword(){
     };
 
     //For simulating code send
-    const handleSendCode = (e) => {
+    const handleSendCode = async (e) => {
         e.preventDefault();
-        if(!email) return;
+        if (!email) return;
         setForgotError('');
-        setStep('code');
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/password/forgot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to send code.');
+            }
+
+            setStep('code');
+          } catch (err) {
+              setForgotError(err.message);
+            }
     };
 
-    // for verified
-    const handleVerifyCode = (e) => {
-        e.preventDefault();
-        if(!code) return;
-        setForgotError('');
-        setStep('reset');
-    }
+    const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    if (!code) return;
+    setForgotError('');
 
-    const handleResetPassword = (e) =>{
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/password/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp: code }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Invalid verification code.');
+            }
+
+            setStep('reset');
+        } catch (err) {
+            setForgotError(err.message);
+        }
+    };
+
+    const handleResetPassword = async (e) => {
         e.preventDefault();
-        if(newPassword !== confirmPassword) {
+        if (newPassword !== confirmPassword) {
             setForgotError("Passwords do not match.");
             return;
         }
         setForgotError('');
-        setStep('success');
-    }
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/password/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp: code, new_password: newPassword }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to reset password.');
+            }
+
+            setStep('success');
+        } catch (err) {
+            setForgotError(err.message);
+            setStep('code'); // send them back to re-enter the code if it was wrong/expired
+        }
+    };
 
     
 
@@ -257,9 +305,14 @@ function ForgotPassword(){
             .SuccessIcon {
               width: 64px;
               height: 64px;
-              object-fit: contain;
+              color: #10B981;
               margin-bottom: 10px;
               animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+              transition: color .2s ease, transform .2s ease;
+            }
+
+            .SuccessIcon:hover {
+              transform: scale(1.08);
             }
 
             @keyframes popIn {
@@ -409,7 +462,7 @@ function ForgotPassword(){
         {/* FOR SUMACCESS MAGRESET PASS */}
         {step === 'success' && (
           <div className="SuccessContainer" style={{ textAlign: 'center', marginTop: '20px' }}>
-            <img src={check_img} alt="Success" className="SuccessIcon" />
+            <CircleCheckBig className="SuccessIcon" />
             <button 
               type="button" 
               className="BtnBackToLogin"

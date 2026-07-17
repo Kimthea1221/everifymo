@@ -1,101 +1,65 @@
 // api.js
 
-let _session = null; // null = guest, otherwise { username, email }
+//login/signup to backend
+const API_BASE = 'http://localhost:8000'; // will be changed to real url during development (same with in the manifest)
 
-// Every page must call this once before rendering anything that depends on login state
-function whenSessionReady(callback) {
-  chrome.storage.local.get(['session'], (data) => {
-    _session = data.session || null;
-    callback();
-  });
-}
-
-function isUserLoggedIn() {
-  return _session !== null;
-}
-
-function getCurrentUser() {
-  return _session || { username: '', email: '' };
-}
-
-function updateUsername(newUsername, callback) {
-  if (!_session) {
-    callback(false);
-    return;
-  }
-
-  _session.username = newUsername;
-
-  getRegisteredUsers((users) => {
-    const updatedUsers = users.map(u =>
-      u.email === _session.email ? { ...u, username: newUsername } : u
-    );
-    chrome.storage.local.set(
-      { session: _session, registeredUsers: updatedUsers },
-      () => callback(true)
-    );
-  });
-}
-
-function deleteAccount(callback) {
-  if (!_session) {
-    callback(false);
-    return;
-  }
-
-  getRegisteredUsers((users) => {
-    const remainingUsers = users.filter(u => u.email !== _session.email);
-    chrome.storage.local.set({ registeredUsers: remainingUsers }, () => {
-      chrome.storage.local.remove('session', () => {
-        _session = null;
-        callback(true);
-      });
+async function apiSignUp({ email, username, password }){
+  
+    const res = await fetch(`${API_BASE}/accounts/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, username, password })
     });
-  });
-}
 
-function getRegisteredUsers(callback) {
-  chrome.storage.local.get(['registeredUsers'], (data) => {
-    callback(data.registeredUsers || []);
-  });
-}
+    const data = await res.json();
 
-// loginUser, updateUsername, deleteAccount all stay exactly as they are —
-// they were already correctly calling getRegisteredUsers, it just didn't exist yet
-
-function registerUser(user, callback) {
-  getRegisteredUsers((users) => {
-    const alreadyExists = users.some(u => u.email === user.email);
-    if (alreadyExists) {
-      callback(false, 'An account with this email already exists.');
-      return;
+    if (!res.ok) {
+        const message = Array.isArray(data.detail) 
+            ? data.detail.map(d => d.msg).join(', ') : data.detail;
+        throw new Error(message);
     }
-    users.push(user);
-    chrome.storage.local.set(
-      { registeredUsers: users, session: { username: user.username, email: user.email } },
-      () => callback(true)
-    );
-  });
+
+    return data;
 }
 
-function loginUser(email, password, callback) {
-  getRegisteredUsers((users) => {
-    const accountExists = users.some(u => u.email === email);
-    if (!accountExists) {
-      callback(false, 'Account does not exist.');
-      return;
+async function apiLogin(username, password) {
+ 
+    const formBody = new URLSearchParams();
+    formBody.append('username', username);
+    formBody.append('password', password);
+
+    const res = await fetch(`${API_BASE}/auth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody.toString()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.detail || 'Login failed');
     }
-    const match = users.find(u => u.email === email && u.password === password);
-    if (!match) {
-      callback(false, 'Incorrect email or password.');
-      return;
-    }
-    chrome.storage.local.set({ session: { username: match.username, email: match.email } }, () => callback(true));
-  });
+
+    return data;
 }
 
-function logoutUser(callback) {
-  chrome.storage.local.remove('session', callback);
+async function apiSubmitComplaint(complaintData, token){
+  
+    let headers = { 'Content-Type': 'application/json'};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/submitComplaint`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(complaintData)
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Server responded ${res.status}: ${errText}`);
+    }
+
+    return res.json();
 }
 
 // ================================
