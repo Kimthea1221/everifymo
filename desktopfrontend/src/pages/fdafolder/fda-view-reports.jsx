@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useLocation } from 'react-router-dom';
+import { useState } from "react";
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
 import './fda-css.css';
