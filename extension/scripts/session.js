@@ -19,6 +19,10 @@ function getCurrentUser() {
   return _session || { username: '', email: '' };
 }
 
+function getToken(){
+  return _session ? _session.access_token : null;
+}
+
 // function updateUsername(newUsername, callback) {
 //   if (!_session) {
 //     callback(false);
