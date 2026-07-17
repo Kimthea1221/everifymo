@@ -124,7 +124,7 @@ function platform(url) {
   if (url.includes("lazada")) return "lazada";
   if (url.includes("facebook")) return "facebook";
   if (url.includes("tiktok")) return "tiktok";
-  return "no platform detected";
+  return "No platform detected";
 }
 
 //auto-fill url

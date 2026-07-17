@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.models.complaints import Complaint
+from app.models.complaints_status_history import ComplaintStatusHistory
 from app.extension.schemas.complaints import CreateComplaint
 from app.core.config import settings
 
