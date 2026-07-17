@@ -21,6 +21,8 @@ from app.extension.routers import auth as auth_router
 from app.core.security import get_current_user
 from app.extension.routers import complaints
 
+from app.extension.routers import status as status_router
+
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
@@ -41,6 +43,8 @@ app.include_router(consumer_acc_router.router)
 app.include_router(auth_router.router)
 app.include_router(complaints.router)
 
+app.include_router(status_router.router)
+
 consumer_dependency = Annotated[dict, Depends(get_current_user)]
 
 @app.get("/")
@@ -55,3 +59,4 @@ async def user(consumer: consumer_dependency):
     return {
         "User": consumer
     }
+
