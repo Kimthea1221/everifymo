@@ -18,7 +18,9 @@ class ToPrintComplaint(BaseModel):
     case_reference: str
     product_title:  str
     product_url: Optional[str] = None
-    seller_name: Optional[str] = None
+    store_name: Optional[str] = None
+    consumer_description: str
+    platform: str
     verification_result: str
     status: str
     created_at: datetime
