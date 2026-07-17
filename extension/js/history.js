@@ -10,8 +10,29 @@ function iconTag(status, iconMap) {
   return `<img src="../assets/images/${iconMap[status]}" alt="${status}" class="history-item-icon-img">`;
 }
 
-function renderComplaintsHistoryList() {
-  const items = getComplaintsHistory();
+function timeFormat(submittedTime) {
+  let ms = Date.now() - new Date(submittedTime).getTime();
+  let mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min${minss === 1 ? '' : 's'} ago`;
+
+  let hrs = Math.floor(mins/60);
+  if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`;
+
+  let days = Math.floor(hrs/24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+async function renderComplaintsHistoryList() {
+  const res = await apiGetComplaints(getToken());
+  const items = res.map(c => ({
+      id: c.complaint_id,
+      productName: c.product_title,
+      platform: c.platform,
+      time: timeFormat(c.created_at),
+      status: c.status,
+      note: c.consumer_description
+  }));
+
   const counterEl = document.getElementById('resolved-counter');
 
   if (items.length === 0) {
@@ -35,7 +56,7 @@ function renderComplaintsHistoryList() {
   `).join('');
 }
 
-function renderVerificationHistoryList() {
+async function renderVerificationHistoryList() {
   const items = getVerificationHistory();
   const counterEl = document.getElementById('resolved-counter');
   if (counterEl) counterEl.textContent = ''; // this verification tab never shows a resolved counter
@@ -56,13 +77,13 @@ function renderVerificationHistoryList() {
   `).join('');
 }
 
-function renderHistoryList() {
+async function renderHistoryList() {
   const listEl = document.getElementById('history-list');
   if (!listEl) return;
 
   listEl.innerHTML = currentHistoryTab === 'complaints'
-    ? renderComplaintsHistoryList()
-    : renderVerificationHistoryList();
+    ? await renderComplaintsHistoryList()
+    : await renderVerificationHistoryList();
 
   // this wire up "See Details" toggles for complaints (verification tab has no notes)
   document.querySelectorAll('[data-toggle-note]').forEach(link => {
@@ -74,15 +95,15 @@ function renderHistoryList() {
   });
 }
 
-function switchHistoryTab(tab) {
+async function switchHistoryTab(tab) {
   currentHistoryTab = tab;
   document.querySelectorAll('.history-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
-  renderHistoryList();
+  await renderHistoryList();
 }
 
-function renderHistoryPage() {
+async function renderHistoryPage() {
   const emptyView = document.getElementById('history-empty-view');
   const populatedView = document.getElementById('history-populated-view');
   const emptyText = document.getElementById('history-empty-text-main');
@@ -98,7 +119,7 @@ function renderHistoryPage() {
     return;
   }
 
-  const complaints = getComplaintsHistory();
+  const complaints = await apiGetComplaints(getToken());
   const verification = getVerificationHistory();
   const hasNoDataAtAll = complaints.length === 0 && verification.length === 0;
 
@@ -116,7 +137,7 @@ function renderHistoryPage() {
     btn.addEventListener('click', () => switchHistoryTab(btn.dataset.tab));
   });
 
-  renderHistoryList();
+  await renderHistoryList();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
