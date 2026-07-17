@@ -59,6 +59,11 @@ function FDADashboard(){
         background: `conic-gradient(${categoryGradient.map(seg => `${seg.color} ${seg.start}% ${seg.end}%`).join(', ')})`
     };
 
+import Sidebar from "../component/sidebar";
+import TopBar from "../component/top-bar";
+import './fda-css.css'
+
+function FDADashboard(){
     return(
         <div className="FdaDashboardMain">
             <Sidebar sidebarType="FDA" />
