@@ -67,7 +67,7 @@ async function renderComplaintStatusPage() {
       id: c.complaint_id,
       stage: c.new_status,
       productName: c.product_title,
-      note: c.change_note
+      note: c.change_note ? null : ""
   }));
 
   if (!complaints || complaints.length === 0) {

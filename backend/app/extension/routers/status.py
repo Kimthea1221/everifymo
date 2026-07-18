@@ -1,5 +1,6 @@
 from typing import Annotated, List
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session, aliased
 
 from app.database.sessions import get_db
@@ -25,16 +26,19 @@ async def get_complaints_status(db: db_dependency, current_user: user_dependency
         db.query(Complaint, latestChanged)
             .outerjoin(latestChanged, latestChanged.complaint_id == Complaint.complaint_id)
             .filter(Complaint.consumer_id == current_user["id"])
-            .filter(Complaint.deleted_at.is_(None)).all()
+            .filter(Complaint.deleted_at.is_(None))
+            .filter(func.coalesce(latestChanged.new_status, Complaint.status).not_in(['completed', 'dismissed']))
+            .all()
     )
 
     return [
         ToPrintStatus (
-            history_id = history.history_id if history else None,
+            history_id = status.history_id if status else None,
             complaint_id = complaint.complaint_id,
-            new_status = history.new_status if history else complaint.status,
-            change_note = history.change_note if history else None,
+            new_status = status.new_status if status else complaint.status,
+            change_note = status.change_note if status else None,
             product_title = complaint.product_title, 
+            changed_at = status.changed_at if status else complaint.updated_at
         )
-        for complaint, history in results
+        for complaint, status in results
     ]
