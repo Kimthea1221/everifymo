@@ -81,3 +81,8 @@ verifyBtn.addEventListener("click", () => {
         // "https://*.lazada.com.ph/*",
         // "https://*.tiktok.com/*",
         // "https://*.facebook.com/*"
+
+        // "https://shopee.ph/*",
+        // "https://www.lazada.com.ph/*",
+        // "https://www.tiktok.com/*",
+        // "https://www.facebook.com/marketplace/*"
