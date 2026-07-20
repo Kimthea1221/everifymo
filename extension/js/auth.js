@@ -211,14 +211,25 @@ if (primaryButton) {
       const usernameValue = usernameInput.value.trim();
       const passwordValue = createPasswordInput.value;
 
-      registerUser({ username: usernameValue, email: emailValue, password: passwordValue }, (success, errorMsg) => {
-        if (success) {
-          window.location.href = 'report-complaint.html';
+    registerUser({ username: usernameValue, email: emailValue, password: passwordValue }, (success, errorMsg) => {
+      if (success) {
+        window.location.href = 'report-complaint.html';
+      } else {
+        const message = errorMsg || 'Could not create account.';
+        const lowerMessage = message.toLowerCase();
+
+        if (lowerMessage.includes('password')) {
+          setError(createPasswordError, message);
+          createPasswordInput.classList.add('is-invalid');
+        } else if (lowerMessage.includes('username')) {
+          setError(usernameError, message);
+          usernameInput.classList.add('is-invalid');
         } else {
-          setError(emailError, errorMsg || 'Could not create account.');
+          setError(emailError, message);
           emailInput.classList.add('is-invalid');
         }
-      });
+      }
+    });
 
     } else {
       const passwordValue = passwordInput.value;
