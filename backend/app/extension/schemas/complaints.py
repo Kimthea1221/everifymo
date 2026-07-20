@@ -24,3 +24,6 @@ class ToPrintComplaint(BaseModel):
     verification_result: str
     status: str
     created_at: datetime
+    changed_at: datetime
+    history_id: Optional[UUID] = None
+    change_note: Optional[str] = None
