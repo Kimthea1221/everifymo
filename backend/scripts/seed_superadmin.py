@@ -9,7 +9,7 @@ from app.core.security import hash_password
 from app.models.users import User
 
 
-TEST_EMAIL = "icecreamnpizza0@gmail.com"
+TEST_EMAIL = "darlenejoy.deleon16@gmail.com"
 TEST_PASSWORD = "TestPassword123!"
 
 
