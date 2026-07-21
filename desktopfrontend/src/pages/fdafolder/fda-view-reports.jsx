@@ -1,4 +1,6 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import { useLocation } from 'react-router-dom';
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
 import './fda-css.css';
@@ -13,117 +15,7 @@ import {
   ChevronRight, 
   X
 } from 'lucide-react';
-
-const allConsumerReports = [
-  {
-    id: 1,
-    caseId: "ICM-2025-00185",
-    product: "HerbalSlim Capsules",
-    manufacturer: "NatureFit Labs",
-    category: "Supplement",
-    source: "Browser Extension",
-    status: "Pending Verification",
-    region: "Region IV-A",
-    dateReceived: "2026-05-17 10:42",
-    description: "Complainant claims no CPR or LTO is displayed on the product packaging, and there is no record of registration in the FDA database for this manufacturer."
-  },
-  {
-    id: 2,
-    caseId: "ICM-2026-00412",
-    product: "GlowSkin Cream",
-    manufacturer: "Radiant Beauty Co.",
-    category: "Cosmetics",
-    source: "Browser Extension",
-    status: "Under Review",
-    region: "NCR",
-    dateReceived: "2026-06-01 09:15",
-    description: "Advertised on social media with extreme therapeutic claims. Preliminary check shows incomplete registration papers."
-  },
-  {
-    id: 3,
-    caseId: "ICM-2026-00413",
-    product: "SmoothSkin Lotion",
-    manufacturer: "Radiant Beauty Co.",
-    category: "Cosmetics",
-    source: "Browser Extension",
-    status: "Takedown Requested",
-    region: "NCR",
-    dateReceived: "2026-06-01 09:15",
-    description: "Identical seller credentials as GlowSkin Cream. Takedown requested due to dangerous chemical content detected in third-party laboratory tests."
-  },
-  {
-    id: 4,
-    caseId: "ICM-2026-00511",
-    product: "PureOxy Mask",
-    manufacturer: "MedTech Innovations",
-    category: "Medical Device",
-    source: "Walk-in",
-    status: "Verified",
-    region: "Region III",
-    dateReceived: "2026-06-05 14:30",
-    description: "Walk-in complainant brought the medical mask for verification. Verified to have proper FDA medical grade approvals and licensing."
-  },
-  {
-    id: 5,
-    caseId: "ICM-2026-00620",
-    product: "PainRelief Patch",
-    manufacturer: "BioPharma Corp",
-    category: "Pharmaceutical",
-    source: "Walk-in",
-    status: "Forwarded to LEA",
-    region: "Region VII",
-    dateReceived: "2026-06-10 11:20",
-    description: "Unregistered pharmaceutical pain patches distributed locally. Case forwarded to LEA (CIDG) for field operation coordination."
-  },
-  {
-    id: 6,
-    caseId: "ICM-2026-00705",
-    product: "DietSlim Shake",
-    manufacturer: "NutraLife Inc.",
-    category: "Supplement",
-    source: "Browser Extension",
-    status: "Takedown Completed",
-    region: "Region XI",
-    dateReceived: "2026-06-12 16:45",
-    description: "Reported via web extension for selling unauthorized fat burner shake. Social media accounts have been shut down; takedown completed."
-  },
-  {
-    id: 7,
-    caseId: "ICM-2026-00810",
-    product: "Miracle Hair Tonic",
-    manufacturer: "GlowLabs LLC",
-    category: "Cosmetics",
-    source: "Browser Extension",
-    status: "Dismissed",
-    region: "Region IV-B",
-    dateReceived: "2026-06-15 08:30",
-    description: "Complainant claimed hair loss, but product verified to be compliant, fully registered, and complaints deemed groundless."
-  },
-  {
-    id: 8,
-    caseId: "ICM-2026-00922",
-    product: "SaniGel Sanitizer",
-    manufacturer: "CleanSanitize Co.",
-    category: "Cosmetics",
-    source: "Walk-in",
-    status: "Pending Verification",
-    region: "CAR",
-    dateReceived: "2026-06-20 10:15",
-    description: "Intake form submitted by local pharmacy owner. Suspicious labeling and active ingredients concentration needs lab verification."
-  },
-  {
-    id: 9,
-    caseId: "ICM-2026-01015",
-    product: "DentalCure Paste",
-    manufacturer: "OralCare Group",
-    category: "Cosmetics",
-    source: "Walk-in",
-    status: "Under Review",
-    region: "Region VI",
-    dateReceived: "2026-06-25 15:40",
-    description: "Complaint from local consumer association regarding dental paste triggering severe gum bleeding. Lab analysis underway."
-  }
-];
+import { allConsumerReports } from './reportData';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -135,6 +27,15 @@ function FDAViewReports() {
   const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const tabs = ['All', 'Browser Extension', 'Walk-in'];
+  const location = useLocation();
+
+  useEffect(() => {
+    const selectedTab = location.state?.selectedTab;
+    if (selectedTab && tabs.includes(selectedTab)) {
+      setActiveTab(selectedTab);
+      setCurrentPage(1);
+    }
+  }, [location.state?.selectedTab]);
 
   // EXPANDABLE FILTERS STATE
   const [isFilterOpen, setIsFilterOpen] = useState(false);
