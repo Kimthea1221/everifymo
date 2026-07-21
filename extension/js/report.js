@@ -43,6 +43,7 @@ function initAttachBoxes() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+
   whenSessionReady(() => {
      initAttachBoxes();
 
@@ -57,11 +58,32 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const isGuest = !isUserLoggedIn();
         showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
+
+        let productNameInput = isActive('complaint-product-name');
+        let productUrlInput = isActive('complaint-product-url');
+        let storeNameInput = isActive('store-name');
+        let descriptionInput = isActive('complaint-description');
+
+        let url = sanitizeUrl(productUrlInput.value);
+
+        submitComplaint({ 
+            productName: productNameInput.value, 
+            productUrl: url, 
+            storeName: storeNameInput.value, 
+            platform: platform(url),
+            description: descriptionInput.value 
+          }, (success, e) => {
+            if (!success) {
+              console.error("Complaint submission failed:", e);
+            }
+          }
+        );
       });
     });
 
     applyAuthView();
 
+    //babalikan 2
     chrome.storage.local.get(
       ['productTitle', 'productUrl', 'productStatus'],
       (data) => {
@@ -77,8 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     );
   });
+
+  autoFillUrl();
 });
 
+//babalikan 1
 function applyAuthView() {
   const loggedIn = typeof isUserLoggedIn === 'function' ? isUserLoggedIn() : false;
 
@@ -86,5 +111,44 @@ function applyAuthView() {
     const usernameEl = document.getElementById('home-username');
     if (usernameEl) usernameEl.textContent = getCurrentUser().username;
   }
+}
+
+// who's logged/active
+function isActive(id){
+  let type = isUserLoggedIn() ? '-user' : '-guest';
+  return document.getElementById(id + type);
+}
+
+function platform(url) {
+  if (url.includes("shopee")) return "shopee";
+  if (url.includes("lazada")) return "lazada";
+  if (url.includes("facebook")) return "facebook";
+  if (url.includes("tiktok")) return "tiktok";
+  return "No platform detected";
+}
+
+//auto-fill url
+function autoFillUrl() {
+  let params = new URLSearchParams(window.location.search);
+  let productUrl = params.get('productUrl');
+  if (productUrl) {
+    let input = isActive('complaint-product-url');
+    if (input) input.value = decodeURIComponent(productUrl);
+  }
+}
+
+function sanitizeUrl(rawUrl) {
+    try {
+        let url = new URL(rawUrl);
+        let suspiciousPatterns = /token|session|auth|sp_atk|spm/i;
+        [...url.searchParams.keys()].forEach(key => {
+            if (suspiciousPatterns.test(key)) {
+                url.searchParams.delete(key);
+            }
+        });
+        return url.toString();
+    } catch {
+        return rawUrl;
+    }
 }
 
