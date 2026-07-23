@@ -1,58 +1,13 @@
 import './superadmin-css.css';
 import { useState, useEffect } from 'react';
-import { Send, UserCheck, UserX, RefreshCw,  TriangleAlert, CircleCheckBig, Mail} from 'lucide-react';
+import { Send, UserCheck, UserX, RefreshCw, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
-
 
 // helper to provide auth token for API calls
 function getAuthToken() {
   return localStorage.getItem('access_token') || localStorage.getItem('authToken') || localStorage.getItem('token') || '';
 }
-// ...existing code...
-
-const DUMMY_USERS = [
-  {
-    id: 1,
-    fullname: 'Maria Santos',
-    employeeid: 'EMP-001',
-    email: 'maria.santos@gmail.com',
-    department: 'Operations',
-    position: 'Senior Analyst',
-    contactno: '09171234567',
-    status: 'Active',
-  },
-  {
-    id: 2,
-    fullname: 'Jose Reyes',
-    employeeid: 'EMP-002',
-    email: 'jose.reyes@gmail.com',
-    department: 'Compliance',
-    position: 'Compliance Officer',
-    contactno: '09281234567',
-    status: 'Suspended',
-  },
-  {
-    id: 3,
-    fullname: 'Ana Dela Cruz',
-    employeeid: '',
-    email: 'ana.delacruz@gmail.com',
-    department: '',
-    position: '',
-    contactno: '',
-    status: 'For Activation',
-  },
-  {
-    id: 4,
-    fullname: '',
-    employeeid: '',
-    email: 'pending.user@gmail.com',
-    department: '',
-    position: '',
-    contactno: '',
-    status: 'Pending',
-  },
-];
 
 const STATUS_META = {
   Pending: { label: 'Pending', className: 'badge-pending' },
@@ -62,6 +17,7 @@ const STATUS_META = {
   'Pending Approval': { label: 'For Activation', className: 'badge-for-activation' },
   Active: { label: 'Active', className: 'badge-active' },
   Suspended: { label: 'Suspended', className: 'badge-suspended' },
+  'Link Expired': { label: 'Link Expired', className: 'badge-expired' },
 };
 
 function StatusBadge({ status }) {
@@ -69,36 +25,94 @@ function StatusBadge({ status }) {
   return <span className={`UMStatusBadge ${meta.className}`}>{meta.label}</span>;
 }
 
-function ActionButton({ status, onAction }) {
-  if (status === 'Pending' || status === 'Invited' || status === 'Invite Requested') {
-    return (
-      <button className="UMActionBtn btn-resend" onClick={() => onAction('resend')}>
-        <Send size={13} /> Resend Link
+function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView }) {
+  return (
+    <div className="UserMgmtDropdownWrapper">
+      <button
+        className="UserMgmtDropdownTrigger"
+        data-tooltip="Actions"
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleDropdown();
+        }}
+      >
+        <MoreVertical size={16} />
       </button>
-    );
-  }
-  if (status === 'For Activation' || status === 'Pending Approval') {
-    return (
-      <button className="UMActionBtn btn-activate" onClick={() => onAction('activate')}>
-        <UserCheck size={13} /> Activate
-      </button>
-    );
-  }
-  if (status === 'Active') {
-    return (
-      <button className="UMActionBtn btn-suspend" onClick={() => onAction('suspend')}>
-        <UserX size={13} /> Suspend
-      </button>
-    );
-  }
-  if (status === 'Suspended') {
-    return (
-      <button className="UMActionBtn btn-reactivate" onClick={() => onAction('reactivate')}>
-        <RefreshCw size={13} /> Reactivate
-      </button>
-    );
-  }
-  return null;
+      {isOpen && (
+        <div className="UserMgmtDropdownMenu">
+          <button
+            className="UserMgmtDropdownItem"
+            onClick={() => {
+              onView();
+              toggleDropdown();
+            }}
+          >
+            <Eye size={14} /> View Details
+          </button>
+
+          {['Invited', 'Pending', 'Invite Requested', 'Link Expired'].includes(user.display_status || user.status) && (
+            <button
+              className="UserMgmtDropdownItem"
+              onClick={() => {
+                onAction('resend');
+                toggleDropdown();
+              }}
+            >
+              <Send size={14} /> Resend Link
+            </button>
+          )}
+
+          {user.status === 'Pending Approval' && (
+            <button
+              className="UserMgmtDropdownItem"
+              onClick={() => {
+                onAction('activate');
+                toggleDropdown();
+              }}
+            >
+              <UserCheck size={14} /> Activate Account
+            </button>
+          )}
+
+          {user.status === 'Active' && (
+            <button
+              className="UserMgmtDropdownItem"
+              onClick={() => {
+                onAction('suspend');
+                toggleDropdown();
+              }}
+            >
+              <UserX size={14} /> Suspend Account
+            </button>
+          )}
+
+          {user.status === 'Suspended' && (
+            <>
+              <button
+                className="UserMgmtDropdownItem"
+                onClick={() => {
+                  onAction('reactivate');
+                  toggleDropdown();
+                }}
+              >
+                <RotateCcw size={14} /> Reactivate Account
+              </button>
+              <div className="UserMgmtDropdownDivider" />
+              <button
+                className="UserMgmtDropdownItem danger"
+                onClick={() => {
+                  onAction('delete');
+                  toggleDropdown();
+                }}
+              >
+                <Trash2 size={14} /> Delete Account
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 const CONFIRM_MESSAGES = {
@@ -109,20 +123,23 @@ const CONFIRM_MESSAGES = {
   },
   activate: {
     title: 'Activate Account',
-    message:
-      'Are you sure you want to activate this account? The user will receive an email with their login credentials.',
+    message: 'Are you sure you want to activate this account? The user will receive access to the system.',
     confirmLabel: 'Activate',
   },
   suspend: {
     title: 'Suspend Account',
-    message:
-      'Are you sure you want to suspend this account? The user will lose access to the system.',
+    message: 'Are you sure you want to suspend this account? The account will temporarily lose access to the system.',
     confirmLabel: 'Suspend',
   },
   reactivate: {
     title: 'Reactivate Account',
-    message: 'Are you sure you want to reactivate this account?',
+    message: 'Are you sure you want to reactivate this account? The account will regain access to the system.',
     confirmLabel: 'Reactivate',
+  },
+  delete: {
+    title: 'Delete Account',
+    message: 'Are you sure you want to delete this account? The suspended account will be permanently deleted and this action cannot be undone.',
+    confirmLabel: 'Delete',
   },
 };
 
@@ -133,7 +150,7 @@ function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
     <div className="UMModalOverlay">
       <div className="UMModal UMConfirmModal">
         <div className="UMConfirmIcon">
-          {actionType === 'suspend' ? (
+          {actionType === 'suspend' || actionType === 'delete' ? (
             <TriangleAlert size={40} color="#D97706" strokeWidth={3} />
           ) : actionType === 'activate' || actionType === 'reactivate' ? (
             <CircleCheckBig size={40} color="#149660ff" strokeWidth={3} />
@@ -148,7 +165,7 @@ function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
             Cancel
           </button>
           <button
-            className={`UMConfirmBtn ${actionType === 'suspend' ? 'danger' : 'primary'}`}
+            className={`UMConfirmBtn ${actionType === 'suspend' || actionType === 'delete' ? 'danger' : 'primary'}`}
             onClick={onConfirm}
           >
             {meta.confirmLabel}
@@ -159,12 +176,11 @@ function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
   );
 }
 
-/* initial version of AddPersonnelModal, not yet connected to backend
-
 function AddPersonnelModal({ open, onClose }) {
   const [email, setEmail] = useState('');
   const [region, setRegion] = useState('');
   const [agency, setAgency] = useState('');
+  const [regions, setRegions] = useState([]);
 
   const [emailError, setEmailError] = useState('');
   const [regionError, setRegionError] = useState('');
@@ -173,39 +189,6 @@ function AddPersonnelModal({ open, onClose }) {
   const [successMsg, setSuccessMsg] = useState('');
   const [sending, setSending] = useState(false);
 
-  function handleClose() {
-    setEmail('');
-    setRegion('');
-    setAgency('');
-
-    setEmailError('');
-    setRegionError('');
-    setAgencyError('');
-
-    setSuccessMsg('');
-    setSending(false);
-
-    onClose(null);
-  }
-
-  */
-
-  //new code for AddPersonnelModal with region fetching from backend
-
-  function AddPersonnelModal({ open, onClose }) {
-  const [email, setEmail] = useState('');
-  const [region, setRegion] = useState('');
-  const [agency, setAgency] = useState('');
-  const [regions, setRegions] = useState([]); // NEW: holds the list fetched from GET /regions
-
-  const [emailError, setEmailError] = useState('');
-  const [regionError, setRegionError] = useState('');
-  const [agencyError, setAgencyError] = useState('');
-
-  const [successMsg, setSuccessMsg] = useState('');
-  const [sending, setSending] = useState(false);
-
-  // NEW: fetch the real region list from the backend whenever the modal opens
   useEffect(() => {
     if (open) {
       fetch('http://127.0.0.1:8000/regions')
@@ -215,7 +198,6 @@ function AddPersonnelModal({ open, onClose }) {
     }
   }, [open]);
 
-
   function handleClose() {
     setEmail('');
     setRegion('');
@@ -231,53 +213,7 @@ function AddPersonnelModal({ open, onClose }) {
     onClose(null);
   }
 
-/* initial version of handleSend, not yet connected to backend
-  function handleSend() {
-    setEmailError('');
-    setRegionError('');
-    setAgencyError('');
-
-    if (!email.trim()) {
-      setEmailError('Email address is required.');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid email address.');
-      return;
-    }
-
-    if (!region) {
-      setRegionError('Please select a region.');
-      return;
-    }
-
-    if (!agency) {
-      setAgencyError('Please select an agency.');
-      return;
-    }
-
-    // BACKEND:
-    // POST /api/superadmin/personnel/invite
-    // {
-    //   email,
-    //   region,
-    //   agency
-    // }
-
-    setSending(true);
-
-    setTimeout(() => {
-      setSending(false);
-      setSuccessMsg(`Registration link has been sent to ${email}`);
-    }, 800);
-  }
-*/
-
-// new version of handleSend, connected to backend
-async function handleSend() {
+  async function handleSend() {
     setEmailError('');
     setRegionError('');
     setAgencyError('');
@@ -308,13 +244,13 @@ async function handleSend() {
 
     try {
       const response = await fetch('http://127.0.0.1:8000/admin/users/invite', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getAuthToken()}`,   // ← add this
-      },
-      body: JSON.stringify({ email, region_id: region, role: agency }),
-    });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ email, region_id: region, role: agency }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -393,39 +329,6 @@ async function handleSend() {
                 <label className="UMLabel">
                   Region <span className="UMRequired">*</span>
                 </label>
-
-{/* initial version of region select, hardcoded options
-                <select
-                  className="UMRegionSelect"
-                  value={region}
-                  onChange={(e) => {
-                    setRegion(e.target.value);
-                    setRegionError('');
-                  }}
-                  disabled={sending}
-                >
-                  <option value="">Select Region</option>
-                  <option value="NCR">NCR</option>
-                  <option value="CAR">CAR</option>
-                  <option value="Region 1">Region 1</option>
-                  <option value="Region 2">Region 2</option>
-                  <option value="Region 3">Region 3</option>
-                  <option value="Region 4A">Region 4A</option>
-                  <option value="MIMAROPA">MIMAROPA</option>
-                  <option value="Region 5">Region 5</option>
-                  <option value="Region 6">Region 6</option>
-                  <option value="Region 7">Region 7</option>
-                  <option value="Region 8">Region 8</option>
-                  <option value="NIR">NIR</option>
-                  <option value="Region 9">Region 9</option>
-                  <option value="Region 10">Region 10</option>
-                  <option value="Region 11">Region 11</option>
-                  <option value="Region 12">Region 12</option>
-                  <option value="Region 13">Region 13</option>
-                  <option value="BARMM">BARMM</option>
-                </select>
-*/}
-
 
                 <select
                   className="UMRegionSelect"
@@ -519,14 +422,90 @@ async function handleSend() {
   );
 }
 
+function ViewPersonnelModal({ open, user, onClose }) {
+  if (!open || !user) return null;
+  const status = user.display_status || user.status;
+
+  return (
+    <div className="UMModalOverlay">
+      <div className="UMModal UserMgmtViewModal">
+        <div className="UMModalHeader">
+          <h3 className="UMModalTitle">Personnel Details</h3>
+          <p className="UMModalSubtitle">Viewing profile information for this user.</p>
+        </div>
+        <div className="UserMgmtViewDetails">
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Full Name:</span>
+            <span className="UserMgmtDetailValue">{user.fullname || '—'}</span>
+          </div>
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Employee ID:</span>
+            <span className="UserMgmtDetailValue">{user.employee_id || user.employeeid || '—'}</span>
+          </div>
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Email:</span>
+            <span className="UserMgmtDetailValue UserMgmtEmail">{user.email}</span>
+          </div>
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Agency:</span>
+            <span className="UserMgmtDetailValue">{user.agency || '—'}</span>
+          </div>
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Region:</span>
+            <span className="UserMgmtDetailValue">{user.region || '—'}</span>
+          </div>
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Department:</span>
+            <span className="UserMgmtDetailValue">{user.department || '—'}</span>
+          </div>
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Position:</span>
+            <span className="UserMgmtDetailValue">{user.position || '—'}</span>
+          </div>
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Contact No:</span>
+            <span className="UserMgmtDetailValue">{user.contact_number || user.contactno || '—'}</span>
+          </div>
+          <div className="UserMgmtDetailRow">
+            <span className="UserMgmtDetailLabel">Status:</span>
+            <span className="UserMgmtDetailValue">
+              <StatusBadge status={status} />
+            </span>
+          </div>
+        </div>
+        <div className="UMModalFooter UMFooterCenter">
+          <button className="UMConfirmBtn primary" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SuperAdminUserManagement() {
   const [users, setUsers] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [viewUser, setViewUser] = useState(null);
+  const [activeDropdownId, setActiveDropdownId] = useState(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({
     open: false,
     actionType: '',
     targetId: null,
   });
+
+  useEffect(() => {
+    function handleOutsideClick(event) {
+      if (!event.target.closest('.UserMgmtDropdownWrapper')) {
+        setActiveDropdownId(null);
+      }
+    }
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -599,11 +578,16 @@ function SuperAdminUserManagement() {
     setConfirmModal({ open: false, actionType: '', targetId: null });
   }
 
+  const filteredUsers = users.filter((u) => {
+    if (statusFilter === 'All') return true;
+    return (u.display_status || u.status) === statusFilter;
+  });
+
   return (
     <div className="SuperadminMainContainer">
       <Sidebar sidebarType="SUPER_ADMIN" />
       <div className="SuperadminContentContainer">
-        <TopBar />
+        <TopBar topbarType="SUPER_ADMIN" />
         <div className="SuperadminMainfeed">
           <div className="UMPageContainer">
             {/* Page Header */}
@@ -631,7 +615,7 @@ function SuperAdminUserManagement() {
                 },
                 {
                   label: 'Pending',
-                  value: users.filter((u) => ['Pending', 'Invited', 'Invite Requested'].includes(u.display_status || u.status)).length,
+                  value: users.filter((u) => ['Pending', 'Invited', 'Invite Requested', 'Link Expired'].includes(u.display_status || u.status)).length,
                   className: 'stat-pending',
                 },
                 {
@@ -652,6 +636,23 @@ function SuperAdminUserManagement() {
               ))}
             </div>
 
+            {/* Filter Bar */}
+            <div className="UserMgmtFiltersContainer">
+              <span className="UserMgmtFilterLabel">Filter by Status:</span>
+              <select
+                className="UserMgmtSelectFilter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="All">All</option>
+                <option value="Invited">Invited</option>
+                <option value="Pending Approval">Pending Approval</option>
+                <option value="Active">Active</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Link Expired">Link Expired</option>
+              </select>
+            </div>
+
             {/* Table */}
             <div className="UMTableWrapper">
               <table className="UMTable">
@@ -669,26 +670,36 @@ function SuperAdminUserManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user, idx) => (
-                    <tr key={user.user_id || user.id}>
-                      <td className="UMTdCenter">{idx + 1}</td>
-                      <td>{user.fullname || <span className="UMEmpty">—</span>}</td>
-                      <td>{user.employee_id || user.employeeid || <span className="UMEmpty">—</span>}</td>
-                      <td className="UMEmailCell">{user.email}</td>
-                      <td>{user.department || <span className="UMEmpty">—</span>}</td>
-                      <td>{user.position || <span className="UMEmpty">—</span>}</td>
-                      <td>{user.contact_number || user.contactno || <span className="UMEmpty">—</span>}</td>
-                      <td>
-                        <StatusBadge status={user.display_status || user.status} />
-                      </td>
-                      <td>
-                        <ActionButton
-                          status={user.display_status || user.status}
-                          onAction={(type) => openConfirm(type, user.user_id || user.id)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredUsers.map((user, idx) => {
+                    const userId = user.user_id || user.id;
+                    return (
+                      <tr key={userId}>
+                        <td className="UMTdCenter">{idx + 1}</td>
+                        <td>{user.fullname || <span className="UMEmpty">—</span>}</td>
+                        <td>{user.employee_id || user.employeeid || <span className="UMEmpty">—</span>}</td>
+                        <td className="UMEmailCell">{user.email}</td>
+                        <td>{user.department || <span className="UMEmpty">—</span>}</td>
+                        <td>{user.position || <span className="UMEmpty">—</span>}</td>
+                        <td>{user.contact_number || user.contactno || <span className="UMEmpty">—</span>}</td>
+                        <td>
+                          <StatusBadge status={user.display_status || user.status} />
+                        </td>
+                        <td>
+                          <UserMgmtActionDropdown
+                            user={user}
+                            isOpen={activeDropdownId === (user.user_id || user.id)}
+                            toggleDropdown={() =>
+                              setActiveDropdownId(
+                                activeDropdownId === (user.user_id || user.id) ? null : (user.user_id || user.id)
+                              )
+                            }
+                            onAction={(type) => openConfirm(type, user.user_id || user.id)}
+                            onView={() => setViewUser(user)}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -705,6 +716,13 @@ function SuperAdminUserManagement() {
         actionType={confirmModal.actionType}
         onConfirm={handleConfirm}
         onCancel={handleCancelConfirm}
+      />
+
+      {/* View Personnel Modal */}
+      <ViewPersonnelModal
+        open={!!viewUser}
+        user={viewUser}
+        onClose={() => setViewUser(null)}
       />
     </div>
   );
