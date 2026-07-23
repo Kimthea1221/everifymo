@@ -1780,3 +1780,300 @@
     display: inline-block;
     flex-shrink: 0;
 }
+
+.LeaDashboardMain {
+  display: flex;
+  min-height: 100vh;
+  background: #F4F7FA;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.LeaContentContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.LeaMainfeed {
+  flex: 1;
+  padding: 24px 28px;
+  background: #F4F7FA;
+  overflow-y: auto;
+}
+
+/* 4 Top Stats Cards Grid */
+.LeaStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.LeaStatCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 18px 20px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 118px;
+}
+
+.statTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.statLabel {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.statIconSquare {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statIconSquare.navy {
+  background: #EBF3F8;
+  color: #07476F;
+}
+
+.statIconSquare.teal {
+  background: #EBF7F6;
+  color: #0D7685;
+}
+
+.statIconSquare.green {
+  background: #ECFDF5;
+  color: #16A34A;
+}
+
+.statValue {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 4px 0;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.statBottomRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.statTrendGreen {
+  color: #16A34A;
+  font-weight: 600;
+}
+
+.statNoteText {
+  color: #64748B;
+  font-weight: 400;
+}
+
+/* Charts Grid Row */
+.LeaChartsRow {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 16px;
+}
+
+.LeaChartCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 22px 24px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.chartHeader h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.chartSubtitle {
+  margin: 3px 0 0;
+  color: #64748B;
+  font-size: 0.82rem;
+}
+
+/* Legend Inline Top Right of Line Chart */
+.chartLegendInline {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.legendItemInline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.legendDotNavy {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #07476F;
+  display: inline-block;
+}
+
+.legendDotTeal {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #14B8A6;
+  display: inline-block;
+}
+
+/* Interactive SVG Line Chart */
+.svgChartWrapper {
+  width: 100%;
+  height: 230px;
+  position: relative;
+  margin-top: 10px;
+}
+
+.interactiveLineSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.yAxisText {
+  font-size: 11px;
+  fill: #64748B;
+  text-anchor: end;
+  font-weight: 500;
+}
+
+.xAxisText {
+  font-size: 11px;
+  fill: #64748B;
+  text-anchor: middle;
+  font-weight: 500;
+}
+
+.lineTooltipClean {
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.ttDay {
+  font-weight: 700;
+  color: #94A3B8;
+  margin-bottom: 2px;
+}
+
+.ttRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ttRow.navy strong { color: #38BDF8; }
+.ttRow.teal strong { color: #2DD4BF; }
+
+/* Donut Chart Card & SVG */
+.DonutCard {
+  justify-content: space-between;
+}
+
+.donutChartContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 15px 0 20px;
+}
+
+.donutSvgClean {
+  width: 180px;
+  height: 180px;
+  overflow: visible;
+}
+
+/* 2-Column Donut Legend Grid */
+.donutLegendGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+  margin-top: auto;
+}
+
+.legendCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legendRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+
+.legendRow.active {
+  background: #F1F5F9;
+}
+
+.legendLabelGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dotIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.regionName {
+  color: #334155;
+  font-weight: 500;
+}
+
+.regionPercent {
+  color: #0F172A;
+  font-weight: 700;
+}
+
