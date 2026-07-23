@@ -22,7 +22,7 @@ function LeaNewIntake(){
         <div className='LeaDashboardMain'>
             <Sidebar sidebarType="LEA" />
             <div className='LeaContentContainer'>
-                <TopBar />
+                <TopBar topbarType="LEA" />
                 <div className='LeaMainfeed'>
                     <div className='LeaHeader'>
                         <div>

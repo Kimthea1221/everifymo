@@ -7,7 +7,7 @@ function LeaDashboard(){
     <div className='LeaDashboardMain'>
        <Sidebar sidebarType="LEA" />
        <div className='LeaContentContainer'>
-          <TopBar />
+          <TopBar topbarType="LEA" />
           <div className='LeaMainfeed'>
             <h2>LEA DASHBOARD</h2>
           </div>
