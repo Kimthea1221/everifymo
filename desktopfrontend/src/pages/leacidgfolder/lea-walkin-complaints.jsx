@@ -203,7 +203,7 @@ function LeaWalkinComplaints(){
         <div className='LeaDashboardMain LeaWalkinComplaintsMain'>
             <Sidebar sidebarType="LEA" />
             <div className='LeaContentContainer'>
-                <TopBar />
+                <TopBar topbarType="LEA" />
                 <div className='LeaMainfeed LeaWalkinComplaintsFeed'>
                 <div className='LeaHeader'>
                     <div>
