@@ -2,7 +2,7 @@ import './superadmin-css.css';
 import { useState, useEffect } from 'react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
-import { Search, Calendar, X, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { Search, Calendar, X, ChevronLeft, ChevronRight, Info, History } from 'lucide-react';
 
 // TODO(backend): user/region display names - These need to come pre-joined from the API, not resolved client-side.
 const MOCK_AUDIT_LOGS = [
@@ -429,6 +429,19 @@ function truncateTargetId(id) {
   return idStr;
 }
 
+const ACTION_BADGES = {
+  create: { label: 'Create', className: 'AuditLogDetailsBadgeCreate' },
+  update: { label: 'Update', className: 'AuditLogDetailsBadgeUpdate' },
+  delete: { label: 'Delete', className: 'AuditLogDetailsBadgeDelete' },
+  login:  { label: 'Login',  className: 'AuditLogDetailsBadgeLogin' },
+};
+
+function ActionBadge({ action }) {
+  if (!action) return null;
+  const meta = ACTION_BADGES[action.toLowerCase()] || { label: action, className: 'AuditLogDetailsBadgeNeutral' };
+  return <span className={`AuditLogDetailsActionBadge ${meta.className}`}>{meta.label}</span>;
+}
+
 function SuperAdminAuditLog() {
   // Filters & State mapping query parameters
   const [activeTab, setActiveTab] = useState('All'); // 'All', 'FDA', 'LEA-CIDG', 'Superadmin'
@@ -575,7 +588,7 @@ function SuperAdminAuditLog() {
     <div className="SuperadminMainContainer">
       <Sidebar sidebarType="SUPER_ADMIN" />
       <div className="SuperadminContentContainer">
-        <TopBar />
+        <TopBar topbarType="SUPER_ADMIN" />
         <div className="SuperadminMainfeed">
           <div className="UMPageContainer">
             {/* Page Header */}
@@ -803,82 +816,101 @@ function SuperAdminAuditLog() {
       {/* Row Detail Drawer Overlay */}
       {selectedLog && (
         <div className="AuditDrawerOverlay" onClick={() => setSelectedLog(null)}>
-          <div className="AuditDrawerContent" onClick={(e) => e.stopPropagation()}>
-            <div className="AuditDrawerHeader">
-              <h3 className="AuditDrawerTitle">Audit Log Details</h3>
-              <button 
-                className="AuditDrawerCloseBtn" 
-                onClick={() => setSelectedLog(null)}
-                title="Close drawer"
-              >
-                <X size={20} />
-              </button>
+          <div className="AuditDrawerContent AuditLogDetailsPanel" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="AuditDrawerHeader AuditLogDetailsHeader">
+              <div className="AuditLogDetailsHeaderTitleBlock">
+                <History size={20} className="AuditLogDetailsHeaderIcon" />
+                <h3 className="AuditDrawerTitle">Audit Log Details</h3>
+              </div>
             </div>
 
-            <div className="AuditDrawerBody">
-              <div className="AuditDrawerSection">
-                <div className="AuditDrawerLabel">Log ID</div>
-                <div className="AuditDrawerValue">{selectedLog.log_id}</div>
-              </div>
-
-              <div className="AuditDrawerSection">
-                <div className="AuditDrawerLabel">Timestamp</div>
-                <div className="AuditDrawerValue">{selectedLog.timestamp}</div>
-              </div>
-
-              <div className="AuditDrawerSection">
-                <div className="AuditDrawerLabel">User</div>
-                <div className="AuditDrawerValue">
-                  {selectedLog.user_id ? (
-                    `${selectedLog.user_name} (${selectedLog.user_role})`
-                  ) : (
-                    "System"
-                  )}
-                </div>
-              </div>
-
-              <div className="AuditDrawerSection">
-                <div className="AuditDrawerLabel">IP Address</div>
-                <div className="AuditDrawerValue">{selectedLog.ip_address || '—'}</div>
-              </div>
-
-              <div className="AuditDrawerSection">
-                <div className="AuditDrawerLabel">Action Target</div>
-                <div className="AuditDrawerValue">
-                  Table: <strong>{selectedLog.target_table}</strong> | ID: <strong>{selectedLog.target_id || "—"}</strong>
-                </div>
-              </div>
-
-              {selectedLog.old_value === null && selectedLog.new_value === null ? (
-                <div className="AuditDrawerSection">
-                  <div className="AuditDrawerLabel">Data Changes</div>
-                  <div className="AuditNoChangesText">No data changes recorded for this action.</div>
-                </div>
-              ) : (
-                <>
-                  <div className="AuditDrawerSection">
-                    <div className="AuditDrawerLabel">Before Value (old_value)</div>
-                    {selectedLog.old_value ? (
-                      <pre className="AuditPreBlock">
-                        {JSON.stringify(selectedLog.old_value, null, 2)}
-                      </pre>
-                    ) : (
-                      <div className="AuditDrawerValue">null</div>
-                    )}
+            {/* Body */}
+            <div className="AuditDrawerBody AuditLogDetailsBody">
+              {/* Card 1: Event Information */}
+              <div className="AuditLogDetailsCard">
+                <h4 className="AuditLogDetailsCardTitle">Event Information</h4>
+                <div className="AuditLogDetailsGrid">
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">Log ID</span>
+                    <span className="AuditLogDetailsValue">{selectedLog.log_id}</span>
                   </div>
-
-                  <div className="AuditDrawerSection">
-                    <div className="AuditDrawerLabel">After Value (new_value)</div>
-                    {selectedLog.new_value ? (
-                      <pre className="AuditPreBlock">
-                        {JSON.stringify(selectedLog.new_value, null, 2)}
-                      </pre>
-                    ) : (
-                      <div className="AuditDrawerValue">null</div>
-                    )}
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">Date & Time</span>
+                    <span className="AuditLogDetailsValue">{selectedLog.timestamp}</span>
                   </div>
-                </>
-              )}
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">User</span>
+                    <span className="AuditLogDetailsValue">
+                      {selectedLog.user_name || 'System'}
+                    </span>
+                  </div>
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">User Role</span>
+                    <span className="AuditLogDetailsValue">
+                      {selectedLog.user_role || 'System / Automated'}
+                    </span>
+                  </div>
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">IP Address</span>
+                    <span className="AuditLogDetailsValue">{selectedLog.ip_address || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Activity Information */}
+              <div className="AuditLogDetailsCard">
+                <h4 className="AuditLogDetailsCardTitle">Activity Information</h4>
+                <div className="AuditLogDetailsGrid">
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">Action</span>
+                    <span className="AuditLogDetailsValue">
+                      <ActionBadge action={selectedLog.action_type} />
+                    </span>
+                  </div>
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">Target Table</span>
+                    <span className="AuditLogDetailsValue">{selectedLog.target_table}</span>
+                  </div>
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">Record / Target ID</span>
+                    <span className="AuditLogDetailsValue">{selectedLog.target_id || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Changes */}
+              <div className="AuditLogDetailsCard">
+                <h4 className="AuditLogDetailsCardTitle">Data Changes</h4>
+                {selectedLog.old_value === null && selectedLog.new_value === null ? (
+                  <div className="AuditLogDetailsNoChanges">No data changes recorded for this action.</div>
+                ) : (
+                  <div className="AuditLogDetailsChangesContainer">
+                    <div className="AuditLogDetailsChangeSubCard">
+                      <span className="AuditLogDetailsSubCardLabel">Before Changes</span>
+                      <pre className="AuditLogDetailsPre">
+                        {selectedLog.old_value ? JSON.stringify(selectedLog.old_value, null, 2) : 'No previous data'}
+                      </pre>
+                    </div>
+                    <div className="AuditLogDetailsChangeSubCard">
+                      <span className="AuditLogDetailsSubCardLabel">After Changes</span>
+                      <pre className="AuditLogDetailsPre">
+                        {selectedLog.new_value ? JSON.stringify(selectedLog.new_value, null, 2) : 'No previous data'}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="AuditLogDetailsFooter">
+              <button 
+                className="AuditLogDetailsCloseBtn" 
+                onClick={() => setSelectedLog(null)}
+              >
+                Close Details
+              </button>
             </div>
           </div>
         </div>
