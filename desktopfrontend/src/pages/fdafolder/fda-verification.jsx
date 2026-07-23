@@ -7,9 +7,13 @@ function FDAVerification(){
         <div className="FdaDashboardMain">
             <Sidebar sidebarType="FDA" />
             <div className="FdaContentContainer">
-                <TopBar />
+                <TopBar topbarType="FDA" />
                 <div className="FdaMainFeed">
                     <h2>VERIFICATION REQUEST</h2>
+
+                    <div>
+                        
+                    </div>
                 </div>
             </div>
         </div>

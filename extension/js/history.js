@@ -14,7 +14,7 @@ function timeFormat(submittedTime) {
   let ms = Date.now() - new Date(submittedTime).getTime();
   let mins = Math.floor(ms / 60000);
   if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} min${minss === 1 ? '' : 's'} ago`;
+  if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`;
 
   let hrs = Math.floor(mins/60);
   if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`;
@@ -22,15 +22,16 @@ function timeFormat(submittedTime) {
   let days = Math.floor(hrs/24);
   return `${days} day${days === 1 ? '' : 's'} ago`;
 }
+
 async function renderComplaintsHistoryList() {
   const res = await apiGetComplaints(getToken());
   const items = res.map(c => ({
       id: c.complaint_id,
+      status: c.status,
       productName: c.product_title,
       platform: c.platform,
-      time: timeFormat(c.created_at),
-      status: c.status,
-      note: c.consumer_description
+      note: c.change_note || "",
+      time: timeFormat(c.changed_at)
   }));
 
   const counterEl = document.getElementById('resolved-counter');
@@ -42,7 +43,7 @@ async function renderComplaintsHistoryList() {
 
   const completedCount = items.filter(i => i.status === 'completed').length;
   if (counterEl) counterEl.textContent = `COMPLETED: ${completedCount}`;
-
+  
   return items.map(item => `
     <div class="history-item status-${item.status}" data-complaint-id="${item.id}">
       <div class="history-item-icon icon-${item.status}">${iconTag(item.status, COMPLAINT_ICONS)}</div>
@@ -56,7 +57,7 @@ async function renderComplaintsHistoryList() {
   `).join('');
 }
 
-async function renderVerificationHistoryList() {
+function renderVerificationHistoryList() {
   const items = getVerificationHistory();
   const counterEl = document.getElementById('resolved-counter');
   if (counterEl) counterEl.textContent = ''; // this verification tab never shows a resolved counter
@@ -83,7 +84,7 @@ async function renderHistoryList() {
 
   listEl.innerHTML = currentHistoryTab === 'complaints'
     ? await renderComplaintsHistoryList()
-    : await renderVerificationHistoryList();
+    : renderVerificationHistoryList();
 
   // this wire up "See Details" toggles for complaints (verification tab has no notes)
   document.querySelectorAll('[data-toggle-note]').forEach(link => {
@@ -95,12 +96,12 @@ async function renderHistoryList() {
   });
 }
 
-async function switchHistoryTab(tab) {
+function switchHistoryTab(tab) {
   currentHistoryTab = tab;
   document.querySelectorAll('.history-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
-  await renderHistoryList();
+  renderHistoryList();
 }
 
 async function renderHistoryPage() {
@@ -137,7 +138,7 @@ async function renderHistoryPage() {
     btn.addEventListener('click', () => switchHistoryTab(btn.dataset.tab));
   });
 
-  await renderHistoryList();
+  renderHistoryList();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

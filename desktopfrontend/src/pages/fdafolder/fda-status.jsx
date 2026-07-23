@@ -275,7 +275,7 @@ function FdaStatus() {
     <div className="FdaDashboardMain">
       <Sidebar sidebarType="FDA" />
       <div className="FdaContentContainer">
-        <TopBar />
+        <TopBar topbarType="FDA" />
         <div className="FdaMainFeed">
 
           <div className="FdaHeader">

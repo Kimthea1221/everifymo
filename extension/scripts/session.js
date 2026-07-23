@@ -77,9 +77,9 @@ function registerUser(user, callback) {
 function loginUser(email, password, callback) {
   apiLogin(email, password)
       .then(data => {
-          _session = { email, access_token: data.access_token };
+          _session = { username: data.username, email, access_token: data.access_token };
           chrome.storage.local.set(
-              { access_token: data.access_token, token_type: data.token_type, email },
+              { access_token: data.access_token, token_type: data.token_type, username: data.username, email },
               () => callback(true)
           );
       })
@@ -102,5 +102,12 @@ function submitComplaint(complaints, callback) {
     platform: complaints.platform 
   }, token)
       .then(() => callback(true))
-      .catch(e => callback(false, e.message));
+      .catch(e => {
+        if (e instanceof UnauthorizedError) {
+          logoutUser(() => {
+            window.location.reload();
+          });
+        }
+        callback(false, e.message)
+      });
 }
