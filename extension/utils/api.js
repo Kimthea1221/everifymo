@@ -1,4 +1,5 @@
 // api.js
+class UnauthorizedError extends Error {}
 
 //login/signup to backend
 const API_BASE = 'http://localhost:8000'; // will be changed to real url during development (same with in the manifest)
@@ -43,6 +44,19 @@ async function apiLogin(username, password) {
     return data;
 }
 
+async function handleResponse(response) {
+    if (response.status === 401) {
+        throw new UnauthorizedError('Session expired. Please login once again');
+    }
+
+    if (!response.ok){
+        let error = await response.text();
+        throw new Errror(`Server responded ${response.status}: ${error}`);
+    }
+
+    return response.json();
+}
+
 async function apiSubmitComplaint(complaintData, token){
   
     let headers = { 'Content-Type': 'application/json'};
@@ -54,12 +68,7 @@ async function apiSubmitComplaint(complaintData, token){
         body: JSON.stringify(complaintData)
     });
 
-    if (!res.ok) {
-        let errText = await res.text();
-        throw new Error(`Server responded ${res.status}: ${errText}`);
-    }
-
-    return res.json();
+    return handleResponse(res);
 }
 
 async function apiGetComplaints(token){
@@ -70,17 +79,11 @@ async function apiGetComplaints(token){
         }
     });
 
-    if (!res.ok) {
-        let error = await res.text();
-        throw new Error(`Server responded ${res.status}: ${error}`);
-    }
-
-    // const complaints = await res.json();
-   
-    return await res.json();
+    return handleResponse(res);
 }
 
 async function apiGetStatus(token){
+    
     const res = await fetch(`${API_BASE}/ComplaintStatus`, {
         method: 'GET',
         headers: {
@@ -88,12 +91,7 @@ async function apiGetStatus(token){
         }
     });
 
-    if (!res.ok) {
-        let error = await res.text();
-        throw new Error(`Server responded ${res.status}: ${error}`);
-    }
-
-    return await res.json();
+    return handleResponse(res);
 }
 
 function getVerificationHistory() {
