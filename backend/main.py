@@ -18,6 +18,12 @@ from app.desktop.routers.drafts.walkin_drafts import router as walkin_drafts_rou
 from app.desktop.routers.drafts.all_drafts import router as all_drafts_router
 from app.desktop.routers.drafts.verification_drafts import router as verification_drafts_router
 
+# Complainant and Complaint Creation feature
+from app.desktop.routers.complaints.walkin_complaints import (
+    draft_submit_router,
+    direct_complaint_router,
+)
+
 
 app = FastAPI()
 
@@ -49,5 +55,8 @@ app.include_router(user_management_router)
 app.include_router(walkin_drafts_router)
 app.include_router(all_drafts_router)
 app.include_router(verification_drafts_router)
+
+app.include_router(draft_submit_router)
+app.include_router(direct_complaint_router)
 
 
