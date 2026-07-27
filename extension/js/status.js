@@ -48,7 +48,7 @@ function renderComplaintCard(complaint) {
   `;
 }
 
-function renderComplaintStatusPage() {
+async function renderComplaintStatusPage() {
   const emptyView = document.getElementById('status-empty-view');
   const populatedView = document.getElementById('status-populated-view');
   const emptyText = document.getElementById('status-empty-text-main');
@@ -62,7 +62,14 @@ function renderComplaintStatusPage() {
     return;
   }
 
-  const complaints = getComplaintStatuses();
+  const res = await apiGetStatus(getToken());
+  const complaints = res.map(c => ({
+      id: c.complaint_id,
+      stage: c.new_status,
+      productName: c.product_title,
+      note: c.change_note ? null : ""
+  }));
+
   if (!complaints || complaints.length === 0) {
     if (emptyText) emptyText.textContent = 'Complaint Status page is currently empty.';
     if (emptyView) emptyView.classList.remove('hidden');
