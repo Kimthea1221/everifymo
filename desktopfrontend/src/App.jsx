@@ -37,6 +37,7 @@ import FDAProductDB from './pages/fdafolder/fda-product-db.jsx';
 
 
 // deep-link listener component
+/* ORIGINAL — commented out temporarily for browser testing, restore this after
 function DeepLinkListener() {
   const navigate = useNavigate()
 
@@ -62,14 +63,46 @@ console.log('DeepLinkListener mounted, waiting for token...')
 
   return null   // this component doesn't render anything visible, it just listens
 }
+*/
 
+// TEMP: guarded version for browser testing — remove once original is restored
+function DeepLinkListener() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!window.electronAPI?.onDeepLinkToken) {
+      console.warn('electronAPI.onDeepLinkToken not available — deep link listening disabled.')
+      return
+    }
+
+    console.log('DeepLinkListener mounted, waiting for token...')
+
+    window.electronAPI.onDeepLinkToken((token) => {
+      console.log('Token received:', token)
+
+      fetch(`http://localhost:8000/registration/validate/${token}`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log('Validate response:', data)
+
+          if (data.status === 'valid') {
+            navigate('/user-registration', { state: { ...data, invite_token: token } })
+          } else {
+            navigate('/invitation-status', { state: { status: data.status, invite_token: token } })
+          }
+        })
+    })
+  }, [])
+
+  return null
+}
 
 export default function App(){
   return(
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-          <Route path='/' element={<SuperAdminLogin />} />
+          <Route path='/' element={<Login />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />

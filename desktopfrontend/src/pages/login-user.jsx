@@ -5,16 +5,8 @@ import '../App.css'
 import FDALogo from '../images/FDA.png'
 import PNPLogo from '../images/pnp-cidg.jpg'
 
-//FOR INTERAGENCY ACCOUNT TO
-{/*for Test Accounts*/}
-const TestAccount=[
-    { agency: 'fda', email:'admin.fda@gmail.com', password:'@Fda12345'},
-    { agency:'lea', email:'admin.cidg@gmail.com', password:'@Cidg12345'},
-]
-
 function Login(){
     const navigate = useNavigate();
-
 
     // tracks which agency button the user selected (fda or cidg)
     const [agency, setAgency] = useState('fda')
@@ -23,6 +15,16 @@ function Login(){
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loginError, setLoginError] = useState('')
+    const [rememberMe, setRememberMe] = useState(false)
+
+    // Load remembered email on mount
+    useEffect(() => {
+      const savedEmail = localStorage.getItem('remembered_email')
+      if (savedEmail) {
+        setEmail(savedEmail)
+        setRememberMe(true)
+      }
+    }, [])
 
     // OTP verification states
     // controls whether to show the OTP screen or the login form
@@ -30,7 +32,7 @@ function Login(){
     // stores the 6 digits of OTP
     const [otp, setOtp] = useState(new Array(6).fill(''))
     // countdown timer (seconds)
-    const [timer, setTimer] = useState(180)
+    const [timer, setTimer] = useState(300)
 
     const otpRefs = useRef([])
 
@@ -91,15 +93,29 @@ function Login(){
       }
     }
 
-    // Resend OTP trigger: resets OTP boxes and restarts the timer when user clicks "Resend OTP"
-    //BACKEND: trigger resend OTP API call here
-    function handleResendOtp() {
-      setTimer(60);
-      setOtp(new Array(6).fill(''));
+    // Resend OTP trigger — calls the login endpoint again to generate a fresh OTP
+    async function handleResendOtp() {
       setLoginError('');
-      setTimeout(() => {
-        otpRefs.current[0]?.focus();
-      }, 0);
+      try {
+        const response = await fetch('http://127.0.0.1:8000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, agency }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to resend code.');
+        }
+
+        setTimer(300);
+        setOtp(new Array(6).fill(''));
+        setTimeout(() => {
+          otpRefs.current[0]?.focus();
+        }, 0);
+      } catch (err) {
+        setLoginError(err.message);
+      }
     }
 
     // Switch back to credentials form
@@ -109,7 +125,7 @@ function Login(){
       setLoginError('');
     }
 
-      // frontend password format validation (need din validate sa backend)
+    // frontend password format validation (need din validate sa backend)
     function validatePassword(pwd) {
       if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter.';
       if (!/[0-9]/.test(pwd)) return 'Password must contain at least one number.';
@@ -118,7 +134,7 @@ function Login(){
     }
 
     // handles both credential check and OTP verification
-    function handleLogin() {
+    async function handleLogin() {
       if (!isOtpSent) {
         // check if fields are empty
         if (!email || !password) {
@@ -137,31 +153,32 @@ function Login(){
           setLoginError(pwdError);
           return;
         }
-        //check if the credentials match but wrong agency was selected
-        //BACKEND: replace this block with an API call to verify credentials
-        const accountWithCredentials = TestAccount.find(
-          (acc) => acc.email === email && acc.password === password
-        )
 
-        if (accountWithCredentials) {
-          if (accountWithCredentials.agency !== agency) {
-            setLoginError(`Access Denied: Make sure you select the correct agency to sign in.`)
-            return
+        try {
+          const response = await fetch('http://127.0.0.1:8000/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, agency }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Invalid email or password.');
           }
+
+          if (rememberMe) {
+            localStorage.setItem('remembered_email', email);
+          } else {
+            localStorage.removeItem('remembered_email');
+          }
+
+          setIsOtpSent(true);
+          setTimer(300);
+          setLoginError('');
+        } catch (err) {
+          setLoginError(err.message);
         }
 
-        //full match check — email, password, and agency all correct
-        //BACKEND: replace this block with an API call to verify credentials
-        const match = TestAccount.find(
-          (acc) => acc.email === email && acc.password === password && acc.agency === agency
-        )
-        if(match){
-          setIsOtpSent(true)
-          setTimer(180)
-          setLoginError('')
-        }else{
-          setLoginError('Invalid email or password')
-        }
       } else {
         const otpCode = otp.join('');
         if (otpCode.length < 6) {
@@ -169,17 +186,32 @@ function Login(){
           return;
         }
 
-        // Mock verification: match standard test code '123456'
-        if (otpCode === '123456') {
-          localStorage.setItem('agency', agency)
-          // ✅ FIX 1: redirect based on agency
-          if (agency === 'fda') {
-            navigate('/fdafolder/fda-dashboard')
-          } else {
-            navigate('/leacidgfolder/lea-dashboard')
+        try {
+          const response = await fetch('http://127.0.0.1:8000/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, otp: otpCode }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
           }
-        } else {
-          setLoginError('Invalid verification code. Please try again.')
+
+          const data = await response.json();
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          localStorage.setItem('agency', agency);
+
+          if (data.force_password_change) {
+            navigate('/change-password');
+          } else if (agency === 'fda') {
+            navigate('/fdafolder/fda-dashboard');
+          } else {
+            navigate('/leacidgfolder/lea-dashboard');
+          }
+        } catch (err) {
+          setLoginError(err.message);
         }
       }
     }
@@ -269,7 +301,12 @@ function Login(){
 
                 <div className="RememberMe">
                   <label htmlFor="remember-me"> 
-                    <input type="checkbox" id="remember-me" />
+                    <input
+                      type="checkbox"
+                      id="remember-me"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
                     Remember my email
                   </label>
                   <label htmlFor="forgot-password" className="ForgetPass"><a onClick={() => navigate('/forgot-password?from=interagency')} style={{cursor:'pointer'}}>Forget your password?</a></label>
@@ -279,9 +316,6 @@ function Login(){
               <div className="OtpContainer">
                 <div className="OtpInstructions">
                   Enter the code sent to your email <span>{email}</span>.
-                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '400', display: 'block', marginTop: '6px' }}>
-                    (For testing, use verification code: <strong>123456</strong>)
-                  </span>
                 </div>
 
                 <div className="LoginOtpInputGrid">
