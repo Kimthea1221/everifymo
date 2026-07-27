@@ -1,3 +1,4 @@
+<!-- Auth.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,7 +39,8 @@
         <label class="field-label" for="username">USERNAME</label>
       </div>
       <div class="input-wrap">
-        <input id="username" class="auth-input" type="text" placeholder="Choose a username" style="padding-left: 12px;" />
+        <img src="../assets/images/username_icon.png" class="icon-placeholder-username" alt="Username Icon">
+        <input id="username" class="auth-input username-input" type="text" placeholder="Choose a username" />
       </div>
       <div class="field-error" id="username-error" aria-live="polite"></div>
     </div>
@@ -48,7 +50,7 @@
         <label class="field-label" for="email">EMAIL</label>
       </div>
       <div class="input-wrap">
-        <div class="icon-placeholder-email" aria-hidden="true"></div>
+        <img src="../assets/images/email_icon.png" class="icon-placeholder-email" alt="Email Icon">
         <input id="email" class="auth-input" type="email" placeholder="Enter Email" />
       </div>
       <div class="field-error" id="email-error" aria-live="polite"></div>
@@ -60,9 +62,11 @@
         <a href="#" class="forgot-link">Forgot?</a>
       </div>
       <div class="input-wrap">
-        <div class="icon-placeholder-password" aria-hidden="true"></div>
+        <img src="../assets/images/lock_icon.png" class="icon-placeholder-password" alt="Password Icon">
         <input id="password" class="auth-input password-input" type="password" placeholder="Enter Password" />
-        <div class="icon-placeholder-eye" aria-hidden="true"></div>
+        <button type="button" class="icon-placeholder-eye toggle-password-visibility" data-target="password" aria-label="Show password">
+          <img src="../assets/images/eye_open_icon.png" class="eye-icon" alt="" />
+        </button>
       </div>
       <div class="field-error" id="password-error" aria-live="polite"></div>
     </div>
@@ -73,9 +77,11 @@
           <label class="field-label" for="create-password">CREATE PASSWORD</label>
         </div>
         <div class="input-wrap">
-          <div class="icon-placeholder-password" aria-hidden="true"></div>
+          <img src="../assets/images/lock_icon.png" class="icon-placeholder-password" alt="Password Icon">
           <input id="create-password" class="auth-input password-input" type="password" placeholder="Create a password" />
-          <div class="icon-placeholder-eye" aria-hidden="true"></div>
+          <button type="button" class="icon-placeholder-eye toggle-password-visibility" data-target="create-password" aria-label="Show password">
+            <img src="../assets/images/eye_open_icon.png" class="eye-icon" alt="" />
+          </button>
         </div>
         <div class="field-error" id="create-password-error" aria-live="polite"></div>
       </div>
@@ -85,15 +91,49 @@
           <label class="field-label" for="confirm-password">CONFIRM PASSWORD</label>
         </div>
         <div class="input-wrap">
-          <div class="icon-placeholder-password" aria-hidden="true"></div>
+          <img src="../assets/images/lock_icon.png" class="icon-placeholder-password" alt="Password Icon">
           <input id="confirm-password" class="auth-input password-input" type="password" placeholder="Confirm your password" />
-          <div class="icon-placeholder-eye" aria-hidden="true"></div>
+          <button type="button" class="icon-placeholder-eye toggle-password-visibility" data-target="confirm-password" aria-label="Show password">
+            <img src="../assets/images/eye_open_icon.png" class="eye-icon" alt="" />
+          </button>
         </div>
         <div class="field-error" id="confirm-password-error" aria-live="polite"></div>
       </div>
     </div>
 
+      <div class="signup-password-fields" id="forgot-password-fields" hidden>
+        <div class="field">
+          <div class="field-row">
+            <label class="field-label" for="new-password">NEW PASSWORD</label>
+          </div>
+          <div class="input-wrap">
+            <img src="../assets/images/lock_icon.png" class="icon-placeholder-password" alt="Password Icon">
+            <input id="new-password" class="auth-input password-input" type="password" placeholder="Enter new password" />
+            <button type="button" class="icon-placeholder-eye toggle-password-visibility" data-target="new-password" aria-label="Show password">
+              <img src="../assets/images/eye_open_icon.png" class="eye-icon" alt="" />
+            </button>
+          </div>
+          <div class="field-error" id="new-password-error" aria-live="polite"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-row">
+            <label class="field-label" for="confirm-new-password">CONFIRM NEW PASSWORD</label>
+          </div>
+          <div class="input-wrap">
+            <img src="../assets/images/lock_icon.png" class="icon-placeholder-password" alt="Password Icon">
+            <input id="confirm-new-password" class="auth-input password-input" type="password" placeholder="Confirm new password" />
+            <button type="button" class="icon-placeholder-eye toggle-password-visibility" data-target="confirm-new-password" aria-label="Show password">
+              <img src="../assets/images/eye_open_icon.png" class="eye-icon" alt="" />
+            </button>
+          </div>
+          <div class="field-error" id="confirm-new-password-error" aria-live="polite"></div>
+        </div>
+      </div>
+
     <button class="btn-primary-green" type="button" id="auth-primary-button">Sign In</button>
+    <button class="btn-primary-green hidden" type="button" id="forgot-confirm-button">Confirm</button>
+    <a href="#" id="back-to-signin-link" class="forgot-link back-to-signin-link hidden">Back to Sign In</a>
 
     <div class="or-divider" aria-hidden="true">
       <div class="or-line"></div>
