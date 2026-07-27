@@ -54,7 +54,6 @@ consumer_dependency = Annotated[dict, Depends(get_current_user)]
 def root():
     return {"message": "Backend is running"}
 
-<<<<<<< HEAD
 
 
 app.include_router(superadmin_login_router)
@@ -65,7 +64,6 @@ app.include_router(user_management_router)
 
 app.include_router(personnel_login_router)
 app.include_router(password_change_router)
-=======
 @app.get("/", status_code=status.HTTP_200_OK)
 async def user(consumer: consumer_dependency):
     if consumer is None:
@@ -75,4 +73,3 @@ async def user(consumer: consumer_dependency):
         "User": consumer
     }
 
->>>>>>> dev
