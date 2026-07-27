@@ -27,8 +27,15 @@ function renderComplaintsHistoryList() {
       <div class="history-item-icon icon-${item.status}">${iconTag(item.status, COMPLAINT_ICONS)}</div>
       <div class="history-item-text">
         <p class="history-item-name">${item.productName}</p>
-        <span class="history-item-meta">${item.platform} • ${item.time} • <a href="#" class="see-details-link" data-toggle-note="${item.id}">See Details</a></span>
-        <p class="history-item-note hidden" id="note-${item.id}">${item.note}</p>
+        <span class="history-item-meta"><a href="#" class="see-details-link" data-toggle-note="${item.id}">See Details</a></span>
+        <div class="history-item-detail hidden" id="note-${item.id}">
+          <p class="detail-row"><span class="detail-label">Platform:</span> ${item.platform} • ${item.time}</p>
+          <p class="detail-row"><span class="detail-label">Link/URL:</span> ${item.link}</p>
+          <p class="detail-row"><span class="detail-label">Store:</span> ${item.storeName}</p>
+          ${item.description ? `<p class="detail-row"><span class="detail-label">Description:</span> ${item.description}</p>` : ''}
+          ${item.attachment ? `<img src="${item.attachment}" class="attach-preview-img" alt="Attachment">` : ''}
+          <p class="history-item-note">${item.note}</p>
+        </div>
       </div>
       <span class="history-item-status">${COMPLAINT_STATUS_LABELS[item.status]}</span>
     </div>

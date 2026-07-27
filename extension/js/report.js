@@ -7,10 +7,14 @@ function showReportView(viewId) {
 }
 
 function populateDetectedProduct(title, url) {
-  const nameEl = document.getElementById('complaint-product-name');
-  const urlEl = document.getElementById('complaint-product-url');
-  if (nameEl) nameEl.textContent = title;
-  if (urlEl) urlEl.textContent = url;
+  ['report-form-view', 'report-form-view-guest'].forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const nameEl = container.querySelector('#complaint-product-name');
+    const urlEl = container.querySelector('#complaint-product-url');
+    if (nameEl) nameEl.value = title;
+    if (urlEl) urlEl.value = url;
+  });
 }
 
 function initAttachBoxes() {
@@ -26,20 +30,39 @@ function initAttachBoxes() {
     attachInput.addEventListener('change', () => {
       if (attachInput.files.length > 0) {
         const file = attachInput.files[0];
+        const reader = new FileReader();
 
-        let previewImg = attachBox.querySelector('.attach-preview-img');
-        if (!previewImg) {
-          previewImg = document.createElement('img');
-          previewImg.className = 'attach-preview-img';
-          attachBox.appendChild(previewImg);
-        }
-        previewImg.src = URL.createObjectURL(file);
+        reader.onload = () => {
+          let previewImg = attachBox.querySelector('.attach-preview-img');
+          if (!previewImg) {
+            previewImg = document.createElement('img');
+            previewImg.className = 'attach-preview-img';
+            attachBox.appendChild(previewImg);
+          }
+          previewImg.src = reader.result; // data URL — portable across chrome.storage.local and other pages
 
-        if (attachText) attachText.classList.add('hidden');
-        if (uploadIcon) uploadIcon.classList.add('hidden');
+          if (attachText) attachText.classList.add('hidden');
+          if (uploadIcon) uploadIcon.classList.add('hidden');
+        };
+
+        reader.readAsDataURL(file);
       }
     });
   });
+}
+
+function collectReportFormData(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return null;
+
+  const productName = container.querySelector('#complaint-product-name')?.value.trim() || '';
+  const link = container.querySelector('#complaint-product-url')?.value.trim() || '';
+  const storeName = container.querySelector('#store-name')?.value.trim() || '';
+  const description = container.querySelector('#complaint-description')?.value.trim() || '';
+  const previewImg = container.querySelector('.attach-preview-img');
+  const attachment = previewImg ? previewImg.src : null; // demo-only object URL; not persisted past this session
+
+  return { productName, link, storeName, description, attachment };
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -56,10 +79,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.report-submit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const isGuest = !isUserLoggedIn();
+
+        if (!isGuest) {
+          const reportData = collectReportFormData('report-form-view');
+          if (reportData && reportData.productName) {
+            addComplaintToStatus(reportData, () => {
+              showReportView('report-success-view');
+            });
+            return;
+          }
+        }
+
         showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
       });
     });
-
+    
     applyAuthView();
 
     chrome.storage.local.get(
@@ -87,4 +121,3 @@ function applyAuthView() {
     if (usernameEl) usernameEl.textContent = getCurrentUser().username;
   }
 }
-
