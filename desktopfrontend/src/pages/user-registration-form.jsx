@@ -14,6 +14,13 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+// Maps raw role values from the database to human-friendly labels
+const ROLE_LABELS = {
+  fda_personnel: 'FDA Personnel',
+  lea_personnel: 'LEA Personnel',
+  superadmin: 'SuperAdmin',
+}
+
 // REGISTRATION PAGE FOR ADDED PERSONNEL
 function UserRegistration() {
   const navigate = useNavigate();
@@ -25,9 +32,6 @@ function UserRegistration() {
     middleName: '',
     lastName: '',
     employeeId: '',
-    email: 'invited.user@gmail.com', // pre-filled from deep link token
-    agency: 'LEA-CIDG', // pre-filled from superadmin side
-    region: 'Region 3', // pre-filled from superadmin side
     contactNumber: '',
     department: '',
     position: '',
@@ -60,16 +64,31 @@ function UserRegistration() {
         newErrors[field] = `${label} is required.`;
       }
     });
+
+    if (form.contactNumber && form.contactNumber.length !== 11) {
+    newErrors.contactNumber = 'Contact number must be exactly 11 digits.';
+  }
+
     return newErrors;
   }
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  function handleChange(e) { // added to handle contact number input to only allow digits and limit to 11 characters
+  const { name, value } = e.target;
+
+  if (name === 'contactNumber') {
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 11);
+    setForm((prev) => ({ ...prev, [name]: digitsOnly }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
+    return;
   }
+
+  setForm((prev) => ({ ...prev, [name]: value }));
+  if (errors[name]) {
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  }
+}
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -234,6 +253,7 @@ function UserRegistration() {
                     type="text"
                     name="contactNumber"
                     placeholder="09XX XXX XXXX"
+                    maxLength={11}
                     value={form.contactNumber}
                     onChange={handleChange}
                   />
@@ -254,7 +274,7 @@ function UserRegistration() {
                   className="RegInput reg-input-readonly"
                   type="email"
                   name="email"
-                  value={form.email}
+                  value={officerData.email || ''} //changed to officerData.email to pre-fill from deep link token
                   readOnly
                 />
               </div>
@@ -272,7 +292,7 @@ function UserRegistration() {
                     className="RegInput reg-input-readonly"
                     type="text"
                     name="agency"
-                    value={form.agency}
+                    value={ROLE_LABELS[officerData.role] || officerData.role || ''} // changed too, with the role labels
                     readOnly
                   />
                 </div>
@@ -289,7 +309,7 @@ function UserRegistration() {
                     className="RegInput reg-input-readonly"
                     type="text"
                     name="region"
-                    value={form.region}
+                    value={officerData.region_name || ''} //changed as well
                     readOnly
                   />
                 </div>
