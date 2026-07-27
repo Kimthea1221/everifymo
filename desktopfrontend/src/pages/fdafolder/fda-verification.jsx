@@ -1,0 +1,23 @@
+import Sidebar from "../component/sidebar";
+import TopBar from "../component/top-bar";
+import './fda-css.css'
+
+function FDAVerification(){
+    return(
+        <div className="FdaDashboardMain">
+            <Sidebar sidebarType="FDA" />
+            <div className="FdaContentContainer">
+                <TopBar topbarType="FDA" />
+                <div className="FdaMainFeed">
+                    <h2>VERIFICATION REQUEST</h2>
+
+                    <div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default FDAVerification
