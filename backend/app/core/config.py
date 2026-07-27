@@ -13,14 +13,13 @@
 #settings = Settings()
 
 #contents before i replaced it with the following code
-
 from pydantic_settings import BaseSettings
-
 
 class Settings(BaseSettings):
     DATABASE_URL: str
     MIGRATIONS_DATABASE_URL: str
-    SECRET_KEY: str = ""
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
 
     MAIL_HOST: str
     MAIL_PORT: int
@@ -37,6 +36,8 @@ class Settings(BaseSettings):
 
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # add to settings if you want this configurable
 
+    DEFAULT_EXTENSION_REGION_ID: str
+    
     class Config:
         env_file = ".env"
 

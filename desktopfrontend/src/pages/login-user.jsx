@@ -349,9 +349,7 @@ function Login(){
                   )}
                 </div>
 
-                <button type="button" className="LoginBackToLoginBtn" onClick={handleBackToLogin}>
-                  ← Back to login credentials
-                </button>
+                
               </div>
             )}
             
@@ -360,6 +358,11 @@ function Login(){
             <button className="LoginButton" onClick={handleLogin}>
               {isOtpSent ? 'Verify & Login' : 'Login'}
             </button>
+            {isOtpSent && (
+              <button type="button" className="LoginBackToLoginBtn" onClick={handleBackToLogin}>
+                ← Back to login credentials
+              </button>
+            )}
           </div>
         </div>
 
