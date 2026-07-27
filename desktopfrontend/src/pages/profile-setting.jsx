@@ -28,31 +28,85 @@ import './leacidgfolder/lea-css.css';
 import './superadminfolder/superadmin-css.css';
 
 /**
+ * Helper function to determine the authenticated user's role/agency consistently across the component.
+ * Evaluates storage values ('agency' or 'role') and normalizes them into one of three standardized roles:
+ * - 'SUPERADMIN': Super Admin Personnel
+ * - 'LEA': Law Enforcement Agency (CIDG / LEA) Personnel
+ * - 'FDA': Food and Drug Administration Officer (Default Fallback)
+ */
+const getAuthenticatedUserRole = () => {
+  const rawAgency = (localStorage.getItem('agency') || localStorage.getItem('role') || 'FDA').toString().trim().toUpperCase();
+  if (rawAgency.includes('SUPER')) {
+    return 'SUPERADMIN';
+  }
+  if (rawAgency === 'LEA' || rawAgency === 'CIDG' || rawAgency.includes('LEA') || rawAgency.includes('CIDG')) {
+    return 'LEA';
+  }
+  return 'FDA';
+};
+
+/**
+ * Helper function that returns standard default profile details according to the authenticated user's role.
+ * Used for initial form state and resetting form values on cancel.
+ */
+const getDefaultProfileData = (role) => {
+  if (role === 'SUPERADMIN') {
+    return {
+      firstName: 'Super',
+      middleName: '',
+      lastName: 'Admin',
+      employeeId: 'SA-2026-0001',
+      email: 'admin@icmda.gov.ph',
+      agency: 'SUPERADMIN',
+      region: 'Headquarters (NCR)',
+      contactNumber: '09170000000',
+      department: 'System Administration',
+      position: 'System Administrator',
+    };
+  }
+  if (role === 'LEA') {
+    return {
+      firstName: 'Jun',
+      middleName: '',
+      lastName: 'Cat',
+      employeeId: 'CIDG-2026-0391',
+      email: 'jun.cat@gmail.com',
+      agency: 'LEA-CIDG',
+      region: 'NCR - National Capital Region',
+      contactNumber: '09228765432',
+      department: 'Anti-Fraud and Commercial Crimes Unit',
+      position: 'Chief Investigator',
+    };
+  }
+  // Default FDA profile details
+  return {
+    firstName: 'Kristine',
+    middleName: '',
+    lastName: 'Fajardo',
+    employeeId: 'EMP-2026-0892',
+    email: 'kristine.fajardo@gmail.com',
+    agency: 'FDA',
+    region: 'Region IV-A (CALABARZON)',
+    contactNumber: '09171234567',
+    department: 'Regulation and Enforcement Division',
+    position: 'Senior Food and Drug Officer',
+  };
+};
+
+/**
  * PROFILE & SETTINGS COMPONENT FOR ICMDA
- * Used by both FDA, LEA-CIDG, and Super Admin personnel.
+ * Used by FDA, LEA-CIDG, and Super Admin personnel.
  * Styled with neutral colors (#13213C Navy, #1F2937 Slate, #FCA311 Gold Accent).
  * Wraps itself in the corresponding dashboard layout (Sidebar + TopBar) depending on logged-in agency.
  */
 function ProfileSetting() {
   const navigate = useNavigate();
 
-  // Determine logged-in agency from local storage to dynamically load the respective default data and layout wrappers
-  const loggedAgency = (localStorage.getItem('agency') || 'FDA').toUpperCase();
-  const defaultAgency = loggedAgency === 'CIDG' || loggedAgency === 'LEA' || loggedAgency === 'LEA-CIDG' ? 'LEA-CIDG' : 'FDA';
+  // Centralized source of truth for the authenticated user's role
+  const currentRole = getAuthenticatedUserRole();
 
-  // Primary user profile state pre-filled based on logged-in agency
-  const [form, setForm] = useState({
-    firstName: defaultAgency === 'FDA' ? 'Kristine' : 'Jun',
-    middleName: defaultAgency === 'FDA' ? '' : '',
-    lastName: defaultAgency === 'FDA' ? 'Fajardo' : 'Cat',
-    employeeId: defaultAgency === 'FDA' ? 'EMP-2026-0892' : 'CIDG-2026-0391',
-    email: defaultAgency === 'FDA' ? 'kristine.fajardo@gmail.com' : 'jun.cat@gmail.com',
-    agency: defaultAgency, // Pre-filled and read-only
-    region: defaultAgency === 'FDA' ? 'Region IV-A (CALABARZON)' : 'NCR - National Capital Region',
-    contactNumber: defaultAgency === 'FDA' ? '09171234567' : '09228765432',
-    department: defaultAgency === 'FDA' ? 'Regulation and Enforcement Division' : 'Anti-Fraud and Commercial Crimes Unit',
-    position: defaultAgency === 'FDA' ? 'Senior Food and Drug Officer' : 'Chief Investigator',
-  });
+  // Primary user profile state pre-filled based on authenticated user's role
+  const [form, setForm] = useState(() => getDefaultProfileData(currentRole));
 
   // Password / Security state
   const [security, setSecurity] = useState({
@@ -224,20 +278,9 @@ function ProfileSetting() {
     }, 1200);
   };
 
-  // Revert updates
+  // Revert updates back to role defaults
   const handleCancel = () => {
-    setForm({
-      firstName: defaultAgency === 'FDA' ? 'Kristine' : 'Jun',
-      middleName: defaultAgency === 'FDA' ? '' : '',
-      lastName: defaultAgency === 'FDA' ? 'Fajardo' : 'Cat',
-      employeeId: defaultAgency === 'FDA' ? 'EMP-2026-0892' : 'CIDG-2026-0391',
-      email: defaultAgency === 'FDA' ? 'kristine.fajardo@gmail.com' : 'juna.cat@gmail.com',
-      agency: defaultAgency,
-      region: defaultAgency === 'FDA' ? 'Region IV-A (CALABARZON)' : 'NCR - National Capital Region',
-      contactNumber: defaultAgency === 'FDA' ? '09171234567' : '09228765432',
-      department: defaultAgency === 'FDA' ? 'Regulation and Enforcement Division' : 'Anti-Fraud and Commercial Crimes Unit',
-      position: defaultAgency === 'FDA' ? 'Senior Food and Drug Officer' : 'Chief Investigator',
-    });
+    setForm(getDefaultProfileData(currentRole));
 
     setSecurity({
       currentPassword: '',
@@ -256,43 +299,46 @@ function ProfileSetting() {
     console.log('Profile edit cancelled. Reverted to default settings.');
   };
 
-  const isFDA = form.agency === 'FDA';
-
-  // Determine layout classes and sidebar settings based on agency role
-  const agencyLower = (localStorage.getItem('agency') || 'fda').toLowerCase();
-  
-  let sidebarType = 'FDA';
-  let mainContainerClass = 'FdaDashboardMain';
-  let contentContainerClass = 'FdaContentContainer';
-  let mainFeedClass = 'FdaMainFeed';
-
-  if (agencyLower === 'superadmin') {
-    sidebarType = 'SUPER_ADMIN';
-    mainContainerClass = 'SuperadminMainContainer';
-    contentContainerClass = 'SuperadminContentContainer';
-    mainFeedClass = 'SuperadminMainfeed';
-  } else if (agencyLower === 'cidg' || agencyLower === 'lea' || agencyLower === 'lea-cidg') {
-    sidebarType = 'LEA';
-    mainContainerClass = 'LeaDashboardMain';
-    contentContainerClass = 'LeaContentContainer';
-    mainFeedClass = 'LeaMainfeed';
-  }
+  // Dynamic layout configuration and theme colors mapped directly from currentRole
+  const layoutConfig = {
+    SUPERADMIN: {
+      sidebarType: 'SUPER_ADMIN',
+      mainContainerClass: 'SuperadminMainContainer',
+      contentContainerClass: 'SuperadminContentContainer',
+      mainFeedClass: 'SuperadminMainfeed',
+      headerThemeClass: 'agency-superadmin',
+    },
+    LEA: {
+      sidebarType: 'LEA',
+      mainContainerClass: 'LeaDashboardMain',
+      contentContainerClass: 'LeaContentContainer',
+      mainFeedClass: 'LeaMainfeed',
+      headerThemeClass: 'agency-lea',
+    },
+    FDA: {
+      sidebarType: 'FDA',
+      mainContainerClass: 'FdaDashboardMain',
+      contentContainerClass: 'FdaContentContainer',
+      mainFeedClass: 'FdaMainFeed',
+      headerThemeClass: 'agency-fda',
+    },
+  }[currentRole];
 
   return (
     <>
       <style>{styles}</style>
       
-      <div className={mainContainerClass}>
-        <Sidebar sidebarType={sidebarType} />
+      <div className={layoutConfig.mainContainerClass}>
+        <Sidebar sidebarType={layoutConfig.sidebarType} />
         
-        <div className={contentContainerClass}>
-          <TopBar />
+        <div className={layoutConfig.contentContainerClass}>
+          <TopBar topbarType={layoutConfig.sidebarType} />
           
-          <div className={mainFeedClass}>
+          <div className={layoutConfig.mainFeedClass}>
             <div className="ProfileContainer">
               
               {/* Profile Header */}
-              <div className={`ProfileHeaderCard ${isFDA ? 'agency-fda' : 'agency-lea'}`}>
+              <div className={`ProfileHeaderCard ${layoutConfig.headerThemeClass}`}>
                 <div className="ProfileAvatarCircle">
                   <User size={48} />
                 </div>
@@ -749,6 +795,10 @@ const styles = `
 
   .ProfileHeaderCard.agency-lea {
     background: linear-gradient(135deg, var(--p-navy) 0%, #0c1526 100%);
+  }
+
+  .ProfileHeaderCard.agency-superadmin {
+    background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
   }
 
   @media (max-width: 640px) {
