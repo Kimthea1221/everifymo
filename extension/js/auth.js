@@ -1,4 +1,13 @@
+//Auth.js
 document.addEventListener('DOMContentLoaded', () => {
+  const forgotPasswordFields = document.getElementById('forgot-password-fields');
+  const forgotConfirmButton = document.getElementById('forgot-confirm-button');
+  const newPasswordInput = document.getElementById('new-password');
+  const confirmNewPasswordInput = document.getElementById('confirm-new-password');
+  const newPasswordError = document.getElementById('new-password-error');
+  const confirmNewPasswordError = document.getElementById('confirm-new-password-error');
+  const tabsContainer = document.querySelector('.tabs');
+  const orDivider = document.querySelector('.or-divider');
   const tabs = document.querySelectorAll('[data-auth-mode]');
   const usernameField = document.getElementById('signup-username-field');
   const usernameInput = document.getElementById('username');
@@ -9,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const signupPasswordFields = document.getElementById('signup-password-fields');
   const createPasswordInput = document.getElementById('create-password');
   const confirmPasswordInput = document.getElementById('confirm-password');
+  const backToSigninLink = document.getElementById('back-to-signin-link');
   const noticeTitle = document.getElementById('auth-notice-title');
   const noticeText = document.getElementById('auth-notice-text');
   const primaryButton = document.getElementById('auth-primary-button');
@@ -17,6 +27,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const createPasswordError = document.getElementById('create-password-error');
   const confirmPasswordError = document.getElementById('confirm-password-error');
   const forgotLink = document.querySelector('.forgot-link');
+  const guestBtn = document.getElementById('btn-guest');
+
+  document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      const icon = btn.querySelector('.eye-icon');
+      if (!input) return;
+
+      const willShow = input.type === 'password';
+      input.type = willShow ? 'text' : 'password';
+      if (icon) {
+        icon.src = willShow
+          ? '../assets/images/eye_close_icon.png'
+          : '../assets/images/eye_open_icon.png';
+      }
+      btn.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
+    });
+  });
 
   let currentMode = 'signin';
 
@@ -33,6 +61,36 @@ document.addEventListener('DOMContentLoaded', () => {
       buttonLabel: 'Sign Up',
       documentTitle: 'E-VERIFY | Sign Up'
     }
+  };
+
+  const clearErrors = () => {
+    [emailError, passwordError, createPasswordError, confirmPasswordError, usernameError].forEach((errorNode) => {
+      if (errorNode) {
+        errorNode.textContent = '';
+      }
+    });
+
+    [emailInput, passwordInput, createPasswordInput, confirmPasswordInput, usernameInput].forEach((inputNode) => {
+      if (inputNode) {
+        inputNode.classList.remove('is-invalid');
+      }
+    });
+  };
+
+  const setError = (node, message) => {
+    if (node) {
+      node.textContent = message;
+    }
+  };
+
+  const isValidEmail = (value) => /^\S+@\S+\.\S+$/.test(value);
+
+  const isStrongPassword = (value) => {
+    const hasMinimumLength = value.length >= 8;
+    const hasLetter = /[A-Za-z]/.test(value);
+    const hasNumber = /\d/.test(value);
+
+    return hasMinimumLength && hasLetter && hasNumber;
   };
 
   const updateMode = (mode) => {
@@ -80,35 +138,38 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.hash = mode;
   };
 
-  const clearErrors = () => {
-    [emailError, passwordError, createPasswordError, confirmPasswordError, usernameError].forEach((errorNode) => {
-      if (errorNode) {
-        errorNode.textContent = '';
-      }
-    });
+  // ---- Forgot Password mode switching — defined once, not inside updateMode ----
+  function enterForgotMode() {
+    if (tabsContainer) tabsContainer.classList.add('hidden');
+    if (usernameField) usernameField.hidden = true;
+    if (signinPasswordField) signinPasswordField.hidden = true;
+    if (signupPasswordFields) signupPasswordFields.hidden = true;
+    if (forgotPasswordFields) forgotPasswordFields.hidden = false;
+    if (primaryButton) primaryButton.classList.add('hidden');
+    if (forgotConfirmButton) forgotConfirmButton.classList.remove('hidden');
+    if (backToSigninLink) backToSigninLink.classList.remove('hidden');
+    if (orDivider) orDivider.classList.add('hidden');
+    if (guestBtn) guestBtn.classList.add('hidden');
 
-    [emailInput, passwordInput, createPasswordInput, confirmPasswordInput, usernameInput].forEach((inputNode) => {
-      if (inputNode) {
-        inputNode.classList.remove('is-invalid');
-      }
-    });
-  };
+    if (noticeTitle) noticeTitle.textContent = 'Reset your password';
+    if (noticeText) noticeText.textContent = 'Enter your account email and choose a new password.';
 
-  const setError = (node, message) => {
-    if (node) {
-      node.textContent = message;
-    }
-  };
+    clearErrors();
+    if (newPasswordError) newPasswordError.textContent = '';
+    if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+  }
 
-  const isValidEmail = (value) => /^\S+@\S+\.\S+$/.test(value);
+  function exitForgotMode() {
+    if (forgotPasswordFields) forgotPasswordFields.hidden = true;
+    if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
+    if (backToSigninLink) backToSigninLink.classList.add('hidden');
+    if (primaryButton) primaryButton.classList.remove('hidden');
+    if (tabsContainer) tabsContainer.classList.remove('hidden');
+    if (orDivider) orDivider.classList.remove('hidden');
+    if (guestBtn) guestBtn.classList.remove('hidden');
 
-  const isStrongPassword = (value) => {
-    const hasMinimumLength = value.length >= 8;
-    const hasLetter = /[A-Za-z]/.test(value);
-    const hasNumber = /\d/.test(value);
-
-    return hasMinimumLength && hasLetter && hasNumber;
-  };
+    updateMode('signin');
+  }
 
   const validateForm = () => {
     clearErrors();
@@ -129,8 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       isValid = false;
     }
-
-    
 
     if (currentMode === 'signup') {
       const usernameValue = usernameInput ? usernameInput.value.trim() : '';
@@ -169,8 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         isValid = false;
       }
-    } 
-    
+    }
+
     else if (!passwordInput || !passwordInput.value) {
       setError(passwordError, 'Password is required.');
       if (passwordInput) {
@@ -191,48 +250,104 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  const guestBtn = document.getElementById('btn-guest');
-if (guestBtn) {
-  guestBtn.addEventListener('click', () => {
-    logoutUser(() => {
-      window.location.href = 'report-complaint.html';
+  if (guestBtn) {
+    guestBtn.addEventListener('click', () => {
+      logoutUser(() => {
+        window.location.href = 'report-complaint.html';
+      });
     });
-  });
-}
+  }
 
-if (primaryButton) {
-  primaryButton.addEventListener('click', () => {
-    const isValid = validateForm();
-    if (!isValid) return;
+  if (forgotLink) {
+    forgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      enterForgotMode();
+    });
+  }
 
-    const emailValue = emailInput.value.trim();
+  if (backToSigninLink) {
+    backToSigninLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      newPasswordInput.value = '';
+      confirmNewPasswordInput.value = '';
+      exitForgotMode();
+    });
+  }
 
-    if (currentMode === 'signup') {
-      const usernameValue = usernameInput.value.trim();
-      const passwordValue = createPasswordInput.value;
+  if (forgotConfirmButton) {
+    forgotConfirmButton.addEventListener('click', () => {
+      clearErrors();
+      if (newPasswordError) newPasswordError.textContent = '';
+      if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
 
-      registerUser({ username: usernameValue, email: emailValue, password: passwordValue }, (success, errorMsg) => {
-        if (success) {
-          window.location.href = 'report-complaint.html';
-        } else {
-          setError(emailError, errorMsg || 'Could not create account.');
-          emailInput.classList.add('is-invalid');
+      const emailValue = emailInput ? emailInput.value.trim() : '';
+      const newPw = newPasswordInput ? newPasswordInput.value : '';
+      const confirmPw = confirmNewPasswordInput ? confirmNewPasswordInput.value : '';
+      let isValid = true;
+
+      if (!emailValue || !isValidEmail(emailValue)) {
+        setError(emailError, 'Enter a valid email address.');
+        if (emailInput) emailInput.classList.add('is-invalid');
+        isValid = false;
+      }
+      if (!isStrongPassword(newPw)) {
+        setError(newPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
+        if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
+        isValid = false;
+      }
+      if (newPw && newPw !== confirmPw) {
+        setError(confirmNewPasswordError, 'Passwords do not match.');
+        if (confirmNewPasswordInput) confirmNewPasswordInput.classList.add('is-invalid');
+        isValid = false;
+      }
+
+      if (!isValid) return;
+
+      resetPasswordDirect(emailValue, newPw, (success, errorMsg) => {
+        if (!success) {
+          setError(emailError, errorMsg || 'Account does not exist.');
+          if (emailInput) emailInput.classList.add('is-invalid');
+          return;
         }
+        newPasswordInput.value = '';
+        confirmNewPasswordInput.value = '';
+        exitForgotMode();
       });
+    });
+  }
 
-    } else {
-      const passwordValue = passwordInput.value;
+  if (primaryButton) {
+    primaryButton.addEventListener('click', () => {
+      const isValid = validateForm();
+      if (!isValid) return;
 
-      loginUser(emailValue, passwordValue, (success) => {
-        if (success) {
-          window.location.href = 'report-complaint.html';
-        } else {
-          setError(passwordError, 'Incorrect email or password.');
-          passwordInput.classList.add('is-invalid');
-        }
-      });
-    }
-  });
-}
+      const emailValue = emailInput.value.trim();
 
+      if (currentMode === 'signup') {
+        const usernameValue = usernameInput.value.trim();
+        const passwordValue = createPasswordInput.value;
+
+        registerUser({ username: usernameValue, email: emailValue, password: passwordValue }, (success, errorMsg) => {
+          if (success) {
+            window.location.href = 'report-complaint.html';
+          } else {
+            setError(emailError, errorMsg || 'Could not create account.');
+            emailInput.classList.add('is-invalid');
+          }
+        });
+
+      } else {
+        const passwordValue = passwordInput.value;
+
+        loginUser(emailValue, passwordValue, (success) => {
+          if (success) {
+            window.location.href = 'report-complaint.html';
+          } else {
+            setError(passwordError, 'Incorrect email or password.');
+            passwordInput.classList.add('is-invalid');
+          }
+        });
+      }
+    });
+  }
 });
