@@ -713,6 +713,12 @@
   border: 1px solid #fecaca;
 }
 
+.badge-expired {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
 /* ── Action Buttons ── */
 .UMActionBtn {
   padding: 6px 14px;
@@ -1513,5 +1519,554 @@
     padding: 32px 24px;
   }
 }
+
+/* ── USER MANAGEMENT NEW CUSTOM STYLES ── */
+
+/* Filters Bar */
+.UserMgmtFiltersContainer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.UserMgmtFilterLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.UserMgmtSelectFilter {
+  padding: 8px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13.5px;
+  background: #ffffff;
+  color: #475569;
+  outline: none;
+  transition: all 0.2s ease;
+  min-width: 180px;
+}
+
+.UserMgmtSelectFilter:focus {
+  border-color: #0D9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+/* Status Badges */
+.UMStatusBadge.UserMgmtBadgeInvited,
+.UMStatusBadge.UserMgmtBadgePendingApproval,
+.UMStatusBadge.UserMgmtBadgeActive,
+.UMStatusBadge.UserMgmtBadgeSuspended {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 12px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.UserMgmtBadgeInvited {
+  background: #F3F4F6;
+  color: #4B5563;
+  border-color: #D1D5DB;
+}
+
+.UserMgmtBadgePendingApproval {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FCD34D;
+}
+
+.UserMgmtBadgeActive {
+  background: #DCFCE7;
+  color: #166534;
+  border-color: #86EFAC;
+}
+
+.UserMgmtBadgeSuspended {
+  background: #FEE2E2;
+  color: #991B1B;
+  border-color: #FCA5A5;
+}
+
+/* Stats Cards Top Borders */
+.UserMgmtStatInvited {
+  border-top: 3px solid #64748b;
+}
+.UserMgmtStatInvited .UMStatValue {
+  color: #64748b;
+}
+
+.UserMgmtStatPending {
+  border-top: 3px solid #d97706;
+}
+.UserMgmtStatPending .UMStatValue {
+  color: #d97706;
+}
+
+/* Action buttons container */
+.UserMgmtActionsContainer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Dropdown Actions Styling */
+.UserMgmtDropdownWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.UserMgmtDropdownTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.UserMgmtDropdownTrigger:hover {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+/* Tooltip above MoreVertical button */
+.UserMgmtDropdownTrigger::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #1e293b;
+  color: #ffffff;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 10000;
+}
+
+.UserMgmtDropdownTrigger::before {
+  content: '';
+  position: absolute;
+  bottom: 115%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1e293b transparent transparent transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10000;
+}
+
+.UserMgmtDropdownTrigger:hover::after,
+.UserMgmtDropdownTrigger:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Dropdown Menu container */
+.UserMgmtDropdownMenu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 6px;
+  width: 190px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  overflow: hidden;
+  padding: 4px;
+  animation: UserMgmtDropdownFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes UserMgmtDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Menu Items */
+.UserMgmtDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.UserMgmtDropdownItem:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.UserMgmtDropdownItem svg {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.UserMgmtDropdownItem:hover svg {
+  color: #1e293b;
+}
+
+/* Destructive delete action */
+.UserMgmtDropdownItem.danger {
+  color: #dc2626;
+}
+
+.UserMgmtDropdownItem.danger:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.UserMgmtDropdownItem.danger svg {
+  color: #dc2626;
+}
+
+.UserMgmtDropdownItem.danger:hover svg {
+  color: #991b1b;
+}
+
+/* Menu divider */
+.UserMgmtDropdownDivider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
+/* View Details Modal styling */
+.UserMgmtViewModal {
+  width: 100%;
+  max-width: 480px;
+  padding: 32px;
+}
+
+.UserMgmtViewDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.UserMgmtDetailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.UserMgmtDetailRow:last-child {
+  border-bottom: none;
+}
+
+.UserMgmtDetailLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.UserMgmtDetailValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  text-align: right;
+}
+
+.UserMgmtEmail {
+  color: #0d9488;
+  font-weight: 600;
+}
+
+/* ── AUDIT LOG DETAILS SIDE PANEL STYLES ── */
+
+/* Slide-out Panel container */
+.AuditDrawerContent.AuditLogDetailsPanel {
+  width: 100%;
+  max-width: 580px;
+  height: 100%;
+  background: #fdfdfd;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  animation: AuditLogDetailsSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes AuditLogDetailsSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Header */
+.AuditDrawerHeader.AuditLogDetailsHeader {
+  background: #1e293b;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #334155;
+  box-sizing: border-box;
+}
+
+.AuditLogDetailsHeaderTitleBlock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+}
+
+.AuditLogDetailsHeaderIcon {
+  color: #0d9488;
+}
+
+.AuditDrawerHeader.AuditLogDetailsHeader .AuditDrawerTitle {
+  color: #ffffff;
+  font-size: 16.5px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+.AuditDrawerHeader.AuditLogDetailsHeader .AuditDrawerCloseBtn {
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.AuditDrawerHeader.AuditLogDetailsHeader .AuditDrawerCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* Body container (scrollable) */
+.AuditDrawerBody.AuditLogDetailsBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+/* Card components */
+.AuditLogDetailsCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+.AuditLogDetailsCardTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1.5px solid #f1f5f9;
+  padding-bottom: 8px;
+}
+
+/* Data grid layouts */
+.AuditLogDetailsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.AuditLogDetailsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.AuditLogDetailsLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.AuditLogDetailsValue {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Badges for Actions */
+.AuditLogDetailsActionBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.AuditLogDetailsBadgeCreate {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.AuditLogDetailsBadgeUpdate {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.AuditLogDetailsBadgeDelete {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.AuditLogDetailsBadgeLogin {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+.AuditLogDetailsBadgeNeutral {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+/* Changes section comparison cards */
+.AuditLogDetailsChangesContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  .AuditLogDetailsChangesContainer {
+    grid-template-columns: 1fr;
+  }
+}
+
+.AuditLogDetailsChangeSubCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.AuditLogDetailsSubCardLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.AuditLogDetailsPre {
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  overflow-x: auto;
+  max-height: 250px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.AuditLogDetailsNoChanges {
+  font-size: 13.5px;
+  color: #64748b;
+  font-style: italic;
+  padding: 12px 0;
+}
+
+/* Footer Close Button Area */
+.AuditLogDetailsFooter {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.AuditLogDetailsCloseBtn {
+  padding: 10px 20px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.AuditLogDetailsCloseBtn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
 
 

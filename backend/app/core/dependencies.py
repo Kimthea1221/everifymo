@@ -1,6 +1,7 @@
 # app/core/dependencies.py
 from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.database.sessions import get_db
 from app.core.security import decode_access_token
@@ -22,6 +23,13 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid or expired token.")
 
     user_id = payload.get("sub")
+
+    # Same reasoning as registration.py — at this point we only know
+    # a user_id from the token, nothing about their region yet, so
+    # RLS's region-match condition can't be satisfied. Bypass just
+    # for this one lookup.
+    db.execute(text("SET app.bypass_rls = 'true'"))
+
     user = db.query(User).filter(User.user_id == user_id).first()
 
     if not user:
