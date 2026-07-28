@@ -1,8 +1,8 @@
 import os
 import shutil
-from uuid import uuid4
+from uuid import uuid4, UUID
 
-from fastapi import APIRouter, Depends, Form, UploadFile, File
+from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
@@ -12,6 +12,7 @@ from app.desktop.schemas.drafts.drafts import (
     WalkinIntakeDraftSave,
     WalkinIntakeDraftResponse,
     DraftStatus,
+    SortOption,
 )
 from app.core.dependencies import get_current_user
 
@@ -82,7 +83,21 @@ def _save_file_to_disk(file: UploadFile, draft_id) -> dict:
         "mime_type": file.content_type,
     }
 
+def _delete_file_from_disk(file_path: str) -> None:
+    # Only attempt deletion if the file actually still exists — if
+    # someone already deleted it manually, or this runs twice by
+    # accident, we don't want to crash the whole request over it.
+    if os.path.exists(file_path):
+        os.remove(file_path)
 
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # POST /drafts/walkin/
 @router.post("/", response_model=WalkinIntakeDraftResponse)
 def save_walkin_draft(
     # Multipart requests can't take one Pydantic object as the body
@@ -104,7 +119,7 @@ def save_walkin_draft(
     # File() marks this as an uploaded file rather than a text field.
     # A list, since the officer can drop multiple files at once
     # (Image 5). default=[] means saving with zero files is allowed.
-    files: list[UploadFile] = File(default=[]),   # 5. what class marks this parameter as a file upload?
+    files: list[UploadFile] = File(default=[]), 
 
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -143,14 +158,228 @@ def save_walkin_draft(
     for uploaded_file in files:
         file_info = _save_file_to_disk(uploaded_file, new_draft.draft_id)
         attachment = DraftAttachment(
-            walkin_draft_id=new_draft.draft_id,   # 6. which attribute on new_draft links this attachment to it?
+            walkin_draft_id=new_draft.draft_id,
             **file_info,
         )
-        db.add(attachment)   # 7. same method used to stage new_draft earlier
-    
+        db.add(attachment)
     # One commit for all attachment rows together, rather than
     # committing inside the loop on every single file.
     db.commit()
     db.refresh(new_draft)
 
     return new_draft
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /drafts/walkin/{draft_id}
+@router.get("/{draft_id}", response_model=WalkinIntakeDraftResponse)   
+def get_walkin_draft(
+    draft_id: UUID,  
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    draft = db.query(WalkinIntakeDraft).filter(
+        WalkinIntakeDraft.draft_id == draft_id,
+        # Privacy rule from the original spec — drafts are scoped by
+        # saved_by, not region_id. An officer should only ever be able
+        # to fetch THEIR OWN drafts, never a colleague's, even if they
+        # somehow guessed another draft's ID.
+        WalkinIntakeDraft.saved_by == current_user.user_id, 
+    ).first()
+
+    if not draft:
+        # Deliberately vague — "not found" rather than "not yours."
+        # Telling someone "this exists but isn't yours" would leak
+        # information about other officers' drafts existing at all.
+        raise HTTPException(status_code=404, detail="Draft not found.")
+
+    return draft
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # PUT /drafts/walkin/{draft_id}
+@router.put("/{draft_id}", response_model=WalkinIntakeDraftResponse)
+def update_walkin_draft(
+    draft_id: UUID,
+    full_name: str | None = Form(None),
+    contact_number: str | None = Form(None),
+    email: str | None = Form(None),
+    id_type: str | None = Form(None),
+    address: str | None = Form(None),
+    product_name: str | None = Form(None),
+    manufacturer: str | None = Form(None),
+    product_category: str | None = Form(None),
+    place_of_purchase: str | None = Form(None),
+    date_of_purchase: str | None = Form(None),
+    amount_paid: float | None = Form(None),
+    nature_of_complaint: str | None = Form(None),
+    files: list[UploadFile] = File(default=[]),
+
+    # NEW — attachment_ids the officer clicked the X on. A separate
+    # list from `files`, since one is "add" and this one is "remove."
+    # default=[] means "removed nothing" is a valid, normal case.
+    remove_attachment_ids: list[UUID] = Form(default=[]),
+
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    draft = db.query(WalkinIntakeDraft).filter(
+        WalkinIntakeDraft.draft_id == draft_id,        # 1
+        WalkinIntakeDraft.saved_by == current_user.user_id,         # 2
+    ).first()
+
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found.")   # 3
+
+    # --- Handle removals first ---
+    attachments_to_remove = db.query(DraftAttachment).filter(
+        DraftAttachment.walkin_draft_id == draft_id,
+        # .in_() checks "is this row's attachment_id inside this list" —
+        # lets us match multiple rows in one query instead of looping
+        # one filter per ID
+        DraftAttachment.attachment_id.in_(remove_attachment_ids),
+    ).all()
+
+    # Remember the file paths BEFORE deleting the rows, same reasoning
+    # as the submit-order notes — grab what we need before anything
+    # gets removed
+    paths_to_delete_from_disk = [a.file_path for a in attachments_to_remove]
+
+    for attachment in attachments_to_remove:
+        db.delete(attachment)
+
+    data = WalkinIntakeDraftSave(
+        full_name=full_name, contact_number=contact_number, email=email,
+        id_type=id_type, address=address, product_name=product_name,
+        manufacturer=manufacturer, product_category=product_category,
+        place_of_purchase=place_of_purchase, date_of_purchase=date_of_purchase,
+        amount_paid=amount_paid, nature_of_complaint=nature_of_complaint,
+    )
+
+    for field_name, value in data.model_dump().items():
+        setattr(draft, field_name, value)
+
+    # Add any newly uploaded files
+    for uploaded_file in files:
+        file_info = _save_file_to_disk(uploaded_file, draft_id)
+        attachment = DraftAttachment(
+            walkin_draft_id=draft_id,
+            **file_info,
+        )
+        db.add(attachment)
+
+    # Commit everything (removals, field updates, new attachments)
+    # together first, since draft_status depends on knowing the FINAL
+    # count, which we can only be sure of once removals are counted
+    db.commit()
+
+    # NOW check how many attachments actually remain, straight from
+    # the database, after removals and additions are both committed
+    remaining_attachment_count = db.query(DraftAttachment).filter(
+        DraftAttachment.walkin_draft_id == draft_id
+    ).count()
+
+    draft.draft_status = _determine_draft_status(data, has_files=remaining_attachment_count > 0)
+    db.commit()
+    db.refresh(draft)   
+
+    # Only delete from disk AFTER the database commit succeeded —
+    # confirms the removal was really saved before touching real files
+    for path in paths_to_delete_from_disk:
+        _delete_file_from_disk(path)
+
+    return draft
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # DELETE /drafts/walkin/{draft_id}
+@router.delete("/{draft_id}")
+def delete_walkin_draft(
+    draft_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # Same ownership-scoped fetch pattern as get_walkin_draft and
+    # update_walkin_draft — reused a third time now
+    draft = db.query(WalkinIntakeDraft).filter(
+        WalkinIntakeDraft.draft_id == draft_id,
+        WalkinIntakeDraft.saved_by == current_user.user_id,
+    ).first()
+
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found.")
+
+    # Grab every attachment's file path BEFORE we delete the draft —
+    # once the draft is deleted, ON DELETE CASCADE wipes these rows
+    # automatically, and we'd lose access to file_path forever
+    attachments = db.query(DraftAttachment).filter(
+        DraftAttachment.walkin_draft_id == draft_id
+    ).all()
+
+    paths_to_delete_from_disk = [a.file_path for a in attachments]
+
+    # Deleting the draft automatically cascades and removes all its
+    # draft_attachments rows too — no need to manually delete those
+    db.delete(draft)
+    db.commit()
+
+    # Only NOW, after the database confirms the deletion succeeded,
+    # do we touch the real filesystem
+    for path in paths_to_delete_from_disk:
+        _delete_file_from_disk(path)
+
+    return {"message": "Draft deleted successfully."}
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /drafts/walkin/
+@router.get("/", response_model=list[WalkinIntakeDraftResponse])
+def list_walkin_drafts(
+    status: DraftStatus | None = Query(None),
+    search: str | None = Query(None),
+    sort: SortOption = Query(SortOption.recently_edited),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    query = db.query(WalkinIntakeDraft).filter(
+        WalkinIntakeDraft.saved_by == current_user.user_id
+    )
+
+    if status is not None:
+        query = query.filter(WalkinIntakeDraft.draft_status == status)
+
+    if search is not None:
+        query = query.filter(WalkinIntakeDraft.product_name.ilike(f"%{search}%"))
+
+    # No join needed here — unlike verification drafts, product_name
+    # lives directly on this table
+    if sort == SortOption.recently_edited:
+        query = query.order_by(WalkinIntakeDraft.updated_at.desc())
+    elif sort == SortOption.oldest_first:
+        query = query.order_by(WalkinIntakeDraft.updated_at.asc())
+    elif sort == SortOption.product_name_az:
+        query = query.order_by(WalkinIntakeDraft.product_name.asc())
+
+    return query.all()
+
+
