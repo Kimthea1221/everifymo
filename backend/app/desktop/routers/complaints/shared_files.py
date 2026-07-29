@@ -25,7 +25,11 @@ def download_shared_file(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    file_row = db.query(SharedFile).filter(SharedFile.file_id == file_id).first()
+    
+    file_row = db.query(SharedFile).filter(
+    SharedFile.file_id == file_id,
+    SharedFile.region_id == current_user.region_id,   # Region scoping to ensure users can only access files in their region
+    ).first()
 
     if not file_row:
         raise HTTPException(status_code=404, detail="File not found.")
