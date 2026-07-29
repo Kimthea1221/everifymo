@@ -127,66 +127,66 @@ function markAllNotificationsRead() {
 
 function getComplaintsHistory() {
   return [
-    // {
-    //   id: 101,
-    //   productName: 'Miracle Glow Whitening Setting S.....',
-    //   platform: 'Shopee',
-    //   time: '2 hrs ago',
-    //   link: 'shopee.ph/Miracle-Glow-Whitening-Setting-Spray',
-    //   storeName: 'GlowBeautyPH Store',
-    //   description: 'Packaging looked off — no FDA sticker, blurry printing.',
-    //   attachment: null,
-    //   status: 'completed',
-    //   note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
-    // },
-    // {
-    //   id: 102,
-    //   productName: 'Miracle Glow Whitening Setting Spray 60ml',
-    //   platform: 'Lazada',
-    //   time: '2 hrs ago',
-    //   link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray',
-    //   storeName: 'SkinLuxe Official',
-    //   description: '',
-    //   attachment: null,
-    //   status: 'dismissed',
-    //   note: 'This complaint was dismissed because the product was found to be registered under a different FDA record not yet reflected in our database at the time of the report.'
-    // },
-    // {
-    //   id: 103,
-    //   productName: 'Miracle Glow Whitening Setting Spray 60ml',
-    //   platform: 'Tiktok Shop',
-    //   time: '2 hrs ago',
-    //   link: 'shop.tiktok.com/miracle-glow-whitening-spray',
-    //   storeName: 'Radiance Beauty Hub',
-    //   description: 'Seller claims registered but listing has no FDA number.',
-    //   attachment: null,
-    //   status: 'dismissed',
-    //   note: 'This complaint was dismissed because the product\'s registration is currently in process with the FDA and could not be confirmed unregistered at this time.'
-    // },
-    // {
-    //   id: 104,
-    //   productName: 'Miracle Glow Whitening Setting Spray 60ml',
-    //   platform: 'Lazada',
-    //   time: '2 hours ago',
-    //   link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml',
-    //   storeName: 'SkinLuxe Official',
-    //   description: '',
-    //   attachment: null,
-    //   status: 'completed',
-    //   note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
-    // },
-    // {
-    //   id: 105,
-    //   productName: 'Miracle Glow Whitening Setting Spray 60ml',
-    //   platform: 'Lazada',
-    //   time: '2 hours ago',
-    //   link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml-2',
-    //   storeName: 'SkinLuxe Official',
-    //   description: '',
-    //   attachment: null,
-    //   status: 'completed',
-    //   note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
-    // }
+    {
+      id: 101,
+      productName: 'Miracle Glow Whitening Setting S.....',
+      platform: 'Shopee',
+      time: '2 hrs ago',
+      link: 'shopee.ph/Miracle-Glow-Whitening-Setting-Spray',
+      storeName: 'GlowBeautyPH Store',
+      description: 'Packaging looked off — no FDA sticker, blurry printing.',
+      attachment: null,
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    },
+    {
+      id: 102,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hrs ago',
+      link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray',
+      storeName: 'SkinLuxe Official',
+      description: '',
+      attachment: null,
+      status: 'dismissed',
+      note: 'This complaint was dismissed because the product was found to be registered under a different FDA record not yet reflected in our database at the time of the report.'
+    },
+    {
+      id: 103,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Tiktok Shop',
+      time: '2 hrs ago',
+      link: 'shop.tiktok.com/miracle-glow-whitening-spray',
+      storeName: 'Radiance Beauty Hub',
+      description: 'Seller claims registered but listing has no FDA number.',
+      attachment: null,
+      status: 'dismissed',
+      note: 'This complaint was dismissed because the product\'s registration is currently in process with the FDA and could not be confirmed unregistered at this time.'
+    },
+    {
+      id: 104,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hours ago',
+      link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml',
+      storeName: 'SkinLuxe Official',
+      description: '',
+      attachment: null,
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    },
+    {
+      id: 105,
+      productName: 'Miracle Glow Whitening Setting Spray 60ml',
+      platform: 'Lazada',
+      time: '2 hours ago',
+      link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml-2',
+      storeName: 'SkinLuxe Official',
+      description: '',
+      attachment: null,
+      status: 'completed',
+      note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
+    }
   ];
 }
 
@@ -196,11 +196,11 @@ function getComplaintsHistory() {
 
 function getVerificationHistory() {
   return [
-    // { id: 1, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
-    // { id: 2, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'suspicious' },
-    // { id: 3, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Tiktok Shop', time: '2 hrs ago', status: 'unregistered' },
-    // { id: 4, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
-    // { id: 5, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'registered' }
+    { id: 1, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
+    { id: 2, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'suspicious' },
+    { id: 3, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Tiktok Shop', time: '2 hrs ago', status: 'unregistered' },
+    { id: 4, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
+    { id: 5, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'registered' }
   ];
 }
 
@@ -210,39 +210,42 @@ function getVerificationHistory() {
 // ================================
 
 const DEFAULT_COMPLAINT_STATUSES = [
-  // {
-  //   id: 1,
-  //   productName: 'Miracle Glow Whitening Setting Spray 60ml',
-  //   stage: 'takedown_requested',
-  //   platform: 'Lazada',
-  //   link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml-status1',
-  //   storeName: 'SkinLuxe Official',
-  //   description: 'Listing has no FDA registration number visible.',
-  //   attachment: null,
-  //   note: 'Takedown has been requested to CIDG. Awaiting enforcement action.'
-  // },
-  // {
-  //   id: 2,
-  //   productName: 'Miracle Glow Whitening Setting Spray 60ml',
-  //   stage: 'under_review',
-  //   platform: 'Shopee',
-  //   link: 'shopee.ph/Miracle-Glow-Whitening-Setting-Spray-status2',
-  //   storeName: 'GlowBeautyPH Store',
-  //   description: 'No FDA sticker visible on packaging photos.',
-  //   attachment: null,
-  //   note: 'Under review by FDA enforcement team. Evidence verified.'
-  // },
-  // {
-  //   id: 3,
-  //   productName: 'Miracle Glow Whitening Setting Spray 60ml',
-  //   stage: 'open',
-  //   platform: 'Tiktok Shop',
-  //   link: 'shop.tiktok.com/miracle-glow-whitening-spray-status3',
-  //   storeName: 'Radiance Beauty Hub',
-  //   description: '',
-  //   attachment: null,
-  //   note: 'Report received. Queued for initial review.'
-  // }
+  {
+    id: 1,
+    productName: 'Miracle Glow Whitening Setting Spray 60ml',
+    stage: 'takedown_requested',
+    platform: 'Lazada',
+    time: '3 hrs ago',
+    link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml-status1',
+    storeName: 'SkinLuxe Official',
+    description: 'Listing has no FDA registration number visible.',
+    attachment: null,
+    note: 'Takedown has been requested to CIDG. Awaiting enforcement action.'
+  },
+  {
+    id: 2,
+    productName: 'Miracle Glow Whitening Setting Spray 60ml',
+    stage: 'under_review',
+    platform: 'Shopee',
+    time: '2 hrs ago',
+    link: 'shopee.ph/Miracle-Glow-Whitening-Setting-Spray-status2',
+    storeName: 'GlowBeautyPH Store',
+    description: 'No FDA sticker visible on packaging photos.',
+    attachment: null,
+    note: 'Under review by FDA enforcement team. Evidence verified.'
+  },
+  {
+    id: 3,
+    productName: 'Miracle Glow Whitening Setting Spray 60ml',
+    stage: 'open',
+    platform: 'Tiktok Shop',
+    time: '1 hr ago',
+    link: 'shop.tiktok.com/miracle-glow-whitening-spray-status3',
+    storeName: 'Radiance Beauty Hub',
+    description: '',
+    attachment: null,
+    note: 'Report received. Queued for initial review.'
+  }
 ];
 
 function getComplaintStatuses(callback) {
@@ -275,6 +278,7 @@ function addComplaintToStatus(reportData, callback) {
       productName: reportData.productName,
       stage: 'open',
       platform: derivePlatformFromLink(reportData.link),
+      time: 'Just now',
       link: reportData.link,
       storeName: reportData.storeName,
       description: reportData.description || '',
@@ -300,5 +304,23 @@ function resetPasswordDirect(email, newPassword, callback) {
       u.email === email ? { ...u, password: newPassword } : u
     );
     chrome.storage.local.set({ registeredUsers: updatedUsers }, () => callback(true));
+  });
+}
+
+function generateOtp(email, callback) {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  chrome.storage.local.set({ pendingOtp: { email, code } }, () => {
+    callback(code);
+  });
+}
+
+function verifyOtp(inputCode, callback) {
+  chrome.storage.local.get(['pendingOtp'], (data) => {
+    const pending = data.pendingOtp;
+    if (!pending || inputCode !== pending.code) {
+      callback(false);
+      return;
+    }
+    chrome.storage.local.remove('pendingOtp', () => callback(true));
   });
 }
