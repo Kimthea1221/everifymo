@@ -317,6 +317,11 @@
     <div class="home-message">Check your latest complaints and verification history below.</div>
   </div>
 
+  <a class="btn" type="button" id="manual-input-btn">
+    <img src="../assets/images/report.png" alt="edit_icon" class="small-icons" />
+    <span>Enter Product Manually</span>
+  </a>
+
   <a class="btn" type="button" id="status-btn">
     <img src="../assets/images/report.png" alt="report_icon" class="small-icons" />
     <span>My Complaints</span>
@@ -344,6 +349,23 @@
         </div>
       </div>
       
+      <!-- STATE 7: MANUAL INPUT -->
+      <div class="state hidden" id="state-manual-input">
+        <div class="notice-banner-popup">
+          <p class="notice-text-popup">Please make sure the product name you enter is accurate — this is what the verification result will be based on.</p>
+        </div>
+
+        <div class="manual-input-field">
+          <label class="manual-input-label" for="manual-product-name">Product Name/Title</label>
+          <textarea id="manual-product-name" class="manual-input-textarea" placeholder="Type the exact product name as shown in the listing"></textarea>
+          <p class="manual-input-error" id="manual-input-error"></p>
+        </div>
+
+        <div class="action-buttons-manual action-buttons">
+          <button class="btn-cancel-manual" type="button" id="btn-cancel-manual">Cancel</button>
+          <button class="btn-confirm-manual" type="button" id="btn-confirm-manual">Confirm</button>
+        </div>
+      </div>
 
     </main>
     <script src="../utils/api.js"></script>
