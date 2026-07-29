@@ -45,7 +45,7 @@
       <div class="field-error" id="username-error" aria-live="polite"></div>
     </div>
 
-    <div class="field">
+    <div class="field" id="email-field">
       <div class="field-row">
         <label class="field-label" for="email">EMAIL</label>
       </div>
@@ -131,9 +131,32 @@
         </div>
       </div>
 
+      <div class="field" id="otp-field" hidden>
+        <div class="field-row">
+          <label class="field-label">VERIFICATION CODE</label>
+        </div>
+        <p class="notice-text" style="margin-top: 0; margin-bottom: 8px;">Enter 6-digit code</p>
+        <div class="otp-input-group">
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input" data-otp-index="0" />
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input" data-otp-index="1" />
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input" data-otp-index="2" />
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input" data-otp-index="3" />
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input" data-otp-index="4" />
+          <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input" data-otp-index="5" />
+        </div>
+        <div class="field-error" id="otp-error" aria-live="polite"></div>
+        <p class="notice-text" id="otp-dev-preview" style="margin-top: 8px;"></p>
+      </div>
+
     <button class="btn-primary-green" type="button" id="auth-primary-button">Sign In</button>
     <button class="btn-primary-green hidden" type="button" id="forgot-confirm-button">Confirm</button>
     <a href="#" id="back-to-signin-link" class="forgot-link back-to-signin-link hidden">Back to Sign In</a>
+
+    <button class="btn-primary-green hidden" type="button" id="otp-verify-button">Verify and Sign In</button>
+    <div class="otp-links-row">
+      <a href="#" id="resend-otp-link" class="forgot-link" hidden>Resend code</a>
+      <a href="#" id="back-from-otp-link" class="forgot-link" hidden>Back to Sign In</a>
+    </div>
 
     <div class="or-divider" aria-hidden="true">
       <div class="or-line"></div>

@@ -902,6 +902,21 @@ body {
   white-space: nowrap;
 }
 
+.detail-meta-box {
+  display: flex;
+  gap: 16px;
+  background-color: #F3F3F3;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.detail-meta-item {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #1f2937;
+}
+
 /* HISTORY PAGE */
 .history-tabs {
   display: flex;
@@ -1269,6 +1284,43 @@ body {
 
 .signup-password-fields {
   margin-bottom: 0;
+}
+
+/* OTP INPUTS */
+.otp-input-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.otp-digit-input {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  border: 1px solid #E5E5E5;
+  border-radius: 10px;
+  background-color: #F9F9F9;
+  color: #030303;
+  outline: none;
+}
+
+.otp-digit-input:focus {
+  border-color: #1F2937;
+  box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.15);
+}
+
+.otp-digit-input.is-invalid {
+  border-color: #B91C1C;
+  box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.12);
+}
+
+.otp-links-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* BUTTONS */
