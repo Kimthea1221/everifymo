@@ -23,10 +23,10 @@ async function apiSignUp({ email, username, password }){
     return data;
 }
 
-async function apiLogin(username, password) {
+async function apiLogin(email, password) {
  
     const formBody = new URLSearchParams();
-    formBody.append('username', username);
+    formBody.append('username', email);
     formBody.append('password', password);
 
     const res = await fetch(`${API_BASE}/auth/token`, {
@@ -49,9 +49,12 @@ async function handleResponse(response) {
         throw new UnauthorizedError('Session expired. Please login once again');
     }
 
-    if (!response.ok){
-        let error = await response.text();
-        throw new Errror(`Server responded ${response.status}: ${error}`);
+    if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const message = data?.detail 
+            ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail)
+            : `Server responded ${response.status}`;
+        throw new Error(message);
     }
 
     return response.json();
@@ -154,6 +157,20 @@ function getComplaintsHistory() {
       note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
     }
   ];
+}
+
+async function apiUpdateUsername(newUsername, token) {
+    
+    const res = await fetch(`${API_BASE}/accounts/username`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ username: newUsername })
+    })
+
+    return handleResponse(res);
 }
 
 function getVerificationHistory() {
