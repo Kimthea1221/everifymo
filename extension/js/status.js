@@ -45,6 +45,7 @@ function renderComplaintCard(complaint) {
       <span class="status-see-details"><a href="#" class="see-details-link" data-toggle-status-detail="${complaint.id}">See Details</a></span>
       <div class="status-item-detail hidden" id="status-detail-${complaint.id}">
         <p class="detail-row"><span class="detail-label">Platform:</span> ${complaint.platform}</p>
+        <p class="detail-row"><span class="detail-label">Time:</span> ${complaint.time}</p>
         <p class="detail-row"><span class="detail-label">Link/URL:</span> ${complaint.link}</p>
         <p class="detail-row"><span class="detail-label">Store:</span> ${complaint.storeName}</p>
         ${complaint.description ? `<p class="detail-row"><span class="detail-label">Description:</span> ${complaint.description}</p>` : ''}

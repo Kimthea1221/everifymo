@@ -29,7 +29,8 @@ function renderComplaintsHistoryList() {
         <p class="history-item-name">${item.productName}</p>
         <span class="history-item-meta"><a href="#" class="see-details-link" data-toggle-note="${item.id}">See Details</a></span>
         <div class="history-item-detail hidden" id="note-${item.id}">
-          <p class="detail-row"><span class="detail-label">Platform:</span> ${item.platform} • ${item.time}</p>
+          <p class="detail-row"><span class="detail-label">Platform:</span> ${item.platform}</p>
+          <p class="detail-row"><span class="detail-label">Time:</span> ${item.time}</p>
           <p class="detail-row"><span class="detail-label">Link/URL:</span> ${item.link}</p>
           <p class="detail-row"><span class="detail-label">Store:</span> ${item.storeName}</p>
           ${item.description ? `<p class="detail-row"><span class="detail-label">Description:</span> ${item.description}</p>` : ''}
