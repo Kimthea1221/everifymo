@@ -106,6 +106,24 @@ class DraftAttachmentResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# Unified row for the "All Drafts" table (Image 1). Built manually
+# in the endpoint from a join, not from a single ORM object — so
+# this does NOT use from_attributes=True like the others.
+class UnifiedDraftResponse(BaseModel):
+    draft_id: UUID
+    draft_type: DraftType
+    product_name: str | None
+    manufacturer: str | None
+    product_category: str | None
+    complainant_name: str | None
+    saved_by: UUID
+    region_id: UUID
+    draft_status: DraftStatus
+    created_at: datetime
+    updated_at: datetime
+
+
 # ============================================================
 # VERIFICATION REQUEST DRAFT
 # ============================================================
@@ -137,20 +155,3 @@ class VerificationRequestDraftResponse(VerificationRequestDraftSave):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-# Unified row for the "All Drafts" table (Image 1). Built manually
-# in the endpoint from a join, not from a single ORM object — so
-# this does NOT use from_attributes=True like the others.
-class UnifiedDraftResponse(BaseModel):
-    draft_id: UUID
-    draft_type: DraftType
-    product_name: str | None
-    manufacturer: str | None
-    product_category: str | None
-    complainant_name: str | None
-    saved_by: UUID
-    region_id: UUID
-    draft_status: DraftStatus
-    created_at: datetime
-    updated_at: datetime

@@ -36,6 +36,10 @@ from app.desktop.routers.complaints.walkin_complaints import (
     direct_complaint_router,
 )
 
+# Verification Joined Detail feature
+from app.desktop.routers.complaints.complaint_detail import router as complaint_detail_router
+# Not used yet, but will be used in the future for shared files download
+from app.desktop.routers.complaints.shared_files import router as shared_files_router
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
@@ -78,6 +82,9 @@ app.include_router(verification_drafts_router)
 
 app.include_router(draft_submit_router)
 app.include_router(direct_complaint_router)
+
+app.include_router(complaint_detail_router)
+app.include_router(shared_files_router)
 
 @app.get("/", status_code=status.HTTP_200_OK)
 async def user(consumer: consumer_dependency):

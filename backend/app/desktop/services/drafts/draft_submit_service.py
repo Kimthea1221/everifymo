@@ -45,6 +45,7 @@ def _create_complainant_and_complaint(
         source="walk_in",
         status="open",
         complainant_id=new_complainant.complainant_id,
+        created_by=current_user.user_id, 
     )
     db.add(new_complaint)
     db.flush()
