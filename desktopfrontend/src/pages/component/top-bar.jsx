@@ -550,22 +550,16 @@ function TopBar({ topbarType, role, agency }) {
                         {isProfileOpen && (
                             <div className='TopbarProfileDropdown'>
 
-                                {/* Profile Settings — hidden for superadmin */}
-                                {/* NOTE: superadmin does not have a profile settings page */}
-                                {normalizedAgency !== 'superadmin' && (
-                                    <button
-                                        className='TopbarDropdownItem'
-                                        onClick={handleProfileClick}
-                                    >
-                                        <Settings size={16} />
-                                        <span>Profile Settings</span>
-                                    </button>
-                                )}
+                                {/* Profile Settings — visible for FDA, LEA, and SUPERADMIN */}
+                                <button
+                                    className='TopbarDropdownItem'
+                                    onClick={handleProfileClick}
+                                >
+                                    <Settings size={16} />
+                                    <span>Profile Settings</span>
+                                </button>
 
-                                {/* Divider — only show if profile settings is visible */}
-                                {normalizedAgency !== 'superadmin' && (
-                                    <div className='TopbarDropdownDivider' />
-                                )}
+                                <div className='TopbarDropdownDivider' />
 
                                 {/* Logout / End Session */}
                                 {/* redirects to superadmin-login if superadmin, else to /login */}
