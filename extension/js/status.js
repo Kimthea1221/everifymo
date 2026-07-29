@@ -1,4 +1,4 @@
-//status.js
+// status.js
 const STAGE_ORDER = ['open', 'under_review', 'takedown_requested'];
 const STAGE_LABELS = { open: 'OPEN', under_review: 'UNDER REVIEW', takedown_requested: 'TAKEDOWN REQUESTED' };
 const STEP_LABELS = ['Open', 'Under Review', 'Takedown Requested'];
@@ -28,9 +28,7 @@ function renderComplaintCard(complaint) {
 
     if (i < STEP_LABELS.length - 1) {
       const connectorClass = i < currentIndex ? 'connector-complete' : '';
-      const isLastConnector = i === STEP_LABELS.length - 2; // second-to-last step index = last connector
-      const lastClass = isLastConnector ? 'connector-last' : '';
-      trackHtml += `<div class="step-connector ${connectorClass} ${lastClass}"></div>`;
+      trackHtml += `<div class="step-connector ${connectorClass}"></div>`;
     }
   });
 
@@ -44,6 +42,15 @@ function renderComplaintCard(complaint) {
       </div>
       <div class="progress-track">${trackHtml}</div>
       <p class="status-note">${complaint.note}</p>
+      <span class="status-see-details"><a href="#" class="see-details-link" data-toggle-status-detail="${complaint.id}">See Details</a></span>
+      <div class="status-item-detail hidden" id="status-detail-${complaint.id}">
+        <p class="detail-row"><span class="detail-label">Platform:</span> ${complaint.platform}</p>
+        <p class="detail-row"><span class="detail-label">Time:</span> ${complaint.time}</p>
+        <p class="detail-row"><span class="detail-label">Link/URL:</span> ${complaint.link}</p>
+        <p class="detail-row"><span class="detail-label">Store:</span> ${complaint.storeName}</p>
+        ${complaint.description ? `<p class="detail-row"><span class="detail-label">Description:</span> ${complaint.description}</p>` : ''}
+        ${complaint.attachment ? `<img src="${complaint.attachment}" class="attach-preview-img" alt="Attachment">` : ''}
+      </div>
     </div>
   `;
 }
@@ -62,25 +69,27 @@ async function renderComplaintStatusPage() {
     return;
   }
 
-  const res = await apiGetStatus(getToken());
-  const complaints = res.map(c => ({
-      id: c.complaint_id,
-      stage: c.new_status,
-      productName: c.product_title,
-      note: c.change_note ? null : ""
-  }));
+  getComplaintStatuses((complaints) => {
+    if (!complaints || complaints.length === 0) {
+      if (emptyText) emptyText.textContent = 'Complaint Status page is currently empty.';
+      if (emptyView) emptyView.classList.remove('hidden');
+      if (populatedView) populatedView.classList.add('hidden');
+      return;
+    }
 
-  if (!complaints || complaints.length === 0) {
-    if (emptyText) emptyText.textContent = 'Complaint Status page is currently empty.';
-    if (emptyView) emptyView.classList.remove('hidden');
-    if (populatedView) populatedView.classList.add('hidden');
-    return;
-  }
+    if (emptyView) emptyView.classList.add('hidden');
+    if (populatedView) populatedView.classList.remove('hidden');
+    const listEl = document.getElementById('status-list');
+    if (listEl) listEl.innerHTML = complaints.map(renderComplaintCard).join('');
 
-  if (emptyView) emptyView.classList.add('hidden');
-  if (populatedView) populatedView.classList.remove('hidden');
-  const listEl = document.getElementById('status-list');
-  if (listEl) listEl.innerHTML = complaints.map(renderComplaintCard).join('');
+    document.querySelectorAll('[data-toggle-status-detail]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const detailEl = document.getElementById(`status-detail-${link.dataset.toggleStatusDetail}`);
+        if (detailEl) detailEl.classList.toggle('hidden');
+      });
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
