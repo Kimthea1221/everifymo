@@ -7,7 +7,7 @@
 
 .LeaMainfeed {
   flex: 1;
-  padding: 32px;
+  padding: 24px 28px;
   background: #f5f5f5;
   overflow-y: auto;
 }
@@ -24,17 +24,7 @@
 }
 
 /*WALK IN COMPLAINT PAGE*/
-.LeaDashboardMain {
-  display: flex;
-  height: 100vh;
-}
 
-.LeaMainfeed {
-  flex: 1;
-  padding: 32px;
-  background: #EDEDED;
-  overflow-y: auto;
-}
 
 .LeaHeader {
   display: flex;
@@ -387,12 +377,7 @@
 
 /* LEA NEW INTAKE PAGE*/
 
-.LeaMainfeed {
-    flex: 1;
-    background: #EDEDED;
-    padding: 24px;
-    overflow-y: auto;
-}
+/* LeaMainfeed base styles are defined at the top of this file */
 
 
 .LeaHeader {
@@ -1784,7 +1769,6 @@
 .LeaDashboardMain {
   display: flex;
   min-height: 100vh;
-  background: #F4F7FA;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -1795,12 +1779,7 @@
   overflow: hidden;
 }
 
-.LeaMainfeed {
-  flex: 1;
-  padding: 24px 28px;
-  background: #F4F7FA;
-  overflow-y: auto;
-}
+/* LeaMainfeed background is set to #f5f5f5 at the top of this file */
 
 /* 4 Top Stats Cards Grid */
 .LeaStatsGrid {
@@ -2076,4 +2055,4 @@
   color: #0F172A;
   font-weight: 700;
 }
-
+
