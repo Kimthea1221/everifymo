@@ -65,6 +65,34 @@ function collectReportFormData(containerId) {
   return { productName, link, storeName, description, attachment };
 }
 
+function clearReportForm(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const nameEl = container.querySelector('#complaint-product-name');
+  const urlEl = container.querySelector('#complaint-product-url');
+  const storeEl = container.querySelector('#store-name');
+  const descEl = container.querySelector('#complaint-description');
+  if (nameEl) nameEl.value = '';
+  if (urlEl) urlEl.value = '';
+  if (storeEl) storeEl.value = '';
+  if (descEl) descEl.value = '';
+
+  const attachBox = container.querySelector('.report-attach-box');
+  if (attachBox) {
+    const previewImg = attachBox.querySelector('.attach-preview-img');
+    if (previewImg) previewImg.remove();
+
+    const attachInput = attachBox.querySelector('.report-attach-input');
+    if (attachInput) attachInput.value = '';
+
+    const attachText = attachBox.querySelector('.report-attach-text');
+    const uploadIcon = attachBox.querySelector('.report-upload-icon');
+    if (attachText) attachText.classList.remove('hidden');
+    if (uploadIcon) uploadIcon.classList.remove('hidden');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   whenSessionReady(() => {
      initAttachBoxes();
@@ -91,6 +119,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
+      });
+    });
+
+    document.querySelectorAll('.submit-another-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isGuest = !isUserLoggedIn();
+        const formViewId = isGuest ? 'report-form-view-guest' : 'report-form-view';
+
+        clearReportForm(formViewId);
+        showReportView(formViewId);
+      });
+    });
+
+    document.querySelectorAll('.back-to-report-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isGuest = !isUserLoggedIn();
+        const formViewId = isGuest ? 'report-form-view-guest' : 'report-form-view';
+
+        clearReportForm(formViewId);
+        showReportView(formViewId);
       });
     });
     

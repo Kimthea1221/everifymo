@@ -105,6 +105,39 @@
       btn.addEventListener('click', () => showState('home'));
     });
 
+    const btnManualInput = document.getElementById('manual-input-btn');
+    if (btnManualInput) {
+      btnManualInput.addEventListener('click', () => {
+        const errorEl = document.getElementById('manual-input-error');
+        const inputEl = document.getElementById('manual-product-name');
+        if (errorEl) errorEl.textContent = '';
+        if (inputEl) inputEl.value = '';
+        showState('manual-input');
+      });
+    }
+
+    const btnCancelManual = document.getElementById('btn-cancel-manual');
+    if (btnCancelManual) {
+      btnCancelManual.addEventListener('click', () => showState('home'));
+    }
+
+    const btnConfirmManual = document.getElementById('btn-confirm-manual');
+    if (btnConfirmManual) {
+      btnConfirmManual.addEventListener('click', () => {
+        const inputEl = document.getElementById('manual-product-name');
+        const errorEl = document.getElementById('manual-input-error');
+        const value = inputEl ? inputEl.value.trim() : '';
+
+        if (!value) {
+          if (errorEl) errorEl.textContent = 'Please enter the product name.';
+          return;
+        }
+        if (errorEl) errorEl.textContent = '';
+
+        resolveManualProduct(value);
+      });
+    }
+
     // const btnSkip = document.getElementById('btn-skip');
     // if (btnSkip) {
     //   btnSkip.addEventListener('click', () => window.close());
@@ -127,8 +160,32 @@
 
 // --- Functions below can stay outside, since they don't touch the DOM until called ---
 
+function resolveManualProduct(title) {
+  chrome.storage.local.get(['productStatus'], (data) => {
+    // Demo-only: real matching isn't built yet, so this reuses whatever
+    // status is currently hardcoded for testing in the DOMContentLoaded block.
+    const status = data.productStatus || 'unregistered';
+
+    if (status === 'registered') {
+      const el = document.getElementById('product-name-registered');
+      if (el) el.textContent = title;
+      showState('registered');
+    } else if (status === 'suspicious') {
+      const el = document.getElementById('product-name-suspicious');
+      if (el) el.textContent = title;
+      showState('suspicious');
+    } else {
+      const el = document.getElementById('product-name-unregistered');
+      if (el) el.textContent = title;
+      showState('unregistered');
+    }
+
+    chrome.storage.local.set({ productTitle: title });
+  });
+}
+
 function showState(state) {
-  const states = ['idle', 'registered', 'suspicious', 'unregistered', 'home', 'scanning'];
+  const states = ['idle', 'registered', 'suspicious', 'unregistered', 'home', 'scanning', 'manual-input'];
   states.forEach(s => {
     const el = document.getElementById(`state-${s}`);
     if (el) el.classList.add('hidden');
