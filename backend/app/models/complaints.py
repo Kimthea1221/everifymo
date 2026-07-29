@@ -56,7 +56,24 @@ class Complaint(Base):
         nullable=True
     )
 
+    complainant_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("walkin_complainants.complainant_id", ondelete="SET NULL"), 
+        nullable=True
+    )
+
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    # Who actually logged this complaint — works for BOTH walk-in and
+    # extension sources, unlike complainant_id (which only exists for
+    # walk-in). nullable=True so this doesn't break any existing rows
+    # or any insert code (yours or the extension team's) that hasn't
+    # been updated to include it yet.
+    created_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    
     updated_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
     updated_by = Column(
         UUID(as_uuid=True), 
