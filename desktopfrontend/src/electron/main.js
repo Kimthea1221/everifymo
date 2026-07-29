@@ -76,10 +76,10 @@ if (!gotLock) {
   createWindow()
 
   setTimeout(() => {
-    handleDeepLink('everifymo://complete-registration?token=3GPysNbzQOWZ5rKreN9yTDzFqDXcZgilRboeiKrndhw')
+    handleDeepLink('everifymo://complete-registration?token=owPW77N9O1dgUzmZTiHzv-vBTYV6ufnpPkgIVloOb9c')
   }, 2000)
-})
- */
+}) */
+
 
 // Mac: fires for both cold-start and already-running cases
 // Mac: one event covers both "already open" and "just launched" cases

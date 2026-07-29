@@ -40,22 +40,22 @@
 
                 <div class="field">
                   <label class="field-label" for="complaint-product-name">Product Name/Title</label>
-                  <textarea id="complaint-product-name" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
+                  <textarea id="complaint-product-name-user" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-product-url">Link/URL</label>
-                  <textarea id="complaint-product-url" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
+                  <textarea id="complaint-product-url-user" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
                 </div>
                 
                 <div class="field">
                   <label class="field-label" for="store-name">Name of the Store</label>
-                  <textarea id="store-name" class="complaint-input" placeholder="Enter Store Name"></textarea>
+                  <textarea id="store-name-user" class="complaint-input" placeholder="Enter Store Name"></textarea>
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-description">Description (optional)</label>
-                  <textarea id="complaint-description" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
+                  <textarea id="complaint-description-user" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
                 </div>
 
                 <div class="attach-box report-attach-box" role="button" tabindex="0">
@@ -119,22 +119,22 @@
                 
                  <div class="field">
                   <label class="field-label" for="complaint-product-name">Product Name/Title</label>
-                  <textarea id="complaint-product-name" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
+                  <textarea id="complaint-product-name-guest" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-product-url">Link/URL</label>
-                  <textarea id="complaint-product-url" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
+                  <textarea id="complaint-product-url-guest" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
                 </div>
                 
                 <div class="field">
                   <label class="field-label" for="store-name">Name of the Store</label>
-                  <textarea id="store-name" class="complaint-input" placeholder="Enter Store Name"></textarea>
+                  <textarea id="store-name-guest" class="complaint-input" placeholder="Enter Store Name"></textarea>
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-description">Description (optional)</label>
-                  <textarea id="complaint-description" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
+                  <textarea id="complaint-description-guest" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
                 </div>
 
                 <div class="attach-box report-attach-box" role="button" tabindex="0">
@@ -177,11 +177,13 @@
         </div>
     
   </main>
-</body>
+
+  <script src="../utils/api.js"></script>
+  <script src="../scripts/session.js"></script>
   <script src="../js/report.js"></script>
   <script src="../js/partial-loader.js"></script>
-  <script src="../utils/api.js"></script>
   <script src="../js/header.js"></script>
   <script src="../js/nav.js"></script>
+</body>
 </html>
 

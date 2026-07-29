@@ -94,6 +94,7 @@ function clearReportForm(containerId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+
   whenSessionReady(() => {
      initAttachBoxes();
 
@@ -119,6 +120,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
+
+        let productNameInput = isActive('complaint-product-name');
+        let productUrlInput = isActive('complaint-product-url');
+        let storeNameInput = isActive('store-name');
+        let descriptionInput = isActive('complaint-description');
+
+        let url = sanitizeUrl(productUrlInput.value);
+
+        submitComplaint({ 
+            productName: productNameInput.value, 
+            productUrl: url, 
+            storeName: storeNameInput.value, 
+            platform: platform(url),
+            description: descriptionInput.value 
+          }, (success, e) => {
+            if (!success) {
+              console.error("Complaint submission failed:", e);
+            }
+          }
+        );
       });
     });
 
@@ -146,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     applyAuthView();
 
+    //babalikan 2
     chrome.storage.local.get(
       ['productTitle', 'productUrl', 'productStatus'],
       (data) => {
@@ -161,8 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     );
   });
+
+  autoFillUrl();
 });
 
+//babalikan 1
 function applyAuthView() {
   const loggedIn = typeof isUserLoggedIn === 'function' ? isUserLoggedIn() : false;
 

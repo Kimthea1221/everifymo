@@ -10,8 +10,30 @@ function iconTag(status, iconMap) {
   return `<img src="../assets/images/${iconMap[status]}" alt="${status}" class="history-item-icon-img">`;
 }
 
-function renderComplaintsHistoryList() {
-  const items = getComplaintsHistory();
+function timeFormat(submittedTime) {
+  let ms = Date.now() - new Date(submittedTime).getTime();
+  let mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`;
+
+  let hrs = Math.floor(mins/60);
+  if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`;
+
+  let days = Math.floor(hrs/24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+async function renderComplaintsHistoryList() {
+  const res = await apiGetComplaints(getToken());
+  const items = res.map(c => ({
+      id: c.complaint_id,
+      status: c.status,
+      productName: c.product_title,
+      platform: c.platform,
+      note: c.change_note || "",
+      time: timeFormat(c.changed_at)
+  }));
+
   const counterEl = document.getElementById('resolved-counter');
 
   if (items.length === 0) {
@@ -21,7 +43,7 @@ function renderComplaintsHistoryList() {
 
   const completedCount = items.filter(i => i.status === 'completed').length;
   if (counterEl) counterEl.textContent = `COMPLETED: ${completedCount}`;
-
+  
   return items.map(item => `
     <div class="history-item status-${item.status}" data-complaint-id="${item.id}">
       <div class="history-item-icon icon-${item.status}">${iconTag(item.status, COMPLAINT_ICONS)}</div>
@@ -64,12 +86,12 @@ function renderVerificationHistoryList() {
   `).join('');
 }
 
-function renderHistoryList() {
+async function renderHistoryList() {
   const listEl = document.getElementById('history-list');
   if (!listEl) return;
 
   listEl.innerHTML = currentHistoryTab === 'complaints'
-    ? renderComplaintsHistoryList()
+    ? await renderComplaintsHistoryList()
     : renderVerificationHistoryList();
 
   // this wire up "See Details" toggles for complaints (verification tab has no notes)
@@ -90,7 +112,7 @@ function switchHistoryTab(tab) {
   renderHistoryList();
 }
 
-function renderHistoryPage() {
+async function renderHistoryPage() {
   const emptyView = document.getElementById('history-empty-view');
   const populatedView = document.getElementById('history-populated-view');
   const emptyText = document.getElementById('history-empty-text-main');
@@ -106,7 +128,7 @@ function renderHistoryPage() {
     return;
   }
 
-  const complaints = getComplaintsHistory();
+  const complaints = await apiGetComplaints(getToken());
   const verification = getVerificationHistory();
   const hasNoDataAtAll = complaints.length === 0 && verification.length === 0;
 
