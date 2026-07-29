@@ -52,7 +52,7 @@ def authenticate_consumer(email:str, password:str, db:Session):
         return False
     return user
 
-def create_access_token(username:str, consumer_id, expires_delta:timedelta):
+def create_consumer_access_token(username:str, consumer_id, expires_delta:timedelta):
     encode = {
         "sub": username,
         "id": str(consumer_id)
