@@ -1063,15 +1063,15 @@ function FDAProductDB() {
                       <thead>
                         <tr>
                           <th style={{ width: '40px' }}>#</th>
-                          <th>Registration No.</th>
-                          <th>Product Name</th>
-                          <th>Manufacturer</th>
-                          <th>Category</th>
-                          <th>Date Registered</th>
-                          <th>Expiry Date</th>
-                          <th>Status</th>
-                          <th>Added By</th>
-                          <th style={{ width: '150px', textAlign: 'center' }}>Action</th>
+                          <th>REGISTRATION NO.</th>
+                          <th>PRODUCT NAME</th>
+                          <th>MANUFACTURER</th>
+                          <th>CATEGORY</th>
+                          <th>DATE REGISTERED</th>
+                          <th>EXPIRY DATE</th>
+                          <th>STATUS</th>
+                          <th>ADDED BY</th>
+                          <th style={{ width: '150px', textAlign: 'center' }}>ACTION</th>
                         </tr>
                       </thead>
                       <tbody>
