@@ -384,14 +384,14 @@ function FDAViewReports() {
                           onChange={handleHeaderCheckboxChange}
                         />
                       </th>
-                      <th>Case ID</th>
-                      <th>Product / Manufacturer</th>
-                      <th>Category</th>
-                      <th>Source</th>
-                      <th>Status</th>
-                      <th>Region</th>
-                      <th>Submitted</th>
-                      <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
+                      <th>CASE ID</th>
+                      <th>PRODUCT / MANUFACTURER</th>
+                      <th>CATEGORY</th>
+                      <th>SOURCE</th>
+                      <th>STATUS</th>
+                      <th>REGION</th>
+                      <th>DATE RECEIVED</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>ACTION</th>
                     </tr>
                   </thead>
                   <tbody>

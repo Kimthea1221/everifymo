@@ -1320,14 +1320,14 @@ function FDAVerification() {
                     <table className="FdaTable">
                       <thead>
                         <tr>
-                          <th>Case ID</th>
-                          <th>Product Name</th>
-                          <th>Manufacturer</th>
-                          <th>Category</th>
-                          <th>Date Received</th>
-                          <th>Date Verified</th>
-                          <th>Verification Result</th>
-                          <th>Verified By</th>
+                          <th>CASE ID</th>
+                          <th>PRODUCT NAME</th>
+                          <th>MANUFACTURER</th>
+                          <th>CATEGORY</th>
+                          <th>DATE RECEIVED</th>
+                          <th>DATE VERIFIED</th>
+                          <th>VERIFICATION RESULT</th>
+                          <th>VERIFIED BY</th>
                           <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
                         </tr>
                       </thead>
@@ -1501,14 +1501,14 @@ function FDAVerification() {
                     <table className="FdaTable">
                       <thead>
                         <tr>
-                          <th>Case ID</th>
-                          <th>Product Name</th>
-                          <th>Manufacturer</th>
-                          <th>Category</th>
-                          <th>Date Received</th>
-                          <th>Date Rejected</th>
-                          <th>Rejected By</th>
-                          <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
+                          <th>CASE ID</th>
+                          <th>PRODUCT NAME</th>
+                          <th>MANUFACTURER</th>
+                          <th>CATEGORY</th>
+                          <th>DATE RECEIVED</th>
+                          <th>DATE REJECTED</th>
+                          <th>REJECTED BY</th>
+                          <th style={{ width: '60px', textAlign: 'center' }}>ACTION</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1666,27 +1666,27 @@ function FDAVerification() {
                   {/* Core Details Grid */}
                   <div className="FdaRecordInfoGrid">
                     <div className="FdaRecordInfoItem">
-                      <span className="FdaVerifInfoLabel">Case ID</span>
+                      <span className="FdaVerifInfoLabel">CASE ID</span>
                       <span className="FdaVerifInfoValueHighlight">{fdaRecordModalData.caseId}</span>
                     </div>
                     <div className="FdaRecordInfoItem">
-                      <span className="FdaVerifInfoLabel">Product Name</span>
+                      <span className="FdaVerifInfoLabel">PRODUCT NAME</span>
                       <span className="FdaVerifInfoValue">{fdaRecordModalData.productName}</span>
                     </div>
                     <div className="FdaRecordInfoItem">
-                      <span className="FdaVerifInfoLabel">Manufacturer</span>
+                      <span className="FdaVerifInfoLabel">MANUFACTURER</span>
                       <span className="FdaVerifInfoValue">{fdaRecordModalData.manufacturer}</span>
                     </div>
                     <div className="FdaRecordInfoItem">
-                      <span className="FdaVerifInfoLabel">Product Category</span>
+                      <span className="FdaVerifInfoLabel">PRODUCT CATEGORY</span>
                       <span className="FdaVerifInfoValue">{fdaRecordModalData.category}</span>
                     </div>
                     <div className="FdaRecordInfoItem">
-                      <span className="FdaVerifInfoLabel">Date Received</span>
+                      <span className="FdaVerifInfoLabel">DATE RECEIVED</span>
                       <span className="FdaVerifInfoValue">{fdaRecordModalData.dateReceived}</span>
                     </div>
                     <div className="FdaRecordInfoItem">
-                      <span className="FdaVerifInfoLabel">Requesting LEA Officer</span>
+                      <span className="FdaVerifInfoLabel">REQUESTING LEA OFFICER</span>
                       <span className="FdaVerifInfoValue">{fdaRecordModalData.complainant}</span>
                     </div>
                   </div>
