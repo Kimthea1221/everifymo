@@ -11,9 +11,8 @@ import {Clock3,
         XCircle
 } from 'lucide-react';
 
-// ⚠️ REMOVE THIS
-// 🔌 BACKEND: Dummy cases for FDA Response tab. Real data comes from verification_requests_full view joining complaints table.
-// verification_request_status values: 'queued' | 'pending' | 'confirmed_registered' | 'confirmed_unregistered' | 'rejected' | 'recalled' | 'acknowledged'
+// REMOVE THIS
+// BACKEND: Dummy cases for FDA Response tab. 
 const responseCases = [
   {
     id: 1,
@@ -60,9 +59,8 @@ const responseCases = [
   }
 ];
 
-// ⚠️ REMOVE THIS
-// 🔌 BACKEND: Dummy cases for Initiated Cases tab. Real data comes from verification_requests_full view joining complaints table where complaint_status = 'takedown_initiated'.
-// complaint_status values: 'open' | 'under_review' | 'takedown_initiated' | 'takedown_completed' | 'dismissed'
+// REMOVE THIS
+// BACKEND: Dummy cases for Initiated Cases tab. 
 const initiatedCases = [
   {
     id: 1,
@@ -80,8 +78,8 @@ const initiatedCases = [
   }
 ];
 
-// ⚠️ REMOVE THIS
-// 🔌 BACKEND: Dummy cases for Closed and Dismissed cases. Real data comes from verification_requests_full view joining complaints table where complaint_status = 'dismissed' (includes registered dismissals and acknowledged rejections).
+// REMOVE THIS
+// BACKEND: Dummy cases for Closed and Dismissed cases. 
 const dismissedCases = [
   {
     id: 1,
@@ -126,13 +124,13 @@ function LeaVerificationRequest(){
     }
 
     // NOTE: States for new form inputs
-    // 🔌 BACKEND: priority maps to priority column in verification_requests table
+    // BACKEND: priority maps to priority column in verification_requests table
     const [priority, setPriority] = useState('standard');
-    // 🔌 BACKEND: maps to field_operation_notes in verification_requests
+    // BACKEND: maps to field_operation_notes in verification_requests
     const [fieldOperationNotes, setFieldOperationNotes] = useState('');
-    // 🔌 BACKEND: maps to complaint_statement in verification_requests
+    // BACKEND: maps to complaint_statement in verification_requests
     const [complaintStatement, setComplaintStatement] = useState('Complainant alleges the product was sold without FDA markings. Please confirm registration status of product and manufacturer.');
-    // 🔌 BACKEND: maps to product_code in verification_requests
+    // BACKEND: maps to product_code in verification_requests
     const [productCode, setProductCode] = useState('');
 
     // NOTE: States for the new tabs' selected items
@@ -211,7 +209,7 @@ function LeaVerificationRequest(){
                 }, 3000);
                 
                 /*
-                🔌 BACKEND NOTIFICATION:
+                 BACKEND NOTIFICATION:
                 After this action succeeds, trigger a notification for:
                 - Target: 
                   ${actionType === 'Send Reminder' ? 'FDA verifier assigned to this request' : 
@@ -246,7 +244,7 @@ function LeaVerificationRequest(){
         <div className='LeaDashboardMain'>
             <Sidebar sidebarType="LEA" />
             <div className='LeaContentContainer'>
-                <TopBar />
+                <TopBar topbarType="LEA" />
                 <div className='LeaMainfeed'>
                     <div className='LeaHeader'>
                         <div>
@@ -278,23 +276,23 @@ function LeaVerificationRequest(){
                                 <div className="ReadytoSendQueue">
                                     <div className="ReadytoSendHeader">
                                         <p>Walk-in cases awaiting your request</p>
-                                        {/* ⚠️ REMOVE THIS */}
-                                        {/* 🔌 BACKEND: count of cases where verification_request_status is 'queued' or 'recalled' */}
+                                        {/* REMOVE THIS */}
+                                        {/* BACKEND: count of cases where verification_request_status is 'queued' or 'recalled' */}
                                         <span>1</span> {/*walk in cases count need backend*/}
                                     </div>
 
-                                    {/* 🔌 BACKEND: verification_request_status: 'queued' or 'recalled' */}
+                                    {/* BACKEND: verification_request_status: 'queued' or 'recalled' */}
                                     <div className="QueueCard ActiveQueueCard" id=''>
                                         <div className='QueueLabels'>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: product_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: product_name */}
                                             <h4>HerbalSlim Capsules</h4>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: manufacturer_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: manufacturer_name */}
                                             <p>NatureFit Labs</p>
                                             <small>
-                                                {/* ⚠️ REMOVE THIS */}
-                                                {/* 🔌 BACKEND: caseNumber and loggedDate from verification_requests_full */}
+                                                {/* REMOVE THIS */}
+                                                {/* BACKEND: caseNumber and loggedDate from verification_requests_full */}
                                                 CASE ID: ICM-2025-00185
                                             </small>
                                         </div>
@@ -309,44 +307,44 @@ function LeaVerificationRequest(){
                                 <div className="VerificationDetails">
                                     <div className="VerificationCard">
                                         <div>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: caseNumber */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: caseNumber */}
                                             <small>CASE ID: ICM-2025-00185</small>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: product_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: product_name */}
                                             <h2>HerbalSlim Capsules</h2>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: manufacturer_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: manufacturer_name */}
                                             <p>NatureFit Labs</p>
 
-                                            {/* 🔌 BACKEND: complainant, category, source, and region are NOT stored
+                                            {/* BACKEND: complainant, category, source, and region are NOT stored
                                                 directly in verification_requests. */}
                                             <div className="CaseInfoGrid">
                                                 <div>
                                                     <label>Complainant</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: complainant name */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: complainant name */}
                                                     <p>M. Reyes</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Cetegory</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: category */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: category */}
                                                     <p>Supplement</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Logged</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: created_at */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: created_at */}
                                                     <p>2026-05-17 10:42</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Source</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: source */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: source */}
                                                     <p>Walk-in Intake</p>
                                                 </div>
                                             </div>
@@ -364,7 +362,7 @@ function LeaVerificationRequest(){
                                             <div className="VerificationRow">
                                                 <div>
                                                     <label>Product code (if known)</label>
-                                                    {/* 🔌 BACKEND: maps to product_code in verification_requests */}
+                                                    {/* BACKEND: maps to product_code in verification_requests */}
                                                     <input
                                                         type="text"
                                                         placeholder="Barcode / lot number"
@@ -375,7 +373,7 @@ function LeaVerificationRequest(){
 
                                                 <div>
                                                     <label>Priority</label>
-                                                    {/* 🔌 BACKEND: priority maps to priority column in verification_requests table */}
+                                                    {/* BACKEND: priority maps to priority column in verification_requests table */}
                                                     <select value={priority} onChange={(e) => setPriority(e.target.value)}>
                                                         <option value="standard">Standard</option>
                                                         <option value="high">High (48 hours)</option>
@@ -387,7 +385,7 @@ function LeaVerificationRequest(){
 
                                             <div className="VerificationNotes">
                                                 <label>Notes to FDA verifier</label>
-                                                {/* 🔌 BACKEND: maps to complaint_statement in verification_requests */}
+                                                {/*     BACKEND: maps to complaint_statement in verification_requests */}
                                                 <textarea
                                                     rows="5"
                                                     placeholder="Enter notes for FDA verification..."
@@ -407,11 +405,11 @@ function LeaVerificationRequest(){
                                             </div>
                             
                                             <div className="VerificationActions">
-                                                {/* 🔌 BACKEND: POST to /api/verification-requests (status: draft) */}
+                                                {/* BACKEND: POST to /api/verification-requests (status: draft) */}
                                                 <button className="DraftButton">
                                                     Save Draft
                                                 </button>
-                                                {/* 🔌 BACKEND: POST to /api/verification-requests (status: pending) */}
+                                                {/* BACKEND: POST to /api/verification-requests (status: pending) */}
                                                 <button className="SendReqBtn">
                                                     Send Request to FDA
                                                 </button>
@@ -430,23 +428,23 @@ function LeaVerificationRequest(){
                                 <div className="AwaitingFDAQueue">
                                     <div className="AwaitingHeader">
                                         <p>Request Pending FDA Review</p>
-                                        {/* ⚠️ REMOVE THIS */}
-                                        {/* 🔌 BACKEND: count of cases where verification_request_status is 'pending' */}
+                                        {/* REMOVE THIS */}
+                                        {/* BACKEND: count of cases where verification_request_status is 'pending' */}
                                         <span>1</span>
                                     </div>
 
-                                    {/* 🔌 BACKEND: verification_request_status: 'pending' */}
+                                    {/* BACKEND: verification_request_status: 'pending' */}
                                     <div className="QueueCard ActiveQueueCard" id=''>
                                         <div>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: product_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: product_name */}
                                             <h4>HerbalSlim Capsules</h4>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: manufacturer_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: manufacturer_name */}
                                             <p>NatureFit Labs</p>
                                             <small>
-                                                {/* ⚠️ REMOVE THIS */}
-                                                {/* 🔌 BACKEND: caseNumber */}
+                                                {/* REMOVE THIS */}
+                                                {/* BACKEND: caseNumber */}
                                                 CASE ID: ICM-2025-00185
                                             </small>
                                         </div>
@@ -462,46 +460,46 @@ function LeaVerificationRequest(){
                                 <div className="VerificationDetails">
                                     <div className="VerificationCard">
                                         <div>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: caseNumber */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: caseNumber */}
                                             <small>CASE ID: ICM-2025-00185</small>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: product_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: product_name */}
                                             <h2>HerbalSlim Capsules</h2>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: manufacturer_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: manufacturer_name */}
                                             <p>NatureFit Labs</p>
 
-                                            {/* 🔌 BACKEND: complainant, category, source, and region are NOT stored
+                                            {/* BACKEND: complainant, category, source, and region are NOT stored
                                                 directly in verification_requests. They are fetched via complaint_id
                                                 joining to the complaints and walkin_complainants tables through the
                                                 verification_requests_full view */}
                                             <div className="CaseInfoGrid">
                                                 <div>
                                                     <label>Complainant</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: complainant name */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: complainant name */}
                                                     <p>M. Reyes</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Cetegory</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: category */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: category */}
                                                     <p>Supplement</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Logged</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: created_at */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: created_at */}
                                                     <p>2026-05-17 10:42</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Source</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: source */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: source */}
                                                     <p>Walk-in Intake</p>
                                                 </div>
                                             </div>
@@ -513,17 +511,17 @@ function LeaVerificationRequest(){
                                                     <div className='WaitingIconBox'><Clock3 /></div>
                                                     <div><h3>Awaiting FDA Response</h3></div>
                                                 </div>
-                                                {/* ⚠️ REMOVE THIS */}
-                                                {/* 🔌 BACKEND: maps to requested_at in verification_requests */}
+                                                {/* REMOVE THIS */}
+                                                {/* BACKEND: maps to requested_at in verification_requests */}
                                                 <p>Request sent 2026-05-18 08:10. FDA verifier will respond with a digital confirmation of registration status.</p>
                                             </div>
                                             <div className='ButtonsForResponse'>
-                                                {/* 🔌 BACKEND: POST to /api/verification-requests/:id/reminder */}
+                                                {/* BACKEND: POST to /api/verification-requests/:id/reminder */}
                                                 <button className='SendReminderBtn' onClick={() => handleActionButtonClick('Send Reminder', 'ICM-2025-00185', 1)}>
                                                     <BellRing />
                                                     <p>Send Reminder</p>
                                                 </button>
-                                                {/* 🔌 BACKEND: PATCH to /api/verification-requests/:id (status: recalled) */}
+                                                {/* BACKEND: PATCH to /api/verification-requests/:id (status: recalled) */}
                                                 <button className='RecallRequestBtn' onClick={() => handleActionButtonClick('Recall Request', 'ICM-2025-00185', 1)}>Recall Request</button>
                                             </div>
                                         </div>
@@ -539,8 +537,8 @@ function LeaVerificationRequest(){
                                 <div className="FDAResponseQueue">
                                     <div className="FDAResponseHeader">
                                         <p>FDA confirmations received</p>
-                                        {/* ⚠️ REMOVE THIS */}
-                                        {/* 🔌 BACKEND: count of responseCases */}
+                                        {/* REMOVE THIS */}
+                                        {/* BACKEND: count of responseCases */}
                                         <span>{responseCases.length}</span>
                                     </div>
 
@@ -555,7 +553,7 @@ function LeaVerificationRequest(){
                                                 <h4>{item.product}</h4>
                                                 <p>{item.manufacturer}</p>
                                                 <small>
-                                                    {/* 🔌 BACKEND: status badge reflects verification_request_status ('confirmed_registered' | 'confirmed_unregistered' | 'rejected') */}
+                                                    {/*  BACKEND: status badge reflects verification_request_status ('confirmed_registered' | 'confirmed_unregistered' | 'rejected') */}
                                                     CASE ID: {item.caseNumber}
                                                 </small>
                                             </div>
@@ -579,46 +577,46 @@ function LeaVerificationRequest(){
                                 <div className='VerificationDetails'>
                                    <div className='VerificationCard'>
                                         <div>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: caseNumber */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: caseNumber */}
                                             <small>CASE ID: {selectedResponse.caseNumber}</small>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: product_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: product_name */}
                                             <h2>{selectedResponse.product}</h2>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: manufacturer_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: manufacturer_name */}
                                             <p>{selectedResponse.manufacturer}</p>
 
-                                            {/* 🔌 BACKEND: complainant, category, source, and region are NOT stored
+                                            {/* BACKEND: complainant, category, source, and region are NOT stored
                                                 directly in verification_requests. They are fetched via complaint_id
                                                 joining to the complaints and walkin_complainants tables through the
                                                 verification_requests_full view */}
                                             <div className="CaseInfoGrid">
                                                 <div>
                                                     <label>Complainant</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: complainant name */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: complainant name */}
                                                     <p>{selectedResponse.complainant}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Cetegory</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: category */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: category */}
                                                     <p>{selectedResponse.category}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Logged</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: created_at */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: created_at */}
                                                     <p>{selectedResponse.loggedDate}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Source</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: source */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: source */}
                                                     <p>{selectedResponse.source}</p>
                                                 </div>
                                             </div>
@@ -631,16 +629,16 @@ function LeaVerificationRequest(){
                                                         <XCircle style={{ color: '#EF4444' }} />
                                                         <div className='StatementReturn'>
                                                             <h3>Request Rejected by FDA</h3>
-                                                            {/* ⚠️ REMOVE THIS */}
-                                                            {/* 🔌 BACKEND: rejectedBy maps to user who updated status, returnedDate maps to responded_at */}
+                                                            {/* REMOVE THIS */}
+                                                            {/* BACKEND: rejectedBy maps to user who updated status, returnedDate maps to responded_at */}
                                                             <p>Rejected by: {selectedResponse.rejectedBy} · {selectedResponse.returnedDate}</p>
                                                         </div> 
                                                     </div>
                                                     
                                                     <div className="RejectionReasonBox">
                                                         <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#ea580c', fontWeight: '600', marginBottom: '6px' }}>Reason for Rejection</label>
-                                                        {/* ⚠️ REMOVE THIS */}
-                                                        {/* 🔌 BACKEND: rejectionReason maps to rejection_reason in verification_requests */}
+                                                        {/* REMOVE THIS */}
+                                                        {/* BACKEND: rejectionReason maps to rejection_reason in verification_requests */}
                                                         <p className="ReasonDetail">{selectedResponse.rejectionReason}</p>
                                                     </div>
                                                     
@@ -649,7 +647,7 @@ function LeaVerificationRequest(){
                                                     </p>
                                                     
                                                     <div className='ResponseBtn' style={{ marginTop: '20px' }}>
-                                                        {/* 🔌 BACKEND: PATCH /api/verification-requests/:id (status: acknowledged) AND PATCH /api/complaints/:id (complaint_status: dismissed) */}
+                                                        {/*  BACKEND: PATCH /api/verification-requests/:id (status: acknowledged) AND PATCH /api/complaints/:id (complaint_status: dismissed) */}
                                                         <button 
                                                             style={{ width: '300', height: '40px' }}
                                                             onClick={() => handleActionButtonClick('Acknowledge', selectedResponse.caseNumber, selectedResponse.id)}
@@ -664,11 +662,11 @@ function LeaVerificationRequest(){
                                                         <ShieldCheck />
                                                         <div className='StatementReturn'>
                                                             <h3>FDA digital confirmation received</h3>
-                                                            {/* ⚠️ REMOVE THIS */}
-                                                            {/* 🔌 BACKEND: responded_by -> users.user_id join */}
+                                                            {/* REMOVE THIS */}
+                                                            {/* BACKEND: responded_by -> users.user_id join */}
                                                             <p className="VerifiedByText">Verified by: Dr. J. Santos · FDA Officer</p>
-                                                            {/* ⚠️ REMOVE THIS */}
-                                                            {/* 🔌 BACKEND: returnedDate maps to responded_at, sentDate to requested_at */}
+                                                            {/* REMOVE THIS */}
+                                                            {/* BACKEND: returnedDate maps to responded_at, sentDate to requested_at */}
                                                             <p>Returned {selectedResponse.returnedDate} · sent {selectedResponse.sentDate}</p>
                                                         </div> 
                                                     </div>
@@ -689,7 +687,7 @@ function LeaVerificationRequest(){
                                                     </div>
                                                     <div className='ResponseUpdateBox'>
                                                         <h6>Field operation status update</h6>
-                                                        {/* 🔌 BACKEND: fieldOperationNotes maps to field_operation_notes column in verification_requests — PATCH to /api/verification-requests/:id */}
+                                                        {/*  BACKEND: fieldOperationNotes maps to field_operation_notes column in verification_requests — PATCH to /api/verification-requests/:id */}
                                                         <textarea 
                                                             name="" 
                                                             id="" 
@@ -722,8 +720,8 @@ function LeaVerificationRequest(){
                                 <div className="FDAResponseQueue">
                                     <div className="FDAResponseHeader">
                                         <p>Cases with active takedown operations</p>
-                                        {/* ⚠️ REMOVE THIS */}
-                                        {/* 🔌 BACKEND: count of cases where complaint_status = 'takedown_initiated' */}
+                                        {/* REMOVE THIS */}
+                                        {/* BACKEND: count of cases where complaint_status = 'takedown_initiated' */}
                                         <span>{initiatedCases.length}</span>
                                     </div>
 
@@ -753,46 +751,46 @@ function LeaVerificationRequest(){
                                 <div className='VerificationDetails'>
                                     <div className='VerificationCard'>
                                         <div>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: caseNumber */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: caseNumber */}
                                             <small>CASE ID: {selectedInitiatedCase.caseNumber}</small>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: product_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: product_name */}
                                             <h2>{selectedInitiatedCase.product}</h2>
-                                            {/* ⚠️ REMOVE THIS */}
-                                            {/* 🔌 BACKEND: manufacturer_name */}
+                                            {/* REMOVE THIS */}
+                                            {/* BACKEND: manufacturer_name */}
                                             <p>{selectedInitiatedCase.manufacturer}</p>
 
-                                            {/* 🔌 BACKEND: complainant, category, source, and region are NOT stored
+                                            {/* BACKEND: complainant, category, source, and region are NOT stored
                                                 directly in verification_requests. They are fetched via complaint_id
                                                 joining to the complaints and walkin_complainants tables through the
-                                                verification_requests_full view */}
+                                                verification_requests full view */}
                                             <div className="CaseInfoGrid">
                                                 <div>
                                                     <label>Complainant</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: complainant name */}
+                                                    {/* REMOVE THIS */}
+                                                    {/* BACKEND: complainant name */}
                                                     <p>{selectedInitiatedCase.complainant}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Cetegory</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: category */}
+                                                    {/*  REMOVE THIS */}
+                                                    {/* BACKEND: category */}
                                                     <p>{selectedInitiatedCase.category}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Logged</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: created_at */}
+                                                    {/*  REMOVE THIS */}
+                                                    {/* BACKEND: created_at */}
                                                     <p>{selectedInitiatedCase.loggedDate}</p>
                                                 </div>
 
                                                 <div>
                                                     <label>Source</label>
-                                                    {/* ⚠️ REMOVE THIS */}
-                                                    {/* 🔌 BACKEND: source */}
+                                                    {/*  REMOVE THIS */}
+                                                    {/* BACKEND: source */}
                                                     <p>{selectedInitiatedCase.source}</p>
                                                 </div>
                                             </div>
@@ -801,7 +799,7 @@ function LeaVerificationRequest(){
                                         <div className='ConfirmationReturned'>
                                             <div className='ResponseUpdateBox' style={{ marginTop: '0px' }}>
                                                 <h6>Field operation status update</h6>
-                                                {/* 🔌 BACKEND: fieldOperationNotes maps to field_operation_notes column in verification_requests — PATCH to /api/verification-requests/:id */}
+                                                {/* BACKEND: fieldOperationNotes maps to field_operation_notes column in verification_requests — PATCH to /api/verification-requests/:id */}
                                                 <textarea 
                                                     placeholder="Enter notes on field operation progress..."
                                                     value={fieldOperationNotes}
@@ -809,7 +807,7 @@ function LeaVerificationRequest(){
                                                 ></textarea>
                                             </div>
                                             <div className='ResponseBtn' style={{ marginTop: '20px' }}>
-                                                {/* 🔌 BACKEND: Close Case -> PATCH /api/complaints/:id (complaint_status: completed) */}
+                                                {/* BACKEND: Close Case -> PATCH /api/complaints/:id (complaint_status: completed) */}
                                                 <button onClick={() => handleActionButtonClick('Close Case', selectedInitiatedCase.caseNumber, selectedInitiatedCase.id)}>
                                                     Close Case
                                                 </button>
@@ -826,7 +824,7 @@ function LeaVerificationRequest(){
                                 {/* Filters Bar — matches Saved Drafts filter style */}
                                 <div className="DraftsFilterSection">
                                     <div className="DraftsFilterControls">
-                                        {/* 🔌 BACKEND: pass filterDateFrom as from_date query param */}
+                                        {/* BACKEND: pass filterDateFrom as from_date query param */}
                                         <input
                                             type="date"
                                             className="DraftsFilterDropdown"
@@ -834,7 +832,7 @@ function LeaVerificationRequest(){
                                             onChange={(e) => setFilterDateFrom(e.target.value)}
                                             title="Closed From"
                                         />
-                                        {/* 🔌 BACKEND: pass filterDateTo as to_date query param */}
+                                        {/* BACKEND: pass filterDateTo as to_date query param */}
                                         <input
                                             type="date"
                                             className="DraftsFilterDropdown"
@@ -842,7 +840,7 @@ function LeaVerificationRequest(){
                                             onChange={(e) => setFilterDateTo(e.target.value)}
                                             title="Closed To"
                                         />
-                                        {/* 🔌 BACKEND: pass filterCategory as category query param */}
+                                        {/* BACKEND: pass filterCategory as category query param */}
                                         <select
                                             className="DraftsFilterDropdown"
                                             value={filterCategory}
@@ -866,7 +864,7 @@ function LeaVerificationRequest(){
                                             Clear Filters
                                         </button>
                                     </div>
-                                    {/* 🔌 BACKEND: GET /api/complaints?status=dismissed&from_date=${filterDateFrom}&to_date=${filterDateTo}&category=${filterCategory} */}
+                                    {/* BACKEND: GET /api/complaints?status=dismissed&from_date=${filterDateFrom}&to_date=${filterDateTo}&category=${filterCategory} */}
                                     <div className="DraftsTotalCount">
                                         Total Cases: {filteredDismissed.length}
                                     </div>
@@ -959,7 +957,7 @@ function LeaVerificationRequest(){
                             Case Details — {viewCaseModalData.caseId}
                         </h4>
                         
-                        {/* 🔌 BACKEND: GET /api/complaints/:id for full case details */}
+                        {/* BACKEND: GET /api/complaints/:id for full case details */}
                         <div className="CaseInfoGrid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', borderTop: '1px solid #EDEDED', borderBottom: '1px solid #EDEDED', padding: '16px 0', margin: '16px 0' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#7a8796', marginBottom: '4px' }}>Product Name</label>

@@ -157,7 +157,7 @@ function Login(){
         )
         if(match){
           setIsOtpSent(true)
-          setTimer(180)
+          setTimer(300)
           setLoginError('')
         }else{
           setLoginError('Invalid email or password')
@@ -315,9 +315,7 @@ function Login(){
                   )}
                 </div>
 
-                <button type="button" className="LoginBackToLoginBtn" onClick={handleBackToLogin}>
-                  ← Back to login credentials
-                </button>
+                
               </div>
             )}
             
@@ -326,6 +324,11 @@ function Login(){
             <button className="LoginButton" onClick={handleLogin}>
               {isOtpSent ? 'Verify & Login' : 'Login'}
             </button>
+            {isOtpSent && (
+              <button type="button" className="LoginBackToLoginBtn" onClick={handleBackToLogin}>
+                ← Back to login credentials
+              </button>
+            )}
           </div>
         </div>
 

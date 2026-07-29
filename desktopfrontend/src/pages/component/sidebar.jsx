@@ -25,7 +25,7 @@ const SuperAdminMenuItems = [
 const FDAMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/fdafolder/fda-dashboard' },
     { icon: FileText, label: 'View Reports', path: '/fdafolder/fda-view-reports' },
-    { icon: ShieldCheck, label: 'Verification Request', path: '/fdafolder/fda-verification' },
+    { icon: ShieldCheck, label: 'Verification Queue', path: '/fdafolder/fda-verification' },
     { icon: RefreshCw, label: 'Status Update', path: '/fdafolder/fda-status' },
     { icon: Database, label: 'Product Database', path: '/fdafolder/fda-product-db' },
 ]
