@@ -25,7 +25,7 @@ document.addEventListener("mouseup", () => {
             const range = window.getSelection().getRangeAt(0).getBoundingClientRect();
           
             verifyBtn.style.left = range.left + "px";
-            verifyBtn.style.top = (range.top - 35) + "px";
+            verifyBtn.style.top = (range.bottom + 8) + "px";
             verifyBtn.style.display = "block";
         } else {
             verifyBtn.style.display = "none";
@@ -81,3 +81,8 @@ verifyBtn.addEventListener("click", () => {
         // "https://*.lazada.com.ph/*",
         // "https://*.tiktok.com/*",
         // "https://*.facebook.com/*"
+
+        // "https://shopee.ph/*",
+        // "https://www.lazada.com.ph/*",
+        // "https://www.tiktok.com/*",
+        // "https://www.facebook.com/marketplace/*"

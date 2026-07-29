@@ -229,22 +229,22 @@ function applyGuestHeaderVisibility() {
   if (dropdownBtn) dropdownBtn.classList.toggle('hidden', !loggedIn);
 }
 
-if (confirmUsernameBtn) {
-  confirmUsernameBtn.addEventListener('click', () => {
-    const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
+// if (confirmUsernameBtn) {
+//   confirmUsernameBtn.addEventListener('click', () => {
+//     const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
 
-    if (!newValue) {
-      if (newUsernameInput) newUsernameInput.classList.add('is-invalid');
-      return;
-    }
-    if (newUsernameInput) newUsernameInput.classList.remove('is-invalid');
+//     if (!newValue) {
+//       if (newUsernameInput) newUsernameInput.classList.add('is-invalid');
+//       return;
+//     }
+//     if (newUsernameInput) newUsernameInput.classList.remove('is-invalid');
 
-    updateUsername(newValue, (success) => {
-      if (success) {
-        renderProfileContent();
-        if (typeof applyAuthView === 'function') applyAuthView();
-        showProfileView('profile-main-view');
-      }
-    });
-  });
-}
+//     updateUsername(newValue, (success) => {
+//       if (success) {
+//         renderProfileContent();
+//         if (typeof applyAuthView === 'function') applyAuthView();
+//         showProfileView('profile-main-view');
+//       }
+//     });
+//   });
+// }

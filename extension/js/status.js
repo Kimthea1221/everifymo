@@ -55,7 +55,7 @@ function renderComplaintCard(complaint) {
   `;
 }
 
-function renderComplaintStatusPage() {
+async function renderComplaintStatusPage() {
   const emptyView = document.getElementById('status-empty-view');
   const populatedView = document.getElementById('status-populated-view');
   const emptyText = document.getElementById('status-empty-text-main');
