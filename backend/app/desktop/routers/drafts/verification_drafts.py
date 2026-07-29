@@ -83,7 +83,7 @@ def get_verification_draft(
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found.")
 
-    complaint_detail = get_complaint_verification_detail(db, draft.complaint_id)
+    complaint_detail = get_complaint_verification_detail(db, draft.complaint_id, current_user.region_id)
 
     return VerificationRequestDraftDetailResponse(
         draft_id=draft.draft_id,

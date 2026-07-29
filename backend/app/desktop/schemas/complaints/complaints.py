@@ -27,6 +27,17 @@ class ComplaintResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ComplaintAwaitingRequestResponse(BaseModel):
+    complaint_id: UUID
+    case_reference: str
+    product_title: str
+    manufacturer: str | None
+    source: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ============================================================
 # VERIFICATION REQUEST
 # ============================================================

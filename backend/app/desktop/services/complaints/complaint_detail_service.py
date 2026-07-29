@@ -12,7 +12,7 @@ from app.desktop.schemas.complaints.complaints import (
 )
 
 
-def get_complaint_verification_detail(db: Session, complaint_id: UUID) -> ComplaintVerificationDetailResponse:
+def get_complaint_verification_detail(db: Session, complaint_id: UUID, region_id: UUID) -> ComplaintVerificationDetailResponse:
     """
     Shared by two callers: the direct complaint-click flow (Case 1)
     and get_verification_draft (Case 2). Only exists here once, so
@@ -21,7 +21,10 @@ def get_complaint_verification_detail(db: Session, complaint_id: UUID) -> Compla
     """
     result = db.query(Complaint, WalkinComplainant).outerjoin(
         WalkinComplainant, Complaint.complainant_id == WalkinComplainant.complainant_id
-    ).filter(Complaint.complaint_id == complaint_id).first()
+    ).filter(
+        Complaint.complaint_id == complaint_id,
+        Complaint.region_id == region_id,   # ADD THIS LINE
+    ).first()
 
     if not result:
         raise HTTPException(status_code=404, detail="Complaint not found.")
