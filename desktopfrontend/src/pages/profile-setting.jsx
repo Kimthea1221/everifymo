@@ -28,31 +28,85 @@ import './leacidgfolder/lea-css.css';
 import './superadminfolder/superadmin-css.css';
 
 /**
+ * Helper function to determine the authenticated user's role/agency consistently across the component.
+ * Evaluates storage values ('agency' or 'role') and normalizes them into one of three standardized roles:
+ * - 'SUPERADMIN': Super Admin Personnel
+ * - 'LEA': Law Enforcement Agency (CIDG / LEA) Personnel
+ * - 'FDA': Food and Drug Administration Officer (Default Fallback)
+ */
+const getAuthenticatedUserRole = () => {
+  const rawAgency = (localStorage.getItem('agency') || localStorage.getItem('role') || 'FDA').toString().trim().toUpperCase();
+  if (rawAgency.includes('SUPER')) {
+    return 'SUPERADMIN';
+  }
+  if (rawAgency === 'LEA' || rawAgency === 'CIDG' || rawAgency.includes('LEA') || rawAgency.includes('CIDG')) {
+    return 'LEA';
+  }
+  return 'FDA';
+};
+
+/**
+ * Helper function that returns standard default profile details according to the authenticated user's role.
+ * Used for initial form state and resetting form values on cancel.
+ */
+const getDefaultProfileData = (role) => {
+  if (role === 'SUPERADMIN') {
+    return {
+      firstName: 'Super',
+      middleName: '',
+      lastName: 'Admin',
+      employeeId: 'SA-2026-0001',
+      email: 'admin@icmda.gov.ph',
+      agency: 'SUPERADMIN',
+      region: 'Headquarters (NCR)',
+      contactNumber: '09170000000',
+      department: 'System Administration',
+      position: 'System Administrator',
+    };
+  }
+  if (role === 'LEA') {
+    return {
+      firstName: 'Jun',
+      middleName: '',
+      lastName: 'Cat',
+      employeeId: 'CIDG-2026-0391',
+      email: 'jun.cat@gmail.com',
+      agency: 'LEA-CIDG',
+      region: 'NCR - National Capital Region',
+      contactNumber: '09228765432',
+      department: 'Anti-Fraud and Commercial Crimes Unit',
+      position: 'Chief Investigator',
+    };
+  }
+  // Default FDA profile details
+  return {
+    firstName: 'Kristine',
+    middleName: '',
+    lastName: 'Fajardo',
+    employeeId: 'EMP-2026-0892',
+    email: 'kristine.fajardo@gmail.com',
+    agency: 'FDA',
+    region: 'Region IV-A (CALABARZON)',
+    contactNumber: '09171234567',
+    department: 'Regulation and Enforcement Division',
+    position: 'Senior Food and Drug Officer',
+  };
+};
+
+/**
  * PROFILE & SETTINGS COMPONENT FOR ICMDA
- * Used by both FDA, LEA-CIDG, and Super Admin personnel.
+ * Used by FDA, LEA-CIDG, and Super Admin personnel.
  * Styled with neutral colors (#13213C Navy, #1F2937 Slate, #FCA311 Gold Accent).
  * Wraps itself in the corresponding dashboard layout (Sidebar + TopBar) depending on logged-in agency.
  */
 function ProfileSetting() {
   const navigate = useNavigate();
 
-  // Determine logged-in agency from local storage to dynamically load the respective default data and layout wrappers
-  const loggedAgency = (localStorage.getItem('agency') || 'FDA').toUpperCase();
-  const defaultAgency = loggedAgency === 'CIDG' || loggedAgency === 'LEA' || loggedAgency === 'LEA-CIDG' ? 'LEA-CIDG' : 'FDA';
+  // Centralized source of truth for the authenticated user's role
+  const currentRole = getAuthenticatedUserRole();
 
-  // Primary user profile state pre-filled based on logged-in agency
-  const [form, setForm] = useState({
-    firstName: defaultAgency === 'FDA' ? 'Kristine' : 'Jun',
-    middleName: defaultAgency === 'FDA' ? '' : '',
-    lastName: defaultAgency === 'FDA' ? 'Fajardo' : 'Cat',
-    employeeId: defaultAgency === 'FDA' ? 'EMP-2026-0892' : 'CIDG-2026-0391',
-    email: defaultAgency === 'FDA' ? 'kristine.fajardo@gmail.com' : 'jun.cat@gmail.com',
-    agency: defaultAgency, // Pre-filled and read-only
-    region: defaultAgency === 'FDA' ? 'Region IV-A (CALABARZON)' : 'NCR - National Capital Region',
-    contactNumber: defaultAgency === 'FDA' ? '09171234567' : '09228765432',
-    department: defaultAgency === 'FDA' ? 'Regulation and Enforcement Division' : 'Anti-Fraud and Commercial Crimes Unit',
-    position: defaultAgency === 'FDA' ? 'Senior Food and Drug Officer' : 'Chief Investigator',
-  });
+  // Primary user profile state pre-filled based on authenticated user's role
+  const [form, setForm] = useState(() => getDefaultProfileData(currentRole));
 
   // Password / Security state
   const [security, setSecurity] = useState({
@@ -65,6 +119,30 @@ function ProfileSetting() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Superadmin profile state (placeholder for backend integration)
+  const [superAdminProfile, setSuperAdminProfile] = useState({
+    name: 'Kristine',
+    email: 'admin@icmda.gov.ph',
+    role: 'Super Administrator',
+  });
+
+  // Superadmin password state (placeholder for backend integration)
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  // Superadmin password visibility states
+  const [showSuperCurrent, setShowSuperCurrent] = useState(false);
+  const [showSuperNew, setShowSuperNew] = useState(false);
+  const [showSuperConfirm, setShowSuperConfirm] = useState(false);
+
+  const handlePasswordDataChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
 
   // Form interaction/validation states
   const [errors, setErrors] = useState({});
@@ -224,20 +302,9 @@ function ProfileSetting() {
     }, 1200);
   };
 
-  // Revert updates
+  // Revert updates back to role defaults
   const handleCancel = () => {
-    setForm({
-      firstName: defaultAgency === 'FDA' ? 'Kristine' : 'Jun',
-      middleName: defaultAgency === 'FDA' ? '' : '',
-      lastName: defaultAgency === 'FDA' ? 'Fajardo' : 'Cat',
-      employeeId: defaultAgency === 'FDA' ? 'EMP-2026-0892' : 'CIDG-2026-0391',
-      email: defaultAgency === 'FDA' ? 'kristine.fajardo@gmail.com' : 'juna.cat@gmail.com',
-      agency: defaultAgency,
-      region: defaultAgency === 'FDA' ? 'Region IV-A (CALABARZON)' : 'NCR - National Capital Region',
-      contactNumber: defaultAgency === 'FDA' ? '09171234567' : '09228765432',
-      department: defaultAgency === 'FDA' ? 'Regulation and Enforcement Division' : 'Anti-Fraud and Commercial Crimes Unit',
-      position: defaultAgency === 'FDA' ? 'Senior Food and Drug Officer' : 'Chief Investigator',
-    });
+    setForm(getDefaultProfileData(currentRole));
 
     setSecurity({
       currentPassword: '',
@@ -256,439 +323,576 @@ function ProfileSetting() {
     console.log('Profile edit cancelled. Reverted to default settings.');
   };
 
-  const isFDA = form.agency === 'FDA';
-
-  // Determine layout classes and sidebar settings based on agency role
-  const agencyLower = (localStorage.getItem('agency') || 'fda').toLowerCase();
-  
-  let sidebarType = 'FDA';
-  let mainContainerClass = 'FdaDashboardMain';
-  let contentContainerClass = 'FdaContentContainer';
-  let mainFeedClass = 'FdaMainFeed';
-
-  if (agencyLower === 'superadmin') {
-    sidebarType = 'SUPER_ADMIN';
-    mainContainerClass = 'SuperadminMainContainer';
-    contentContainerClass = 'SuperadminContentContainer';
-    mainFeedClass = 'SuperadminMainfeed';
-  } else if (agencyLower === 'cidg' || agencyLower === 'lea' || agencyLower === 'lea-cidg') {
-    sidebarType = 'LEA';
-    mainContainerClass = 'LeaDashboardMain';
-    contentContainerClass = 'LeaContentContainer';
-    mainFeedClass = 'LeaMainfeed';
-  }
+  // Dynamic layout configuration and theme colors mapped directly from currentRole
+  const layoutConfig = {
+    SUPERADMIN: {
+      sidebarType: 'SUPER_ADMIN',
+      mainContainerClass: 'SuperadminMainContainer',
+      contentContainerClass: 'SuperadminContentContainer',
+      mainFeedClass: 'SuperadminMainfeed',
+      headerThemeClass: 'agency-superadmin',
+    },
+    LEA: {
+      sidebarType: 'LEA',
+      mainContainerClass: 'LeaDashboardMain',
+      contentContainerClass: 'LeaContentContainer',
+      mainFeedClass: 'LeaMainfeed',
+      headerThemeClass: 'agency-lea',
+    },
+    FDA: {
+      sidebarType: 'FDA',
+      mainContainerClass: 'FdaDashboardMain',
+      contentContainerClass: 'FdaContentContainer',
+      mainFeedClass: 'FdaMainFeed',
+      headerThemeClass: 'agency-fda',
+    },
+  }[currentRole];
 
   return (
     <>
       <style>{styles}</style>
       
-      <div className={mainContainerClass}>
-        <Sidebar sidebarType={sidebarType} />
+      <div className={layoutConfig.mainContainerClass}>
+        <Sidebar sidebarType={layoutConfig.sidebarType} />
         
-        <div className={contentContainerClass}>
-          <TopBar />
+        <div className={layoutConfig.contentContainerClass}>
+          <TopBar topbarType={layoutConfig.sidebarType} />
           
-          <div className={mainFeedClass}>
-            <div className="ProfileContainer">
-              
-              {/* Profile Header */}
-              <div className={`ProfileHeaderCard ${isFDA ? 'agency-fda' : 'agency-lea'}`}>
-                <div className="ProfileAvatarCircle">
-                  <User size={48} />
-                </div>
+          <div className={layoutConfig.mainFeedClass}>
+            {currentRole === 'SUPERADMIN' ? (
+              <div className="SuperAdminProfileContainer">
+                
+                {/* 1. Profile Information Card */}
+                <div className="SuperAdminProfileCard">
+                  <div className="SuperAdminProfileHeader">
+                    <div className="SuperAdminProfileAvatar">
+                      <User size={32} />
+                    </div>
+                    <div>
+                      <h2 className="SuperAdminProfileTitle">Profile Information</h2>
+                      <p className="SuperAdminProfileSubtitle">Super Administrator account details</p>
+                    </div>
+                  </div>
 
-                <div className="ProfileHeaderInfo">
-                  <h1 className="ProfileHeaderTitle">
-                    {form.firstName} {form.middleName ? form.middleName + ' ' : ''}{form.lastName}
-                    <span className="ProfileAgencyBadge">{form.agency}</span>
-                  </h1>
-                  <div className="ProfileHeaderMeta">
-                    <div className="ProfileMetaItem">
-                      <Mail size={14} />
-                      <span>{form.email}</span>
+                  <div className="SuperAdminProfileInfo">
+                    <div className="SuperAdminProfileInfoRow">
+                      <span className="SuperAdminProfileLabel">Full Name</span>
+                      <span className="SuperAdminProfileValue">{superAdminProfile.name}</span>
                     </div>
-                    <div className="ProfileMetaItem">
-                      <Building2 size={14} />
-                      <span>{form.department}</span>
+                    <div className="SuperAdminProfileInfoRow">
+                      <span className="SuperAdminProfileLabel">Email Address</span>
+                      <span className="SuperAdminProfileValue">{superAdminProfile.email}</span>
                     </div>
-                    <div className="ProfileMetaItem">
-                      <MapPin size={14} />
-                      <span>{form.region}</span>
+                    <div className="SuperAdminProfileInfoRow">
+                      <span className="SuperAdminProfileLabel">Role</span>
+                      <span className="SuperAdminProfileValueBadge">{superAdminProfile.role}</span>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Status notification banner */}
-              {saveStatus && (
-                <div className={`ProfileStatusBanner ${
-                  saveStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
-                }`}>
-                  {saveStatus.type === 'success' ? (
-                    <CheckCircle2 size={18} />
-                  ) : (
-                    <AlertCircle size={18} />
-                  )}
-                  <span>{saveStatus.message}</span>
-                </div>
-              )}
+                {/* 2. Security Credentials Card */}
+                <div className="SuperAdminSecurityCard">
+                  <div className="SuperAdminProfileHeader">
+                    <div className="SuperAdminSecurityIconBadge">
+                      <Lock size={20} />
+                    </div>
+                    <div>
+                      <h2 className="SuperAdminProfileTitle">Security Credentials</h2>
+                      <p className="SuperAdminProfileSubtitle">Manage and update your account password</p>
+                    </div>
+                  </div>
 
-              {/* Form sections */}
-              <form onSubmit={handleSubmit} noValidate>
-                <div className="ProfileGrid">
-                  
-                  {/* Left Column: Account & Profile details */}
-                  <div className="ProfileCard">
-                    <div className="ProfileCardHeader">
-                      <h2 className="ProfileCardTitle">
-                        <User size={18} />
-                        Account & Personnel Information
-                      </h2>
-                      <p className="ProfileCardDesc">
-                        Manage your general profile details and agency identification settings.
-                      </p>
+                  <div className="SuperAdminPasswordSection">
+                    {/* Current Password */}
+                    <div className="SuperAdminFormGroup">
+                      <label className="SuperAdminProfileLabel">Current Password</label>
+                      <div className="SuperAdminInputWrapper">
+                        <Key className="SuperAdminInputIcon" size={16} />
+                        <input
+                          className="SuperAdminInput"
+                          type={showSuperCurrent ? 'text' : 'password'}
+                          name="currentPassword"
+                          value={passwordData.currentPassword}
+                          onChange={handlePasswordDataChange}
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          className="SuperAdminPasswordToggle"
+                          onClick={() => setShowSuperCurrent(!showSuperCurrent)}
+                          aria-label="Toggle Password Visibility"
+                        >
+                          {showSuperCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Read Only Fields Container */}
-                    <div className="ProfileReadonlySection">
-                      <div className="ProfileReadonlyTitle">
-                        <Shield size={13} />
-                        Official Account Classification (Read-Only)
+                    {/* New Password */}
+                    <div className="SuperAdminFormGroup">
+                      <label className="SuperAdminProfileLabel">New Password</label>
+                      <div className="SuperAdminInputWrapper">
+                        <Lock className="SuperAdminInputIcon" size={16} />
+                        <input
+                          className="SuperAdminInput"
+                          type={showSuperNew ? 'text' : 'password'}
+                          name="newPassword"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordDataChange}
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          className="SuperAdminPasswordToggle"
+                          onClick={() => setShowSuperNew(!showSuperNew)}
+                          aria-label="Toggle Password Visibility"
+                        >
+                          {showSuperNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
                       </div>
-                      
+                    </div>
+
+                    {/* Confirm New Password */}
+                    <div className="SuperAdminFormGroup">
+                      <label className="SuperAdminProfileLabel">Confirm New Password</label>
+                      <div className="SuperAdminInputWrapper">
+                        <Lock className="SuperAdminInputIcon" size={16} />
+                        <input
+                          className="SuperAdminInput"
+                          type={showSuperConfirm ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordDataChange}
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          className="SuperAdminPasswordToggle"
+                          onClick={() => setShowSuperConfirm(!showSuperConfirm)}
+                          aria-label="Toggle Password Visibility"
+                        >
+                          {showSuperConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Password Requirements Box */}
+                    <div className="SuperAdminPasswordRequirementCard">
+                      <div className="SuperAdminRequirementTitle">
+                        <Shield size={15} />
+                        Password Requirements
+                      </div>
+                      <ul className="SuperAdminRequirementList">
+                        <li>Minimum length of 8 characters</li>
+                        <li>Include upper &amp; lowercase letters</li>
+                        <li>Include numbers &amp; special characters</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              <div className="ProfileContainer">
+                
+                {/* Profile Header */}
+                <div className={`ProfileHeaderCard ${layoutConfig.headerThemeClass}`}>
+                  <div className="ProfileAvatarCircle">
+                    <User size={48} />
+                  </div>
+
+                  <div className="ProfileHeaderInfo">
+                    <h1 className="ProfileHeaderTitle">
+                      {form.firstName} {form.middleName ? form.middleName + ' ' : ''}{form.lastName}
+                      <span className="ProfileAgencyBadge">{form.agency}</span>
+                    </h1>
+                    <div className="ProfileHeaderMeta">
+                      <div className="ProfileMetaItem">
+                        <Mail size={14} />
+                        <span>{form.email}</span>
+                      </div>
+                      <div className="ProfileMetaItem">
+                        <Building2 size={14} />
+                        <span>{form.department}</span>
+                      </div>
+                      <div className="ProfileMetaItem">
+                        <MapPin size={14} />
+                        <span>{form.region}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status notification banner */}
+                {saveStatus && (
+                  <div className={`ProfileStatusBanner ${
+                    saveStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
+                  }`}>
+                    {saveStatus.type === 'success' ? (
+                      <CheckCircle2 size={18} />
+                    ) : (
+                      <AlertCircle size={18} />
+                    )}
+                    <span>{saveStatus.message}</span>
+                  </div>
+                )}
+
+                {/* Form sections */}
+                <form onSubmit={handleSubmit} noValidate>
+                  <div className="ProfileGrid">
+                    
+                    {/* Left Column: Account & Profile details */}
+                    <div className="ProfileCard">
+                      <div className="ProfileCardHeader">
+                        <h2 className="ProfileCardTitle">
+                          <User size={18} />
+                          Account & Personnel Information
+                        </h2>
+                        <p className="ProfileCardDesc">
+                          Manage your general profile details and agency identification settings.
+                        </p>
+                      </div>
+
+                      {/* Read Only Fields Container */}
+                      <div className="ProfileReadonlySection">
+                        <div className="ProfileReadonlyTitle">
+                          <Shield size={13} />
+                          Official Account Classification (Read-Only)
+                        </div>
+                        
+                        <div className="ProfileFormRow">
+                          <div className="ProfileFormGroup">
+                            <label className="ProfileLabel">
+                              Email Address
+                              <span className="ProfileReadonlyBadge">Read-Only</span>
+                            </label>
+                            <div className="ProfileInputWrapper">
+                              <Mail className="ProfileInputIcon" size={16} />
+                              <input
+                                className="ProfileInput ProfileInputReadonly"
+                                type="email"
+                                value={form.email}
+                                readOnly
+                              />
+                            </div>
+                          </div>
+
+                          <div className="ProfileFormGroup">
+                            <label className="ProfileLabel">
+                              Affiliated Agency
+                              <span className="ProfileReadonlyBadge">Read-Only</span>
+                            </label>
+                            <div className="ProfileInputWrapper">
+                              <Building2 className="ProfileInputIcon" size={16} />
+                              <input
+                                className="ProfileInput ProfileInputReadonly"
+                                type="text"
+                                value={form.agency}
+                                readOnly
+                              />
+                            </div>
+                          </div>
+
+                          <div className="ProfileFormGroup">
+                            <label className="ProfileLabel">
+                              Assigned Region
+                              <span className="ProfileReadonlyBadge">Read-Only</span>
+                            </label>
+                            <div className="ProfileInputWrapper">
+                              <MapPin className="ProfileInputIcon" size={16} />
+                              <input
+                                className="ProfileInput ProfileInputReadonly"
+                                type="text"
+                                value={form.region}
+                                readOnly
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Editable Fields Section */}
                       <div className="ProfileFormRow">
                         <div className="ProfileFormGroup">
                           <label className="ProfileLabel">
-                            Email Address
-                            <span className="ProfileReadonlyBadge">Read-Only</span>
+                            First Name <span className="ProfileRequired">*</span>
                           </label>
                           <div className="ProfileInputWrapper">
-                            <Mail className="ProfileInputIcon" size={16} />
+                            <User className="ProfileInputIcon" size={16} />
                             <input
-                              className="ProfileInput ProfileInputReadonly"
-                              type="email"
-                              value={form.email}
-                              readOnly
+                              className={`ProfileInput ${errors.firstName ? 'ProfileInputError' : ''}`}
+                              type="text"
+                              name="firstName"
+                              value={form.firstName}
+                              onChange={handleProfileChange}
+                              placeholder="Enter first name"
+                            />
+                          </div>
+                          {errors.firstName && (
+                            <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.firstName}</span>
+                          )}
+                        </div>
+
+                        <div className="ProfileFormGroup">
+                          <label className="ProfileLabel">Middle Name</label>
+                          <div className="ProfileInputWrapper">
+                            <User className="ProfileInputIcon" size={16} />
+                            <input
+                              className="ProfileInput"
+                              type="text"
+                              name="middleName"
+                              value={form.middleName}
+                              onChange={handleProfileChange}
+                              placeholder="Optional"
                             />
                           </div>
                         </div>
 
                         <div className="ProfileFormGroup">
                           <label className="ProfileLabel">
-                            Affiliated Agency
-                            <span className="ProfileReadonlyBadge">Read-Only</span>
+                            Last Name <span className="ProfileRequired">*</span>
+                          </label>
+                          <div className="ProfileInputWrapper">
+                            <User className="ProfileInputIcon" size={16} />
+                            <input
+                              className={`ProfileInput ${errors.lastName ? 'ProfileInputError' : ''}`}
+                              type="text"
+                              name="lastName"
+                              value={form.lastName}
+                              onChange={handleProfileChange}
+                              placeholder="Enter last name"
+                            />
+                          </div>
+                          {errors.lastName && (
+                            <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.lastName}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="ProfileFormRow">
+                        <div className="ProfileFormGroup">
+                          <label className="ProfileLabel">
+                            Employee ID<span className="ProfileRequired">*</span>
+                          </label>
+                          <div className="ProfileInputWrapper">
+                            <Fingerprint className="ProfileInputIcon" size={16} />
+                            <input
+                              className={`ProfileInput ${errors.employeeId ? 'ProfileInputError' : ''}`}
+                              type="text"
+                              name="employeeId"
+                              value={form.employeeId}
+                              onChange={handleProfileChange}
+                              placeholder="EMP-XXXXX"
+                            />
+                          </div>
+                          {errors.employeeId && (
+                            <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.employeeId}</span>
+                          )}
+                        </div>
+
+                        <div className="ProfileFormGroup">
+                          <label className="ProfileLabel">
+                            Contact Number <span className="ProfileRequired">*</span>
+                          </label>
+                          <div className="ProfileInputWrapper">
+                            <Phone className="ProfileInputIcon" size={16} />
+                            <input
+                              className={`ProfileInput ${errors.contactNumber ? 'ProfileInputError' : ''}`}
+                              type="text"
+                              name="contactNumber"
+                              value={form.contactNumber}
+                              onChange={handleProfileChange}
+                              placeholder="e.g. 0917XXXXXXX"
+                            />
+                          </div>
+                          {errors.contactNumber && (
+                            <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.contactNumber}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="ProfileFormRow">
+                        <div className="ProfileFormGroup">
+                          <label className="ProfileLabel">
+                            Department <span className="ProfileRequired">*</span>
                           </label>
                           <div className="ProfileInputWrapper">
                             <Building2 className="ProfileInputIcon" size={16} />
                             <input
-                              className="ProfileInput ProfileInputReadonly"
+                              className={`ProfileInput ${errors.department ? 'ProfileInputError' : ''}`}
                               type="text"
-                              value={form.agency}
-                              readOnly
+                              name="department"
+                              value={form.department}
+                              onChange={handleProfileChange}
+                              placeholder="Specify department"
                             />
                           </div>
+                          {errors.department && (
+                            <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.department}</span>
+                          )}
                         </div>
 
                         <div className="ProfileFormGroup">
                           <label className="ProfileLabel">
-                            Assigned Region
-                            <span className="ProfileReadonlyBadge">Read-Only</span>
+                            Position / Job Title <span className="ProfileRequired">*</span>
                           </label>
                           <div className="ProfileInputWrapper">
-                            <MapPin className="ProfileInputIcon" size={16} />
+                            <Briefcase className="ProfileInputIcon" size={16} />
                             <input
-                              className="ProfileInput ProfileInputReadonly"
+                              className={`ProfileInput ${errors.position ? 'ProfileInputError' : ''}`}
                               type="text"
-                              value={form.region}
-                              readOnly
+                              name="position"
+                              value={form.position}
+                              onChange={handleProfileChange}
+                              placeholder="Specify position"
                             />
                           </div>
+                          {errors.position && (
+                            <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.position}</span>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Editable Fields Section */}
-                    <div className="ProfileFormRow">
+                    {/* Right Column: Security/Password Management */}
+                    <div className="ProfileCard">
+                      <div className="ProfileCardHeader">
+                        <h2 className="ProfileCardTitle">
+                          <Lock size={18} />
+                          Security Credentials
+                        </h2>
+                        <p className="ProfileCardDesc">
+                          Update your system password here. Leave blank if you do not wish to modify.
+                        </p>
+                      </div>
+
                       <div className="ProfileFormGroup">
-                        <label className="ProfileLabel">
-                          First Name <span className="ProfileRequired">*</span>
-                        </label>
+                        <label className="ProfileLabel">Current Password</label>
                         <div className="ProfileInputWrapper">
-                          <User className="ProfileInputIcon" size={16} />
+                          <Key className="ProfileInputIcon" size={16} />
                           <input
-                            className={`ProfileInput ${errors.firstName ? 'ProfileInputError' : ''}`}
-                            type="text"
-                            name="firstName"
-                            value={form.firstName}
-                            onChange={handleProfileChange}
-                            placeholder="Enter first name"
+                            className={`ProfileInput ${errors.currentPassword ? 'ProfileInputError' : ''}`}
+                            type={showCurrent ? 'text' : 'password'}
+                            name="currentPassword"
+                            value={security.currentPassword}
+                            onChange={handleSecurityChange}
+                            placeholder="••••••••"
                           />
+                          <button
+                            type="button"
+                            className="ProfilePasswordToggle"
+                            onClick={() => setShowCurrent(!showCurrent)}
+                            aria-label="Toggle Password Visibility"
+                          >
+                            {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
                         </div>
-                        {errors.firstName && (
-                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.firstName}</span>
+                        {errors.currentPassword && (
+                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.currentPassword}</span>
                         )}
                       </div>
 
                       <div className="ProfileFormGroup">
-                        <label className="ProfileLabel">Middle Name</label>
+                        <label className="ProfileLabel">New Password</label>
                         <div className="ProfileInputWrapper">
-                          <User className="ProfileInputIcon" size={16} />
+                          <Lock className="ProfileInputIcon" size={16} />
                           <input
-                            className="ProfileInput"
-                            type="text"
-                            name="middleName"
-                            value={form.middleName}
-                            onChange={handleProfileChange}
-                            placeholder="Optional"
+                            className={`ProfileInput ${errors.newPassword ? 'ProfileInputError' : ''}`}
+                            type={showNew ? 'text' : 'password'}
+                            name="newPassword"
+                            value={security.newPassword}
+                            onChange={handleSecurityChange}
+                            placeholder="••••••••"
                           />
+                          <button
+                            type="button"
+                            className="ProfilePasswordToggle"
+                            onClick={() => setShowNew(!showNew)}
+                            aria-label="Toggle Password Visibility"
+                          >
+                            {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
                         </div>
+                        {errors.newPassword && (
+                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.newPassword}</span>
+                        )}
                       </div>
 
                       <div className="ProfileFormGroup">
-                        <label className="ProfileLabel">
-                          Last Name <span className="ProfileRequired">*</span>
-                        </label>
+                        <label className="ProfileLabel">Confirm New Password</label>
                         <div className="ProfileInputWrapper">
-                          <User className="ProfileInputIcon" size={16} />
+                          <Lock className="ProfileInputIcon" size={16} />
                           <input
-                            className={`ProfileInput ${errors.lastName ? 'ProfileInputError' : ''}`}
-                            type="text"
-                            name="lastName"
-                            value={form.lastName}
-                            onChange={handleProfileChange}
-                            placeholder="Enter last name"
+                            className={`ProfileInput ${errors.confirmPassword ? 'ProfileInputError' : ''}`}
+                            type={showConfirm ? 'text' : 'password'}
+                            name="confirmPassword"
+                            value={security.confirmPassword}
+                            onChange={handleSecurityChange}
+                            placeholder="••••••••"
                           />
+                          <button
+                            type="button"
+                            className="ProfilePasswordToggle"
+                            onClick={() => setShowConfirm(!showConfirm)}
+                            aria-label="Toggle Password Visibility"
+                          >
+                            {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
                         </div>
-                        {errors.lastName && (
-                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.lastName}</span>
+                        {errors.confirmPassword && (
+                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.confirmPassword}</span>
                         )}
+                      </div>
+
+                      {/* Password Policy Card */}
+                      <div className="ProfileSecurityTips">
+                        <div className="ProfileSecurityTipsTitle">
+                          <Shield size={14} style={{ color: '#D97706' }} />
+                          Password Requirements
+                        </div>
+                        <ul className="ProfileSecurityTipsList">
+                          <li>Minimum length of 8 characters</li>
+                          <li>Include upper &amp; lowercase letters</li>
+                          <li>Include numbers &amp; special characters</li>
+                        </ul>
                       </div>
                     </div>
 
-                    <div className="ProfileFormRow">
-                      <div className="ProfileFormGroup">
-                        <label className="ProfileLabel">
-                          Employee ID<span className="ProfileRequired">*</span>
-                        </label>
-                        <div className="ProfileInputWrapper">
-                          <Fingerprint className="ProfileInputIcon" size={16} />
-                          <input
-                            className={`ProfileInput ${errors.employeeId ? 'ProfileInputError' : ''}`}
-                            type="text"
-                            name="employeeId"
-                            value={form.employeeId}
-                            onChange={handleProfileChange}
-                            placeholder="EMP-XXXXX"
-                          />
-                        </div>
-                        {errors.employeeId && (
-                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.employeeId}</span>
-                        )}
-                      </div>
+                    {/* Global Actions Panel */}
+                    <div className="ProfileActionsContainer">
+                      <button
+                        type="button"
+                        className="ProfileBtn ProfileBtnSecondary"
+                        onClick={handleCancel}
+                        disabled={isSaving}
+                      >
+                        <X size={16} />
+                        Cancel Changes
+                      </button>
 
-                      <div className="ProfileFormGroup">
-                        <label className="ProfileLabel">
-                          Contact Number <span className="ProfileRequired">*</span>
-                        </label>
-                        <div className="ProfileInputWrapper">
-                          <Phone className="ProfileInputIcon" size={16} />
-                          <input
-                            className={`ProfileInput ${errors.contactNumber ? 'ProfileInputError' : ''}`}
-                            type="text"
-                            name="contactNumber"
-                            value={form.contactNumber}
-                            onChange={handleProfileChange}
-                            placeholder="e.g. 0917XXXXXXX"
-                          />
-                        </div>
-                        {errors.contactNumber && (
-                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.contactNumber}</span>
+                      <button
+                        type="submit"
+                        className="ProfileBtn ProfileBtnPrimary"
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <>
+                            <span className="ProfileSpinner"></span>
+                            Saving Profile...
+                          </>
+                        ) : (
+                          <>
+                            <Save size={16} />
+                            Save Changes
+                          </>
                         )}
-                      </div>
+                      </button>
                     </div>
 
-                    <div className="ProfileFormRow">
-                      <div className="ProfileFormGroup">
-                        <label className="ProfileLabel">
-                          Department <span className="ProfileRequired">*</span>
-                        </label>
-                        <div className="ProfileInputWrapper">
-                          <Building2 className="ProfileInputIcon" size={16} />
-                          <input
-                            className={`ProfileInput ${errors.department ? 'ProfileInputError' : ''}`}
-                            type="text"
-                            name="department"
-                            value={form.department}
-                            onChange={handleProfileChange}
-                            placeholder="Specify department"
-                          />
-                        </div>
-                        {errors.department && (
-                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.department}</span>
-                        )}
-                      </div>
-
-                      <div className="ProfileFormGroup">
-                        <label className="ProfileLabel">
-                          Position / Job Title <span className="ProfileRequired">*</span>
-                        </label>
-                        <div className="ProfileInputWrapper">
-                          <Briefcase className="ProfileInputIcon" size={16} />
-                          <input
-                            className={`ProfileInput ${errors.position ? 'ProfileInputError' : ''}`}
-                            type="text"
-                            name="position"
-                            value={form.position}
-                            onChange={handleProfileChange}
-                            placeholder="Specify position"
-                          />
-                        </div>
-                        {errors.position && (
-                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.position}</span>
-                        )}
-                      </div>
-                    </div>
                   </div>
+                </form>
 
-                  {/* Right Column: Security/Password Management */}
-                  <div className="ProfileCard">
-                    <div className="ProfileCardHeader">
-                      <h2 className="ProfileCardTitle">
-                        <Lock size={18} />
-                        Security Credentials
-                      </h2>
-                      <p className="ProfileCardDesc">
-                        Update your system password here. Leave blank if you do not wish to modify.
-                      </p>
-                    </div>
-
-                    <div className="ProfileFormGroup">
-                      <label className="ProfileLabel">Current Password</label>
-                      <div className="ProfileInputWrapper">
-                        <Key className="ProfileInputIcon" size={16} />
-                        <input
-                          className={`ProfileInput ${errors.currentPassword ? 'ProfileInputError' : ''}`}
-                          type={showCurrent ? 'text' : 'password'}
-                          name="currentPassword"
-                          value={security.currentPassword}
-                          onChange={handleSecurityChange}
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          className="ProfilePasswordToggle"
-                          onClick={() => setShowCurrent(!showCurrent)}
-                          aria-label="Toggle Password Visibility"
-                        >
-                          {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      {errors.currentPassword && (
-                        <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.currentPassword}</span>
-                      )}
-                    </div>
-
-                    <div className="ProfileFormGroup">
-                      <label className="ProfileLabel">New Password</label>
-                      <div className="ProfileInputWrapper">
-                        <Lock className="ProfileInputIcon" size={16} />
-                        <input
-                          className={`ProfileInput ${errors.newPassword ? 'ProfileInputError' : ''}`}
-                          type={showNew ? 'text' : 'password'}
-                          name="newPassword"
-                          value={security.newPassword}
-                          onChange={handleSecurityChange}
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          className="ProfilePasswordToggle"
-                          onClick={() => setShowNew(!showNew)}
-                          aria-label="Toggle Password Visibility"
-                        >
-                          {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      {errors.newPassword && (
-                        <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.newPassword}</span>
-                      )}
-                    </div>
-
-                    <div className="ProfileFormGroup">
-                      <label className="ProfileLabel">Confirm New Password</label>
-                      <div className="ProfileInputWrapper">
-                        <Lock className="ProfileInputIcon" size={16} />
-                        <input
-                          className={`ProfileInput ${errors.confirmPassword ? 'ProfileInputError' : ''}`}
-                          type={showConfirm ? 'text' : 'password'}
-                          name="confirmPassword"
-                          value={security.confirmPassword}
-                          onChange={handleSecurityChange}
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          className="ProfilePasswordToggle"
-                          onClick={() => setShowConfirm(!showConfirm)}
-                          aria-label="Toggle Password Visibility"
-                        >
-                          {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      {errors.confirmPassword && (
-                        <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.confirmPassword}</span>
-                      )}
-                    </div>
-
-                    {/* Password Policy Card */}
-                    <div className="ProfileSecurityTips">
-                      <div className="ProfileSecurityTipsTitle">
-                        <Shield size={14} style={{ color: '#D97706' }} />
-                        Password Requirements
-                      </div>
-                      <ul className="ProfileSecurityTipsList">
-                        <li>Minimum length of 8 characters</li>
-                        <li>Include upper & lowercase letters</li>
-                        <li>Include numbers & special characters</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Global Actions Panel */}
-                  <div className="ProfileActionsContainer">
-                    <button
-                      type="button"
-                      className="ProfileBtn ProfileBtnSecondary"
-                      onClick={handleCancel}
-                      disabled={isSaving}
-                    >
-                      <X size={16} />
-                      Cancel Changes
-                    </button>
-
-                    <button
-                      type="submit"
-                      className="ProfileBtn ProfileBtnPrimary"
-                      disabled={isSaving}
-                    >
-                      {isSaving ? (
-                        <>
-                          <span className="ProfileSpinner"></span>
-                          Saving Profile...
-                        </>
-                      ) : (
-                        <>
-                          <Save size={16} />
-                          Save Changes
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                </div>
-              </form>
-
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -749,6 +953,10 @@ const styles = `
 
   .ProfileHeaderCard.agency-lea {
     background: linear-gradient(135deg, var(--p-navy) 0%, #0c1526 100%);
+  }
+
+  .ProfileHeaderCard.agency-superadmin {
+    background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
   }
 
   @media (max-width: 640px) {
@@ -1184,6 +1392,225 @@ const styles = `
     flex-direction: column;
     gap: 6px;
     line-height: 1.4;
+  }
+
+  /* ========================================== */
+  /* SUPERADMIN PROFILE SETTINGS STYLING         */
+  /* ========================================== */
+
+  .SuperAdminProfileContainer {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1F2937;
+    animation: SuperAdminFadeIn 0.35s ease-out;
+  }
+
+  @keyframes SuperAdminFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .SuperAdminProfileCard,
+  .SuperAdminSecurityCard {
+    background: #F9FAFB;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 14px rgba(30, 41, 59, 0.04);
+    transition: all 0.25s ease;
+  }
+
+  .SuperAdminProfileCard:hover,
+  .SuperAdminSecurityCard:hover {
+    box-shadow: 0 8px 24px rgba(30, 41, 59, 0.08);
+    border-color: #CBD5E1;
+  }
+
+  .SuperAdminProfileHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 20px;
+    border-bottom: 1.5px solid #E2E8F0;
+    margin-bottom: 24px;
+  }
+
+  .SuperAdminProfileAvatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0D9488 0%, #13213C 100%);
+    color: #F9FAFB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(13, 148, 136, 0.25);
+    flex-shrink: 0;
+  }
+
+  .SuperAdminSecurityIconBadge {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: rgba(13, 148, 136, 0.1);
+    color: #0D9488;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .SuperAdminProfileTitle {
+    font-family: 'Poppins', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+
+  .SuperAdminProfileSubtitle {
+    font-size: 13px;
+    color: #64748B;
+    margin: 4px 0 0 0;
+  }
+
+  .SuperAdminProfileInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .SuperAdminProfileInfoRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 10px;
+  }
+
+  .SuperAdminProfileLabel {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1F2937;
+  }
+
+  .SuperAdminProfileValue {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1E293B;
+  }
+
+  .SuperAdminProfileValueBadge {
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(13, 148, 136, 0.12);
+    color: #0D9488;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(13, 148, 136, 0.2);
+    letter-spacing: 0.3px;
+  }
+
+  .SuperAdminPasswordSection {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .SuperAdminFormGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .SuperAdminInputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .SuperAdminInputIcon {
+    position: absolute;
+    left: 14px;
+    color: #94A3B8;
+    pointer-events: none;
+  }
+
+  .SuperAdminInput {
+    width: 100%;
+    padding: 12px 42px 12px 42px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #111827;
+    background: #FFFFFF;
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .SuperAdminInput:focus {
+    border-color: #0D9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  }
+
+  .SuperAdminPasswordToggle {
+    position: absolute;
+    right: 14px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94A3B8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color 0.15s ease;
+  }
+
+  .SuperAdminPasswordToggle:hover {
+    color: #0D9488;
+  }
+
+  .SuperAdminPasswordRequirementCard {
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 4px;
+  }
+
+  .SuperAdminRequirementTitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1E293B;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .SuperAdminRequirementTitle svg {
+    color: #0D9488;
+  }
+
+  .SuperAdminRequirementList {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12.5px;
+    color: #475569;
+    line-height: 1.5;
   }
 `;
 

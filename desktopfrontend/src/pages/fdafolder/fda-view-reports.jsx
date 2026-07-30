@@ -38,7 +38,6 @@ function FDAViewReports() {
   }, [location.state?.selectedTab]);
 
   // EXPANDABLE FILTERS STATE
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
 
@@ -250,7 +249,7 @@ function FDAViewReports() {
     <div className="FdaDashboardMain">
       <Sidebar sidebarType="FDA" />
       <div className="FdaContentContainer">
-        <TopBar />
+        <TopBar topbarType="FDA" />
         <div className="FdaMainFeed">
           
           {/* HEADER BLOCK */}
@@ -282,79 +281,68 @@ function FDAViewReports() {
                 </button>
               ))}
             </div>
-
-            <div className="FdaControlsRight">
-              <div className="FdaSearchWrapper">
-                <Search size={16} className="FdaSearchIcon" />
-                <input
-                  type="text"
-                  placeholder="Search product, manufacturer, ID..."
-                  className="FdaSearchInput"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-
-              <button 
-                className={`BtnFilters ${isFilterOpen ? 'active' : ''}`}
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-              >
-                <Filter size={16} />
-                Filters
-              </button>
-            </div>
           </div>
 
-          {/* EXPANDABLE DROP DOWN FILTER PANEL */}
-          {isFilterOpen && (
-            <div className="FdaFilterPanel">
-              <div className="FdaFilterGroup">
-                <label>Category</label>
-                <select
-                  value={filterCategory}
-                  onChange={(e) => {
-                    setFilterCategory(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  {categoriesList.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="FdaFilterGroup">
-                <label>Status</label>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => {
-                    setFilterStatus(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  {statusesList.map(stat => (
-                    <option key={stat} value={stat}>{stat}</option>
-                  ))}
-                </select>
-              </div>
-
-              {(filterCategory !== 'All' || filterStatus !== 'All') && (
-                <button
-                  className="BtnClearFilters"
-                  onClick={() => {
-                    setFilterCategory('All');
-                    setFilterStatus('All');
-                    setCurrentPage(1);
-                  }}
-                >
-                  Clear Filters
-                </button>
-              )}
+          {/* FILTER PANEL */}
+          <div className="FdaFilterPanel">
+            <div className="FdaSearchWrapper">
+              <Search size={16} className="FdaSearchIcon" />
+              <input
+                type="text"
+                placeholder="Search product, manufacturer, ID..."
+                className="FdaSearchInput"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
             </div>
-          )}
+
+            <div className="FdaFilterGroup">
+              <label>Category</label>
+              <select
+                value={filterCategory}
+                onChange={(e) => {
+                  setFilterCategory(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                {categoriesList.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="FdaFilterGroup">
+              <label>Status</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                {statusesList.map(stat => (
+                  <option key={stat} value={stat}>{stat}</option>
+                ))}
+              </select>
+            </div>
+
+            {(filterCategory !== 'All' || filterStatus !== 'All' || searchQuery !== '') && (
+              <button
+                className="BtnClearFilters"
+                onClick={() => {
+                  setFilterCategory('All');
+                  setFilterStatus('All');
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
 
           {/* BULK ACTIONS BAR */}
           {selectedIds.length > 0 && (
@@ -396,14 +384,14 @@ function FDAViewReports() {
                           onChange={handleHeaderCheckboxChange}
                         />
                       </th>
-                      <th>Case ID</th>
-                      <th>Product / Manufacturer</th>
-                      <th>Category</th>
-                      <th>Source</th>
-                      <th>Status</th>
-                      <th>Region</th>
-                      <th>Submitted</th>
-                      <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
+                      <th>CASE ID</th>
+                      <th>PRODUCT / MANUFACTURER</th>
+                      <th>CATEGORY</th>
+                      <th>SOURCE</th>
+                      <th>STATUS</th>
+                      <th>REGION</th>
+                      <th>DATE RECEIVED</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>ACTION</th>
                     </tr>
                   </thead>
                   <tbody>
