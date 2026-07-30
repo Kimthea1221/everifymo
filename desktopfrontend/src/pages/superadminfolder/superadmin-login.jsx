@@ -6,10 +6,7 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 //LOGIN PAGE EXCLUSIVELY FOR SUPERADMIN
 
 
-//TEST ACCOUNT ONLY AND TO BE REPLACED ONCE MY BACKEND NA
-const TestAccount = [
-    { email: 'superadmin@gmail.com', password: '@Superadmin12345' }
-];
+
 
 function SuperAdminLogin() {
     const navigate = useNavigate();
@@ -27,7 +24,7 @@ function SuperAdminLogin() {
     //stores each digit ng otp
     const [otp, setOtp] = useState(new Array(6).fill(''));
     //timer for resending otp
-    const [timer, setTimer] = useState(180);
+    const [timer, setTimer] = useState(300);
 
     //for input box focus to each digit
     const otpRefs = useRef([]);
@@ -89,11 +86,26 @@ function SuperAdminLogin() {
     }
 
     // Resend OTP trigger
-    function handleResendOtp() {
-        setTimer(180);
+    async function handleResendOtp() {
+    setAdminLoginError('');
+    try {
+        const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to resend code.');
+        }
+
+        setTimer(300);
         setOtp(new Array(6).fill(''));
-        setAdminLoginError('');
         setTimeout(() => { otpRefs.current[0]?.focus(); }, 0);
+    } catch (err) {
+        setAdminLoginError(err.message);
+    }
     }
 
     // Switch back to credentials form
@@ -110,7 +122,7 @@ function SuperAdminLogin() {
         return null;
     }
 
-    function handleLogin() {
+    async function handleLogin() {
     if (!isOtpSent) {
 
         // Check if fields are empty
@@ -133,18 +145,23 @@ function SuperAdminLogin() {
             return;
         }
 
-        // Check credentials (temporary frontend logic)
-        // BACKEND: Replace this block with API call
-        const match = TestAccount.find(
-            (acc) => acc.email === email && acc.password === password
-        );
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
 
-        if (match) {
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Invalid email or password.');
+            }
+
             setIsOtpSent(true);
-            setTimer(180);
+            setTimer(300);
             setAdminLoginError('');
-        } else {
-            setAdminLoginError('Invalid email or password.');
+        } catch (err) {
+            setAdminLoginError(err.message);
         }
 
     } else {
@@ -156,12 +173,25 @@ function SuperAdminLogin() {
             return;
         }
 
-        // BACKEND: Replace this block with OTP verification API
-        if (otpCode === '123456') {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp: otpCode }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
+            }
+
+            const data = await response.json();
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
             localStorage.setItem('agency', 'superadmin');
             navigate('/superadminfolder/superadmin-user-management');
-        } else {
-            setAdminLoginError('Invalid verification code. Please try again.');
+        } catch (err) {
+            setAdminLoginError(err.message);
         }
     }
 }
