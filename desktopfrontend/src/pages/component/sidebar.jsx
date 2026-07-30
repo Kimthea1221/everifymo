@@ -25,7 +25,7 @@ const SuperAdminMenuItems = [
 const FDAMenuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/fdafolder/fda-dashboard' },
     { icon: FileText, label: 'View Reports', path: '/fdafolder/fda-view-reports' },
-    { icon: ShieldCheck, label: 'Verification Request', path: '/fdafolder/fda-verification' },
+    { icon: ShieldCheck, label: 'Verification Queue', path: '/fdafolder/fda-verification' },
     { icon: RefreshCw, label: 'Status Update', path: '/fdafolder/fda-status' },
     { icon: Database, label: 'Product Database', path: '/fdafolder/fda-product-db' },
 ]
@@ -248,6 +248,36 @@ function Sidebar({ sidebarType, role, agency }) {
             type = 'LEA'
         }
     }
+
+    //added this for end session button to redirect to login page
+
+    async function handleLogout() {
+    const refreshToken = localStorage.getItem('refresh_token');
+
+        try {
+            if (refreshToken) {
+                await fetch('http://127.0.0.1:8000/auth/token/revoke', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken }),
+                });
+            }
+        } catch (err) {
+            console.error('Failed to revoke session:', err);
+            // proceed with logout locally even if the server call fails
+        }
+
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+
+        if (type === 'SUPER_ADMIN') {
+            navigate('/');
+        } else {
+            navigate('/login');
+        }
+    }
+
+
 
     const renderStyles = () => (
         <style dangerouslySetInnerHTML={{ __html: sidebarStyles }} />

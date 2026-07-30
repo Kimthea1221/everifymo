@@ -32,28 +32,30 @@
                    <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
                   <div class="notice-text-container">
                     <p class="notice-title">Reporting a Complaint as <span id="home-username"></span>.</p> 
-                    <p class="notice-text">This report will be saved to your account for tracking.</p> 
+                    <p class="notice-text">This report will be saved to your account for tracking. 
+                      Make sure your details are accurate before 
+                      submitting.</p> 
                   </div>  
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-product-name">Product Name/Title</label>
-                  <textarea id="complaint-product-name" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
+                  <textarea id="complaint-product-name-user" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-product-url">Link/URL</label>
-                  <textarea id="complaint-product-url" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
+                  <textarea id="complaint-product-url-user" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
                 </div>
                 
                 <div class="field">
                   <label class="field-label" for="store-name">Name of the Store</label>
-                  <textarea id="store-name" class="complaint-input" placeholder="Enter Store Name"></textarea>
+                  <textarea id="store-name-user" class="complaint-input" placeholder="Enter Store Name"></textarea>
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-description">Description (optional)</label>
-                  <textarea id="complaint-description" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
+                  <textarea id="complaint-description-user" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
                 </div>
 
                 <div class="attach-box report-attach-box" role="button" tabindex="0">
@@ -75,9 +77,10 @@
                   <div class="notice-text-container">
                     <p class="notice-title">Complaint Successfully Reported!</p> 
                     <p class="notice-text">You can now view your complaint status,  
-                      complaint history and verification history by clicking the buttons below.</p> 
+                      complaint history and verification history by clicking the buttons above.</p> 
                   </div>  
                 </div>
+                <a href="#" class="see-details-link submit-another-link">Submit another report</a>
               </div>
 
               <div id="report-cancelled-view" class="report-view hidden">
@@ -86,9 +89,10 @@
                   <div class="notice-text-container">
                     <p class="notice-title">Complaint Report Cancelled</p> 
                     <p class="notice-text">No changes were saved. You can start a new report 
-                      anytime an unregistered product is detected.</p> 
+                      anytime an unregistered/suspicious product is detected.</p> 
                   </div>  
                 </div>
+                <a href="#" class="see-details-link back-to-report-link">Back to Report</a>
               </div>
 
               <!-- Guest View -->
@@ -97,10 +101,9 @@
                 <div class="notice-banner">
                    <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
                   <div class="notice-text-container">
-                    <p class="notice-title">This is Your Complaint Report Page.</p> 
-                    <p class="notice-text">Reporting is optional. Toggle the extension on 
-                      while browsing cosmetic products on supported platforms to detect 
-                      unregistered FDA products and file a complaint. See About for details.</p> 
+                    <p class="notice-title">Optional. Highlight a cosmetic product on supported platforms to 
+                        check its FDA registration — if unregistered, file a complaint 
+                        right here. See About for details.</p> 
                   </div>  
                 </div>
               </div>
@@ -110,28 +113,28 @@
                    <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
                   <div class="notice-text-container">
                     <p class="notice-title">Reporting a Complaint as a Guest</p> 
-                    <p class="notice-text">This report will not be saved. Sign in/up for tracking.</p> 
-                  </div>  
+                    <p class="notice-text">This report will not be saved. Make sure your details are accurate before 
+                      submitting.<a href="auth.html" class="guest-notice-link">Sign in/up</a> for tracking.</p>                  </div>  
                 </div>
                 
                  <div class="field">
                   <label class="field-label" for="complaint-product-name">Product Name/Title</label>
-                  <textarea id="complaint-product-name" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
+                  <textarea id="complaint-product-name-guest" class="complaint-input" placeholder="Enter Product Name/Title"></textarea>
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-product-url">Link/URL</label>
-                  <textarea id="complaint-product-url" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
+                  <textarea id="complaint-product-url-guest" class="complaint-input" placeholder="Enter Product Link/URL"></textarea>
                 </div>
                 
                 <div class="field">
                   <label class="field-label" for="store-name">Name of the Store</label>
-                  <textarea id="store-name" class="complaint-input" placeholder="Enter Store Name"></textarea>
+                  <textarea id="store-name-guest" class="complaint-input" placeholder="Enter Store Name"></textarea>
                 </div>
 
                 <div class="field">
                   <label class="field-label" for="complaint-description">Description (optional)</label>
-                  <textarea id="complaint-description" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
+                  <textarea id="complaint-description-guest" class="complaint-input" placeholder="Tell us what made this product look suspicious..."></textarea>
                 </div>
 
                 <div class="attach-box report-attach-box" role="button" tabindex="0">
@@ -152,9 +155,10 @@
                    <img class="notice-icon" src="../assets/images/report.png" alt="Report Icon" /> 
                   <div class="notice-text-container">
                     <p class="notice-title">Complaint Successfully Reported!</p> 
-                    <p class="notice-text">This report is not saved. Sign in/up for tracking.</p> 
+                    <p class="notice-text">This report is not saved. <a href="auth.html" class="guest-notice-link">Sign in/up</a> for tracking.</p> 
                   </div>  
                 </div>
+                <a href="#" class="see-details-link submit-another-link">Submit another report</a>
               </div>
 
               <div id="report-cancelled-view-guest" class="report-view-guest hidden">
@@ -166,17 +170,20 @@
                       anytime an unregistered product is detected.</p> 
                   </div>  
                 </div>
+                <a href="#" class="see-details-link back-to-report-link">Back to Report</a>
               </div>
 
             </div>
         </div>
     
   </main>
-</body>
+
+  <script src="../utils/api.js"></script>
+  <script src="../scripts/session.js"></script>
   <script src="../js/report.js"></script>
   <script src="../js/partial-loader.js"></script>
-  <script src="../utils/api.js"></script>
   <script src="../js/header.js"></script>
   <script src="../js/nav.js"></script>
+</body>
 </html>
 

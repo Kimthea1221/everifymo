@@ -30,8 +30,13 @@ class VerificationRequest(Base):
     complaint_statement = Column(Text, nullable=False)
 
     verification_request_status = Column(
-        String(50), nullable=False, server_default=text("'queued'")
+    String(50), nullable=False
+    # No server_default anymore — the app must always pass 'pending'
+    # explicitly on insert, since a row is only ever created at the
+    # moment it's actually sent to FDA. There's no "default" state
+    # that makes sense to fall back to.
     )
+
     priority = Column(String(20), nullable=False, server_default=text("'standard'"))
 
     field_operation_notes = Column(Text, nullable=True)
@@ -70,7 +75,7 @@ class VerificationRequest(Base):
     __table_args__ = (
         CheckConstraint(
             "verification_request_status IN "
-            "('queued', 'pending', 'confirmed_registered', "
+            "('pending', 'confirmed_registered', "
             "'confirmed_unregistered', 'rejected', 'recalled')",
             name="ck_verification_requests_status",
         ),

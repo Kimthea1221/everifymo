@@ -155,20 +155,20 @@ function initProfileActions() {
     });
   }
 
-  if (confirmUsernameBtn) {
-    confirmUsernameBtn.addEventListener('click', () => {
-      const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
-      if (!newValue) return;
+  // if (confirmUsernameBtn) {
+  //   confirmUsernameBtn.addEventListener('click', () => {
+  //     const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
+  //     if (!newValue) return;
 
-      updateUsername(newValue, (success) => {
-        if (success) {
-          renderProfileContent(); // this updates profile overlay text
-          if (typeof applyAuthView === 'function') applyAuthView(); // this updates popup home welcome text, if on that page
-          showProfileView('profile-main-view');
-        }
-      });
-    });
-  }
+  //     updateUsername(newValue, (success) => {
+  //       if (success) {
+  //         renderProfileContent(); // this updates profile overlay text
+  //         if (typeof applyAuthView === 'function') applyAuthView(); // this updates popup home welcome text, if on that page
+  //         showProfileView('profile-main-view');
+  //       }
+  //     });
+  //   });
+  // }
 
   if (cancelUsernameBtn) {
     cancelUsernameBtn.addEventListener('click', () => {
@@ -217,6 +217,26 @@ function initProfileActions() {
       showProfileView('profile-main-view');
     });
   }
+  
+  if (confirmUsernameBtn) {
+    confirmUsernameBtn.addEventListener('click', () => {
+      const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
+
+      if (!newValue) {
+        if (newUsernameInput) newUsernameInput.classList.add('is-invalid');
+        return;
+      }
+      if (newUsernameInput) newUsernameInput.classList.remove('is-invalid');
+
+      updateUsername(newValue, (success) => {
+        if (success) {
+          renderProfileContent();
+          if (typeof applyAuthView === 'function') applyAuthView();
+          showProfileView('profile-main-view');
+        }
+      });
+    });
+  }
 }
 
 function applyGuestHeaderVisibility() {
@@ -227,24 +247,4 @@ function applyGuestHeaderVisibility() {
 
   if (notifBtn) notifBtn.classList.toggle('hidden', !loggedIn);
   if (dropdownBtn) dropdownBtn.classList.toggle('hidden', !loggedIn);
-}
-
-if (confirmUsernameBtn) {
-  confirmUsernameBtn.addEventListener('click', () => {
-    const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
-
-    if (!newValue) {
-      if (newUsernameInput) newUsernameInput.classList.add('is-invalid');
-      return;
-    }
-    if (newUsernameInput) newUsernameInput.classList.remove('is-invalid');
-
-    updateUsername(newValue, (success) => {
-      if (success) {
-        renderProfileContent();
-        if (typeof applyAuthView === 'function') applyAuthView();
-        showProfileView('profile-main-view');
-      }
-    });
-  });
 }

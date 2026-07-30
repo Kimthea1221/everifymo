@@ -1,22 +1,22 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-/**
- * ChangePassword Page
- * Shown automatically after first login.
- * Enforces password requirements before allowing submission.
- */
 function ChangePassword() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
+    currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
   const [changePasswordError, setChangePasswordError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  /* Password requirement checks */
   const checks = {
     length:    form.newPassword.length >= 8,
     uppercase: /[A-Z]/.test(form.newPassword),
@@ -32,17 +32,19 @@ function ChangePassword() {
     setChangePasswordError('');
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setChangePasswordError('');
     const newErrors = {};
 
+    if (!form.currentPassword) {
+      newErrors.currentPassword = 'Current password is required.';
+    }
     if (!form.newPassword) {
       newErrors.newPassword = 'New password is required.';
     } else if (!allChecksPassed) {
       newErrors.newPassword = 'Password does not meet all requirements.';
     }
-
     if (!form.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your new password.';
     } else if (form.newPassword !== form.confirmPassword) {
@@ -51,18 +53,48 @@ function ChangePassword() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      if (newErrors.newPassword) {
-        setChangePasswordError(newErrors.newPassword);
-      } else if (newErrors.confirmPassword) {
-        setChangePasswordError(newErrors.confirmPassword);
-      }
+      setChangePasswordError(Object.values(newErrors)[0]);
       return;
     }
 
-    setSaved(true);
+    setSubmitting(true);
+    try {
+      const response = await fetch('http://127.0.0.1:8000/auth/password/change', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({
+          current_password: form.currentPassword,
+          new_password: form.newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to change password.');
+      }
+
+      setSubmitting(false);
+      setSaved(true);
+    } catch (err) {
+      setSubmitting(false);
+      setChangePasswordError(err.message);
+    }
   }
 
-  /* Success Screen*/
+  function handleContinue() {
+    const agency = localStorage.getItem('agency');
+    if (agency === 'fda') {
+      navigate('/fdafolder/fda-dashboard');
+    } else if (agency === 'lea') {
+      navigate('/leacidgfolder/lea-dashboard');
+    } else {
+      navigate('/superadminfolder/superadmin-user-management');
+    }
+  }
+
   if (saved) {
     return (
       <>
@@ -76,7 +108,7 @@ function ChangePassword() {
                 Your new password has been saved successfully. You can now continue using the ICMDA
                 desktop application.
               </p>
-              <button className="CPSuccessBtn" onClick={() => setSaved(false)}>
+              <button className="CPSuccessBtn" onClick={handleContinue}>
                 Continue to Dashboard
               </button>
             </div>
@@ -86,15 +118,12 @@ function ChangePassword() {
     );
   }
 
-  /* Change Password Form */
   return (
     <>
       <style>{styles}</style>
       <div className="CPPageContainer">
         <div className="CPCard">
-          {/* Header */}
           <div className="CPCardHeader">
-            
             <h1 className="CPCardTitle">Set Your New Password</h1>
             <p className="CPCardSubtitle">
               You are required to set a new password before continuing.
@@ -102,6 +131,31 @@ function ChangePassword() {
           </div>
 
           <form className="CPForm" onSubmit={handleSubmit} noValidate>
+            {/* Current Password */}
+            <div className="CPFormGroup">
+              <label className="CPLabel">
+                Current (Temporary) Password <span className="CPRequired">*</span>
+              </label>
+              <div className="CPInputWrapper">
+                <input
+                  className={`CPInput ${errors.currentPassword ? 'cp-input-error' : ''}`}
+                  type={showCurrent ? 'text' : 'password'}
+                  name="currentPassword"
+                  placeholder="Enter your current password"
+                  value={form.currentPassword}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  className="CPToggleBtn"
+                  onClick={() => setShowCurrent((v) => !v)}
+                  aria-label={showCurrent ? 'Hide password' : 'Show password'}
+                >
+                  {showCurrent ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
             {/* New Password */}
             <div className="CPFormGroup">
               <label className="CPLabel">
@@ -125,25 +179,6 @@ function ChangePassword() {
                   {showNew ? 'Hide' : 'Show'}
                 </button>
               </div>
-            </div>
-
-            {/* Password Requirements */}
-            <div className="CPRequirements">
-              <p className="CPReqTitle">Password requirements:</p>
-              <ul className="CPReqList">
-                <li className={`CPReqItem ${checks.length ? 'req-met' : 'req-unmet'}`}>
-                  {checks.length ? '✅' : '❌'} At least 8 characters
-                </li>
-                <li className={`CPReqItem ${checks.uppercase ? 'req-met' : 'req-unmet'}`}>
-                  {checks.uppercase ? '✅' : '❌'} At least one uppercase letter
-                </li>
-                <li className={`CPReqItem ${checks.number ? 'req-met' : 'req-unmet'}`}>
-                  {checks.number ? '✅' : '❌'} At least one number
-                </li>
-                <li className={`CPReqItem ${checks.special ? 'req-met' : 'req-unmet'}`}>
-                  {checks.special ? '✅' : '❌'} At least one special character
-                </li>
-              </ul>
             </div>
 
             {/* Confirm Password */}
@@ -170,7 +205,6 @@ function ChangePassword() {
                 </button>
               </div>
 
-              {/* Match indicator */}
               {form.confirmPassword && (
                 <span
                   className={`CPMatchIndicator ${
@@ -184,14 +218,32 @@ function ChangePassword() {
               )}
             </div>
 
+            <div className="CPRequirements">
+              <p className="CPReqTitle">Password requirements:</p>
+              <ul className="CPReqList">
+                <li className={`CPReqItem ${checks.length ? 'req-met' : 'req-unmet'}`}>
+                  {checks.length ? '✅' : '❌'} At least 8 characters
+                </li>
+                <li className={`CPReqItem ${checks.uppercase ? 'req-met' : 'req-unmet'}`}>
+                  {checks.uppercase ? '✅' : '❌'} At least one uppercase letter
+                </li>
+                <li className={`CPReqItem ${checks.number ? 'req-met' : 'req-unmet'}`}>
+                  {checks.number ? '✅' : '❌'} At least one number
+                </li>
+                <li className={`CPReqItem ${checks.special ? 'req-met' : 'req-unmet'}`}>
+                  {checks.special ? '✅' : '❌'} At least one special character
+                </li>
+              </ul>
+            </div>
+
             {changePasswordError && (
               <div className="CPErrorMsgContainer">
                 <p className="CPErrorMsg">{changePasswordError}</p>
               </div>
             )}
 
-            <button type="submit" className="CPSubmitBtn">
-              Save New Password
+            <button type="submit" className="CPSubmitBtn" disabled={submitting}>
+              {submitting ? 'Saving…' : 'Save New Password'}
             </button>
           </form>
         </div>
@@ -199,7 +251,6 @@ function ChangePassword() {
     </>
   );
 }
-
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
@@ -484,5 +535,7 @@ const styles = `
     line-height: 1.5;
   }
 `;
+
+
 
 export default ChangePassword;
