@@ -1,4 +1,6 @@
-import {BrowserRouter, Routes, Route} from 'react-router-dom'
+import { useEffect } from 'react'
+// added useEffect and useNavigate
+import {BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
  {/* LEA-CIDG PAGES */}
 import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
@@ -13,7 +15,7 @@ import SuperadminOtpEmail from './pages/emailtemplates/superadmin-otp-email.jsx'
 
 
 import DeepLinkStatus from './pages/emailtemplates/invitation-status.jsx'
-
+import ProfileSetting from './pages/profile-setting.jsx';
 
 
 {/* SUPERADMIN PAGES */}
@@ -33,11 +35,73 @@ import FDAVerification from './pages/fdafolder/fda-verification.jsx';
 import FDAStatus from './pages/fdafolder/fda-status.jsx';
 import FDAProductDB from './pages/fdafolder/fda-product-db.jsx';
 
+
+// deep-link listener component
+/* ORIGINAL — commented out temporarily for browser testing, restore this after
+function DeepLinkListener() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+console.log('DeepLinkListener mounted, waiting for token...')
+
+    window.electronAPI.onDeepLinkToken((token) => {
+            console.log('Token received:', token)
+
+      fetch(`http://localhost:8000/registration/validate/${token}`)
+        .then((res) => res.json())
+        .then((data) => {
+                    console.log('Validate response:', data)
+
+          if (data.status === 'valid') {
+            navigate('/user-registration', { state: { ...data, invite_token: token } })
+          } else {
+            navigate('/invitation-status', { state: {status: data.status, invite_token: token } })
+          }
+        })
+    })
+  }, [])
+
+  return null   // this component doesn't render anything visible, it just listens
+}
+*/
+
+// TEMP: guarded version for browser testing — remove once original is restored
+function DeepLinkListener() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!window.electronAPI?.onDeepLinkToken) {
+      console.warn('electronAPI.onDeepLinkToken not available — deep link listening disabled.')
+      return
+    }
+
+    console.log('DeepLinkListener mounted, waiting for token...')
+
+    window.electronAPI.onDeepLinkToken((token) => {
+      console.log('Token received:', token)
+
+      fetch(`http://localhost:8000/registration/validate/${token}`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log('Validate response:', data)
+
+          if (data.status === 'valid') {
+            navigate('/user-registration', { state: { ...data, invite_token: token } })
+          } else {
+            navigate('/invitation-status', { state: { status: data.status, invite_token: token } })
+          }
+        })
+    })
+  }, [])
+
+  return null
+}
+
 export default function App(){
   return(
     <BrowserRouter>
+      <DeepLinkListener />
       <Routes>
-          {/*CHANGE THIS LINE ONLY WHEN TESTING */}
           <Route path='/' element={<Login />} />
 
         {/* AUTH ROUTES */}
@@ -67,7 +131,9 @@ export default function App(){
         <Route path='/preview-email/superadmin-otp'element={<SuperadminOtpEmail/>}/>
 
         {/* DEEP LINK ROUTES */}
-        <Route path='/preview-email/invitation-status' element={<DeepLinkStatus />} />
+        <Route path='/invitation-status' element={<DeepLinkStatus />} />
+
+        <Route path='/profile-setting' element={<ProfileSetting />} />
 
         {/* FDA ROUTES */}
         <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
