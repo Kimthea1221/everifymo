@@ -2,3 +2,6 @@ fastapi
 uvicorn
 pydantic
 pandas
+rank_bm25
+sentence_transformers
+faiss-cpu
