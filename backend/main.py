@@ -13,6 +13,9 @@ from app.desktop.routers.auth import registration
 
 from app.desktop.routers.auth.invite import router as invite_router
 from app.desktop.routers.regions.regions import router as regions_router
+from app.desktop.routers.user_management.management import router as user_management_router
+from app.desktop.routers.auth.personnel_login import router as personnel_login_router
+from app.desktop.routers.auth.password_change import router as password_change_router
 
 from app.database.base import Base
 from app.database.sessions import engine, get_db
@@ -70,15 +73,10 @@ app.include_router(superadmin_login_router)
 app.include_router(password_reset_router)
 app.include_router(sessions_router)
 
-# app.include_router(user_management_router)
+app.include_router(user_management_router)
 
-app.include_router(walkin_drafts_router)
-app.include_router(all_drafts_router)
-app.include_router(verification_drafts_router)
-
-app.include_router(draft_submit_router)
-app.include_router(direct_complaint_router)
-
+app.include_router(personnel_login_router)
+app.include_router(password_change_router)
 @app.get("/", status_code=status.HTTP_200_OK)
 async def user(consumer: consumer_dependency):
     if consumer is None:
