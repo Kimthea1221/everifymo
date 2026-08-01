@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # add to settings if you want this configurable
 
-    DEFAULT_EXTENSION_REGION_ID: str
+    DEFAULT_EXTENSION_REGION_ID: str = ""
     
     class Config:
         env_file = ".env"

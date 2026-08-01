@@ -28,7 +28,7 @@ from app.extension.routers import status as status_router
 
 
 app = FastAPI()
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
