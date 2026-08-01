@@ -1,5 +1,6 @@
 import uuid
 import secrets
+import secrets as secrets_module 
 from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +13,8 @@ from app.models.account_invitation_tokens import AccountInvitationToken
 from app.desktop.schemas.user_management.management import UserListItem, UserSummary
 from app.core.constants import UserStatus
 from app.core.dependencies import get_current_superadmin
+from app.core.security import hash_password
+from app.desktop.services.auth.email import send_activation_email
 
 router = APIRouter(prefix="/admin/users", tags=["user-management"])
 
@@ -110,8 +113,13 @@ def user_summary(
     )
 
 
+def generate_temp_password() -> str:
+    # readable, still random: e.g. "Xk7-Rp2-Qw9!"
+    return secrets_module.token_urlsafe(9) + "!A1"
+
+
 @router.post("/{user_id}/activate")
-def activate_user(
+async def activate_user(
     user_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
@@ -120,9 +128,17 @@ def activate_user(
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    temp_password = generate_temp_password()
+    user.password_hash = hash_password(temp_password)
+    user.force_password_change = True
     user.status = UserStatus.ACTIVE
     user.is_active = True
     db.commit()
+
+    fullname = " ".join(p for p in [user.first_name, user.middle_name, user.last_name] if p)
+    await send_activation_email(user.email, fullname or user.email, temp_password)
+
     return {"message": "User account activated successfully"}
 
 

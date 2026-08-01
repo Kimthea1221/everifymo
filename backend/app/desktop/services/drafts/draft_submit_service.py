@@ -14,7 +14,7 @@ from app.core.case_reference import generate_case_reference
 
 
 SHARED_FILES_DIR = "uploads/shared_files"
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf", ".docx"}
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 
 
@@ -167,6 +167,8 @@ def create_walkin_complaint_direct(
     complaint_fields: dict,
     files: list[UploadFile],
 ) -> Complaint:
+    if len(files) == 0:
+        raise HTTPException(status_code=400, detail="At least one file attachment is required.")
     """
     The NO-DRAFT path — officer filled the New Walk-in Intake form
     and clicked "Log Complaint & Queue for FDA" directly, without

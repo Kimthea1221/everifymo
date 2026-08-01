@@ -14,7 +14,7 @@ class CreateConsumerAcc(BaseModel):
             raise ValueError("Password must contain at least one digit")
         return v
 
-
-
+class UpdateUsername(BaseModel):
+    username: str
 
 
