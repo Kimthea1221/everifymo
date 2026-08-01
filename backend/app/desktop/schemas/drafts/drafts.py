@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from enum import Enum
 
 
@@ -67,6 +67,17 @@ class WalkinIntakeDraftSave(BaseModel):
     date_of_purchase: date | None = None
     amount_paid: Decimal | None = None
     nature_of_complaint: str | None = None
+
+    @field_validator("contact_number") #Pydantic decorator that says "run this function every time contact_number is set, to check/clean it."
+    @classmethod
+    def validate_contact_number(cls, value):
+        if value is None:
+            return value
+        if not value.isdigit(): # checks every character is 0-9 
+            raise ValueError("Contact number must contain digits only.")
+        if len(value) != 11:
+            raise ValueError("Contact number must be exactly 11 digits.")
+        return value
 
 
 # What we send BACK — e.g. when the officer reopens a saved draft,

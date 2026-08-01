@@ -23,6 +23,9 @@ router = APIRouter(prefix="/drafts/walkin", tags=["Walk-in Intake Drafts"])
 # Every other line in this file stays the same when that swap happens.
 UPLOAD_DIR = "uploads/draft_attachments"
 
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
+MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB, matching the UI's stated limit
+
 
 # Fields the officer's form requires (see Image 4/5) — everything
 # EXCEPT full_name, contact_number, id_type, email, address,
@@ -52,6 +55,15 @@ def _determine_draft_status(data: WalkinIntakeDraftSave, has_files: bool) -> Dra
 
 
 def _save_file_to_disk(file: UploadFile, draft_id) -> dict:
+    # Reject disallowed file types BEFORE ever touching disk — check
+    # the filename's extension against our allowed list.
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if file_extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type '{file_extension}' is not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
+        )
+
     # Create the top-level uploads folder if it doesn't exist yet.
     # exist_ok=True means "don't error if it's already there."
     os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -74,12 +86,19 @@ def _save_file_to_disk(file: UploadFile, draft_id) -> dict:
         # streams it to disk without loading the whole thing into memory
         shutil.copyfileobj(file.file, buffer)
 
+    # Check size AFTER writing (we need the real byte count) — if it's
+    # too large, delete what we just wrote and reject.
+    actual_size = os.path.getsize(destination_path)
+    if actual_size > MAX_FILE_SIZE_BYTES:
+        os.remove(destination_path)
+        raise HTTPException(status_code=400, detail="File exceeds the 25 MB limit.")
+
     # Return exactly the fields DraftAttachment needs, so the caller
     # can build the row without repeating this logic.
     return {
         "file_name": file.filename,
         "file_path": destination_path,
-        "file_size_bytes": os.path.getsize(destination_path),
+        "file_size_bytes": actual_size, 
         "mime_type": file.content_type,
     }
 
