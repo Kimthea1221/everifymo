@@ -23,7 +23,7 @@ router = APIRouter(prefix="/drafts/walkin", tags=["Walk-in Intake Drafts"])
 # Every other line in this file stays the same when that swap happens.
 UPLOAD_DIR = "uploads/draft_attachments"
 
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf", ".docx"}
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB, matching the UI's stated limit
 
 

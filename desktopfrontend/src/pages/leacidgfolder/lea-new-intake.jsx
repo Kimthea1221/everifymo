@@ -25,7 +25,9 @@ function LeaNewIntake() {
     const [attachmentIdsToRemove, setAttachmentIdsToRemove] = useState([])
 
     const [loading, setLoading] = useState(false)  // ADDED — disables buttons mid-request
-    const [errorMessage, setErrorMessage] = useState('')  // ADDED
+
+    // ADDED — replaces errorMessage. { message, type: 'error' | 'success' }
+    const [toast, setToast] = useState(null)
 
     // ADDED — one state var per field. Original inputs had none of these
     // (uncontrolled), so React couldn't read or pre-fill them.
@@ -41,6 +43,12 @@ function LeaNewIntake() {
     const [dateOfPurchase, setDateOfPurchase] = useState('')
     const [amountPaid, setAmountPaid] = useState('')
     const [natureOfComplaint, setNatureOfComplaint] = useState('')
+
+    // ADDED — shows a toast for 3 seconds then auto-clears
+    const showToast = (message, type = 'error') => {
+        setToast({ message, type })
+        setTimeout(() => setToast(null), 3000)
+    }
 
     // ADDED — on page load, if editing a draft, fetch it and fill every field
     useEffect(() => {
@@ -114,11 +122,26 @@ function LeaNewIntake() {
         return formData
     }
 
+    // ADDED — turns FastAPI's 422 error shape into a readable sentence.
+    // FastAPI sends back { detail: [{ loc: [...], msg: "...", ... }, ...] }
+    // for validation errors — this reads that array and builds a plain
+    // message instead of showing raw JSON or a vague generic string.
+    const parseBackendError = async (res) => {
+        try {
+            const errorData = await res.json()
+            if (Array.isArray(errorData.detail)) {
+                return errorData.detail.map((e) => e.msg).join(', ')
+            }
+            return errorData.detail || 'Something went wrong. Please try again.'
+        } catch {
+            return 'Something went wrong. Please try again.'
+        }
+    }
     
     // ADDED — POST if new draft, PUT if editing an existing one
     const handleSaveAsDraft = async () => {
         setLoading(true)
-        setErrorMessage('')
+        // setErrorMessage('')
         const token = localStorage.getItem('access_token')
         const formData = buildFormData()
 
@@ -137,10 +160,14 @@ function LeaNewIntake() {
                 headers: { authorization: `Bearer ${token}` },
                 body: formData,
             })
-            if (!res.ok) throw new Error('Failed to save draft.')
+            if (!res.ok) {
+                showToast(await parseBackendError(res))
+                return
+            }
+            showToast('Draft saved successfully.', 'success')
             navigate('/leacidgfolder/lea-saved-draft')
         } catch (err) {
-            setErrorMessage(err.message)
+            showToast(err.message)
         } finally {
             setLoading(false)
         }
@@ -148,9 +175,15 @@ function LeaNewIntake() {
 
 
     // ADDED — submit endpoint if editing a draft, direct-create endpoint if not
-    const handleLogComplaint = async () => {
+    const handleLogComplaint = async (e) => {
+        e.preventDefault()
+        
+        if (!editingDraftId && files.length === 0) {
+        showToast('Please attach at least one file.')
+        return
+        }
+
         setLoading(true)
-        setErrorMessage('')
         const token = localStorage.getItem('access_token')
 
         try {
@@ -169,10 +202,15 @@ function LeaNewIntake() {
                     body: formData,
                 })
             }
-            if (!res.ok) throw new Error('Failed to log complaint.')
+
+            if (!res.ok) {
+                showToast(await parseBackendError(res))
+                return
+            }
+            showToast('Complaint logged successfully.', 'success')
             navigate('/leacidgfolder/lea-walkin-complaints')
         } catch (err) {
-            setErrorMessage(err.message)
+            showToast(err.message)
         } finally {
             setLoading(false)
         }
@@ -192,21 +230,19 @@ function LeaNewIntake() {
                         </div>
                     </div>
 
-                    {/* ADDED — shows backend error messages to the officer */}
-                    {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-
                     <div className='FormForWalkin'>
-                        <form className=''>
+                       {/* CHANGED — real onSubmit, fires only when "Log Complaint" is clicked */}
+                        <form onSubmit={handleLogComplaint}>
                             <div className='FormSection'>
                                 <h3>COMPLAINANT DETAILS</h3>
                                 <div className='col'>
                                     <div>
-                                        <label htmlFor="">Full Name</label>
+                                        <label htmlFor="">Full Name (OPTIONAL)</label>
                                         <input type="text" placeholder='Ex. Juan Dela cruz' 
                                         value={fullName} onChange={(e) => setFullName(e.target.value)} />
                                     </div>
                                     <div>
-                                        <label htmlFor="">Contact</label>
+                                        <label htmlFor="">Contact (OPTIONAL)</label>
                                         <input type="text" placeholder='Ex. 09XXXXXXXXX'
                                             value={contactNumber}
                                             onChange={(e) => {
@@ -223,7 +259,7 @@ function LeaNewIntake() {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="">ID Presented</label>
+                                        <label htmlFor="">ID Presented (OPTIONAL)</label>
                                         {/* ADDED real option values matching backend's IdType enum */}
                                         <select value={idType} onChange={(e) => setIdType(e.target.value)}>
                                             <option value="">Select ID Type</option>
@@ -245,12 +281,12 @@ function LeaNewIntake() {
                                 <div className='col'>
                                     <div>
                                         <label htmlFor="">Product Name</label>
-                                        <input type="text" placeholder='Ex. Herbal Slim' 
+                                        <input type="text" placeholder='Ex. Herbal Slim' required
                                         value={productName} onChange={(e) => setProductName(e.target.value)} />
                                     </div>
                                     <div>
                                         <label htmlFor="">Manufacturer/Seller</label>
-                                        <input type="text" placeholder='Ex. Naturefit labs' 
+                                        <input type="text" placeholder='Ex. Naturefit labs' required
                                         value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} />
                                     </div>
 
@@ -258,7 +294,7 @@ function LeaNewIntake() {
                                 <div className='col'>
                                     <div>
                                         <label htmlFor="">Category</label>
-                                        <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)}>
+                                        <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)} required > 
                                             <option value="">Select Category</option>
                                             <option value="Food">Food</option>
                                             <option value="Cosmetics">Cosmetics</option>
@@ -268,7 +304,7 @@ function LeaNewIntake() {
                                     </div>
                                     <div>
                                         <label htmlFor="">Place of Purchase</label>
-                                        <input type="text" placeholder='Public market, online seller etc.'
+                                        <input type="text" placeholder='Public market, online seller etc.' required
                                         value={placeOfPurchase} onChange={(e) => setPlaceOfPurchase(e.target.value)} />
                                     </div>
                                 </div>
@@ -276,7 +312,7 @@ function LeaNewIntake() {
                                 <div className='col'>
                                     <div>
                                         <label htmlFor="">Date of Purchase</label>
-                                        <input type="date" placeholder=''
+                                        <input type="date" placeholder='' required
                                         value={dateOfPurchase} onChange={(e) => setDateOfPurchase(e.target.value)} />
                                     </div>
                                     <div>
@@ -293,7 +329,7 @@ function LeaNewIntake() {
                             <div className='FormSection'>
                                 <h3>Complainant Statement</h3>
                                 <label htmlFor="">Nature Of Complaint</label>
-                                <textarea rows='5' placeholder='Statement of the complainant.'
+                                <textarea rows='5' placeholder='Statement of the complainant.' required
                                 value={natureOfComplaint} onChange={(e) => setNatureOfComplaint(e.target.value)}></textarea>
                             </div>
 
@@ -305,7 +341,7 @@ function LeaNewIntake() {
                                         type="file"
                                         id="evidenceUpload"
                                         multiple
-                                        accept=".jpg,.jpeg,.png,.pdf"
+                                        accept=".jpg,.jpeg,.png,.pdf,.docx"
                                         onChange={handleFileChange}
                                         hidden
                                     />
@@ -357,13 +393,13 @@ function LeaNewIntake() {
                                 </div>
                             </div>
                             <div>
-                                {/* ADDED type="button" on all 3 — without it, clicking inside
-                                    a <form> triggers a full page reload on click */}
                                 <button type="button" className='CancelButton' onClick={() => navigate(-1)}>Cancel</button>
+                                {/* CHANGED — back to type="button", no required check applies here */}
                                 <button type="button" className='DraftButton' disabled={loading} onClick={handleSaveAsDraft}>
                                     {loading ? 'Saving...' : 'Save as Draft'}
                                 </button>
-                                <button type="button" className='LogButton' disabled={loading} onClick={handleLogComplaint}>
+                                {/* CHANGED — real type="submit", triggers handleLogComplaint via form onSubmit */}
+                                <button type="submit" className='LogButton' disabled={loading}>
                                     {loading ? 'Submitting...' : 'Log Complaint & Queue for FDA'}
                                 </button>
                             </div>
@@ -372,6 +408,18 @@ function LeaNewIntake() {
                     </div>
                 </div>
             </div>
+
+            {/* ADDED — toast notification */}
+            {toast && (
+                <div style={{
+                    position: 'fixed', bottom: '30px', right: '30px',
+                    background: toast.type === 'error' ? '#cc0000' : '#1B2746',
+                    color: '#fff', padding: '14px 24px', borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 1000,
+                }}>
+                    {toast.message}
+                </div>
+            )}
         </div>
     )
 }
