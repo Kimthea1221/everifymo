@@ -41,7 +41,7 @@ from app.desktop.routers.complaints.walkin_complaints import (
 
 
 app = FastAPI()
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
