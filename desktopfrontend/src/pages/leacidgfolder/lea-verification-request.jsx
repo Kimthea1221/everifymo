@@ -240,6 +240,28 @@ function LeaVerificationRequest(){
         });
     };
 
+    // NOTE: Delete handler for the Ready to Send tab — unique name to avoid conflicts
+    // BACKEND: DELETE /api/complaints/:id  (removes complaint and its queued verification request)
+    const handleLeaVerificationDelete = () => {
+        setModalConfig({
+            title: "Delete Complaint?",
+            message: "This complaint will be permanently removed.",
+            confirmText: "Delete",
+            confirmBg: "#cc0000",
+            onConfirm: () => {
+                // BACKEND: call DELETE /api/complaints/:id here
+                setSuccessMessage("Complaint deleted successfully.");
+                setModalConfig(null);
+                setTimeout(() => {
+                    setSuccessMessage('');
+                }, 3000);
+            },
+            onCancel: () => {
+                setModalConfig(null);
+            }
+        });
+    };
+
     return(
         <div className='LeaDashboardMain'>
             <Sidebar sidebarType="LEA" />
@@ -405,6 +427,13 @@ function LeaVerificationRequest(){
                                             </div>
                             
                                             <div className="VerificationActions">
+                                                {/* BACKEND: DELETE /api/complaints/:id */}
+                                                <button
+                                                    className="LeaVerDeleteBtn"
+                                                    onClick={handleLeaVerificationDelete}
+                                                >
+                                                    Delete
+                                                </button>
                                                 {/* BACKEND: POST to /api/verification-requests (status: draft) */}
                                                 <button className="DraftButton">
                                                     Save Draft
@@ -847,11 +876,11 @@ function LeaVerificationRequest(){
                                             onChange={(e) => setFilterCategory(e.target.value)}
                                         >
                                             <option value="">All Categories</option>
-                                            <option value="Supplement">Supplement</option>
                                             <option value="Cosmetic">Cosmetic</option>
                                             <option value="Food">Food</option>
                                             <option value="Drug">Drug</option>
                                             <option value="Medical Device">Medical Device</option>
+
                                         </select>
                                         <button
                                             className="BtnClearFilters"
