@@ -10,9 +10,11 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 
 datasets_dir = BASE_DIR.parent / "datasets"
+asset_dir = BASE_DIR.parent / "assets"
+asset_dir.mkdir(parents=True, exist_ok=True)
 
 file_path = datasets_dir / "registered.csv"
-df = pd.read_csv(file_path)
+df = pd.read_csv(file_path, low_memory=False)
 
 # Check columns
 print("Columns:")
@@ -129,8 +131,6 @@ print(df[[TITLE_COLUMN]].head())
 # print(df[[COMPANY_COLUMN]].head())
 
 # Save cleaned dataset
-asset_dir = datasets_dir / "assets"
-
 output_path = asset_dir / "Registered_cleaned.csv"
 df.to_csv(output_path, index=False)
 
@@ -165,6 +165,9 @@ print(df[[UN_TITLE_COLUMN]].head())
 # Save cleaned dataset
 output_path = asset_dir / "Unregistered_cleaned.csv"
 df.to_csv(output_path, index=False)
+
+with open(asset_dir / "Unregistered_cleaned.pkl", 'wb') as f:
+    pickle.dump(df, f)
 
 print("\nCleaning completed!")
 print("Saved to:", output_path)

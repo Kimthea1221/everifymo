@@ -3,5 +3,5 @@ uvicorn
 pydantic
 pandas
 rank_bm25
-sentence_transformers
+sentence-transformers
 faiss-cpu

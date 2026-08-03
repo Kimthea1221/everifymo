@@ -1,11 +1,13 @@
 from pathlib import Path
 import pandas as pd
 import pickle
+from rank_bm25 import BM25Okapi
 
 #### Tokenization of both dataframes ####
 
 BASE_DIR = Path(__file__).resolve().parent
 asset_dir = BASE_DIR.parent / "assets"
+asset_dir.mkdir(parents=True, exist_ok=True)
 
 registered = pd.read_pickle(asset_dir / "Registered_cleaned.pkl")
 unregistered = pd.read_pickle(asset_dir / "Unregistered_cleaned.pkl")
@@ -26,7 +28,6 @@ print(unregistered[['tokens']].head())
 
 #### Build the BM25 index ####
 ###!pip install rank-bm25
-from rank_bm25 import BM25Okapi
 
 #create document indexes for registered#
 tokenized_reg_corpus = registered['tokens'].tolist()
