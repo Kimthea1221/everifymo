@@ -11,6 +11,8 @@ from app.models.draft_attachments import DraftAttachment
 from app.desktop.schemas.drafts.drafts import (
     WalkinIntakeDraftSave,
     WalkinIntakeDraftResponse,
+    WalkinIntakeDraftDetailResponse,   
+    DraftAttachmentResponse,
     DraftStatus,
     SortOption,
 )
@@ -196,7 +198,7 @@ def save_walkin_draft(
     #
     #
     # GET /drafts/walkin/{draft_id}
-@router.get("/{draft_id}", response_model=WalkinIntakeDraftResponse)   
+@router.get("/{draft_id}", response_model=WalkinIntakeDraftDetailResponse)   
 def get_walkin_draft(
     draft_id: UUID,  
     db: Session = Depends(get_db),
@@ -217,7 +219,18 @@ def get_walkin_draft(
         # information about other officers' drafts existing at all.
         raise HTTPException(status_code=404, detail="Draft not found.")
 
-    return draft
+    # ADDED — fetch this draft's attachments separately, then attach
+    # them to the response. Pydantic will read `draft`'s own fields
+    # via from_attributes as usual, but attachments needs to be built
+    # manually since it's not part of the WalkinIntakeDraft model itself.
+    attachments = db.query(DraftAttachment).filter(
+        DraftAttachment.walkin_draft_id == draft_id
+    ).all()
+
+    return WalkinIntakeDraftDetailResponse(
+        **WalkinIntakeDraftResponse.model_validate(draft).model_dump(),
+        attachments=[DraftAttachmentResponse.model_validate(a) for a in attachments],
+    )
 
 
     #

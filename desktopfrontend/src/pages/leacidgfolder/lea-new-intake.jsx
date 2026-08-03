@@ -75,6 +75,7 @@ function LeaNewIntake() {
                 setDateOfPurchase(data.date_of_purchase ?? '')
                 setAmountPaid(data.amount_paid ?? '')
                 setNatureOfComplaint(data.nature_of_complaint ?? '')
+                setExistingAttachments(data.attachments ?? [])
                 // NOTE: existingAttachments not set here yet — endpoint
                 // doesn't return file data yet, flagged separately below
             })
@@ -409,16 +410,17 @@ function LeaNewIntake() {
                 </div>
             </div>
 
-            {/* ADDED — toast notification */}
+            {/* ADDED — toast notification, matches SuccessAlert style from verification request page */}
             {toast && (
-                <div style={{
-                    position: 'fixed', bottom: '30px', right: '30px',
-                    background: toast.type === 'error' ? '#cc0000' : '#1B2746',
-                    color: '#fff', padding: '14px 24px', borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 1000,
-                }}>
-                    {toast.message}
-                </div>
+                toast.type === 'error' ? (
+                    <div className="SuccessAlert" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444', color: '#b91c1c' }}>
+                        <p>{toast.message}</p>
+                    </div>
+                ) : (
+                    <div className="SuccessAlert">
+                        <p>{toast.message}</p>
+                    </div>
+                )
             )}
         </div>
     )
