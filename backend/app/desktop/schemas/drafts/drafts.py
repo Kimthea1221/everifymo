@@ -129,6 +129,7 @@ class UnifiedDraftResponse(BaseModel):
     product_category: str | None
     complainant_name: str | None
     saved_by: UUID
+    saved_by_name: str | None   # added this for saved by in the UI
     region_id: UUID
     draft_status: DraftStatus
     created_at: datetime
@@ -166,3 +167,6 @@ class VerificationRequestDraftResponse(VerificationRequestDraftSave):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class WalkinIntakeDraftDetailResponse(WalkinIntakeDraftResponse):
+    attachments: list[DraftAttachmentResponse] = []
