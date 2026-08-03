@@ -19,10 +19,17 @@ from app.desktop.services.auth.email import send_activation_email
 router = APIRouter(prefix="/admin/users", tags=["user-management"])
 
 
-def compute_display_status(user: User, latest_resend_requested_at) -> str:
+def compute_display_status(user: User, latest_token) -> str:
     if user.status == UserStatus.INVITED:
-        if latest_resend_requested_at is not None:
-            return "Invite Requested"
+        if latest_token:
+            if latest_token.resend_requested_at is not None:
+                return "Resend Requested"
+            expires_at = latest_token.expires_at
+            if expires_at:
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(tzinfo=timezone.utc)
+                if expires_at < datetime.now(timezone.utc):
+                    return "Link Expired"
         return "Invited"
     if user.status == UserStatus.PENDING_APPROVAL:
         return "Pending Approval"
@@ -50,7 +57,6 @@ def list_users(
             .order_by(AccountInvitationToken.created_at.desc())
             .first()
         )
-        latest_resend = latest_token.resend_requested_at if latest_token else None
 
         parts = [p for p in [user.first_name, user.middle_name, user.last_name] if p]
         fullname = " ".join(parts) if parts else None
@@ -66,7 +72,7 @@ def list_users(
                 department=user.department,
                 position=user.position,
                 contact_number=user.contact_number,
-                display_status=compute_display_status(user, latest_resend),
+                display_status=compute_display_status(user, latest_token),
                 is_active=user.is_active,
             )
         )
