@@ -22,4 +22,4 @@ registered_index = faiss.IndexFlatIP(d)
 registered_index.add(registered_embeddings)
 
 #save registered_index as index
-faiss.write_index(registered_index, asset_dir / "registered.index")
+faiss.write_index(registered_index, str(asset_dir / "registered.index"))
