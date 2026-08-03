@@ -167,13 +167,14 @@ def create_walkin_complaint_direct(
     complaint_fields: dict,
     files: list[UploadFile],
 ) -> Complaint:
-    if len(files) == 0:
-        raise HTTPException(status_code=400, detail="At least one file attachment is required.")
     """
     The NO-DRAFT path — officer filled the New Walk-in Intake form
     and clicked "Log Complaint & Queue for FDA" directly, without
     ever saving a draft first (Image 1/2).
     """
+    if len(files) == 0:
+            raise HTTPException(status_code=400, detail="At least one file attachment is required.")
+    
     new_complaint = _create_complainant_and_complaint(
         db, current_user, current_user.region_id,
         complainant_fields=complainant_fields,
