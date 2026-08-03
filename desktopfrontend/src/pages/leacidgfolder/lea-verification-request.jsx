@@ -8,7 +8,10 @@ import {Clock3,
         ShieldCheck,
         ShieldX,
         CircleCheckBig,
-        XCircle
+        XCircle,
+        Inbox,
+        Siren,
+        Archive
 } from 'lucide-react';
 
 // REMOVE THIS
@@ -274,6 +277,39 @@ function LeaVerificationRequest(){
                             <p>SEND & TRACK FDA VERIFICATION REQUEST</p>
                         </div>
                     </div>
+                     {/* STATS METRIC SUMMARY BAR (NON-CLICKABLE) */}
+                    <div className="LeaVerifStatsBar">
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeResponse">
+                                    <Inbox size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{responseCases.length}</p>
+                            <p className="LeaVerifStatLabel">FDA Response</p>
+                        </div>
+
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeInitiated">
+                                    <Siren size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{initiatedCases.length}</p>
+                            <p className="LeaVerifStatLabel">Initiated Cases</p>
+                        </div>
+
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeDismissed">
+                                    <Archive size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{dismissedCases.length}</p>
+                            <p className="LeaVerifStatLabel">Dismissed Cases</p>
+                        </div>
+                    </div>
+
                     <div className="VerificationContainer">
                     
                         <div className="VerificationTabs">
