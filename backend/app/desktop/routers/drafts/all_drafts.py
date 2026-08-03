@@ -26,6 +26,11 @@ def list_all_drafts(
 ):
     results: list[UnifiedDraftResponse] = []
 
+    # Every draft returned here is guaranteed to belong to current_user
+    # (both queries below filter by saved_by == current_user.user_id),
+    # so we can build this ONCE instead of looking it up per-row.
+    officer_full_name = f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or None
+
     # --- Walk-in intake drafts ---
     # Skipped entirely if the officer filtered to "Verification Request"
     # only — no reason to query a table we're not going to show.
@@ -47,6 +52,11 @@ def list_all_drafts(
                 product_category=d.product_category,
                 complainant_name=d.full_name,
                 saved_by=d.saved_by,
+                # this approach works specifically because of the current privacy scoping. 
+                # If this endpoint ever gets extended later (e.g., a supervisor view that can see multiple officers' drafts), 
+                # this shortcut would break silently — it would show the viewing supervisor's name on every row, 
+                # not each draft's actual owner. If that day comes, this would need to become a real join instead
+                saved_by_name=officer_full_name, 
                 region_id=d.region_id,
                 draft_status=d.draft_status,
                 created_at=d.created_at,
@@ -85,6 +95,7 @@ def list_all_drafts(
                 product_category=complaint.product_category,
                 complainant_name=complainant.full_name if complainant else None,
                 saved_by=draft.saved_by,
+                saved_by_name=officer_full_name,
                 region_id=draft.region_id,
                 draft_status=draft.draft_status,
                 created_at=draft.created_at,
