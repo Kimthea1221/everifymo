@@ -31,7 +31,9 @@ async function renderComplaintsHistoryList() {
       productName: c.product_title,
       platform: c.platform,
       note: c.change_note || "",
-      time: timeFormat(c.changed_at)
+      time: timeFormat(c.changed_at),
+      link: c.product_url,
+      storeName: c.store_name
   }));
 
   const counterEl = document.getElementById('resolved-counter');
