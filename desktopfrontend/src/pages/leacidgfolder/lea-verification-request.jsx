@@ -380,6 +380,12 @@ function LeaVerificationRequest() {
       return;
     }
 
+    // Validate required fields for both new requests and existing drafts
+    if (!complaintStatement.trim()) {
+      showError('Please enter notes to FDA verifier.');
+      return;
+    }
+
     const token = localStorage.getItem('access_token');
     const headers = {
       authorization: `Bearer ${token}`,
@@ -389,17 +395,30 @@ function LeaVerificationRequest() {
     try {
       let res;
       if (currentDraftId) {
+        // Update the draft first
+        const updateRes = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            complaint_id: selectedComplaint.complaint_id,
+            product_code: productCode || null,
+            priority,
+            notes_to_fda: complaintStatement,
+          }),
+        });
+
+        if (!updateRes.ok) {
+          const msg = await parseBackendError(updateRes);
+          showError(msg);
+          return;
+        }
+
         // Finish an existing draft → submit it
         res = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}/submit`, {
           method: 'POST',
           headers: { authorization: `Bearer ${token}` },
         });
       } else {
-        // Fresh compose path — validate required fields first
-        if (!complaintStatement.trim()) {
-          showError('Please enter notes to FDA verifier.');
-          return;
-        }
         res = await fetch(`${API_BASE}/verification-requests/`, {
           method: 'POST',
           headers,
