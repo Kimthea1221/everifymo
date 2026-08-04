@@ -58,7 +58,7 @@ from app.desktop.routers.verification.verification_requests import (
 )
 
 app = FastAPI()
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine) wag na iuuncomment this line, since we are using alembic for migrations
 
 app.add_middleware(
     CORSMiddleware,
