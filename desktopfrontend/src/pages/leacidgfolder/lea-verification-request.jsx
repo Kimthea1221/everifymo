@@ -8,7 +8,13 @@ import {Clock3,
         ShieldCheck,
         ShieldX,
         CircleCheckBig,
-        XCircle
+        XCircle,
+        Search,
+        Filter,
+        Calendar,
+        Paperclip,
+        FileText,
+        Eye
 } from 'lucide-react';
 
 // REMOVE THIS
@@ -21,7 +27,7 @@ const responseCases = [
     product: "HerbalSlim Capsules",
     manufacturer: "NatureFit Labs",
     complainant: "M. Reyes",
-    category: "Supplement",
+    category: "Drugs",
     loggedDate: "2026-05-17 10:42",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 16:02",
@@ -49,7 +55,7 @@ const responseCases = [
     product: "PureVita Multivitamin",
     manufacturer: "Vita Manufacturing Inc.",
     complainant: "J. Cruz",
-    category: "Supplement",
+    category: "Drugs",
     loggedDate: "2026-05-16 11:21",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 09:00",
@@ -69,7 +75,7 @@ const initiatedCases = [
     product: "HerbalSlim Capsules",
     manufacturer: "NatureFit Labs",
     complainant: "M. Reyes",
-    category: "Supplement",
+    category: "Drugs",
     loggedDate: "2026-05-17 10:42",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 16:02",
@@ -86,7 +92,7 @@ const dismissedCases = [
     caseId: 'ICM-2025-00185',
     product: 'HerbalSlim Capsules',
     manufacturer: 'NatureFit Labs',
-    category: 'Supplement',
+    category: 'Drugs',
     dateFiled: '2026-05-17',
     dateClosed: '2026-05-20',
     closedBy: 'Officer J. Domingo',
@@ -97,12 +103,45 @@ const dismissedCases = [
     caseId: 'ICM-2026-00188',
     product: 'PureVita Multivitamin',
     manufacturer: 'Vita Manufacturing Inc.',
-    category: 'Supplement',
+    category: 'Drugs',
     dateFiled: '2026-05-16',
     dateClosed: '2026-05-21',
     closedBy: 'Officer M. Santos',
     reasonClosed: 'Rejected by FDA',
   },
+];
+
+const readyToSendCases = [
+  {
+    id: 1,
+    caseNumber: 'ICM-2025-00185',
+    product: 'HerbalSlim Capsules',
+    manufacturer: 'NatureFit Labs',
+    category: 'Drugs',
+    loggedDate: '2026-05-17 10:42',
+    source: 'Walk-in Intake',
+    complainant: 'M. Reyes'
+  }
+];
+
+const awaitingFdaCases = [
+  {
+    id: 1,
+    caseNumber: 'ICM-2025-00185',
+    product: 'HerbalSlim Capsules',
+    manufacturer: 'NatureFit Labs',
+    category: 'Drugs',
+    loggedDate: '2026-05-17 10:42',
+    source: 'Walk-in Intake',
+    complainant: 'M. Reyes'
+  }
+];
+
+const leaAttachedDocuments = [
+  { id: 1, name: 'LEA_intake_form_signed.pdf', category: 'Intake Form', size: '1.2 MB' },
+  { id: 2, name: 'consumer_id_redacted.jpg', category: 'Complainant ID', size: '486 KB' },
+  { id: 3, name: 'product_photo_front.jpg', category: 'Product Photo', size: '932 KB' },
+  { id: 4, name: 'purchase_receipt.pdf', category: 'Proof of Purchase', size: '642 KB' },
 ];
 
 function LeaVerificationRequest(){
@@ -137,6 +176,15 @@ function LeaVerificationRequest(){
     const [selectedInitiatedCase, setSelectedInitiatedCase] = useState(initiatedCases[0]);
 
     // NOTE: States for Dismissed Cases tab filters
+    const [readySearch, setReadySearch] = useState('');
+    const [readyCategory, setReadyCategory] = useState('');
+    const [awaitingSearch, setAwaitingSearch] = useState('');
+    const [awaitingCategory, setAwaitingCategory] = useState('');
+    const [responseSearch, setResponseSearch] = useState('');
+    const [responseCategory, setResponseCategory] = useState('');
+    const [initiatedSearch, setInitiatedSearch] = useState('');
+    const [initiatedCategory, setInitiatedCategory] = useState('');
+    const [dismissedSearch, setDismissedSearch] = useState('');
     const [filterDateFrom, setFilterDateFrom] = useState('');
     const [filterDateTo, setFilterDateTo] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
@@ -146,12 +194,57 @@ function LeaVerificationRequest(){
     const [successMessage, setSuccessMessage] = useState('');
     const [viewCaseModalData, setViewCaseModalData] = useState(null);
 
+    const filteredReadyCases = readyToSendCases.filter((item) => {
+      const q = readySearch.toLowerCase().trim();
+      const matchesSearch = !q ||
+        item.caseNumber.toLowerCase().includes(q) ||
+        item.product.toLowerCase().includes(q) ||
+        item.manufacturer.toLowerCase().includes(q);
+      const matchesCategory = !readyCategory || item.category === readyCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    const filteredAwaitingCases = awaitingFdaCases.filter((item) => {
+      const q = awaitingSearch.toLowerCase().trim();
+      const matchesSearch = !q ||
+        item.caseNumber.toLowerCase().includes(q) ||
+        item.product.toLowerCase().includes(q) ||
+        item.manufacturer.toLowerCase().includes(q);
+      const matchesCategory = !awaitingCategory || item.category === awaitingCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    const filteredResponseCases = responseCases.filter((item) => {
+      const q = responseSearch.toLowerCase().trim();
+      const matchesSearch = !q ||
+        item.caseNumber.toLowerCase().includes(q) ||
+        item.product.toLowerCase().includes(q) ||
+        item.manufacturer.toLowerCase().includes(q);
+      const matchesCategory = !responseCategory || item.category === responseCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    const filteredInitiatedCases = initiatedCases.filter((item) => {
+      const q = initiatedSearch.toLowerCase().trim();
+      const matchesSearch = !q ||
+        item.caseNumber.toLowerCase().includes(q) ||
+        item.product.toLowerCase().includes(q) ||
+        item.manufacturer.toLowerCase().includes(q);
+      const matchesCategory = !initiatedCategory || item.category === initiatedCategory;
+      return matchesSearch && matchesCategory;
+    });
+
     // NOTE: Filter logic for closed/dismissed complaints table rows
     const filteredDismissed = dismissedCases.filter((c) => {
+      const q = dismissedSearch.toLowerCase().trim();
+      const matchSearch = !q ||
+        c.caseId.toLowerCase().includes(q) ||
+        c.product.toLowerCase().includes(q) ||
+        c.manufacturer.toLowerCase().includes(q);
       const matchCategory = filterCategory ? c.category === filterCategory : true;
       const matchFrom = filterDateFrom ? c.dateClosed >= filterDateFrom : true;
       const matchTo = filterDateTo ? c.dateClosed <= filterDateTo : true;
-      return matchCategory && matchFrom && matchTo;
+      return matchSearch && matchCategory && matchFrom && matchTo;
     });
 
     // NOTE: Trigger confirmation modals and success alerts for actions
@@ -293,36 +386,68 @@ function LeaVerificationRequest(){
                         {/*READY TO SEND TAB CONTENT*/}
                         <div className='VerificationTabContent ReadySendButtonContent'>
                             {activeTab === 'Ready to Send' && 
+                            <div className="LeaVerifTabPanel">
                             <div className="VerificationContent">
                                 {/* LEFT PANEL */}
                                 <div className="ReadytoSendQueue">
+                                    <div className="LeaVerifQueueFilterHeader">
+                                        <div className="LeaSearchWrapper">
+                                            <Search size={16} className="LeaSearchIcon" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search Case ID, Product, or Manufacturer..."
+                                                className="LeaCategoriesSearchInput"
+                                                value={readySearch}
+                                                onChange={(e) => setReadySearch(e.target.value)}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
+                                            <Filter size={14} className="LeaVerifFilterIcon" />
+                                            <select
+                                                style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
+                                                value={readyCategory}
+                                                onChange={(e) => setReadyCategory(e.target.value)}
+                                            >
+                                                <option value="">All Categories</option>
+                                                <option value="Cosmetics">Cosmetics</option>
+                                                <option value="Foods">Foods</option>
+                                                <option value="Medical Devices">Medical Devices</option>
+                                                <option value="Drugs">Drugs</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <div className="ReadytoSendHeader">
                                         <p>Walk-in cases awaiting your request</p>
                                         {/* REMOVE THIS */}
                                         {/* BACKEND: count of cases where verification_request_status is 'queued' or 'recalled' */}
-                                        <span>1</span> {/*walk in cases count need backend*/}
+                                        <span>{filteredReadyCases.length}</span> {/*walk in cases count need backend*/}
                                     </div>
 
                                     {/* BACKEND: verification_request_status: 'queued' or 'recalled' */}
-                                    <div className="QueueCard ActiveQueueCard" id=''>
-                                        <div className='QueueLabels'>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: product_name */}
-                                            <h4>HerbalSlim Capsules</h4>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: manufacturer_name */}
-                                            <p>NatureFit Labs</p>
-                                            <small>
-                                                {/* REMOVE THIS */}
-                                                {/* BACKEND: caseNumber and loggedDate from verification_requests_full */}
-                                                CASE ID: ICM-2025-00185
-                                            </small>
+                                    {filteredReadyCases.length > 0 ? (
+                                        filteredReadyCases.map((item) => (
+                                            <div key={item.id} className="QueueCard ActiveQueueCard" id=''>
+                                                <div className="QueueCardTopRow">
+                                                    <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
+                                                    <span className="QueueTagInline">Walk-in</span>
+                                                </div>
+                                                <h4>{item.product}</h4>
+                                                <p>{item.manufacturer}</p>
+                                                <div className="QueueCardFooterRow">
+                                                    <span className="QueueCategoryTag">{item.category}</span>
+                                                    <span className="QueueDateTag">
+                                                        <Calendar size={12} />
+                                                        {item.loggedDate}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="LeaVerifEmptyList">
+                                            <Search size={32} />
+                                            <p className="LeaVerifEmptyText">No cases match your current filters.</p>
                                         </div>
-                                        
-                                        <div className="QueueTag">
-                                            <span>Walk-in</span>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
 
                                 {/* RIGHT PANEL */}
@@ -353,7 +478,7 @@ function LeaVerificationRequest(){
                                                     <label>Cetegory</label>
                                                     {/* REMOVE THIS */}
                                                     {/* BACKEND: category */}
-                                                    <p>Supplement</p>
+                                                    <p>Drugs</p>
                                                 </div>
 
                                                 <div>
@@ -416,14 +541,33 @@ function LeaVerificationRequest(){
                                                 ></textarea>
                                             </div>
 
-                                            <div className="AttachedFiles">
-                                                <h4>Auto-attached from intake</h4>
-                                                <p>
-                                                    LEA_intake_form_signed.pdf ·
-                                                    consumer_id_redacted.jpg ·
-                                                    product_photo_front.jpg ·
-                                                    purchase_receipt.pdf
-                                                </p>
+                                            <div className="LeaVerifSectionCard">
+                                                <div className="LeaVerifSectionHeader">
+                                                    <Paperclip size={16} className="LeaVerifBlueIcon" />
+                                                    <h3>Auto-Attached Evidence & Request Documents</h3>
+                                                </div>
+                                                <div className="LeaVerifDocsGrid">
+                                                    {leaAttachedDocuments.length > 0 ? (
+                                                        leaAttachedDocuments.map((doc) => (
+                                                            <div key={doc.id} className="LeaVerifDocCard">
+                                                                <div className="LeaVerifDocIcon">
+                                                                    <FileText size={18} />
+                                                                </div>
+                                                                <div className="LeaVerifDocInfo">
+                                                                    <p className="LeaVerifDocName">{doc.name}</p>
+                                                                    <span className="LeaVerifDocMeta">{doc.category} &bull; {doc.size}</span>
+                                                                </div>
+                                                                <div className="LeaVerifDocActions">
+                                                                    <button className="LeaVerifDocActionBtn" title="Inspect Attachment">
+                                                                        <Eye size={13} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <p className="LeaVerifNoDocsText">No evidence documents attached to this request.</p>
+                                                    )}
+                                                </div>
                                             </div>
                             
                                             <div className="VerificationActions">
@@ -448,40 +592,73 @@ function LeaVerificationRequest(){
                                     </div>
                                 </div>
 
+                            </div>
                             </div>}
 
                             {/*AWAITING FDA TAB CONTENT*/}
                             {activeTab === 'Awaiting FDA' && 
+                            <div className="LeaVerifTabPanel">
                             <div className='VerificationContent AwaitingButtonContent'>
                                 {/* LEFT PANEL */}
-                                <div className="AwaitingFDAQueue">
+                                <div className="AwaitingLEAQueue">
+                                    <div className="LeaVerifQueueFilterHeader">
+                                        <div className="LeaSearchWrapper">
+                                            <Search size={16} className="LeaSearchIcon" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search Case ID, Product, or Manufacturer..."
+                                                className="LeaCategoriesSearchInput"
+                                                value={awaitingSearch}
+                                                onChange={(e) => setAwaitingSearch(e.target.value)}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
+                                            <Filter size={14} className="LeaVerifFilterIcon" />
+                                            <select
+                                                style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
+                                                value={awaitingCategory}
+                                                onChange={(e) => setAwaitingCategory(e.target.value)}
+                                            >
+                                                <option value="">All Categories</option>
+                                                <option value="Cosmetics">Cosmetics</option>
+                                                <option value="Foods">Foods</option>
+                                                <option value="Medical Devices">Medical Devices</option>
+                                                <option value="Drugs">Drugs</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <div className="AwaitingHeader">
                                         <p>Request Pending FDA Review</p>
                                         {/* REMOVE THIS */}
                                         {/* BACKEND: count of cases where verification_request_status is 'pending' */}
-                                        <span>1</span>
+                                        <span>{filteredAwaitingCases.length}</span>
                                     </div>
 
                                     {/* BACKEND: verification_request_status: 'pending' */}
-                                    <div className="QueueCard ActiveQueueCard" id=''>
-                                        <div>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: product_name */}
-                                            <h4>HerbalSlim Capsules</h4>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: manufacturer_name */}
-                                            <p>NatureFit Labs</p>
-                                            <small>
-                                                {/* REMOVE THIS */}
-                                                {/* BACKEND: caseNumber */}
-                                                CASE ID: ICM-2025-00185
-                                            </small>
+                                    {filteredAwaitingCases.length > 0 ? (
+                                        filteredAwaitingCases.map((item) => (
+                                            <div key={item.id} className="QueueCard ActiveQueueCard" id=''>
+                                                <div className="QueueCardTopRow">
+                                                    <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
+                                                    <span className="QueueTagInline">Walk-in</span>
+                                                </div>
+                                                <h4>{item.product}</h4>
+                                                <p>{item.manufacturer}</p>
+                                                <div className="QueueCardFooterRow">
+                                                    <span className="QueueCategoryTag">{item.category}</span>
+                                                    <span className="QueueDateTag">
+                                                        <Calendar size={12} />
+                                                        {item.loggedDate}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="LeaVerifEmptyList">
+                                            <Search size={32} />
+                                            <p className="LeaVerifEmptyText">No cases match your current filters.</p>
                                         </div>
-                    
-                                        <div className="QueueTag">
-                                            <span>Walk-in</span>
-                                        </div>
-                                    </div>
+                                    )}
 
                                 </div>
 
@@ -515,7 +692,7 @@ function LeaVerificationRequest(){
                                                     <label>Cetegory</label>
                                                     {/* REMOVE THIS */}
                                                     {/* BACKEND: category */}
-                                                    <p>Supplement</p>
+                                                    <p>Drugs</p>
                                                 </div>
 
                                                 <div>
@@ -557,48 +734,80 @@ function LeaVerificationRequest(){
                                     </div>
                                 </div>
                             
+                            </div>
                             </div>}
                             
                             {/*FDA RESPONSE TAB CONTENT*/}
                             {activeTab === 'FDA Response' && 
+                            <div className="LeaVerifTabPanel">
                             <div className='VerificationContent FDAResponseButtonContent'>
                                 {/* LEFT PANEL */}
-                                <div className="FDAResponseQueue">
-                                    <div className="FDAResponseHeader">
+                                <div className="LEAResponseQueue">
+                                    <div className="LeaVerifQueueFilterHeader">
+                                        <div className="LeaSearchWrapper">
+                                            <Search size={16} className="LeaSearchIcon" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search Case ID, Product, or Manufacturer..."
+                                                className="LeaCategoriesSearchInput"
+                                                value={responseSearch}
+                                                onChange={(e) => setResponseSearch(e.target.value)}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
+                                            <Filter size={14} className="leaVerifFilterIcon" />
+                                            <select
+                                                style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
+                                                value={responseCategory}
+                                                onChange={(e) => setResponseCategory(e.target.value)}
+                                            >
+                                                <option value="">All Categories</option>
+                                                <option value="Cosmetics">Cosmetics</option>
+                                                <option value="Foods">Foods</option>
+                                                <option value="Medical Devices">Medical Devices</option>
+                                                <option value="Drugs">Drugs</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="LEAResponseHeader">
                                         <p>FDA confirmations received</p>
                                         {/* REMOVE THIS */}
                                         {/* BACKEND: count of responseCases */}
-                                        <span>{responseCases.length}</span>
+                                        <span>{filteredResponseCases.length}</span>
                                     </div>
 
-                                    {responseCases.map((item) => (
+                                    {filteredResponseCases.length > 0 ? filteredResponseCases.map((item) => (
                                         <div 
                                             key={item.id} 
                                             className={`QueueCard ${selectedResponse.id === item.id ? 'ActiveQueueCard' : ''}`} 
                                             id=''
                                             onClick={() => setSelectedResponse(item)}
                                         >
-                                            <div>
-                                                <h4>{item.product}</h4>
-                                                <p>{item.manufacturer}</p>
-                                                <small>
-                                                    {/*  BACKEND: status badge reflects verification_request_status ('confirmed_registered' | 'confirmed_unregistered' | 'rejected') */}
-                                                    CASE ID: {item.caseNumber}
-                                                </small>
-                                            </div>
-                                            <div className="ResponseQueueTag">
-                                                <span className={
-                                                    item.status === 'Registered' 
-                                                        ? 'registered' 
-                                                        : item.status === 'Rejected'
-                                                            ? 'RejectedBadge'
-                                                            : ''
-                                                }>
+                                            <div className="QueueCardTopRow">
+                                                <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
+                                                <span className={`QueueStatusBadge ${
+                                                    item.status === 'Registered' ? 'registered' :
+                                                    item.status === 'Rejected' ? 'rejected' : 'unregistered'
+                                                }`}>
                                                     {item.status}
                                                 </span>
                                             </div>
+                                            <h4>{item.product}</h4>
+                                            <p>{item.manufacturer}</p>
+                                            <div className="QueueCardFooterRow">
+                                                <span className="QueueCategoryTag">{item.category}</span>
+                                                <span className="QueueDateTag">
+                                                    <Calendar size={12} />
+                                                    {item.returnedDate}
+                                                </span>
+                                            </div>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div className="LeaVerifEmptyList">
+                                            <Search size={32} />
+                                            <p className="LeaVerifEmptyText">No cases match your current filters.</p>
+                                        </div>
+                                    )}
 
                                 </div>
 
@@ -740,40 +949,74 @@ function LeaVerificationRequest(){
                                    </div>
 
                                 </div>
+                            </div>
                             </div>}
 
                             {/* INITIATED CASES TAB CONTENT */}
                             {activeTab === 'Initiated Cases' && 
+                            <div className="LeaVerifTabPanel">
                             <div className='VerificationContent FDAResponseButtonContent'>
                                 {/* LEFT PANEL */}
-                                <div className="FDAResponseQueue">
-                                    <div className="FDAResponseHeader">
+                                <div className="LEAResponseQueue">
+                                    <div className="LeaVerifQueueFilterHeader">
+                                        <div className="LeaSearchWrapper">
+                                            <Search size={16} className="LeaSearchIcon" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search Case ID, Product, or Manufacturer..."
+                                                className="LeaCategoriesSearchInput"
+                                                value={initiatedSearch}
+                                                onChange={(e) => setInitiatedSearch(e.target.value)}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
+                                            <Filter size={14} className="LeaVerifFilterIcon" />
+                                            <select
+                                                style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
+                                                value={initiatedCategory}
+                                                onChange={(e) => setInitiatedCategory(e.target.value)}
+                                            >
+                                                <option value="">All Categories</option>
+                                                <option value="Cosmetics">Cosmetics</option>
+                                                <option value="Foods">Foods</option>
+                                                <option value="Medical Devices">Medical Devices</option>
+                                                <option value="Drugs">Drugs</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="LEAResponseHeader">
                                         <p>Cases with active takedown operations</p>
                                         {/* REMOVE THIS */}
                                         {/* BACKEND: count of cases where complaint_status = 'takedown_initiated' */}
-                                        <span>{initiatedCases.length}</span>
+                                        <span>{filteredInitiatedCases.length}</span>
                                     </div>
 
-                                    {initiatedCases.map((item) => (
+                                    {filteredInitiatedCases.length > 0 ? filteredInitiatedCases.map((item) => (
                                         <div 
                                             key={item.id} 
                                             className={`QueueCard ${selectedInitiatedCase.id === item.id ? 'ActiveQueueCard' : ''}`}
                                             onClick={() => setSelectedInitiatedCase(item)}
                                         >
-                                            <div>
-                                                <h4>{item.product}</h4>
-                                                <p>{item.manufacturer}</p>
-                                                <small>
-                                                    CASE ID: {item.caseNumber}
-                                                </small>
+                                            <div className="QueueCardTopRow">
+                                                <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
+                                                <span className="OperationInProgressBadge">{item.status}</span>
                                             </div>
-                                            <div className="ResponseQueueTag">
-                                                <span className="OperationInProgressBadge">
-                                                    {item.status}
+                                            <h4>{item.product}</h4>
+                                            <p>{item.manufacturer}</p>
+                                            <div className="QueueCardFooterRow">
+                                                <span className="QueueCategoryTag">{item.category}</span>
+                                                <span className="QueueDateTag">
+                                                    <Calendar size={12} />
+                                                    {item.returnedDate}
                                                 </span>
                                             </div>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div className="LeaVerifEmptyList">
+                                            <Search size={32} />
+                                            <p className="LeaVerifEmptyText">No cases match your current filters.</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* RIGHT PANEL */}
@@ -844,6 +1087,7 @@ function LeaVerificationRequest(){
                                         </div>
                                     </div>
                                 </div>
+                            </div>
                             </div>}
 
                             {/* DISMISSED CASES TAB CONTENT */}
@@ -851,47 +1095,53 @@ function LeaVerificationRequest(){
                             <div className="DismissedTableContainer">
 
                                 {/* Filters Bar — matches Saved Drafts filter style */}
-                                <div className="DraftsFilterSection">
-                                    <div className="DraftsFilterControls">
-                                        {/* BACKEND: pass filterDateFrom as from_date query param */}
-                                        <input
-                                            type="date"
-                                            className="DraftsFilterDropdown"
-                                            value={filterDateFrom}
-                                            onChange={(e) => setFilterDateFrom(e.target.value)}
-                                            title="Closed From"
-                                        />
-                                        {/* BACKEND: pass filterDateTo as to_date query param */}
-                                        <input
-                                            type="date"
-                                            className="DraftsFilterDropdown"
-                                            value={filterDateTo}
-                                            onChange={(e) => setFilterDateTo(e.target.value)}
-                                            title="Closed To"
-                                        />
-                                        {/* BACKEND: pass filterCategory as category query param */}
-                                        <select
-                                            className="DraftsFilterDropdown"
-                                            value={filterCategory}
-                                            onChange={(e) => setFilterCategory(e.target.value)}
-                                        >
-                                            <option value="">All Categories</option>
-                                            <option value="Cosmetic">Cosmetic</option>
-                                            <option value="Food">Food</option>
-                                            <option value="Drug">Drug</option>
-                                            <option value="Medical Device">Medical Device</option>
-
-                                        </select>
-                                        <button
-                                            className="BtnClearFilters"
-                                            onClick={() => {
-                                                setFilterDateFrom('');
-                                                setFilterDateTo('');
-                                                setFilterCategory('');
-                                            }}
-                                        >
-                                            Clear Filters
-                                        </button>
+                                <div className="LeaFilterPanel LeaVerifFilterPanel">
+                                    <div className="LeaVerifFilterControlsLeft">
+                                        <div className="LeaSearchWrapper">
+                                            <Search size={16} className="LeaSearchIcon" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search Case ID, Product or Manufacturer..."
+                                                className="LeaSearchInput"
+                                                value={dismissedSearch}
+                                                onChange={(e) => setDismissedSearch(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="LeaVerifFilterControlsRight">
+                                        <div className="LeaFilterGroup">
+                                            {/* BACKEND: pass filterDateFrom as from_date query param */}
+                                            <label>From</label>
+                                            <input
+                                                type="date"
+                                                className="LeaVerifDateInput"
+                                                value={filterDateFrom}
+                                                onChange={(e) => setFilterDateFrom(e.target.value)}
+                                                title="Closed From"
+                                            />
+                                        </div>
+                                        <div className="LeaFilterGroup">
+                                            {/* BACKEND: pass filterDateTo as to_date query param */}
+                                            <label>To</label>
+                                            <input
+                                                type="date"
+                                                className="LeaVerifDateInput"
+                                                value={filterDateTo}
+                                                onChange={(e) => setFilterDateTo(e.target.value)}
+                                                title="Closed To"
+                                            />
+                                        </div>
+                                        <div className="LeaFilterGroup">
+                                            {/* BACKEND: pass filterCategory as category query param */}
+                                            <label>Category</label>
+                                            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                                                <option value="">All Categories</option>
+                                                <option value="Cosmetics">Cosmetics</option>
+                                                <option value="Foods">Foods</option>
+                                                <option value="Medical Devices">Medical Devices</option>
+                                                <option value="Drugs">Drugs</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     {/* BACKEND: GET /api/complaints?status=dismissed&from_date=${filterDateFrom}&to_date=${filterDateTo}&category=${filterCategory} */}
                                     <div className="DraftsTotalCount">
