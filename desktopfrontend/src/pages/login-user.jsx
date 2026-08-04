@@ -5,13 +5,6 @@ import '../App.css'
 import FDALogo from '../images/FDA.png'
 import PNPLogo from '../images/pnp-cidg.jpg'
 
-//FOR INTERAGENCY ACCOUNT TO
-{/*for Test Accounts*/}
-const TestAccount=[
-    { agency: 'fda', email:'admin.fda@gmail.com', password:'@Fda12345'},
-    { agency:'lea', email:'admin.cidg@gmail.com', password:'@Cidg12345'},
-]
-
 function Login(){
     const navigate = useNavigate();
 
@@ -89,9 +82,26 @@ function Login(){
       setTimer(60);
       setOtp(new Array(6).fill(''));
       setLoginError('');
-      setTimeout(() => {
-        otpRefs.current[0]?.focus();
-      }, 0);
+      try {
+        const response = await fetch('http://127.0.0.1:8000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, agency }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to resend code.');
+        }
+
+        setTimer(300);
+        setOtp(new Array(6).fill(''));
+        setTimeout(() => {
+          otpRefs.current[0]?.focus();
+        }, 0);
+      } catch (err) {
+        setLoginError(err.message);
+      }
     }
 
     function handleBackToLogin() {
@@ -177,7 +187,6 @@ function Login(){
             setLoginError(`Access Denied: Make sure you select the correct agency to sign in.`)
             return
           }
-        }
 
         const match = TestAccount.find(
           (acc) => acc.email === email && acc.password === password && acc.agency === agency
@@ -189,6 +198,7 @@ function Login(){
         }else{
           setLoginError('Invalid email or password')
         }
+
       } else {
         const otpCode = otp.join('');
         if (otpCode.length < 6) {
@@ -201,10 +211,10 @@ function Login(){
           if (agency === 'fda') {
             navigate('/fdafolder/fda-dashboard')
           } else {
-            navigate('/leacidgfolder/lea-dashboard')
+            navigate('/leacidgfolder/lea-dashboard');
           }
-        } else {
-          setLoginError('Invalid verification code. Please try again.')
+        } catch (err) {
+          setLoginError(err.message);
         }
       }
     }
@@ -297,7 +307,12 @@ function Login(){
 
                 <div className="RememberMe">
                   <label htmlFor="remember-me"> 
-                    <input type="checkbox" id="remember-me" />
+                    <input
+                      type="checkbox"
+                      id="remember-me"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
                     Remember my email
                   </label>
                   <label htmlFor="forgot-password" className="ForgetPass"><a onClick={() => navigate('/forgot-password?from=interagency')} style={{cursor:'pointer'}}>Forget your password?</a></label>
@@ -307,9 +322,6 @@ function Login(){
               <div className="OtpContainer">
                 <div className="OtpInstructions">
                   Enter the code sent to your email <span>{email}</span>.
-                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '400', display: 'block', marginTop: '6px' }}>
-                    (For testing, use verification code: <strong>123456</strong>)
-                  </span>
                 </div>
 
                 <div className="LoginOtpInputGrid">
