@@ -33,17 +33,6 @@ class Priority(str, Enum):
     critical = "critical"
 
 
-class DraftType(str, Enum):
-    walkin = "walkin"
-    verification = "verification"
-
-
-class SortOption(str, Enum):
-    recently_edited = "recently_edited"
-    oldest_first = "oldest_first"
-    product_name_az = "product_name_az"
-
-
 # ============================================================
 # WALK-IN INTAKE DRAFT
 # ============================================================
@@ -137,20 +126,3 @@ class VerificationRequestDraftResponse(VerificationRequestDraftSave):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-# Unified row for the "All Drafts" table (Image 1). Built manually
-# in the endpoint from a join, not from a single ORM object — so
-# this does NOT use from_attributes=True like the others.
-class UnifiedDraftResponse(BaseModel):
-    draft_id: UUID
-    draft_type: DraftType
-    product_name: str | None
-    manufacturer: str | None
-    product_category: str | None
-    complainant_name: str | None
-    saved_by: UUID
-    region_id: UUID
-    draft_status: DraftStatus
-    created_at: datetime
-    updated_at: datetime
