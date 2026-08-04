@@ -3,14 +3,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './lea-css.css'
 import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
-import {
-  Clock3,
-  BellRing,
-  SquarePen,
-  ShieldCheck,
-  ShieldX,
-  CircleCheckBig,
-  XCircle
+import {Clock3,
+        BellRing,
+        SquarePen,
+        ShieldCheck,
+        ShieldX,
+        CircleCheckBig,
+        XCircle,
+        Inbox,
+        Siren,
+        Archive
 } from 'lucide-react';
 
 // ADDED — API_BASE, parseBackendError, formatDateTime helpers
@@ -590,69 +592,51 @@ function LeaVerificationRequest() {
                       {/* Real count from backend */}
                       <span>{readyList.length}</span>
                     </div>
-
-                    {readyLoading && (
-                      <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
-                    )}
-
-                    {!readyLoading && readyList.length === 0 && (
-                      <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>No cases awaiting verification request.</p>
-                    )}
-
-                    {!readyLoading && readyList.map((item) => (
-                      <div
-                        key={item.complaint_id}
-                        className={`QueueCard ${selectedComplaint?.complaint_id === item.complaint_id ? 'ActiveQueueCard' : ''}`}
-                        onClick={() => fetchComplaintDetail(item.complaint_id)}
-                      >
-                        <div className='QueueLabels'>
-                          <h4>{item.product_title}</h4>
-                          <p>{item.manufacturer || '—'}</p>
-                          <small>
-                            CASE ID: {item.case_reference}
-                          </small>
+                     {/* STATS METRIC SUMMARY BAR (NON-CLICKABLE) */}
+                    <div className="LeaVerifStatsBar">
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeResponse">
+                                    <Inbox size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{responseCases.length}</p>
+                            <p className="LeaVerifStatLabel">FDA Response</p>
                         </div>
 
-                        <div className="QueueTag">
-                          <span>{GetSourceLabel(item.source)}</span>
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeInitiated">
+                                    <Siren size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{initiatedCases.length}</p>
+                            <p className="LeaVerifStatLabel">Initiated Cases</p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
 
-                  {/* CHANGED — real data from selectedComplaint, was hardcoded */}
-                  {/* RIGHT PANEL */}
-                  <div className="VerificationDetails">
-                    <div className="VerificationCard">
-                      <div>
-                        {detailLoading ? (
-                          <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
-                        ) : selectedComplaint ? (
-                          <>
-                            <small>CASE ID: {selectedComplaint.case_reference}</small>
-                            <h2>{selectedComplaint.product_title}</h2>
-                            <p>{selectedComplaint.manufacturer || '—'}</p>
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeDismissed">
+                                    <Archive size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{dismissedCases.length}</p>
+                            <p className="LeaVerifStatLabel">Dismissed Cases</p>
+                        </div>
+                    </div>
 
-                            <div className="CaseInfoGrid">
-                              <div>
-                                <label>Complainant</label>
-                                <p>{selectedComplaint.complainant_name || '—'}</p>
-                              </div>
-
-                              <div>
-                                <label>Cetegory</label>
-                                <p>{selectedComplaint.product_category || '—'}</p>
-                              </div>
-
-                              <div>
-                                <label>Logged</label>
-                                <p>{formatDateTime(selectedComplaint.created_at)}</p>
-                              </div>
-
-                              <div>
-                                <label>Source</label>
-                                <p>{GetSourceLabel(selectedComplaint.source)}</p>
-                              </div>
+                    <div className="VerificationContainer">
+                    
+                        <div className="VerificationTabs">
+                            <div className='VerificationTabsButton'>
+                                {tabs.slice(0, 3).map((tabName)=>(
+                                    <button key={tabName} className={`ButtonTab ${activeTab === tabName ?  'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
+                                ))}
+                                {/* styles the tab separator between process tabs and tracking tabs */}
+                                <div className="TabSeparator"></div>
+                                {tabs.slice(3).map((tabName)=>(
+                                    <button key={tabName} className={`ButtonTab ${activeTab === tabName ?  'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
+                                ))}
                             </div>
                           </>
                         ) : (

@@ -1,5 +1,5 @@
 import './superadmin-css.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Send, UserCheck, UserX, RefreshCw, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
@@ -24,34 +24,57 @@ function StatusBadge({ status }) {
 }
 
 function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView }) {
-  const displayStatus = user.display_status || user.status;
+  const [openUpward, setOpenUpward] = useState(false);
+  const triggerRef = useRef(null);
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < 170);
+    }
+    toggleDropdown();
+  };
 
   return (
-    <div className="UserMgmtDropdownWrapper">
+    <div className={`UserMgmtDropdownWrapper ${isOpen ? 'active-open' : ''}`}>
       <button
-        className="UserMgmtDropdownTrigger"
-        data-tooltip="Actions"
+        className="UserMgmtViewBtn"
+        data-tooltip="View Details"
+        title="View Details"
         onClick={(e) => {
           e.stopPropagation();
-          toggleDropdown();
+          onView();
         }}
+      >
+        <Eye size={15} />
+      </button>
+
+      <button
+        ref={triggerRef}
+        className="UserMgmtDropdownTrigger"
+        data-tooltip="Actions"
+        title="More Actions"
+        onClick={handleToggle}
       >
         <MoreVertical size={16} />
       </button>
       {isOpen && (
-        <div className="UserMgmtDropdownMenu">
-          <button
-            className="UserMgmtDropdownItem"
-            onClick={() => {
-              onView();
-              toggleDropdown();
-            }}
-          >
-            <Eye size={14} /> View Details
-          </button>
+        <div className={`UserMgmtDropdownMenu ${openUpward ? 'open-upward' : ''}`}>
+          {['Invited', 'Pending', 'Invite Requested', 'Link Expired'].includes(user.display_status || user.status) && (
+            <button
+              className="UserMgmtDropdownItem"
+              onClick={() => {
+                onAction('resend');
+                toggleDropdown();
+              }}
+            >
+              <Send size={14} /> Resend Link
+            </button>
+          )}
 
-          {/* Pending Approval: Activate Account, View Details */}
-          {displayStatus === 'Pending Approval' && (
+          {user.status === 'Pending Approval' && (
             <button
               className="UserMgmtDropdownItem"
               onClick={() => {
