@@ -29,6 +29,12 @@ async def login_for_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate user",
         )
+
+    if not consumer.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email before logging in",
+        )
     
     token = create_consumer_access_token(consumer.username, consumer.consumer_id, timedelta(minutes=20))
 
