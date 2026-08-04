@@ -1,5 +1,5 @@
 import './superadmin-css.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Send, UserCheck, UserX, RefreshCw, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
@@ -10,13 +10,11 @@ function getAuthToken() {
 }
 
 const STATUS_META = {
-  Pending: { label: 'Pending', className: 'badge-pending' },
-  Invited: { label: 'Pending', className: 'badge-pending' },
-  'Invite Requested': { label: 'Pending', className: 'badge-pending' },
-  'For Activation': { label: 'For Activation', className: 'badge-for-activation' },
-  'Pending Approval': { label: 'For Activation', className: 'badge-for-activation' },
+  Invited: { label: 'Invited', className: 'badge-pending' },
+  'Pending Approval': { label: 'Pending Approval', className: 'badge-for-activation' },
   Active: { label: 'Active', className: 'badge-active' },
   Suspended: { label: 'Suspended', className: 'badge-suspended' },
+  'Resend Requested': { label: 'Resend Requested', className: 'badge-pending' },
   'Link Expired': { label: 'Link Expired', className: 'badge-expired' },
 };
 
@@ -26,30 +24,44 @@ function StatusBadge({ status }) {
 }
 
 function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView }) {
+  const [openUpward, setOpenUpward] = useState(false);
+  const triggerRef = useRef(null);
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < 170);
+    }
+    toggleDropdown();
+  };
+
   return (
-    <div className="UserMgmtDropdownWrapper">
+    <div className={`UserMgmtDropdownWrapper ${isOpen ? 'active-open' : ''}`}>
       <button
-        className="UserMgmtDropdownTrigger"
-        data-tooltip="Actions"
+        className="UserMgmtViewBtn"
+        data-tooltip="View Details"
+        title="View Details"
         onClick={(e) => {
           e.stopPropagation();
-          toggleDropdown();
+          onView();
         }}
+      >
+        <Eye size={15} />
+      </button>
+
+      <button
+        ref={triggerRef}
+        className="UserMgmtDropdownTrigger"
+        data-tooltip="Actions"
+        title="More Actions"
+        onClick={handleToggle}
       >
         <MoreVertical size={16} />
       </button>
       {isOpen && (
-        <div className="UserMgmtDropdownMenu">
-          <button
-            className="UserMgmtDropdownItem"
-            onClick={() => {
-              onView();
-              toggleDropdown();
-            }}
-          >
-            <Eye size={14} /> View Details
-          </button>
-
+        <div className={`UserMgmtDropdownMenu ${openUpward ? 'open-upward' : ''}`}>
           {['Invited', 'Pending', 'Invite Requested', 'Link Expired'].includes(user.display_status || user.status) && (
             <button
               className="UserMgmtDropdownItem"
@@ -74,7 +86,8 @@ function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView
             </button>
           )}
 
-          {user.status === 'Active' && (
+          {/* Active: Suspend Account, View Details */}
+          {displayStatus === 'Active' && (
             <button
               className="UserMgmtDropdownItem"
               onClick={() => {
@@ -86,7 +99,8 @@ function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView
             </button>
           )}
 
-          {user.status === 'Suspended' && (
+          {/* Suspended: Reactivate Account, Delete Account, View Details */}
+          {displayStatus === 'Suspended' && (
             <>
               <button
                 className="UserMgmtDropdownItem"
@@ -108,6 +122,19 @@ function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView
                 <Trash2 size={14} /> Delete Account
               </button>
             </>
+          )}
+
+          {/* Resend Requested and Link Expired: Resend Link, View Details */}
+          {['Resend Requested', 'Link Expired'].includes(displayStatus) && (
+            <button
+              className="UserMgmtDropdownItem"
+              onClick={() => {
+                onAction('resend');
+                toggleDropdown();
+              }}
+            >
+              <Send size={14} /> Resend Link
+            </button>
           )}
         </div>
       )}
@@ -551,12 +578,14 @@ function SuperAdminUserManagement() {
       url = `http://127.0.0.1:8000/admin/users/${targetId}/suspend`;
     } else if (actionType === 'reactivate') {
       url = `http://127.0.0.1:8000/admin/users/${targetId}/reactivate`;
+    } else if (actionType === 'delete') {
+      url = `http://127.0.0.1:8000/admin/users/${targetId}`;
     }
 
     if (url) {
       try {
         const response = await fetch(url, {
-          method: 'POST',
+          method: actionType === 'delete' ? 'DELETE' : 'POST',
           headers: {
             Authorization: `Bearer ${getAuthToken()}`,
           },
@@ -614,14 +643,14 @@ function SuperAdminUserManagement() {
                   className: 'stat-active',
                 },
                 {
-                  label: 'Pending',
-                  value: users.filter((u) => ['Pending', 'Invited', 'Invite Requested', 'Link Expired'].includes(u.display_status || u.status)).length,
-                  className: 'stat-pending',
+                  label: 'Pending Approval',
+                  value: users.filter((u) => (u.display_status || u.status) === 'Pending Approval').length,
+                  className: 'stat-activation',
                 },
                 {
-                  label: 'For Activation',
-                  value: users.filter((u) => ['For Activation', 'Pending Approval'].includes(u.display_status || u.status)).length,
-                  className: 'stat-activation',
+                  label: 'Invited',
+                  value: users.filter((u) => ['Invited', 'Resend Requested', 'Link Expired'].includes(u.display_status || u.status)).length,
+                  className: 'stat-pending',
                 },
                 {
                   label: 'Suspended',
@@ -646,10 +675,11 @@ function SuperAdminUserManagement() {
               >
                 <option value="All">All</option>
                 <option value="Invited">Invited</option>
+                <option value="Resend Requested">Resend Requested</option>
+                <option value="Link Expired">Link Expired</option>
                 <option value="Pending Approval">Pending Approval</option>
                 <option value="Active">Active</option>
                 <option value="Suspended">Suspended</option>
-                <option value="Link Expired">Link Expired</option>
               </select>
             </div>
 
