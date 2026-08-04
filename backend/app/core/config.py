@@ -39,12 +39,6 @@ class Settings(BaseSettings):
     
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # add to settings if you want this configurable
 
-<<<<<<< HEAD
-    
-
-    DEFAULT_EXTENSION_REGION_ID: str = ""
-    
-=======
     DEFAULT_EXTENSION_REGION_ID: str
 
     # extension otp
@@ -54,7 +48,6 @@ class Settings(BaseSettings):
     OTP_EXTENSION_MIN_EXPIRE: int = 5
     MAIL_EXTENSION_FROM: str
 
->>>>>>> 372b438316b9caf587f87581ff881946b36387ac
     class Config:
         env_file = ".env"
 
