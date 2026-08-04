@@ -440,6 +440,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // flash message after redirect to clear previous message
+  const flashMessage = sessionStorage.getItem('authFlashMessage');
+  const flashType = sessionStorage.getItem('authFlashType');
+
+  if (flashMessage) {
+    const noticeBanner = document.querySelector('.notice-banner');
+
+    noticeTitle.textContent = "You're verified!";
+    noticeText.textContent = flashMessage;
+
+    if (flashType === 'success') {
+      noticeBanner.classList.add('notice-banner-success');
+    }
+
+    // Clear it so a page refresh doesn't show it again
+    sessionStorage.removeItem('authFlashMessage');
+    sessionStorage.removeItem('authFlashType');
+  }
+
   // Clicking "Verify and Sign In/Up" — collects the 6 digits and checks them with the backend
   if (otpVerifyButton) {
     otpVerifyButton.addEventListener('click', () => {
@@ -460,7 +479,11 @@ document.addEventListener('DOMContentLoaded', () => {
           otpDigitInputs.forEach(inp => inp.classList.add('is-invalid'));
           return;
         }
-        window.location.href = 'report-complaint.html';
+        // Flash-style message, after redirect (successful signup)
+        sessionStorage.setItem('authFlashMessage', 'Account verified! Please login to continue.');
+        sessionStorage.setItem('authFlashType', 'success');
+        
+        window.location.href = 'auth.html';
       });
     });
   }
