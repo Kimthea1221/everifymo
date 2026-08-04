@@ -10,7 +10,7 @@ from app.models.users import User
 
 
 TEST_EMAIL = "darlenejoy.deleon16@gmail.com"
-TEST_PASSWORD = "TestPassword123!"
+TEST_PASSWORD = "TestPassword@123!"
 
 
 def main():

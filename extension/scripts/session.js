@@ -23,24 +23,22 @@ function getToken(){
   return _session ? _session.access_token : null;
 }
 
-// function updateUsername(newUsername, callback) {
-//   if (!_session) {
-//     callback(false);
-//     return;
-//   }
+async function updateUsername(newUsername, callback) {
+  if (!_session) {
+    throw new Error("No active user");
+  }
 
-//   _session.username = newUsername;
+  await apiUpdateUsername(newUsername, _session.access_token);
 
-//   getRegisteredUsers((users) => {
-//     const updatedUsers = users.map(u =>
-//       u.email === _session.email ? { ...u, username: newUsername } : u
-//     );
-//     chrome.storage.local.set(
-//       { session: _session, registeredUsers: updatedUsers },
-//       () => callback(true)
-//     );
-//   });
-// }
+  _session.username = newUsername;
+
+  chrome.storage.local.set({
+      access_token: _session.access_token,
+      username: newUsername,
+      email: _session.email
+    }, () => callback(true)
+  );
+}
 
 // function deleteAccount(callback) {
 //   if (!_session) {
@@ -83,6 +81,16 @@ function loginUser(email, password, callback) {
               () => callback(true)
           );
       })
+      .catch(e => callback(false, e.message));
+}
+
+function verifyOtp(email, inputCode, callback) {
+  apiVerifyOtp(email, inputCode).then(() => callback(true))
+      .catch(e => callback(false, e.message))
+}
+
+function resendOtpSession(email, callback) {
+  apiResendOtp(email).then(() => callback(true))
       .catch(e => callback(false, e.message));
 }
 
