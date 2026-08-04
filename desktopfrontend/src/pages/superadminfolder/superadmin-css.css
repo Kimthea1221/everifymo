@@ -616,13 +616,31 @@
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.UMTable thead tr:first-child th:first-child {
+  border-top-left-radius: 13px;
+}
+
+.UMTable thead tr:first-child th:last-child {
+  border-top-right-radius: 13px;
+}
+
+.UMTable tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 13px;
+}
+
+.UMTable tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 13px;
 }
 
 .UMTable {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 13.5px;
 }
 
@@ -1030,13 +1048,13 @@
 }
 
 .AuditTabButton {
-  padding: 10px 20px;
+  padding: 8px 10px;
   background: transparent;
   border: none;
   border-radius: 20px;
   color: #51606f;
   font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1621,7 +1639,72 @@
 /* Dropdown Actions Styling */
 .UserMgmtDropdownWrapper {
   position: relative;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.UserMgmtViewBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.UserMgmtViewBtn:hover {
+  background: #0D9488;
+  color: #ffffff;
+  border-color: #0D9488;
+}
+
+.UserMgmtViewBtn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #1e293b;
+  color: #ffffff;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 10000;
+}
+
+.UserMgmtViewBtn::before {
+  content: '';
+  position: absolute;
+  bottom: 115%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1e293b transparent transparent transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10000;
+}
+
+.UserMgmtViewBtn:hover::after,
+.UserMgmtViewBtn:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .UserMgmtDropdownTrigger {
@@ -1687,6 +1770,10 @@
   transform: translateX(-50%) translateY(0);
 }
 
+.UserMgmtDropdownWrapper.active-open {
+  z-index: 1000;
+}
+
 /* Dropdown Menu container */
 .UserMgmtDropdownMenu {
   position: absolute;
@@ -1702,6 +1789,25 @@
   overflow: hidden;
   padding: 4px;
   animation: UserMgmtDropdownFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.UserMgmtDropdownMenu.open-upward {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 6px;
+  animation: UserMgmtDropdownFadeInUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes UserMgmtDropdownFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes UserMgmtDropdownFadeIn {
@@ -2067,6 +2173,734 @@
   background: #e2e8f0;
   color: #1e293b;
 }
+
+/* ========================================== */
+/* SUPERADMIN ADMIN MANAGEMENT STYLES        */
+/* ========================================== */
+
+.SAMPageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.SAMPageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.SAMPageTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SAMPageTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+.SAMPageSubtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Add Superadmin Button ── */
+.SAMAddBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+  white-space: nowrap;
+  font-family: 'Poppins', sans-serif;
+}
+
+.SAMAddBtn:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
+}
+
+.SAMAddBtn:active {
+  transform: translateY(0);
+}
+
+/* ── Stats Row ── */
+.SAMStatsRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.SAMStatCard {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.18s ease;
+}
+
+.SAMStatCard:hover {
+  transform: translateY(-2px);
+}
+
+.SAMStatValue {
+  font-size: 26px;
+  font-weight: 700;
+  font-family: 'Poppins', sans-serif;
+}
+
+.SAMStatLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sam-stat-total { border-top: 3.5px solid #1E293B; }
+.sam-stat-total .SAMStatValue { color: #1E293B; }
+
+.sam-stat-active { border-top: 3.5px solid #16a34a; }
+.sam-stat-active .SAMStatValue { color: #16a34a; }
+
+.sam-stat-pending { border-top: 3.5px solid #d97706; }
+.sam-stat-pending .SAMStatValue { color: #d97706; }
+
+.sam-stat-suspended { border-top: 3.5px solid #475569; }
+.sam-stat-suspended .SAMStatValue { color: #475569; }
+
+.sam-stat-expired { border-top: 3.5px solid #dc2626; }
+.sam-stat-expired .SAMStatValue { color: #dc2626; }
+
+/* ── Filters Bar ── */
+.SAMFiltersContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #ffffff;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.SAMSearchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 240px;
+  max-width: 380px;
+}
+
+.SAMSearchIcon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.SAMSearchInput {
+  width: 100%;
+  padding: 9px 32px 9px 36px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #1e293b;
+  background: #f8fafc;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.SAMSearchInput:focus {
+  border-color: #0D9488;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+
+.SAMClearSearch {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.SAMClearSearch:hover {
+  color: #475569;
+}
+
+.SAMFilterGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.SAMFilterLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.SAMSelectFilter {
+  padding: 9px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #1e293b;
+  background: #f8fafc;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.SAMSelectFilter:focus {
+  border-color: #0D9488;
+  background: #ffffff;
+}
+
+/* ── Table ── */
+.SAMTableWrapper {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: visible;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.SAMTable thead tr:first-child th:first-child {
+  border-top-left-radius: 13px;
+}
+
+.SAMTable thead tr:first-child th:last-child {
+  border-top-right-radius: 13px;
+}
+
+.SAMTable tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 13px;
+}
+
+.SAMTable tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 13px;
+}
+
+.SAMTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13.5px;
+}
+
+.SAMTable thead tr {
+  background: #1E293B;
+}
+
+.SAMTable thead th {
+  padding: 14px 18px;
+  text-align: left;
+  color: #cbd5e1;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+}
+
+.SAMTable tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.SAMTable tbody tr:last-child {
+  border-bottom: none;
+}
+
+.SAMTable tbody tr:hover {
+  background: #f8fafc;
+}
+
+.SAMTable tbody td {
+  padding: 14px 18px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.SAMTdCenter {
+  text-align: center;
+  color: #94a3b8 !important;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.SAMEmailCell {
+  color: #0D9488 !important;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.SAMEmpty {
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.SAMNoResults {
+  text-align: center;
+  padding: 36px 16px !important;
+  color: #94a3b8;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* ── Status Badges ── */
+.SAMStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.sam-badge-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.sam-badge-suspended {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.sam-badge-expired {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.sam-badge-active {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* ── Actions Column Buttons ── */
+.SAMDropdownWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.SAMViewBtn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.SAMViewBtn:hover {
+  background: #0D9488;
+  color: #ffffff;
+  border-color: #0D9488;
+}
+
+.SAMDropdownTrigger {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.SAMDropdownTrigger:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.SAMDropdownWrapper.active-open {
+  z-index: 1000;
+}
+
+/* Dropdown Menu */
+.SAMDropdownMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+  min-width: 175px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: SAMDropdownFade 0.15s ease;
+}
+
+.SAMDropdownMenu.open-upward {
+  top: auto;
+  bottom: calc(100% + 4px);
+  animation: SAMDropdownFadeUp 0.15s ease;
+}
+
+@keyframes SAMDropdownFadeUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes SAMDropdownFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.SAMDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.SAMDropdownItem:hover {
+  background: #f1f5f9;
+  color: #0D9488;
+}
+
+.SAMDropdownItem.danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.SAMDropdownDivider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
+/* ── Modals ── */
+.SAMModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: SAMFadeIn 0.2s ease;
+}
+
+@keyframes SAMFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.SAMModal {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: SAMSlideUp 0.25s ease;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+@keyframes SAMSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.SAMAddModal {
+  width: 100%;
+  max-width: 440px;
+  padding: 32px;
+}
+
+.SAMViewModal {
+  width: 100%;
+  max-width: 460px;
+  padding: 32px;
+}
+
+.SAMConfirmModal {
+  width: 100%;
+  max-width: 400px;
+  padding: 36px 32px;
+  text-align: center;
+}
+
+.SAMModalHeader {
+  margin-bottom: 22px;
+}
+
+.SAMViewTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.SAMModalTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 6px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.SAMModalSubtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.SAMFormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.SAMLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.SAMRequired {
+  color: #ef4444;
+}
+
+.SAMInput {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  font-size: 14px;
+  color: #111827;
+  background: #f9fafb;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.SAMInput:focus {
+  border-color: #0D9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  background: #fff;
+}
+
+.SAMInput.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.SAMFieldError {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+.SAMModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.SAMFooterCenter {
+  justify-content: center;
+}
+
+.SAMCancelBtn {
+  padding: 10px 18px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.SAMCancelBtn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.SAMConfirmBtn {
+  padding: 10px 22px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.SAMConfirmBtn.primary {
+  background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+}
+
+.SAMConfirmBtn.primary:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.45);
+}
+
+.SAMConfirmBtn.danger {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+}
+
+.SAMConfirmBtn.danger:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+}
+
+.SAMConfirmIcon {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.SAMConfirmMessage {
+  font-size: 14px;
+  color: #64748b;
+  margin: 8px 0 28px;
+  line-height: 1.6;
+}
+
+.SAMSuccessBox {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.SAMSuccessIcon {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.SAMSuccessMsg {
+  font-size: 14px;
+  color: #166534;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* View Details Modal Styling */
+.SAMViewDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.SAMDetailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.SAMDetailRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.SAMDetailLabel {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.SAMDetailValue {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.SAMEmail {
+  color: #0D9488 !important;
+}
+
 
 
 

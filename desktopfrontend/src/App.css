@@ -510,3 +510,18 @@ input[type="radio"]#cidg:checked + label {
   color: #f7931a;
 }
 
+/* per-field validation error styling — Login page (mirrors reg-input-error / RegError) */
+.login-input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.LoginFieldError {
+  font-size: 12px;
+  color: #ef4444 !important;
+  margin-top: -8px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
