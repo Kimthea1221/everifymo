@@ -551,7 +551,7 @@ function LeaVerificationRequest() {
     });
   };
 
-  return (
+    return (
     <div className='LeaDashboardMain'>
       <Sidebar sidebarType="LEA" />
       <div className='LeaContentContainer'>
@@ -563,36 +563,8 @@ function LeaVerificationRequest() {
               <p>SEND & TRACK FDA VERIFICATION REQUEST</p>
             </div>
           </div>
-          <div className="VerificationContainer">
-
-            <div className="VerificationTabs">
-              <div className='VerificationTabsButton'>
-                {tabs.slice(0, 3).map((tabName) => (
-                  <button key={tabName} className={`ButtonTab ${activeTab === tabName ? 'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
-                ))}
-                {/* styles the tab separator between process tabs and tracking tabs */}
-                <div className="TabSeparator"></div>
-                {tabs.slice(3).map((tabName) => (
-                  <button key={tabName} className={`ButtonTab ${activeTab === tabName ? 'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
-                ))}
-              </div>
-            </div>
-            {/*CONTENT FOR EACH TAB */}
-
-            {/*READY TO SEND TAB CONTENT*/}
-            <div className='VerificationTabContent ReadySendButtonContent'>
-              {activeTab === 'Ready to Send' &&
-                <div className="VerificationContent">
-
-                  {/* CHANGED — real data from readyList, was hardcoded card */}
-                  {/* LEFT PANEL */}
-                  <div className="ReadytoSendQueue">
-                    <div className="ReadytoSendHeader">
-                      <p>Walk-in cases awaiting your request</p>
-                      {/* Real count from backend */}
-                      <span>{readyList.length}</span>
-                    </div>
-                     {/* STATS METRIC SUMMARY BAR (NON-CLICKABLE) */}
+          
+          {/* STATS METRIC SUMMARY BAR (NON-CLICKABLE) */}
                     <div className="LeaVerifStatsBar">
                         <div className="LeaVerifStatCard">
                             <div className="LeaVerifStatCardTop">
@@ -625,18 +597,97 @@ function LeaVerificationRequest() {
                         </div>
                     </div>
 
-                    <div className="VerificationContainer">
-                    
-                        <div className="VerificationTabs">
-                            <div className='VerificationTabsButton'>
-                                {tabs.slice(0, 3).map((tabName)=>(
-                                    <button key={tabName} className={`ButtonTab ${activeTab === tabName ?  'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
-                                ))}
-                                {/* styles the tab separator between process tabs and tracking tabs */}
-                                <div className="TabSeparator"></div>
-                                {tabs.slice(3).map((tabName)=>(
-                                    <button key={tabName} className={`ButtonTab ${activeTab === tabName ?  'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
-                                ))}
+          <div className="VerificationContainer">
+
+            <div className="VerificationTabs">
+              <div className='VerificationTabsButton'>
+                {tabs.slice(0, 3).map((tabName) => (
+                  <button key={tabName} className={`ButtonTab ${activeTab === tabName ? 'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
+                ))}
+                {/* styles the tab separator between process tabs and tracking tabs */}
+                <div className="TabSeparator"></div>
+                {tabs.slice(3).map((tabName) => (
+                  <button key={tabName} className={`ButtonTab ${activeTab === tabName ? 'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
+                ))}
+              </div>
+            </div>
+            {/*CONTENT FOR EACH TAB */}
+
+            {/*READY TO SEND TAB CONTENT*/}
+            <div className='VerificationTabContent ReadySendButtonContent'>
+              {activeTab === 'Ready to Send' &&
+                <div className="VerificationContent">
+                  {/* CHANGED — real data from readyList, was hardcoded card */}
+                  {/* LEFT PANEL */}
+                  <div className="ReadytoSendQueue">
+                    <div className="ReadytoSendHeader">
+                      <p>Walk-in cases awaiting your request</p>
+                      {/* Real count from backend */}
+                      <span>{readyList.length}</span>
+                    </div>
+
+                    {readyLoading && (
+                      <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
+                    )}
+
+                    {!readyLoading && readyList.length === 0 && (
+                      <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>No cases awaiting verification request.</p>
+                    )}
+
+                    {!readyLoading && readyList.map((item) => (
+                      <div
+                        key={item.complaint_id}
+                        className={`QueueCard ${selectedComplaint?.complaint_id === item.complaint_id ? 'ActiveQueueCard' : ''}`}
+                        onClick={() => fetchComplaintDetail(item.complaint_id)}
+                      >
+                        <div className='QueueLabels'>
+                          <h4>{item.product_title}</h4>
+                          <p>{item.manufacturer || '—'}</p>
+                          <small>
+                            CASE ID: {item.case_reference}
+                          </small>
+                        </div>
+
+                        <div className="QueueTag">
+                          <span>{GetSourceLabel(item.source)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CHANGED — real data from selectedComplaint, was hardcoded */}
+                  {/* RIGHT PANEL */}
+                  <div className="VerificationDetails">
+                    <div className="VerificationCard">
+                      <div>
+                        {detailLoading ? (
+                          <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
+                        ) : selectedComplaint ? (
+                          <>
+                            <small>CASE ID: {selectedComplaint.case_reference}</small>
+                            <h2>{selectedComplaint.product_title}</h2>
+                            <p>{selectedComplaint.manufacturer || '—'}</p>
+
+                            <div className="CaseInfoGrid">
+                              <div>
+                                <label>Complainant</label>
+                                <p>{selectedComplaint.complainant_name || '—'}</p>
+                              </div>
+
+                              <div>
+                                <label>Cetegory</label>
+                                <p>{selectedComplaint.product_category || '—'}</p>
+                              </div>
+
+                              <div>
+                                <label>Logged</label>
+                                <p>{formatDateTime(selectedComplaint.created_at)}</p>
+                              </div>
+
+                              <div>
+                                <label>Source</label>
+                                <p>{GetSourceLabel(selectedComplaint.source)}</p>
+                              </div>
                             </div>
                           </>
                         ) : (
@@ -1342,6 +1393,6 @@ function LeaVerificationRequest() {
         </div>
       )}
     </div>
-  )
+  );
 }
 export default LeaVerificationRequest
