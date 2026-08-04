@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const forgotLink = document.querySelector('.forgot-link');
   const guestBtn = document.getElementById('btn-guest');
 
+  // --- Password show/hide eye icon toggle ---
   document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
     btn.addEventListener('click', () => {
       const input = document.getElementById(btn.dataset.target);
@@ -56,8 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // --- check if the screen is currently in signin/singup mode
   let currentMode = 'signin';
 
+  // --- text for each mode (swapped in by updateMode() below)
   const authModes = {
     signin: {
       title: 'Signing in is optional',
@@ -73,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Wipes every validation error message and red "invalid" outline back to clean
   const clearErrors = () => {
     [emailError, passwordError, createPasswordError, confirmPasswordError, usernameError].forEach((errorNode) => {
       if (errorNode) {
@@ -87,22 +91,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  // --- put a error message on <p> elements
   const setError = (node, message) => {
     if (node) {
       node.textContent = message;
     }
   };
 
+  // --- if the email is valid ---
   const isValidEmail = (value) => /^\S+@\S+\.\S+$/.test(value);
 
+  // --- password rule ---
   const isStrongPassword = (value) => {
     const hasMinimumLength = value.length >= 8;
-    const hasLetter = /[A-Za-z]/.test(value);
+    const hasLetter = /[A-Z]/.test(value);
     const hasNumber = /\d/.test(value);
 
     return hasMinimumLength && hasLetter && hasNumber;
   };
 
+  // Switches the whole form between "Sign In" view and "Sign Up" view
   const updateMode = (mode) => {
     currentMode = mode;
     const settings = authModes[mode] || authModes.signin;
@@ -148,10 +156,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.hash = mode;
   };
 
+  // Reads the 6 individual OTP boxes and joins them into one string
   function getOtpValue() {
     return otpDigitInputs.map(inp => inp.value).join('');
   }
 
+  // Empties all 6 OTP boxes and puts the cursor back in the first one
   function clearOtpInputs() {
     otpDigitInputs.forEach(inp => {
       inp.value = '';
@@ -160,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (otpDigitInputs[0]) otpDigitInputs[0].focus();
   }
 
+  // --- Makes the 6 OTP boxes behave like one connected input ---
   otpDigitInputs.forEach((input, index) => {
     input.addEventListener('input', () => {
       input.value = input.value.replace(/\D/g, '').slice(0, 1);
@@ -168,12 +179,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Backspace on an empty box: jump back to the previous box
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Backspace' && !input.value && index > 0) {
         otpDigitInputs[index - 1].focus();
       }
     });
 
+    // Pasting a full code: spread the digits across all 6 boxes at once
     input.addEventListener('paste', (e) => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, otpDigitInputs.length);
@@ -206,10 +219,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
   }
   
+  // Switches the screen into "enter your OTP code" view. 
+  // (Called right after signup or login succeeds — email/mode are passed in)
   function enterOtpMode(email, mode) {
-    otpPendingEmail = email;
-    otpPendingMode = mode;
+    otpPendingEmail = email;  // remember which account this code belongs to
+    otpPendingMode = mode;    // remember whether this came from signup or signin
 
+    // Hide everything from the normal signin/signup form...
     if (tabsContainer) tabsContainer.classList.add('hidden');
     if (usernameField) usernameField.hidden = true;
     if (emailField) emailField.hidden = true;
@@ -222,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (orDivider) orDivider.classList.add('hidden');
     if (guestBtn) guestBtn.classList.add('hidden');
 
+    // ...and show the OTP entry screen instead
     if (otpField) otpField.hidden = false;
     if (otpVerifyButton) {
       otpVerifyButton.classList.remove('hidden');
@@ -239,11 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (otpError) otpError.textContent = '';
     clearOtpInputs();
 
-    generateOtp(email, (code) => {
-      if (otpDevPreview) otpDevPreview.textContent = `Dev preview — your code is ${code} (real email sending is a backend task).`;
-    });
   }
 
+  // Reverses enterOtpMode — goes back to showing the normal signin/signup form
   function exitOtpMode() {
     if (otpField) otpField.hidden = true;
     if (otpVerifyButton) otpVerifyButton.classList.add('hidden');
@@ -258,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateMode(otpPendingMode === 'signup' ? 'signup' : 'signin');
   }
 
+  // Reverses enterForgotMode — goes back to the normal signin form
   function exitForgotMode() {
     if (forgotPasswordFields) forgotPasswordFields.hidden = true;
     if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
@@ -270,6 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateMode('signin');
   }
 
+  // Checks the signin/signup form fields before submitting.
+  // Returns true only if everything required is filled in correctly.
   const validateForm = () => {
     clearErrors();
 
@@ -290,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
       isValid = false;
     }
 
+    // Extra checks that only apply when signing up (not signing in)
     if (currentMode === 'signup') {
       const usernameValue = usernameInput ? usernameInput.value.trim() : '';
         if (!usernameValue) {
@@ -329,6 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Signin-only check: just needs a password typed in
     else if (!passwordInput || !passwordInput.value) {
       setError(passwordError, 'Password is required.');
       if (passwordInput) {
@@ -340,15 +360,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return isValid;
   };
 
+  // Show signup tab first if the URL is "#signup", otherwise default to signin
   const initialMode = window.location.hash === '#signup' ? 'signup' : 'signin';
   updateMode(initialMode);
 
+  // Clicking "Sign In" / "Sign Up" tabs switches the form mode
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
       updateMode(tab.dataset.authMode);
     });
   });
 
+  // "Continue as guest" — skips login entirely
   if (guestBtn) {
     guestBtn.addEventListener('click', () => {
       logoutUser(() => {
@@ -357,6 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // "Back to sign in" from the forgot-password screen
   if (forgotLink) {
     forgotLink.addEventListener('click', (e) => {
       e.preventDefault();
@@ -373,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Submits a password reset request (email + new password)
   if (forgotConfirmButton) {
     forgotConfirmButton.addEventListener('click', () => {
       clearErrors();
@@ -413,48 +438,54 @@ document.addEventListener('DOMContentLoaded', () => {
         exitForgotMode();
       });
     });
-
-    if (otpVerifyButton) {
-      otpVerifyButton.addEventListener('click', () => {
-        if (otpError) otpError.textContent = '';
-        const enteredCode = getOtpValue();
-
-        if (enteredCode.length < 6) {
-          setError(otpError, 'Please enter all 6 digits.');
-          otpDigitInputs.forEach(inp => { if (!inp.value) inp.classList.add('is-invalid'); });
-          return;
-        }
-
-        verifyOtp(enteredCode, (success) => {
-          if (!success) {
-            setError(otpError, 'Incorrect code. Please try again.');
-            otpDigitInputs.forEach(inp => inp.classList.add('is-invalid'));
-            return;
-          }
-          window.location.href = 'report-complaint.html';
-        });
-      });
-    }
-
-    if (resendOtpLink) {
-      resendOtpLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        generateOtp(otpPendingEmail, (code) => {
-          if (otpDevPreview) otpDevPreview.textContent = `Dev preview — your new code is ${code}.`;
-          if (otpError) otpError.textContent = '';
-        clearOtpInputs();
-        });
-      });
-    }
-
-    if (backFromOtpLink) {
-      backFromOtpLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        exitOtpMode();
-      });
-    }
   }
 
+  // Clicking "Verify and Sign In/Up" — collects the 6 digits and checks them with the backend
+  if (otpVerifyButton) {
+    otpVerifyButton.addEventListener('click', () => {
+      if (otpError) otpError.textContent = '';
+      const enteredCode = getOtpValue();
+
+      if (enteredCode.length < 6) {
+        setError(otpError, 'Please enter all 6 digits.');
+        otpDigitInputs.forEach(inp => { if (!inp.value) inp.classList.add('is-invalid'); });
+        return;
+      }
+
+      // otpPendingEmail was filled in back when enterOtpMode() ran —
+      // that's the account this code is being checked against
+      verifyOtp(otpPendingEmail, enteredCode, (success, errorMsg) => {
+        if (!success) {
+          setError(otpError, 'Incorrect code. Please try again.');
+          otpDigitInputs.forEach(inp => inp.classList.add('is-invalid'));
+          return;
+        }
+        window.location.href = 'report-complaint.html';
+      });
+    });
+  }
+
+  // "Resend code" — asks the backend to generate and email a fresh code
+  if (resendOtpLink) {
+    resendOtpLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      resendOtpSession(otpPendingEmail, (success, errorMsg) => {
+        if (otpError) otpError.textContent = success ? '' : (errorMsg || 'Could not resend code.');
+        clearOtpInputs();
+      });
+    });
+  }
+
+  // "Back to Sign In/Up" — leaves the OTP screen without verifying
+  if (backFromOtpLink) {
+    backFromOtpLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      exitOtpMode();
+    });
+  }
+
+  // The main Sign In / Sign Up button — validates the form, then calls
+  // the backend to either register or log in
   if (primaryButton) {
     primaryButton.addEventListener('click', () => {
       const isValid = validateForm();
@@ -469,18 +500,33 @@ document.addEventListener('DOMContentLoaded', () => {
         registerUser({ username: usernameValue, email: emailValue, password: passwordValue }, (success, errorMsg) => {
           if (success) {
             enterOtpMode(emailValue, 'signup');
+            return;
+          } 
+
+          let error = errorMsg || 'Could not create account.';
+          if (error.toLowerCase().includes('password')) {
+            setError(createPasswordError, error);
+            createPasswordInput.classList.add('is-invalid');
+          } else if (error.toLowerCase().includes('username')) {
+            setError(usernameError, error);
+            usernameInput.classList.add('is-invalid');
           } else {
-            setError(emailError, errorMsg || 'Could not create account.');
+            setError(emailError, error);
             emailInput.classList.add('is-invalid');
           }
+
         });
 
       } else {
         const passwordValue = passwordInput.value;
 
-        loginUser(emailValue, passwordValue, (success) => {
+        loginUser(emailValue, passwordValue, (success, error) => {
           if (success) {
-            enterOtpMode(emailValue, 'signin');
+            window.location.href = 'report-complaint.html';
+            // enterOtpMode(emailValue, 'signin');
+          } else if (error && error.toLowerCase().includes('verify')) {
+            setError(passwordError, 'Please verify your email before signing in.');
+            // enterOtpMode(emailValue, 'signup'); //redirect to OTP screen
           } else {
             setError(passwordError, 'Incorrect email or password.');
             passwordInput.classList.add('is-invalid');
