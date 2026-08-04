@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
 
+    # desktop otp
     MAIL_HOST: str
     MAIL_PORT: int
     MAIL_USERNAME: str
@@ -36,10 +37,16 @@ class Settings(BaseSettings):
 
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # add to settings if you want this configurable
 
-    DEFAULT_EXTENSION_REGION_ID: str = ""
-    
+    DEFAULT_EXTENSION_REGION_ID: str
+
+    # extension otp
+    MAIL_EXTENSION_USERNAME: str
+    MAIL_EXTENSION_PASSWORD: str
+    MAIL_EXTENSION_FROM_NAME: str
+    OTP_EXTENSION_MIN_EXPIRE: int = 5
+    MAIL_EXTENSION_FROM: str
+
     class Config:
         env_file = ".env"
-
 
 settings = Settings()
