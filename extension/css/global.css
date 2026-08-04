@@ -794,9 +794,9 @@ body {
   white-space: nowrap;
 }
 
-.badge-open { background: #F3F3F3; color: #777777; border: 1px solid #777777; border-radius: 15px; }
-.badge-under-review { background: #FEF3C7; color: #D97706; border: 1px solid #D97706; border-radius: 15px; }
-.badge-takedown-requested { background: #DBEAFE; color: #2563EB; border: 1px solid #2563EB; border-radius: 15px; }
+.badge-open { background: rgba(217, 119, 6, 0.1); color: #D97706; border-radius: 15px; }
+.badge-under-review { background: rgba(19, 33, 60, 0.1); color: #13213c; border-radius: 15px; }
+.badge-takedown-requested { background: rgba(185, 28, 28, 0.1); color: #B91C1C; border-radius: 15px; }
 
 .progress-track {
   display: flex;
@@ -854,6 +854,18 @@ body {
   line-height: 1.5;
 }
 
+.status-see-details {
+  display: block;
+  margin-top: 8px;
+  text-align: right;
+}
+
+.status-item-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #E5E5E5;
+}
+
 .step-connector.connector-complete {
   background: #16A34A;
 }
@@ -888,6 +900,21 @@ body {
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.detail-meta-box {
+  display: flex;
+  gap: 16px;
+  background-color: #F3F3F3;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.detail-meta-item {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #1f2937;
 }
 
 /* HISTORY PAGE */
@@ -1032,6 +1059,31 @@ body {
   border-top: 1px dashed #E5E5E5;
 }
 
+.history-item-detail {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #E5E5E5;
+}
+
+.detail-row {
+  margin: 0 0 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #030303;
+  line-height: 1.5;
+}
+
+.detail-label {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.history-item-detail .history-item-note {
+  border-top: none;
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
 /* NOTICE BANNER (login/signup) */
 .notice-banner {
   display: flex;
@@ -1146,13 +1198,13 @@ body {
 }
 
 .icon-placeholder-email,
-.icon-placeholder-password {
+.icon-placeholder-password, .icon-placeholder-username{
   position: absolute;
   display: block;
-  left: 12px;
+  left: 6px;
   top: 50%;
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   transform: translateY(-50%);
 }
 
@@ -1161,9 +1213,23 @@ body {
   display: block;
   right: 12px;
   top: 50%;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   transform: translateY(-50%);
+}
+
+.icon-placeholder-eye.toggle-password-visibility {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.icon-placeholder-eye .eye-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
 }
 
 .icon-placeholder-guest {
@@ -1186,11 +1252,11 @@ body {
   outline: none;
 }
 
-#username-input.auth-input {
+/* #username-input.auth-input {
   padding-left: 12px;
-}
+} */
 
-.auth-input.password-input {
+.auth-input.password-input, .auth-input.username-input {
   padding: 12px 38px 12px 38px;
 }
 
@@ -1218,6 +1284,43 @@ body {
 
 .signup-password-fields {
   margin-bottom: 0;
+}
+
+/* OTP INPUTS */
+.otp-input-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.otp-digit-input {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  border: 1px solid #E5E5E5;
+  border-radius: 10px;
+  background-color: #F9F9F9;
+  color: #030303;
+  outline: none;
+}
+
+.otp-digit-input:focus {
+  border-color: #1F2937;
+  box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.15);
+}
+
+.otp-digit-input.is-invalid {
+  border-color: #B91C1C;
+  box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.12);
+}
+
+.otp-links-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* BUTTONS */
@@ -1313,6 +1416,12 @@ body {
   font-size: 12px;
   color: #777777;
   white-space: nowrap;
+}
+
+.back-to-signin-link {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
 }
 
 /* REPORT COMPLAINT PAGE */
@@ -1453,4 +1562,13 @@ body {
   margin-top: 8px;
   border-radius: 8px;
   object-fit: contain;
+}
+
+.notice-banner-success {
+  background-color: #e6f7ed;
+  border-color: #34a853;
+}
+.notice-banner-success .notice-title,
+.notice-banner-success .notice-text {
+  color: #1e7e34;
 }

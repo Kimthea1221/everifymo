@@ -63,7 +63,7 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
   }, [isOpen]);
 
   return (
-    <div className="UserMgmtDropdownWrapper">
+    <div className={`UserMgmtDropdownWrapper ${isOpen ? 'active-open' : ''}`}>
       <button
         ref={triggerRef}
         className="UserMgmtDropdownTrigger"
@@ -72,6 +72,16 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
           e.stopPropagation();
           isOpen ? setIsOpen(false) : openMenu();
         }}
+      >
+        <Eye size={15} />
+      </button>
+
+      <button
+        ref={triggerRef}
+        className="UserMgmtDropdownTrigger"
+        data-tooltip="Actions"
+        title="More Actions"
+        onClick={handleToggle}
       >
         <MoreVertical size={16} />
       </button>

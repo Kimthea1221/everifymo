@@ -27,8 +27,37 @@ from app.extension.routers import complaints
 from app.extension.routers import status as status_router
 
 
+# Saved Drafts feature
+from app.desktop.routers.drafts.walkin_drafts import router as walkin_drafts_router
+from app.desktop.routers.drafts.all_drafts import router as all_drafts_router
+from app.desktop.routers.drafts.verification_drafts import router as verification_drafts_router
+
+# Complainant and Complaint Creation feature
+from app.desktop.routers.complaints.walkin_complaints import (
+    draft_submit_router,
+    direct_complaint_router,
+)
+
+# Verification Joined Detail feature
+from app.desktop.routers.complaints.complaint_detail import router as complaint_detail_router
+# Not used yet, but will be used in the future for shared files download
+from app.desktop.routers.complaints.shared_files import router as shared_files_router
+
+# Verificatiion Request feature
+from app.desktop.routers.verification.verification_requests import (
+    draft_submit_router as verification_draft_submit_router,
+    direct_request_router as verification_direct_request_router,
+)
+
+# verification Ready to Send and Awaiting FDA tab
+from app.desktop.routers.verification.verification_requests import (
+    draft_submit_router as verification_draft_submit_router,
+    direct_request_router as verification_direct_request_router,
+    list_router as verification_list_router,
+)
+
 app = FastAPI()
-#Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
@@ -62,8 +91,24 @@ app.include_router(sessions_router)
 
 app.include_router(user_management_router)
 
+app.include_router(walkin_drafts_router)
+app.include_router(all_drafts_router)
+app.include_router(verification_drafts_router)
+
+app.include_router(draft_submit_router)
+app.include_router(direct_complaint_router)
+
+app.include_router(complaint_detail_router)
+app.include_router(shared_files_router)
+
+app.include_router(verification_draft_submit_router)
+app.include_router(verification_direct_request_router)
+
+app.include_router(verification_list_router)
+
 app.include_router(personnel_login_router)
 app.include_router(password_change_router)
+
 @app.get("/", status_code=status.HTTP_200_OK)
 async def user(consumer: consumer_dependency):
     if consumer is None:

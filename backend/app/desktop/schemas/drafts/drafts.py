@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from enum import Enum
 
 
@@ -57,6 +57,17 @@ class WalkinIntakeDraftSave(BaseModel):
     amount_paid: Decimal | None = None
     nature_of_complaint: str | None = None
 
+    @field_validator("contact_number") #Pydantic decorator that says "run this function every time contact_number is set, to check/clean it."
+    @classmethod
+    def validate_contact_number(cls, value):
+        if value is None:
+            return value
+        if not value.isdigit(): # checks every character is 0-9 
+            raise ValueError("Contact number must contain digits only.")
+        if len(value) != 11:
+            raise ValueError("Contact number must be exactly 11 digits.")
+        return value
+
 
 # What we send BACK — e.g. when the officer reopens a saved draft,
 # or when one row of the Saved Drafts table is returned.
@@ -95,6 +106,25 @@ class DraftAttachmentResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# Unified row for the "All Drafts" table (Image 1). Built manually
+# in the endpoint from a join, not from a single ORM object — so
+# this does NOT use from_attributes=True like the others.
+class UnifiedDraftResponse(BaseModel):
+    draft_id: UUID
+    draft_type: DraftType
+    product_name: str | None
+    manufacturer: str | None
+    product_category: str | None
+    complainant_name: str | None
+    saved_by: UUID
+    saved_by_name: str | None   # added this for saved by in the UI
+    region_id: UUID
+    draft_status: DraftStatus
+    created_at: datetime
+    updated_at: datetime
+
+
 # ============================================================
 # VERIFICATION REQUEST DRAFT
 # ============================================================
@@ -125,4 +155,11 @@ class VerificationRequestDraftResponse(VerificationRequestDraftSave):
     created_at: datetime
     updated_at: datetime
 
+<<<<<<< HEAD
     model_config = ConfigDict(from_attributes=True)
+=======
+    model_config = ConfigDict(from_attributes=True)
+
+class WalkinIntakeDraftDetailResponse(WalkinIntakeDraftResponse):
+    attachments: list[DraftAttachmentResponse] = []
+>>>>>>> 372b438316b9caf587f87581ff881946b36387ac
