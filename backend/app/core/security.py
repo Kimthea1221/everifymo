@@ -25,7 +25,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(data: dict, expires_minutes: int = 60) -> str:
+def create_desktop_access_token(data: dict, expires_minutes: int = 60) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
     to_encode.update({"exp": expire})
@@ -52,7 +52,7 @@ def authenticate_consumer(email:str, password:str, db:Session):
         return False
     return user
 
-def create_access_token(username:str, consumer_id, expires_delta:timedelta):
+def create_consumer_access_token(username:str, consumer_id, expires_delta:timedelta):
     encode = {
         "sub": username,
         "id": str(consumer_id)
