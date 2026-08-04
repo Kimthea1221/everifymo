@@ -69,27 +69,39 @@ async function renderComplaintStatusPage() {
     return;
   }
 
-  getComplaintStatuses((complaints) => {
-    if (!complaints || complaints.length === 0) {
-      if (emptyText) emptyText.textContent = 'Complaint Status page is currently empty.';
-      if (emptyView) emptyView.classList.remove('hidden');
-      if (populatedView) populatedView.classList.add('hidden');
-      return;
-    }
+  const res = await apiGetStatus(getToken());
+  const complaints = res.map(c => ({
+      id: c.complaint_id,
+      stage: c.new_status,
+      productName: c.product_title,
+      note: c.change_note || "",
+      platform: c.platform,
+      time: c.created_at,
+      link: c.product_url,
+      storeName: c.store_name,
+      description: c.consumer_description
+  }));
 
-    if (emptyView) emptyView.classList.add('hidden');
-    if (populatedView) populatedView.classList.remove('hidden');
-    const listEl = document.getElementById('status-list');
-    if (listEl) listEl.innerHTML = complaints.map(renderComplaintCard).join('');
+  if (!complaints || complaints.length === 0) {
+    if (emptyText) emptyText.textContent = 'Complaint Status page is currently empty.';
+    if (emptyView) emptyView.classList.remove('hidden');
+    if (populatedView) populatedView.classList.add('hidden');
+    return;
+  }
 
-    document.querySelectorAll('[data-toggle-status-detail]').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const detailEl = document.getElementById(`status-detail-${link.dataset.toggleStatusDetail}`);
-        if (detailEl) detailEl.classList.toggle('hidden');
-      });
+  if (emptyView) emptyView.classList.add('hidden');
+  if (populatedView) populatedView.classList.remove('hidden');
+  const listEl = document.getElementById('status-list');
+  if (listEl) listEl.innerHTML = complaints.map(renderComplaintCard).join('');
+
+  document.querySelectorAll('[data-toggle-status-detail]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const detailEl = document.getElementById(`status-detail-${link.dataset.toggleStatusDetail}`);
+      if (detailEl) detailEl.classList.toggle('hidden');
     });
   });
+
 }
 
 document.addEventListener('DOMContentLoaded', () => {

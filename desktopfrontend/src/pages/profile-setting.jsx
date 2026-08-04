@@ -1612,6 +1612,53 @@ const styles = `
     color: #475569;
     line-height: 1.5;
   }
+    @media (max-width: 640px) {
+  .ProfileContainer {
+    padding: 16px;
+  }
+
+  .ProfileCard {
+    padding: 20px;
+  }
+
+  /* Stack Save/Cancel buttons full-width instead of side-by-side */
+  .ProfileActionsContainer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .ProfileBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .SuperAdminProfileContainer {
+    padding: 20px 16px;
+  }
+
+  .SuperAdminProfileCard,
+  .SuperAdminSecurityCard {
+    padding: 20px;
+  }
+
+  /* Info rows stack label/value instead of squeezing side-by-side */
+  .SuperAdminProfileInfoRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 400px) {
+  .ProfileAvatarCircle {
+    width: 76px;
+    height: 76px;
+  }
+
+  .ProfileHeaderTitle {
+    font-size: 20px;
+  }
+}
 `;
 
 export default ProfileSetting;
