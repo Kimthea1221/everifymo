@@ -23,3 +23,5 @@ from .verification_requests import VerificationRequest
 from .notifications import Notification
 from .shared_files import SharedFile
 from .audit_logs import AuditLog
+
+from .consumer_otp_tokens import ConsumerOTPToken

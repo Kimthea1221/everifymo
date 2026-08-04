@@ -87,7 +87,112 @@
   background: #FCA311;
   color: #030303;
 }
+/* LEA VERIFICATION REQUEST - STATS METRIC SUMMARY BAR (NON-CLICKABLE) */
+.LeaVerifStatsBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 0 30px 20px 30px;
+  max-width: 1150px;
+}
 
+.LeaVerifStatCard {
+  --lea-verif-accent: #055db5;
+  position: relative;
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  border-radius: 14px;
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  cursor: default;
+  user-select: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  margin-bottom: 20px;
+}
+
+.LeaVerifStatCard:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.LeaVerifStatCard::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  border-radius: 0 0 14px 14px;
+  background: var(--lea-verif-accent);
+}
+
+.LeaVerifStatCardTop {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.LeaVerifStatBadge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.LeaVerifStatBadgeResponse {
+  background: rgba(19, 33, 60, 0.1);
+  color: #13213C;
+}
+
+.LeaVerifStatBadgeInitiated {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.LeaVerifStatBadgeDismissed {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
+}
+
+.LeaVerifStatValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0 0 3px 0;
+  line-height: 1;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.LeaVerifStatLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(31, 41, 55, 0.6);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 900px) {
+  .LeaVerifStatsBar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .LeaVerifStatsBar {
+    grid-template-columns: 1fr;
+  }
+
+  .LeaVerifStatValue {
+    font-size: 22px;
+  }
+}
 
 .TableCard {
   background: #FDFDFD;
