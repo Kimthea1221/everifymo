@@ -74,10 +74,3 @@ verifyBtn.addEventListener("click", () => {
 
     verifyBtn.style.display = "none";
 });
-
-
-
-        // "https://*.shopee.ph/*",
-        // "https://*.lazada.com.ph/*",
-        // "https://*.tiktok.com/*",
-        // "https://*.facebook.com/*"
