@@ -6,27 +6,12 @@ import unicodedata
 import pickle
 from pathlib import Path
 
-# Load CSV file of registered products
 BASE_DIR = Path(__file__).resolve().parent
 
 datasets_dir = BASE_DIR.parent / "datasets"
 asset_dir = BASE_DIR.parent / "assets"
 asset_dir.mkdir(parents=True, exist_ok=True)
 
-file_path = datasets_dir / "registered.csv"
-df = pd.read_csv(file_path, low_memory=False)
-
-# Check columns
-print("Columns:")
-print(df.columns.tolist())
-
-# Change this if needed after checking the output above
-# The error indicates 'PRODUCT_NAME' is not found. From the printout, 'Product Title' is the correct column.
-TITLE_COLUMN = "PRODUCT_NAME"
-# BRAND_COLUMN and COMPANY_COLUMN are not present in 'unregistered.csv' as per column list.
-# These should only be used if you are loading a 'registered' products dataset with these columns.
-BRAND_COLUMN = "BRAND_NAME"
-COMPANY_COLUMN = "COMPANY_NAME"
 
 #-----Cleaning -------#
 # Marketing words to remove
@@ -119,55 +104,72 @@ def clean_title(text):
 
     return text
 
-# Apply the cleaning function to the specified column
-df[TITLE_COLUMN] = df[TITLE_COLUMN].apply(clean_title)
-# Commenting out brand and company cleaning as these columns are not in 'unregistered.csv'
-# df[BRAND_COLUMN] = df[BRAND_COLUMN].apply(clean_title)
-# df[COMPANY_COLUMN] = df[COMPANY_COLUMN].apply(clean_title)
 
-# Preview
-print(df[[TITLE_COLUMN]].head())
-# print(df[[BRAND_COLUMN]].head())
-# print(df[[COMPANY_COLUMN]].head())
+def main():
+    # Load CSV file of registered products
+    file_path = datasets_dir / "registered.csv"
+    df = pd.read_csv(file_path, low_memory=False)
 
-# Save cleaned dataset
-output_path = asset_dir / "Registered_cleaned.csv"
-df.to_csv(output_path, index=False)
+    # Check columns
+    print("Columns:")
+    print(df.columns.tolist())
 
-#Save the df as pickle
-with open(asset_dir / "Registered_cleaned.pkl", 'wb') as f:
-    pickle.dump(df, f)
+    # Change this if needed after checking the output above
+    TITLE_COLUMN = "PRODUCT_NAME"
+    BRAND_COLUMN = "BRAND_NAME"
+    COMPANY_COLUMN = "COMPANY_NAME"
 
-print("\nCleaning completed!")
-print("Saved to:", output_path)
+    # Apply the cleaning function to the specified column
+    df[TITLE_COLUMN] = df[TITLE_COLUMN].apply(clean_title)
+    df[BRAND_COLUMN] = df[BRAND_COLUMN].apply(clean_title)
+    df[COMPANY_COLUMN] = df[COMPANY_COLUMN].apply(clean_title)
 
-#------------------------------------------------------------------------------------------------------------------------#
+    # Preview
+    print(df[[TITLE_COLUMN]].head())
+    print(df[[BRAND_COLUMN]].head())
+    print(df[[COMPANY_COLUMN]].head())
 
-#### Cleaning of Unregistered Product to build BM25 index ####
+    # Save cleaned dataset
+    output_path = asset_dir / "Registered_cleaned.csv"
+    df.to_csv(output_path, index=False)
 
-# Load CSV file of registered products
-file_path = datasets_dir / "unregistered.csv"
-df = pd.read_csv(file_path)
+    #Save the df as pickle
+    with open(asset_dir / "Registered_cleaned.pkl", 'wb') as f:
+        pickle.dump(df, f)
 
-# Check columns
-print("Columns:")
-print(df.columns.tolist())
+    print("\nCleaning completed!")
+    print("Saved to:", output_path)
 
-# Change this if needed after checking the output above
-UN_TITLE_COLUMN = "Product Title"
+    #### Cleaning of Unregistered Product to build BM25 index ####
 
-# Apply the cleaning function to the specified column
-df[UN_TITLE_COLUMN] = df[UN_TITLE_COLUMN].apply(clean_title)
+    # Load CSV file of registered products
+    file_path = datasets_dir / "unregistered.csv"
+    df = pd.read_csv(file_path)
 
-# Preview
-print(df[[UN_TITLE_COLUMN]].head())
+    # Check columns
+    print("Columns:")
+    print(df.columns.tolist())
 
-# Save cleaned dataset
-output_path = asset_dir / "Unregistered_cleaned.csv"
-df.to_csv(output_path, index=False)
+    # Change this if needed after checking the output above
+    UN_TITLE_COLUMN = "Product Title"
 
-with open(asset_dir / "Unregistered_cleaned.pkl", 'wb') as f:
-    pickle.dump(df, f)
+    # Apply the cleaning function to the specified column
+    df[UN_TITLE_COLUMN] = df[UN_TITLE_COLUMN].apply(clean_title)
 
-print("\nCleaning completed!")
-print("Saved to:", output_path)
+    # Preview
+    print(df[[UN_TITLE_COLUMN]].head())
+
+    # Save cleaned dataset
+    output_path = asset_dir / "Unregistered_cleaned.csv"
+    df.to_csv(output_path, index=False)
+
+    with open(asset_dir / "Unregistered_cleaned.pkl", 'wb') as f:
+        pickle.dump(df, f)
+
+    print("\nCleaning completed!")
+    print("Saved to:", output_path)
+
+
+
+if __name__ == "__main__":  
+    main()
