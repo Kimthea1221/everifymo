@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './lea-css.css';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
-import { PenLine, Trash2, Info } from 'lucide-react';
+import { PenLine, Trash2, Info, Eye, MoreVertical, X } from 'lucide-react';
 
 const API_BASE = 'http://127.0.0.1:8000'
 
@@ -40,6 +40,10 @@ function LeaSavedDraft() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [draftToDelete, setDraftToDelete] = useState(null);
     const [toastMessage, setToastMessage] = useState(null);
+
+    // ADDED — dropdown menu open/close state per row, and view-modal data
+    const [openDropdownId, setOpenDropdownId] = useState(null);
+    const [viewModalData, setViewModalData] = useState(null);
 
     // ADDED — fetches the real combined drafts list on page load
     useEffect(() => {
@@ -116,6 +120,11 @@ function LeaSavedDraft() {
                 navigate('/leacidgfolder/lea-verification-request', { state: { draftId: draft.draft_id } });
             }
         }, 1200);
+    };
+
+    // ADDED — dropdown open/close toggle per row, same pattern as fda-saved-draft.jsx
+    const toggleDropdown = (draftId) => {
+        setOpenDropdownId(openDropdownId === draftId ? null : draftId);
     };
 
     // Filtering and sorting calculations
@@ -200,47 +209,46 @@ function LeaSavedDraft() {
 
                     <div className="DraftsFilterSection">
                         <div className="DraftsFilterControls">
-                            <input
-                                type="text"
-                                className="DraftsSearchInput"
-                                placeholder="Search by Product Name or Product Category..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                            <div className="DraftsFilterLeft">
+                                <input
+                                    type="text"
+                                    className="DraftsSearchInput"
+                                    placeholder="Search by Product Name or Product Category..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="DraftsFilterRight">
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={activeTab}
+                                    onChange={(e) => handleTabClick(e.target.value)}
+                                >
+                                    <option value="All">All Types</option>
+                                    <option value="Walk-in Intake">Walk-in Intake</option>
+                                    <option value="Verification Request">Verification Request</option>
+                                </select>
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={activeTab}
-                                onChange={(e) => handleTabClick(e.target.value)}
-                            >
-                                <option value="All">All Types</option>
-                                <option value="walkin">Walk-in Intake</option>
-                                <option value="verification">Verification Request</option>
-                            </select>
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="All">All Statuses</option>
+                                    <option value="Draft">Draft</option>
+                                    <option value="Incomplete">Incomplete</option>
+                                </select>
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <option value="All">All Statuses</option>
-                                <option value="draft">Draft</option>
-                                <option value="incomplete">Incomplete</option>
-                            </select>
-
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={sortOption}
-                                onChange={(e) => setSortOption(e.target.value)}
-                            >
-                                <option value="recently_edited">Recently Edited</option>
-                                <option value="oldest_first">Oldest First</option>
-                                <option value="product_name_az">Product Name (A–Z)</option>
-                            </select>
-
-                            <button className="BtnClearFilters" onClick={handleClearFilters}>
-                                Clear Filters
-                            </button>
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={sortOption}
+                                    onChange={(e) => setSortOption(e.target.value)}
+                                >
+                                    <option value="Recently Edited">Recently Edited</option>
+                                    <option value="Oldest First">Oldest First</option>
+                                    <option value="Product Name">Product Name (A–Z)</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div className="DraftsTotalCount">
@@ -284,20 +292,43 @@ function LeaSavedDraft() {
                                                 </span>
                                             </td>
                                             <td>
-                                                <div className="TableActionsCell">
+                                                <div className="LeaDropdownWrapper">
                                                     <button
-                                                        className="BtnTableEdit"
-                                                        onClick={() => handleEditDraft(draft)}
+                                                        className="LeaViewBtn"
+                                                        title="View Draft"
+                                                        onClick={() => setViewModalData(draft)}
                                                     >
-                                                        <PenLine className="BtnEditIcon" size={16} /> Edit Draft
+                                                        <Eye size={15} />
                                                     </button>
                                                     <button
-                                                        className="BtnTableDelete"
-                                                        onClick={() => handleDeleteClick(draft)}
-                                                        title="Delete Draft"
+                                                        className="LeaDropdownTrigger"
+                                                        onClick={() => toggleDropdown(draft.draft_id)}
                                                     >
-                                                        <Trash2 className="BtnDeleteIcon" size={16} />
+                                                        <MoreVertical size={15} />
                                                     </button>
+
+                                                    {openDropdownId === draft.draft_id && (
+                                                        <div className="LeaDropdownMenu">
+                                                            <button
+                                                                className="LeaDropdownItem"
+                                                                onClick={() => {
+                                                                    setOpenDropdownId(null);
+                                                                    handleEditDraft(draft);
+                                                                }}
+                                                            >
+                                                                <PenLine size={14} /> Continue Editing
+                                                            </button>
+                                                            <button
+                                                                className="LeaDropdownItem"
+                                                                onClick={() => {
+                                                                    setOpenDropdownId(null);
+                                                                    handleDeleteClick(draft);
+                                                                }}
+                                                            >
+                                                                <Trash2 size={14} /> Delete Draft
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -341,6 +372,25 @@ function LeaSavedDraft() {
                 </div>
             )}
 
+            {/* ADDED — View Draft Modal (read-only), same modal classes as the delete confirm modal */}
+            {viewModalData && (
+                <div className='ModalOverlay'>
+                    <div className='ModalBox'>
+                        <h3>Draft Details</h3>
+                        <p><strong>Type:</strong> {GetDraftTypeLabel(viewModalData.draft_type)}</p>
+                        <p><strong>Product Category:</strong> {viewModalData.product_category}</p>
+                        <p><strong>Product Name:</strong> {viewModalData.product_name}</p>
+                        <p><strong>Complainant:</strong> {viewModalData.complainant_name}</p>
+                        <p><strong>Last Edited:</strong> {new Date(viewModalData.updated_at).toLocaleString()}</p>
+                        <p><strong>Saved By:</strong> {viewModalData.saved_by_name || 'You'}</p>
+                        <p><strong>Status:</strong> {viewModalData.draft_status === 'draft' ? 'Draft' : 'Incomplete'}</p>
+                        <div className='ModalActions'>
+                            <button className='BtnCancelModal' onClick={() => setViewModalData(null)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Notification Toast */}
             {toastMessage && (
                 <div style={{
@@ -366,4 +416,3 @@ function LeaSavedDraft() {
   }
 
 export default LeaSavedDraft;
-
