@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmPasswordError = document.getElementById('confirm-password-error');
   const forgotLink = document.querySelector('.forgot-link');
   const guestBtn = document.getElementById('btn-guest');
+  const googleLoginBtn = document.getElementById("google-login-btn");
+  const googleError = document.getElementById("googleError");
 
   // --- Password show/hide eye icon toggle ---
   document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
@@ -148,6 +150,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (forgotLink) {
       forgotLink.hidden = mode === 'signup';
+    }
+
+    // hide sign in with google on sign up page
+    if (currentMode === 'signup') {
+      googleLoginBtn.style.display = "none";
+    } else if (currentMode === 'signin') {
+      googleLoginBtn.style.display = "block";
     }
 
     clearErrors();
@@ -558,4 +567,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // sign in with google (connected to the backend)
+  googleLoginBtn.addEventListener("click", () => {
+    chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+      if (chrome.runtime.lastError || !token) {
+        setError(googleError, "Google sign-in failed. Please try again.");
+        return;
+      }
+
+      googleLogin(token, (success, error) => {
+        if (success) {
+          window.location.href = 'report-complaint.html';
+        } else {
+          setError(googleError, error || "Google sign-in failed. Please try again.")
+        }
+      });
+    });
+  });
+  
 });

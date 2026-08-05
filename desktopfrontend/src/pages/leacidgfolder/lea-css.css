@@ -87,7 +87,112 @@
   background: #FCA311;
   color: #030303;
 }
+/* LEA VERIFICATION REQUEST - STATS METRIC SUMMARY BAR (NON-CLICKABLE) */
+.LeaVerifStatsBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 0 30px 20px 30px;
+  max-width: 1150px;
+}
 
+.LeaVerifStatCard {
+  --lea-verif-accent: #055db5;
+  position: relative;
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  border-radius: 14px;
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  cursor: default;
+  user-select: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  margin-bottom: 20px;
+}
+
+.LeaVerifStatCard:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.LeaVerifStatCard::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  border-radius: 0 0 14px 14px;
+  background: var(--lea-verif-accent);
+}
+
+.LeaVerifStatCardTop {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.LeaVerifStatBadge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.LeaVerifStatBadgeResponse {
+  background: rgba(19, 33, 60, 0.1);
+  color: #13213C;
+}
+
+.LeaVerifStatBadgeInitiated {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.LeaVerifStatBadgeDismissed {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
+}
+
+.LeaVerifStatValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0 0 3px 0;
+  line-height: 1;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.LeaVerifStatLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(31, 41, 55, 0.6);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 900px) {
+  .LeaVerifStatsBar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .LeaVerifStatsBar {
+    grid-template-columns: 1fr;
+  }
+
+  .LeaVerifStatValue {
+    font-size: 22px;
+  }
+}
 
 .TableCard {
   background: #FDFDFD;
@@ -1019,7 +1124,7 @@
 
 /*LEFT PANEL*/
 
-.ReadytoSendQueue, .AwaitingFDAQueue, .FDAResponseQueue{
+.ReadytoSendQueue, .AwaitingLEAQueue, .LEAResponseQueue{
     background: #FDFDFD;
     border: 1px solid #d8d8d8;
     border-radius: 12px;
@@ -1027,7 +1132,7 @@
     min-height: 650px;
 }
 
-.ReadytoSendHeader, .AwaitingHeader, .FDAResponseHeader {
+.ReadytoSendHeader, .AwaitingHeader, .LEAResponseHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1035,13 +1140,13 @@
     border-bottom: 1px solid #EDEDED;
 }
 
-.ReadytoSendHeader p, .AwaitingHeader p, .FDAResponseHeader p {
+.ReadytoSendHeader p, .AwaitingHeader p, .LEAResponseHeader p {
     font-size: 13px;
     font-weight: 600;
     margin: 0;
 }
 
-.ReadytoSendHeader span, .AwaitingHeader span, .FDAResponseHeader span {
+.ReadytoSendHeader span, .AwaitingHeader span, .LEAResponseHeader span {
     background: rgba(252, 163, 17, 0.12);
     border: 1px solid rgba(252, 163, 17, 0.4);
     border-radius: 6px;
@@ -1052,13 +1157,92 @@
 }
 
 .QueueCard {
-    width: 100%;
-    padding: 16px;
-    border-bottom: 1px solid #EDEDED;
-    cursor: pointer;
-    transition: .2s;
-    display: inline-flex;
-    gap: 30px;
+  width: 100%;
+  padding: 16px;
+  border-bottom: 1px solid #EDEDED;
+  cursor: pointer;
+  transition: .2s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.QueueCardTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.QueueCardFooterRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #EDEDED;
+}
+
+.QueueCategoryTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: rgba(27, 67, 50, 0.12);
+  color: #1B4332;
+  flex-shrink: 0;
+}
+
+.QueueDateTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #1F2937;
+  opacity: 0.6;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.QueueTagInline {
+  background: rgba(252, 163, 17, 0.12);
+  color: #13213C;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.QueueStatusBadge {
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-block;
+}
+.QueueStatusBadge.unregistered {
+  background-color: rgba(224, 21, 21, 0.1);
+  border: 1px solid #ff0000a8;
+  color: #030303;
+}
+.QueueStatusBadge.registered {
+  background-color: rgba(5, 150, 105, 0.1);
+  border: 1px solid #059669;
+  color: #030303;
+}
+.QueueStatusBadge.rejected {
+  background-color: rgba(249, 115, 22, 0.1);
+  border: 1px solid #f97316;
+  color: #ea580c;
+}
+
+.OperationInProgressBadge {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .QueueCard:hover {
@@ -1528,6 +1712,47 @@
     .VerificationActions button {
         width: 100%;
     }
+
+    .DraftsFilterControls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .DraftsFilterLeft,
+    .DraftsFilterRight {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+
+    .DraftsFilterRight .DraftsFilterDropdown,
+    .DraftsFilterLeft .DraftsSearchInput {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .LeaVerifFilterControlsLeft,
+    .LeaVerifFilterControlsRight {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+
+    .LeaVerifFilterControlsLeft .LeaSearchInput,
+    .LeaVerifFilterControlsRight .LeaVerifDateInput,
+    .LeaVerifFilterControlsRight .LeaFilterGroup select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .LeaVerifFilterPanelWithDateIcon {
+        padding-right: 20px;
+    }
+
+    .LeaVerifDateRangeIcon {
+        position: static;
+        margin-left: auto;
+    }
 }
 
 /* SAVED DRAFTS PAGE CUSTOM STYLES */
@@ -1550,10 +1775,29 @@
 
 .DraftsFilterControls {
     display: flex;
-    align-items: center;
+    justify-content: space-between;
+    align-items: flex-end;
     gap: 12px;
     flex-wrap: wrap;
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+.DraftsFilterLeft {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
     flex: 1;
+    min-width: 280px;
+}
+
+.DraftsFilterRight {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-left: auto;
 }
 
 .DraftsSearchInput {
@@ -1612,6 +1856,286 @@
     font-size: 14px;
     font-weight: 600;
     color: #13213C;
+}
+
+/* FDA verification queue filter/search pattern reused for LEA verification parity */
+.LeaVerifTabPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.LeaVerifFilterPanel {
+    max-width: none !important;
+    justify-self: unset !important;
+    width: 100%;
+}
+
+.LeaVerifFilterControlsLeft {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+    min-width: 260px;
+}
+
+.LeaVerifFilterControlsRight {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.LeaVerifFilterPanelWithDateIcon {
+    position: relative;
+    padding-right: 52px;
+}
+
+.LeaVerifDateRangeIcon {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.LeaVerifQueueFilterHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #FDFDFD;
+  border-bottom: 1.5px solid #EDEDED;
+  padding: 14px;
+}
+
+.LeaSearchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.LeaSearchIcon {
+  position: absolute;
+  left: 12px;
+  color: #1F2937;
+  opacity: 0.6;
+}
+
+.LeaSearchInput {
+  height: 40px;
+  min-width: 260px;
+  border: 1px solid #EDEDED;
+  border-radius: 8px;
+  padding: 0 16px 0 38px;
+  font-size: 14px;
+  background: #FDFDFD;
+  color: #030303;
+  outline: none;
+  transition: 0.2s;
+}
+
+.LeaCategoriesSearchInput {
+  width: 100%;        
+  box-sizing: border-box; 
+  height: 40px;
+  border: 1px solid #EDEDED;
+  border-radius: 8px;
+  padding: 0 16px 0 38px;
+  font-size: 14px;
+  background: #FDFDFD;
+  color: #030303;
+  outline: none;
+  transition: 0.2s;
+}
+
+.LeaSearchInput:focus, .LeaCategoriesSearchInput:focus {
+  border-color: #1B4332;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
+}
+
+.LeaFilterPanel {
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.LeaFilterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.LeaFilterGroup label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(31, 41, 55, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.LeaFilterGroup select {
+  height: 40px;
+  border: 1px solid #EDEDED;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  background: #FDFDFD;
+  outline: none;
+  cursor: pointer;
+  min-width: 160px;
+  transition: 0.2s;
+}
+
+.LeaFilterGroup select:focus {
+  border-color: #1B4332;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
+}
+
+.LeaVerifDateInput {
+  height: 40px;
+  border: 1px solid #EDEDED;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  background: #FDFDFD;
+  outline: none;
+  cursor: pointer;
+  transition: 0.2s;
+  min-width: 140px;
+  color: #1F2937;
+  font-family: var(--font-body);
+}
+
+.LeaVerifDateInput:focus {
+  border-color: #1B4332;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
+}
+
+.LeaVerifFilterIcon {
+  color: #1F2937;
+  opacity: 0.6;
+}
+
+.LeaVerifEmptyList {
+  background: #FDFDFD;
+  border: 1.5px dashed #EDEDED;
+  border-radius: 10px;
+  padding: 24px 14px;
+  text-align: center;
+  color: #1F2937;
+}
+
+.LeaVerifEmptyText {
+  font-size: 12px;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.leaVerifSectionCard {
+  background: #FDFDFD;
+  border: 1.5px solid #EDEDED;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.LeaVerifSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #EDEDED;
+}
+
+.LeaVerifSectionHeader h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0;
+}
+
+.LeaVerifBlueIcon { color: #1A1A2E; }
+
+.LeaVerifDocsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.LeaVerifDocCard {
+  background: #EDEDED;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.LeaVerifDocIcon {
+  color: #1A1A2E;
+  flex-shrink: 0;
+}
+
+.LeaVerifDocInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.LeaVerifDocName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #030303;
+  margin: 0 0 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.LeaVerifDocMeta {
+  font-size: 10.5px;
+  color: #1F2937;
+  opacity: 0.6;
+}
+
+.LeaVerifDocActions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.LeaVerifDocActionBtn {
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  color: #13213C;
+  padding: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.LeaVerifDocActionBtn:hover {
+  background: #1B4332;
+  color: #FDFDFD;
+}
+
+.LeaVerifNoDocsText {
+  font-size: 12.5px;
+  color: #1F2937;
+  opacity: 0.6;
+  margin: 0;
 }
 
 /* Status badge variants */
@@ -2322,4 +2846,3 @@
   color: #0F172A;
   font-weight: 700;
 }
-
