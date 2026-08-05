@@ -42,6 +42,22 @@ async function apiLogin(email, password) {
     return data;
 }
 
+async function apiGoogleLogin(token) {
+    const res = await fetch(`${API_BASE}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok){
+        throw new Error(data.detail || 'Login failed');
+    }
+
+    return data;
+}
+
 async function handleResponse(response) {
     if (response.status === 401) {
         throw new UnauthorizedError('Session expired. Please login once again');

@@ -11,8 +11,18 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "identity"
   ],
+
+  "oauth2": {
+    "client_id": "1094392645082-414ug60ltdckhnnvdbkovnauo3f3srnf.apps.googleusercontent.com",
+    "scopes": [
+      "openid",
+      "email",
+      "profile"
+    ]
+  },
 
   "host_permissions": [
     "https://shopee.ph/*",

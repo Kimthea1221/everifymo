@@ -8,6 +8,7 @@ from app.extension.schemas.consumer_acc import CreateConsumerAcc
 from app.models import consumer_accounts
 
 from app.extension.services.consumer_otp_service import create_otp, verify_otp
+from app.extension.services.google_auth_service import verify_google_token
 
 def create_user(db: Session, create_user_request: CreateConsumerAcc) -> ConsumerAccount:
     consumer_acc = ConsumerAccount(
@@ -80,3 +81,17 @@ def update_username(db: Session, user_id: int, updatedUsername: str):
     db.commit()
     db.refresh(user)
     return user
+
+def login_with_google(db: Session, google_token: str) -> ConsumerAccount:
+    infoID = verify_google_token(google_token)
+    email = infoID["email"]
+
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        raise HTTPException(status_code=404, detail="No account found with this email. Please sign up first.")
+
+    if not consumer.is_verified:
+        raise HTTPException(status_code=400, detail="Please verify your account before logging in.")
+
+    return consumer

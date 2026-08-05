@@ -23,4 +23,7 @@ class RequestOTP(BaseModel):
 class VerifyOTP(BaseModel):
     email: EmailStr
     otp_code: str
+
+class GoogleLoginRequest(BaseModel):
+    token: str
     
