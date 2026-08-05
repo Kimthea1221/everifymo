@@ -1563,3 +1563,12 @@ body {
   border-radius: 8px;
   object-fit: contain;
 }
+
+.notice-banner-success {
+  background-color: #e6f7ed;
+  border-color: #34a853;
+}
+.notice-banner-success .notice-title,
+.notice-banner-success .notice-text {
+  color: #1e7e34;
+}

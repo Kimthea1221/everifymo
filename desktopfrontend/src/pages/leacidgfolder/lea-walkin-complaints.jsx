@@ -266,39 +266,42 @@ function LeaWalkinComplaints() {
                     {/* Filter & Search Section */}
                     <div className="DraftsFilterSection">
                         <div className="DraftsFilterControls">
-                            <input
-                                type="text"
-                                className="DraftsSearchInput"
-                                placeholder="Search Case ID, Product or Complainant..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
+                            <div className="DraftsFilterLeft">
+                                <input
+                                    type="text"
+                                    className="DraftsSearchInput"
+                                    placeholder="Search Case ID, Product or Complainant..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
+                            </div>
+                            <div className="DraftsFilterRight">
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={selectedStatus}
+                                    onChange={(e) => setSelectedStatus(e.target.value)}
+                                >
+                                    <option value="All">All Status</option>
+                                    <option value="queued">Ready to Send</option>
+                                    <option value="pending">Pending FDA Verification</option>
+                                    <option value="confirmed_registered">Confirmed Registered</option>
+                                    <option value="confirmed_unregistered">Confirmed Unregistered</option>
+                                    <option value="rejected">Verification Rejected</option>
+                                    <option value="recalled">Request Recalled</option>
+                                </select>
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={selectedStatus}
-                                onChange={(e) => setSelectedStatus(e.target.value)}
-                            >
-                                <option value="All">All Status</option>
-                                <option value="queued">Ready to Send</option>
-                                <option value="pending">Pending FDA Verification</option>
-                                <option value="confirmed_registered">Confirmed Registered</option>
-                                <option value="confirmed_unregistered">Confirmed Unregistered</option>
-                                <option value="rejected">Verification Rejected</option>
-                                <option value="recalled">Request Recalled</option>
-                            </select>
-
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={selectedCategory}
-                                onChange={(e) => setSelectedCategory(e.target.value)}
-                            >
-                                <option value="All">All Categories</option>
-                                <option value="Cosmetics">Cosmetics</option>
-                                <option value="Food">Food</option>
-                                <option value="Medical Devices">Medical Devices</option>
-                                <option value="Drugs">Drugs</option>
-                            </select>
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                >
+                                    <option value="All">All Categories</option>
+                                    <option value="Cosmetics">Cosmetics</option>
+                                    <option value="Food">Food</option>
+                                    <option value="Medical Devices">Medical Devices</option>
+                                    <option value="Drugs">Drugs</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
