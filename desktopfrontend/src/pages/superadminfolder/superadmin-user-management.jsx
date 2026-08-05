@@ -3,11 +3,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, UserCheck, UserX, RefreshCw, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
+import { apiFetch } from '../../utils/apiFetch';
+import { createPortal } from 'react-dom';
 
-// helper to provide auth token for API calls
-function getAuthToken() {
-  return localStorage.getItem('access_token') || localStorage.getItem('authToken') || localStorage.getItem('token') || '';
-}
 
 const STATUS_META = {
   Invited: { label: 'Invited', className: 'badge-pending' },
@@ -23,29 +21,56 @@ function StatusBadge({ status }) {
   return <span className={`UMStatusBadge ${meta.className}`}>{meta.label}</span>;
 }
 
-function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView }) {
-  const [openUpward, setOpenUpward] = useState(false);
-  const triggerRef = useRef(null);
 
-  const handleToggle = (e) => {
-    e.stopPropagation();
-    if (!isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setOpenUpward(spaceBelow < 170);
+
+function UserMgmtActionDropdown({ user, onAction, onView }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const displayStatus = user.display_status || user.status;
+
+  /*function openMenu() { initial code
+    const rect = triggerRef.current.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + window.scrollY + 6,
+      left: rect.right + window.scrollX - 190, // 190 = menu width, right-aligns to button
+    });
+    setIsOpen(true);
+  }*/
+
+ function openMenu() {
+  const rect = triggerRef.current.getBoundingClientRect();
+  setMenuPos({
+    top: rect.bottom + 6,
+    left: rect.right - 190,
+  });
+  setIsOpen(true);
+}
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleOutsideClick(event) {
+      if (
+        menuRef.current && !menuRef.current.contains(event.target) &&
+        triggerRef.current && !triggerRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
     }
-    toggleDropdown();
-  };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [isOpen]);
 
   return (
     <div className={`UserMgmtDropdownWrapper ${isOpen ? 'active-open' : ''}`}>
       <button
-        className="UserMgmtViewBtn"
-        data-tooltip="View Details"
-        title="View Details"
+        ref={triggerRef}
+        className="UserMgmtDropdownTrigger"
+        data-tooltip="Actions"
         onClick={(e) => {
           e.stopPropagation();
-          onView();
+          isOpen ? setIsOpen(false) : openMenu();
         }}
       >
         <Eye size={15} />
@@ -60,83 +85,48 @@ function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView
       >
         <MoreVertical size={16} />
       </button>
-      {isOpen && (
-        <div className={`UserMgmtDropdownMenu ${openUpward ? 'open-upward' : ''}`}>
-          {['Invited', 'Pending', 'Invite Requested', 'Link Expired'].includes(user.display_status || user.status) && (
-            <button
-              className="UserMgmtDropdownItem"
-              onClick={() => {
-                onAction('resend');
-                toggleDropdown();
-              }}
-            >
-              <Send size={14} /> Resend Link
-            </button>
-          )}
 
-          {user.status === 'Pending Approval' && (
-            <button
-              className="UserMgmtDropdownItem"
-              onClick={() => {
-                onAction('activate');
-                toggleDropdown();
-              }}
-            >
+      {isOpen && createPortal(
+        <div
+          className="UserMgmtDropdownMenu"
+          ref={menuRef}
+          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left }}
+        >
+          <button className="UserMgmtDropdownItem" onClick={() => { onView(); setIsOpen(false); }}>
+            <Eye size={14} /> View Details
+          </button>
+
+          {displayStatus === 'Pending Approval' && (
+            <button className="UserMgmtDropdownItem" onClick={() => { onAction('activate'); setIsOpen(false); }}>
               <UserCheck size={14} /> Activate Account
             </button>
           )}
 
-          {/* Active: Suspend Account, View Details */}
           {displayStatus === 'Active' && (
-            <button
-              className="UserMgmtDropdownItem"
-              onClick={() => {
-                onAction('suspend');
-                toggleDropdown();
-              }}
-            >
+            <button className="UserMgmtDropdownItem" onClick={() => { onAction('suspend'); setIsOpen(false); }}>
               <UserX size={14} /> Suspend Account
             </button>
           )}
 
-          {/* Suspended: Reactivate Account, Delete Account, View Details */}
           {displayStatus === 'Suspended' && (
             <>
-              <button
-                className="UserMgmtDropdownItem"
-                onClick={() => {
-                  onAction('reactivate');
-                  toggleDropdown();
-                }}
-              >
+              <button className="UserMgmtDropdownItem" onClick={() => { onAction('reactivate'); setIsOpen(false); }}>
                 <RotateCcw size={14} /> Reactivate Account
               </button>
               <div className="UserMgmtDropdownDivider" />
-              <button
-                className="UserMgmtDropdownItem danger"
-                onClick={() => {
-                  onAction('delete');
-                  toggleDropdown();
-                }}
-              >
+              <button className="UserMgmtDropdownItem danger" onClick={() => { onAction('delete'); setIsOpen(false); }}>
                 <Trash2 size={14} /> Delete Account
               </button>
             </>
           )}
 
-          {/* Resend Requested and Link Expired: Resend Link, View Details */}
           {['Resend Requested', 'Link Expired'].includes(displayStatus) && (
-            <button
-              className="UserMgmtDropdownItem"
-              onClick={() => {
-                onAction('resend');
-                toggleDropdown();
-              }}
-            >
+            <button className="UserMgmtDropdownItem" onClick={() => { onAction('resend'); setIsOpen(false); }}>
               <Send size={14} /> Resend Link
             </button>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -270,13 +260,9 @@ function AddPersonnelModal({ open, onClose }) {
     setSending(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/admin/users/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-        body: JSON.stringify({ email, region_id: region, role: agency }),
+      const response = await apiFetch('/admin/users/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email, region_id: region, role: agency }),
       });
 
       if (!response.ok) {
@@ -514,7 +500,6 @@ function SuperAdminUserManagement() {
   const [users, setUsers] = useState([]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewUser, setViewUser] = useState(null);
-  const [activeDropdownId, setActiveDropdownId] = useState(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({
     open: false,
@@ -523,38 +508,22 @@ function SuperAdminUserManagement() {
   });
 
   useEffect(() => {
-    function handleOutsideClick(event) {
-      if (!event.target.closest('.UserMgmtDropdownWrapper')) {
-        setActiveDropdownId(null);
-      }
-    }
-    document.addEventListener('click', handleOutsideClick);
-    return () => {
-      document.removeEventListener('click', handleOutsideClick);
-    };
-  }, []);
-
-  useEffect(() => {
     fetchUsers();
   }, []);
 
   async function fetchUsers() {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/admin/users', {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
-        console.error('Failed to fetch users');
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
+  try {
+    const response = await apiFetch('/admin/users');
+    if (response.ok) {
+      const data = await response.json();
+      setUsers(data);
+    } else {
+      console.error('Failed to fetch users');
     }
+  } catch (error) {
+    console.error('Error fetching users:', error);
   }
+}
 
   function handleAddModalClose(data) {
     setAddModalOpen(false);
@@ -568,40 +537,37 @@ function SuperAdminUserManagement() {
   }
 
   async function handleConfirm() {
-    const { actionType, targetId } = confirmModal;
-    let url = '';
-    if (actionType === 'resend') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}/resend`;
-    } else if (actionType === 'activate') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}/activate`;
-    } else if (actionType === 'suspend') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}/suspend`;
-    } else if (actionType === 'reactivate') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}/reactivate`;
-    } else if (actionType === 'delete') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}`;
-    }
-
-    if (url) {
-      try {
-        const response = await fetch(url, {
-          method: actionType === 'delete' ? 'DELETE' : 'POST',
-          headers: {
-            Authorization: `Bearer ${getAuthToken()}`,
-          },
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          alert(errData.detail || `Failed to perform action: ${actionType}`);
-        } else {
-          fetchUsers();
-        }
-      } catch (error) {
-        console.error(`Error performing action ${actionType}:`, error);
-      }
-    }
-    setConfirmModal({ open: false, actionType: '', targetId: null });
+  const { actionType, targetId } = confirmModal;
+  let path = '';
+  if (actionType === 'resend') {
+    path = `/admin/users/${targetId}/resend`;
+  } else if (actionType === 'activate') {
+    path = `/admin/users/${targetId}/activate`;
+  } else if (actionType === 'suspend') {
+    path = `/admin/users/${targetId}/suspend`;
+  } else if (actionType === 'reactivate') {
+    path = `/admin/users/${targetId}/reactivate`;
+  } else if (actionType === 'delete') {
+    path = `/admin/users/${targetId}`;
   }
+
+  if (path) {
+    try {
+      const response = await apiFetch(path, {
+        method: actionType === 'delete' ? 'DELETE' : 'POST',
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        alert(errData.detail || `Failed to perform action: ${actionType}`);
+      } else {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error(`Error performing action ${actionType}:`, error);
+    }
+  }
+  setConfirmModal({ open: false, actionType: '', targetId: null });
+}
 
   function handleCancelConfirm() {
     setConfirmModal({ open: false, actionType: '', targetId: null });
@@ -717,12 +683,6 @@ function SuperAdminUserManagement() {
                         <td>
                           <UserMgmtActionDropdown
                             user={user}
-                            isOpen={activeDropdownId === (user.user_id || user.id)}
-                            toggleDropdown={() =>
-                              setActiveDropdownId(
-                                activeDropdownId === (user.user_id || user.id) ? null : (user.user_id || user.id)
-                              )
-                            }
                             onAction={(type) => openConfirm(type, user.user_id || user.id)}
                             onView={() => setViewUser(user)}
                           />

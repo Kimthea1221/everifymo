@@ -1,8 +1,8 @@
 import os
 import shutil
-from uuid import uuid4, UUID
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, Depends, Form, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
@@ -14,7 +14,6 @@ from app.desktop.schemas.drafts.drafts import (
     WalkinIntakeDraftDetailResponse,   
     DraftAttachmentResponse,
     DraftStatus,
-    SortOption,
 )
 from app.core.dependencies import get_current_user
 
@@ -104,21 +103,7 @@ def _save_file_to_disk(file: UploadFile, draft_id) -> dict:
         "mime_type": file.content_type,
     }
 
-def _delete_file_from_disk(file_path: str) -> None:
-    # Only attempt deletion if the file actually still exists — if
-    # someone already deleted it manually, or this runs twice by
-    # accident, we don't want to crash the whole request over it.
-    if os.path.exists(file_path):
-        os.remove(file_path)
 
-
-    #
-    #
-    #
-    #
-    #
-    #
-    # POST /drafts/walkin/
 @router.post("/", response_model=WalkinIntakeDraftResponse)
 def save_walkin_draft(
     # Multipart requests can't take one Pydantic object as the body
@@ -140,7 +125,7 @@ def save_walkin_draft(
     # File() marks this as an uploaded file rather than a text field.
     # A list, since the officer can drop multiple files at once
     # (Image 5). default=[] means saving with zero files is allowed.
-    files: list[UploadFile] = File(default=[]), 
+    files: list[UploadFile] = File(default=[]),   # 5. what class marks this parameter as a file upload?
 
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -179,15 +164,19 @@ def save_walkin_draft(
     for uploaded_file in files:
         file_info = _save_file_to_disk(uploaded_file, new_draft.draft_id)
         attachment = DraftAttachment(
-            walkin_draft_id=new_draft.draft_id,
+            walkin_draft_id=new_draft.draft_id,   # 6. which attribute on new_draft links this attachment to it?
             **file_info,
         )
-        db.add(attachment)
+        db.add(attachment)   # 7. same method used to stage new_draft earlier
+    
     # One commit for all attachment rows together, rather than
     # committing inside the loop on every single file.
     db.commit()
     db.refresh(new_draft)
 
+<<<<<<< HEAD
+    return new_draft
+=======
     return new_draft
 
 
@@ -415,3 +404,4 @@ def list_walkin_drafts(
     return query.all()
 
 
+>>>>>>> 372b438316b9caf587f87581ff881946b36387ac
