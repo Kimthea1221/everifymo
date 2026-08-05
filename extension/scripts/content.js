@@ -1,316 +1,76 @@
-console.log('FDA Checker content script loaded');
+console.log("Hello World from content.js")
 
-let lastUrl = location.href;
+const verifyBtn = document.createElement("button");
+verifyBtn.textContent = "Verify";
+verifyBtn.style.position = "fixed";
+verifyBtn.style.display = "none";
+verifyBtn.style.zIndex = "9999";
+verifyBtn.style.padding = "6px 12px";
+verifyBtn.style.backgroundColor = "black";
+verifyBtn.style.color = "white";
+verifyBtn.style.border = "none";
+verifyBtn.style.borderRadius = "5px";
+verifyBtn.style.cursor = "pointer";
+document.body.appendChild(verifyBtn);
 
-// checking if its in the product page
-function isProductPage() {
+let debounceTimer;
 
-    const currentUrl = location.href;
+document.addEventListener("mouseup", () => {
+    clearTimeout(debounceTimer);
 
-    if (currentUrl.includes("shopee.ph") && currentUrl.includes("-i.")) {
-        console.log("Product page of shopee");
-        return true;
-    }    
-
-    if (currentUrl.includes("lazada.com.ph/products/") && currentUrl.includes(".html")){
-        console.log("Product page of lazada");
-        return true;
-    } 
-
-    if (currentUrl.includes("facebook.com/marketplace/item/")) {
-        console.log("Product page of facebook");
-        return true;  
-    } 
-
-    if (currentUrl.includes("shop.tiktok.com/ph/pdp")) {
-        console.log("Product page of tiktok");
-        return true;
-    }   
-
-    return false;
-}
-
-function whatPlatform() {
-    
-    const currentUrl = location.href;
-
-    if (currentUrl.includes('shopee.ph')) return 'shopee';
-    if (currentUrl.includes('lazada.com.ph')) return 'lazada';
-    if (currentUrl.includes('facebook.com')) return 'facebook';
-    if (currentUrl.includes('shop.tiktok.com')) return 'tiktok';
-
-    return null;
-}
-
-// ==== for SPA navigation ====
-
-// responsible for checking/re-checking for page changes
-function checkPage() {
-
-    const currentUrl = location.href;
-    console.log("URL:", currentUrl);
-
-    if (currentUrl !== lastUrl) {
-        console.log("User changed DOM");
-        lastUrl = currentUrl;
-
-        tryExtract();
-    }
-}
-
-let timer;
-
-//check page every 300ms (incase the user changed page)
-const observer = new MutationObserver(() => {
-    clearTimeout(timer);
-    timer = setTimeout(checkPage, 300);
-});
-
-// checking any changes in the DOM (that didnt undergo refresh page)
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
-
-// ==== Product title Extraction ====
-
-// A list of generic/placeholder values that are NOT real titles
-const INVALID_TITLES = ['marketplace', 'facebook', ''];
-
-function isValidTitle(title) {
-    if (!title) return false;
-    const normalized = title.trim().toLowerCase();
-    return !INVALID_TITLES.includes(normalized);
-}
-
-function shopeeExtraction() {
-
-    // extract through the h1 tag
-    const h1 = document.querySelector('h1');
-    if (h1?.textContent?.trim()) return h1.textContent.trim();
-
-    // extract span that is inside h1
-    const spanInH1 = document.querySelector('h1 span');
-    if (spanInH1?.textContent?.trim()) return spanInH1.textContent.trim();
-
-    // extract in the title inside meta tag
-    const metaTitle = document.querySelector('meta[property="og:title"]');
-    if (metaTitle?.getAttribute('content')?.trim()) {
-        return metaTitle.getAttribute('content').replace(/\s*[\|\-–]\s*Shopee.*$/i, '').trim();
-    }
-
-    // extract through page title
-    return document.title.split('|')[0].split('-')[0].trim() || null;
-}
-
-function lazadaExtraction() {
-
-    // extract through class name for the product title
-    const pdpTitle = document.querySelector('[class*="pdp-mod-product-badge-title-v2');
-    if (pdpTitle?.textContent?.trim()) return pdpTitle.textContent.trim();
-
-    // extract through h1
-    const h1 = document.querySelector('h1');
-    if (h1?.textContent.trim()) return h1.textContent.trim();
-
-    // extract in the title inside meta tag
-    const metaTitle = document.querySelector('meta[property="og:title"]');
-    if (metaTitle?.getAttribute('content')?.trim()) {
-        return metaTitle.getAttribute('content').replace(/\s*[\|\-–]\s*Lazada.*$/i, '').trim();
-    }
-
-    return null;
-}
-
-function tiktokExtraction() {
-    
-    // extract through span inside h1
-    const spanInH1 = document.querySelector('h1 span');
-    if (spanInH1?.textContent?.trim()) return spanInH1.textContent.trim();
-
-    // extract through h1
-    const h1 = document.querySelector('h1');
-    if (h1?.textContent?.trim()) return h1.textContent.trim();
-
-    // extract through class name for the product title
-    const byClass = document.querySelector('[class*="H2-Semibold"], [class*="UIText1Display"]');
-    if (byClass?.textContent?.trim()) return byClass.textContent.trim();
-
-    // extract through page title
-    return document.title.split('|')[0].split('-')[0].trim() || null;
-}
-
-function facebookExtraction() {
-
-    const pageTitle = document.title;
-    if (pageTitle.includes('Buy and Sell in') || pageTitle === 'Facebook' || !pageTitle) {
-        return null;
-    }
-    
-    // remove facebook branding (Facebook markeplace after |)
-    let title = pageTitle.split('|')[0].trim();
-    title = title.split(' - ')[0].trim();
-    
-    if (title && title !== 'Marketplace') return title;
-
-    // extract span inside h1
-    const spanInH1 = document.querySelector('h1 span');
-    const spanText = spanInH1?.textContent?.trim();
-    if (isValidTitle(spanText)) return spanText;
-
-    // extract through meta tags
-    const metaTitle = document.querySelector('meta[property="og:title"]');
-    if (metaTitle?.getAttribute('content')?.trim()) {
-        const content = metaTitle.getAttribute('content').replace(/\s*[\|\-–]\s*Facebook.*$/i, '')
-            .replace(/\s*\|\s*Marketplace.*$/i, '')
-            .trim();
+    debounceTimer = setTimeout(() => {
+        const selectedText = window.getSelection().toString();
         
-        if (isValidTitle(content)) return content;
-    }
-
-    return null;
-}
-
-// for cleaning the title 
-
-function cleanTitle(rawTitle) {
-  let clean = rawTitle;
-
-  clean = clean.replace(/【[^】]*】/g, '');      // remove 【AUTHENTIC】
-  clean = clean.replace(/\[[^\]]*\]/g, '');      // remove [FREE SHIPPING]
-  clean = clean.replace(/free shipping/gi, '');
-  clean = clean.replace(/\bCOD\b/g, '');
-  clean = clean.replace(/on sale/gi, '');
-  clean = clean.replace(/[\u{1F300}-\u{1FFFF}]/gu, ''); // remove emoji
-  clean = clean.replace(/[\u{2600}-\u{26FF}]/gu, '');   // remove emoji
-  clean = clean.replace(/\s+/g, ' ');            // collapse extra spaces
-  clean = clean.trim();
-
-  return clean;
-}
-
-let lastSeenTitle = null;
-let stableCount = 0;
-
-function tryExtract(attempt = 1) {
-
-    console.log('tryExtract() called, attempt:', attempt);
-
-    console.log('Current URL:', location.href);
-    console.log('isProductPage result:', isProductPage());
-    console.log('platform:', whatPlatform());
-
-    if (!isProductPage()) return;
- 
-    const platform = whatPlatform();
-    if (!platform) {
-        console.log ('Platform not recognized');
-        return;
-    }
-
-    let rawTitle = null;
-
-    if (platform === 'shopee') rawTitle = shopeeExtraction();
-    if (platform === 'lazada') rawTitle = lazadaExtraction();
-    if (platform === 'facebook') rawTitle = facebookExtraction();
-    if (platform === 'tiktok') rawTitle = tiktokExtraction();
-
-    console.log('Current candidate title:', rawTitle);
-
-    // Check if this title is the same as the last check
-    if (rawTitle === lastSeenTitle) {
-        stableCount++;
-    } else {
-        stableCount = 0;
-        lastSeenTitle = rawTitle;
-    }
-
-    // We want the title to stay the SAME for 2 consecutive checks
-    // before we trust it — this means the page has stopped changing
-    const isStable = stableCount >= 1;
-
-    if (!rawTitle || !isStable) {
-        if (attempt < 10) {
-            console.log('Title not stable yet, retrying in 500ms... (attempt', attempt, ')');
-            setTimeout(() => tryExtract(attempt + 1), 500);
+        if (selectedText.length > 0) {
+            const range = window.getSelection().getRangeAt(0).getBoundingClientRect();
+          
+            verifyBtn.style.left = range.left + "px";
+            verifyBtn.style.top = (range.bottom + 8) + "px";
+            verifyBtn.style.display = "block";
         } else {
-            console.log('Gave up after 10 attempts');
+            verifyBtn.style.display = "none";
         }
-        return;
-    }
+    }, 100);
+});
 
-    // Reset tracking for next time
-    lastSeenTitle = null;
-    stableCount = 0;
+verifyBtn.addEventListener("click", () => {
+    const selectedText = window.getSelection().toString();
+    
+    // Remove any existing modal first
+    document.getElementById('everifymo-modal')?.remove();
 
-    console.log('Raw title (stable):', rawTitle);
+    const modal = document.createElement('div');
+    modal.id = 'everifymo-modal';
+    modal.style.position = 'fixed';
+    modal.style.top = '20px';
+    modal.style.right = '20px';
+    modal.style.zIndex = '999999';
+    modal.style.background = 'white';
+    modal.style.padding = '16px';
+    modal.style.borderRadius = '8px';
+    modal.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+    modal.innerHTML = `
+        <div>✅ FDA REGISTERED</div>
+        <div><strong>Product:</strong> ${selectedText}</div>
+        <div id="fda-close-btn" style="
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.8;
+        ">✕</div>
+    `;
+    
+    document.body.appendChild(modal);
 
-    const cleanedTitle = cleanTitle(rawTitle);
-    if (!cleanedTitle) return;
-
-    console.log('Clean title:', cleanedTitle);
-
-    chrome.runtime.sendMessage({
-        action: 'titleExtracted',
-        title: cleanedTitle,
-        platform: platform,
-        url: location.href
+    document.getElementById('fda-close-btn').addEventListener('click', () => {
+        modal.remove();
     });
-}
 
-tryExtract();
+    setTimeout(() => {
+        if (modal.parentElement) modal.remove();
+    }, 8000);
 
-
-
-
-
-
-
-
-
-
-
-
-// const PRODUCT_PATTERNS = [
-//     'shopee.ph',
-//     'lazada.com.ph',
-//     'facebook.com/marketplace/item',
-//     'tiktok.com'
-// ];
-
-// function isProductPage(url) {
-//     return PRODUCT_PATTERNS.some(pattern => url.includes(pattern));
-// }
-
-// let lastUrl = location.href;
-// let debounceTimer = null;
-
-// function tryExtract() {
-//     const url = location.href;
-//     if (isProductPage(url)) {
-//         console.log('Product page detected, requesting extraction:', url);
-//         chrome.runtime.sendMessage({ action: 'extractTitle' });
-//     }
-// }
-
-// function onPageChange() {
-//     const currentUrl = location.href;
-
-//     if (currentUrl === lastUrl) return;
-//     lastUrl = currentUrl;
-
-//     console.log('SPA navigation detected:', currentUrl);
-//     tryExtract();
-// }
-
-// const observer = new MutationObserver(() => {
-//     clearTimeout(debounceTimer);
-//     debounceTimer = setTimeout(onPageChange, 300);
-// });
-
-// observer.observe(document.body, {
-//     childList: true,
-//     subtree: true
-// });
-
-// tryExtract();
+    verifyBtn.style.display = "none";
+});
