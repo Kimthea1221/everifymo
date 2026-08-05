@@ -1776,10 +1776,10 @@
 
 /* Dropdown Menu container */
 .UserMgmtDropdownMenu {
-  position: absolute;
-  right: 0;
+  /*position: absolute;
+  right: 0;      
   top: 100%;
-  margin-top: 6px;
+  margin-top: 6px;*/
   width: 190px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
