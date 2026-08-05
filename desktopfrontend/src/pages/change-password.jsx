@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../utils/apiFetch';
 
 function ChangePassword() {
   const navigate = useNavigate();
@@ -59,12 +60,8 @@ function ChangePassword() {
 
     setSubmitting(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/auth/password/change', {
+      const response = await apiFetch('/auth/password/change', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
         body: JSON.stringify({
           current_password: form.currentPassword,
           new_password: form.newPassword,
@@ -535,7 +532,5 @@ const styles = `
     line-height: 1.5;
   }
 `;
-
-
 
 export default ChangePassword;

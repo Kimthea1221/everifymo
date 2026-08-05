@@ -33,17 +33,6 @@ class Priority(str, Enum):
     critical = "critical"
 
 
-class DraftType(str, Enum):
-    walkin = "walkin"
-    verification = "verification"
-
-
-class SortOption(str, Enum):
-    recently_edited = "recently_edited"
-    oldest_first = "oldest_first"
-    product_name_az = "product_name_az"
-
-
 # ============================================================
 # WALK-IN INTAKE DRAFT
 # ============================================================
@@ -166,7 +155,11 @@ class VerificationRequestDraftResponse(VerificationRequestDraftSave):
     created_at: datetime
     updated_at: datetime
 
+<<<<<<< HEAD
+    model_config = ConfigDict(from_attributes=True)
+=======
     model_config = ConfigDict(from_attributes=True)
 
 class WalkinIntakeDraftDetailResponse(WalkinIntakeDraftResponse):
     attachments: list[DraftAttachmentResponse] = []
+>>>>>>> 372b438316b9caf587f87581ff881946b36387ac
