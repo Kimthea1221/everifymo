@@ -10,12 +10,9 @@ import {Clock3,
         ShieldX,
         CircleCheckBig,
         XCircle,
-        Search,
-        Filter,
-        Calendar,
-        Paperclip,
-        FileText,
-        Eye
+        Inbox,
+        Siren,
+        Archive
 } from 'lucide-react';
 
 // ADDED — API_BASE, parseBackendError, formatDateTime helpers
@@ -63,7 +60,7 @@ const responseCases = [
     product: "HerbalSlim Capsules",
     manufacturer: "NatureFit Labs",
     complainant: "M. Reyes",
-    category: "Drugs",
+    category: "Supplement",
     loggedDate: "2026-05-17 10:42",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 16:02",
@@ -91,7 +88,7 @@ const responseCases = [
     product: "PureVita Multivitamin",
     manufacturer: "Vita Manufacturing Inc.",
     complainant: "J. Cruz",
-    category: "Drugs",
+    category: "Supplement",
     loggedDate: "2026-05-16 11:21",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 09:00",
@@ -111,7 +108,7 @@ const initiatedCases = [
     product: "HerbalSlim Capsules",
     manufacturer: "NatureFit Labs",
     complainant: "M. Reyes",
-    category: "Drugs",
+    category: "Supplement",
     loggedDate: "2026-05-17 10:42",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 16:02",
@@ -128,7 +125,7 @@ const dismissedCases = [
     caseId: 'ICM-2025-00185',
     product: 'HerbalSlim Capsules',
     manufacturer: 'NatureFit Labs',
-    category: 'Drugs',
+    category: 'Supplement',
     dateFiled: '2026-05-17',
     dateClosed: '2026-05-20',
     closedBy: 'Officer J. Domingo',
@@ -139,7 +136,7 @@ const dismissedCases = [
     caseId: 'ICM-2026-00188',
     product: 'PureVita Multivitamin',
     manufacturer: 'Vita Manufacturing Inc.',
-    category: 'Drugs',
+    category: 'Supplement',
     dateFiled: '2026-05-16',
     dateClosed: '2026-05-21',
     closedBy: 'Officer M. Santos',
@@ -147,50 +144,163 @@ const dismissedCases = [
   },
 ];
 
-const readyToSendCases = [
-  {
-    id: 1,
-    caseNumber: 'ICM-2025-00185',
-    product: 'HerbalSlim Capsules',
-    manufacturer: 'NatureFit Labs',
-    category: 'Drugs',
-    loggedDate: '2026-05-17 10:42',
-    source: 'Walk-in Intake',
-    complainant: 'M. Reyes'
+function LeaVerificationRequest() {
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  //FOR BUTTON TABS ON VERIFICATION REQUEST
+  const [activeTab, setActiveTab] = useState('Ready to Send');
+  const [selectedResponse, setSelectedResponse] = useState(responseCases[0]);
+  const tabs = ['Ready to Send', 'Awaiting FDA', 'FDA Response', 'Initiated Cases', 'Dismissed Cases'];
+  const handleTabClick = (tabName) => {
+    if (activeTab === tabName) return;
+
+    if (!document.startViewTransition) {
+      setActiveTab(tabName);
+      return;
+    }
+    document.startViewTransition(() => {
+      setActiveTab(tabName);
+    })
   }
-];
 
-const awaitingFdaCases = [
-  {
-    id: 1,
-    caseNumber: 'ICM-2025-00185',
-    product: 'HerbalSlim Capsules',
-    manufacturer: 'NatureFit Labs',
-    category: 'Drugs',
-    loggedDate: '2026-05-17 10:42',
-    source: 'Walk-in Intake',
-    complainant: 'M. Reyes'
-  }
-];
+  // NOTE: States for new form inputs
+  // BACKEND: priority maps to priority column in verification_requests table
+  const [priority, setPriority] = useState('standard');
+  // BACKEND: maps to field_operation_notes in verification_requests
+  const [fieldOperationNotes, setFieldOperationNotes] = useState('');
+  // BACKEND: maps to notes_to_fda / complaint_statement in verification_requests
+  // CHANGED: removed hardcoded default — now starts empty
+  const [complaintStatement, setComplaintStatement] = useState('');
+  // BACKEND: maps to product_code in verification_requests
+  const [productCode, setProductCode] = useState('');
 
-const leaAttachedDocuments = [
-  { id: 1, name: 'LEA_intake_form_signed.pdf', category: 'Intake Form', size: '1.2 MB' },
-  { id: 2, name: 'consumer_id_redacted.jpg', category: 'Complainant ID', size: '486 KB' },
-  { id: 3, name: 'product_photo_front.jpg', category: 'Product Photo', size: '932 KB' },
-  { id: 4, name: 'purchase_receipt.pdf', category: 'Proof of Purchase', size: '642 KB' },
-];
+  // NOTE: States for the new tabs' selected items
+  const [selectedInitiatedCase, setSelectedInitiatedCase] = useState(initiatedCases[0]);
 
-function LeaVerificationRequest(){
-    
-    //FOR BUTTON TABS ON VERIFICATION REQUEST
-    const [activeTab, setActiveTab] = useState('Ready to Send');
-    const [selectedResponse, setSelectedResponse] = useState(responseCases[0]);
-    const tabs = ['Ready to Send', 'Awaiting FDA', 'FDA Response', 'Initiated Cases', 'Dismissed Cases'];
-    const handleTabClick =(tabName)=>{
-        if (activeTab === tabName) return;
+  // NOTE: States for Dismissed Cases tab filters
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
 
-        if(!document.startViewTransition){
-            setActiveTab(tabName);
+  // NOTE: Modal overlay, success alert, and read-only details modal states
+  const [modalConfig, setModalConfig] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [viewCaseModalData, setViewCaseModalData] = useState(null);
+
+  // ADDED — real state/fetch logic for Ready to Send tab (previously fully mock)
+  // ─── TAB 1: Ready to Send ────────────────────────────────────────────────
+  const [readyList, setReadyList] = useState([]);
+  const [readyLoading, setReadyLoading] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState(null);
+
+  // ADDED — real state/fetch logic for Awaiting FDA tab (previously fully mock)
+  // ─── TAB 2: Awaiting FDA ─────────────────────────────────────────────────
+  const [awaitingList, setAwaitingList] = useState([]);
+  const [awaitingLoading, setAwaitingLoading] = useState(false);
+  const [selectedAwaitingFda, setSelectedAwaitingFda] = useState(null);
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+  const showSuccess = (msg) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+  const showError = (msg) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(''), 4000);
+  };
+
+  // ADDED — GET /complaints/awaiting-verification-request
+  // ─── Fetch: Ready to Send list ───────────────────────────────────────────
+  const fetchReadyList = async () => {
+    const token = localStorage.getItem('access_token');
+    setReadyLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/complaints/awaiting-verification-request`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const msg = await parseBackendError(res);
+        showError(msg);
+        return;
+      }
+      const data = await res.json();
+      setReadyList(data);
+    } catch {
+      showError('Could not load the ready-to-send list.');
+    } finally {
+      setReadyLoading(false);
+    }
+  };
+
+  // ADDED — GET /complaints/{id}/verification-detail
+  // ─── Fetch: complaint verification detail (right panel) ──────────────────
+  const fetchComplaintDetail = async (complaintId) => {
+    const token = localStorage.getItem('access_token');
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/complaints/${complaintId}/verification-detail`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const msg = await parseBackendError(res);
+        showError(msg);
+        return;
+      }
+      const data = await res.json();
+      setSelectedComplaint(data);
+    } catch {
+      showError('Could not load complaint details.');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // ADDED — GET /verification-requests/awaiting-fda
+  // ─── Fetch: Awaiting FDA list ─────────────────────────────────────────────
+  const fetchAwaitingList = async () => {
+    const token = localStorage.getItem('access_token');
+    setAwaitingLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/verification-requests/awaiting-fda`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const msg = await parseBackendError(res);
+        showError(msg);
+        return;
+      }
+      const data = await res.json();
+      setAwaitingList(data);
+      if (data.length > 0 && !selectedAwaitingFda) {
+        setSelectedAwaitingFda(data[0]);
+      }
+    } catch {
+      showError('Could not load awaiting FDA list.');
+    } finally {
+      setAwaitingLoading(false);
+    }
+  };
+
+  // ADDED — loads existing draft when arriving via Edit Draft navigation
+  // ─── On mount: handle "Edit Draft" navigation state ──────────────────────
+  useEffect(() => {
+    const draftId = location.state?.draftId;
+    if (draftId) {
+      setCurrentDraftId(draftId);
+      setActiveTab('Ready to Send');
+      const token = localStorage.getItem('access_token');
+      fetch(`${API_BASE}/drafts/verification/${draftId}`, {
+        headers: { authorization: `Bearer ${token}` },
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const msg = await parseBackendError(res);
+            showError(msg);
             return;
           }
           const data = await res.json();
@@ -201,90 +311,32 @@ function LeaVerificationRequest(){
         })
         .catch(() => showError('Could not load draft details.'));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // NOTE: States for new form inputs
-    // BACKEND: priority maps to priority column in verification_requests table
-    const [priority, setPriority] = useState('standard');
-    // BACKEND: maps to field_operation_notes in verification_requests
-    const [fieldOperationNotes, setFieldOperationNotes] = useState('');
-    // BACKEND: maps to complaint_statement in verification_requests
-    const [complaintStatement, setComplaintStatement] = useState('Complainant alleges the product was sold without FDA markings. Please confirm registration status of product and manufacturer.');
-    // BACKEND: maps to product_code in verification_requests
-    const [productCode, setProductCode] = useState('');
+  // ─── Fetch lists when tabs become active ─────────────────────────────────
+  useEffect(() => {
+    if (activeTab === 'Ready to Send') {
+      fetchReadyList();
+    } else if (activeTab === 'Awaiting FDA') {
+      fetchAwaitingList();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
-    // NOTE: States for the new tabs' selected items
-    const [selectedInitiatedCase, setSelectedInitiatedCase] = useState(initiatedCases[0]);
-
-    // NOTE: States for Dismissed Cases tab filters
-    const [readySearch, setReadySearch] = useState('');
-    const [readyCategory, setReadyCategory] = useState('');
-    const [awaitingSearch, setAwaitingSearch] = useState('');
-    const [awaitingCategory, setAwaitingCategory] = useState('');
-    const [responseSearch, setResponseSearch] = useState('');
-    const [responseCategory, setResponseCategory] = useState('');
-    const [initiatedSearch, setInitiatedSearch] = useState('');
-    const [initiatedCategory, setInitiatedCategory] = useState('');
-    const [dismissedSearch, setDismissedSearch] = useState('');
-    const [filterDateFrom, setFilterDateFrom] = useState('');
-    const [filterDateTo, setFilterDateTo] = useState('');
-    const [filterCategory, setFilterCategory] = useState('');
-
-    // NOTE: Modal overlay, success alert, and read-only details modal states
-    const [modalConfig, setModalConfig] = useState(null);
-    const [successMessage, setSuccessMessage] = useState('');
-    const [viewCaseModalData, setViewCaseModalData] = useState(null);
-
-    const filteredReadyCases = readyToSendCases.filter((item) => {
-      const q = readySearch.toLowerCase().trim();
-      const matchesSearch = !q ||
-        item.caseNumber.toLowerCase().includes(q) ||
-        item.product.toLowerCase().includes(q) ||
-        item.manufacturer.toLowerCase().includes(q);
-      const matchesCategory = !readyCategory || item.category === readyCategory;
-      return matchesSearch && matchesCategory;
-    });
-
-    const filteredAwaitingCases = awaitingFdaCases.filter((item) => {
-      const q = awaitingSearch.toLowerCase().trim();
-      const matchesSearch = !q ||
-        item.caseNumber.toLowerCase().includes(q) ||
-        item.product.toLowerCase().includes(q) ||
-        item.manufacturer.toLowerCase().includes(q);
-      const matchesCategory = !awaitingCategory || item.category === awaitingCategory;
-      return matchesSearch && matchesCategory;
-    });
-
-    const filteredResponseCases = responseCases.filter((item) => {
-      const q = responseSearch.toLowerCase().trim();
-      const matchesSearch = !q ||
-        item.caseNumber.toLowerCase().includes(q) ||
-        item.product.toLowerCase().includes(q) ||
-        item.manufacturer.toLowerCase().includes(q);
-      const matchesCategory = !responseCategory || item.category === responseCategory;
-      return matchesSearch && matchesCategory;
-    });
-
-    const filteredInitiatedCases = initiatedCases.filter((item) => {
-      const q = initiatedSearch.toLowerCase().trim();
-      const matchesSearch = !q ||
-        item.caseNumber.toLowerCase().includes(q) ||
-        item.product.toLowerCase().includes(q) ||
-        item.manufacturer.toLowerCase().includes(q);
-      const matchesCategory = !initiatedCategory || item.category === initiatedCategory;
-      return matchesSearch && matchesCategory;
-    });
-
-    // NOTE: Filter logic for closed/dismissed complaints table rows
-    const filteredDismissed = dismissedCases.filter((c) => {
-      const q = dismissedSearch.toLowerCase().trim();
-      const matchSearch = !q ||
-        c.caseId.toLowerCase().includes(q) ||
-        c.product.toLowerCase().includes(q) ||
-        c.manufacturer.toLowerCase().includes(q);
-      const matchCategory = filterCategory ? c.category === filterCategory : true;
-      const matchFrom = filterDateFrom ? c.dateClosed >= filterDateFrom : true;
-      const matchTo = filterDateTo ? c.dateClosed <= filterDateTo : true;
-      return matchSearch && matchCategory && matchFrom && matchTo;
+  // ADDED — POST/PUT /drafts/verification/
+  // ─── Save Draft handler ───────────────────────────────────────────────────
+  const handleSaveDraft = async () => {
+    if (!selectedComplaint) {
+      showError('Please select a complaint first.');
+      return;
+    }
+    const token = localStorage.getItem('access_token');
+    const body = JSON.stringify({
+      complaint_id: selectedComplaint.complaint_id,
+      product_code: productCode || null,
+      priority,
+      notes_to_fda: complaintStatement,
     });
     const headers = {
       authorization: `Bearer ${token}`,
@@ -499,7 +551,7 @@ function LeaVerificationRequest(){
     });
   };
 
-  return (
+    return (
     <div className='LeaDashboardMain'>
       <Sidebar sidebarType="LEA" />
       <div className='LeaContentContainer'>
@@ -511,36 +563,8 @@ function LeaVerificationRequest(){
               <p>SEND & TRACK FDA VERIFICATION REQUEST</p>
             </div>
           </div>
-          <div className="VerificationContainer">
-
-            <div className="VerificationTabs">
-              <div className='VerificationTabsButton'>
-                {tabs.slice(0, 3).map((tabName) => (
-                  <button key={tabName} className={`ButtonTab ${activeTab === tabName ? 'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
-                ))}
-                {/* styles the tab separator between process tabs and tracking tabs */}
-                <div className="TabSeparator"></div>
-                {tabs.slice(3).map((tabName) => (
-                  <button key={tabName} className={`ButtonTab ${activeTab === tabName ? 'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
-                ))}
-              </div>
-            </div>
-            {/*CONTENT FOR EACH TAB */}
-
-            {/*READY TO SEND TAB CONTENT*/}
-            <div className='VerificationTabContent ReadySendButtonContent'>
-              {activeTab === 'Ready to Send' &&
-                <div className="VerificationContent">
-
-                  {/* CHANGED — real data from readyList, was hardcoded card */}
-                  {/* LEFT PANEL */}
-                  <div className="ReadytoSendQueue">
-                    <div className="ReadytoSendHeader">
-                      <p>Walk-in cases awaiting your request</p>
-                      {/* Real count from backend */}
-                      <span>{readyList.length}</span>
-                    </div>
-                     {/* STATS METRIC SUMMARY BAR (NON-CLICKABLE) */}
+          
+          {/* STATS METRIC SUMMARY BAR (NON-CLICKABLE) */}
                     <div className="LeaVerifStatsBar">
                         <div className="LeaVerifStatCard">
                             <div className="LeaVerifStatCardTop">
@@ -573,18 +597,97 @@ function LeaVerificationRequest(){
                         </div>
                     </div>
 
-                    <div className="VerificationContainer">
-                    
-                        <div className="VerificationTabs">
-                            <div className='VerificationTabsButton'>
-                                {tabs.slice(0, 3).map((tabName)=>(
-                                    <button key={tabName} className={`ButtonTab ${activeTab === tabName ?  'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
-                                ))}
-                                {/* styles the tab separator between process tabs and tracking tabs */}
-                                <div className="TabSeparator"></div>
-                                {tabs.slice(3).map((tabName)=>(
-                                    <button key={tabName} className={`ButtonTab ${activeTab === tabName ?  'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
-                                ))}
+          <div className="VerificationContainer">
+
+            <div className="VerificationTabs">
+              <div className='VerificationTabsButton'>
+                {tabs.slice(0, 3).map((tabName) => (
+                  <button key={tabName} className={`ButtonTab ${activeTab === tabName ? 'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
+                ))}
+                {/* styles the tab separator between process tabs and tracking tabs */}
+                <div className="TabSeparator"></div>
+                {tabs.slice(3).map((tabName) => (
+                  <button key={tabName} className={`ButtonTab ${activeTab === tabName ? 'active' : ''}`} onClick={() => handleTabClick(tabName)}>{tabName}</button>
+                ))}
+              </div>
+            </div>
+            {/*CONTENT FOR EACH TAB */}
+
+            {/*READY TO SEND TAB CONTENT*/}
+            <div className='VerificationTabContent ReadySendButtonContent'>
+              {activeTab === 'Ready to Send' &&
+                <div className="VerificationContent">
+                  {/* CHANGED — real data from readyList, was hardcoded card */}
+                  {/* LEFT PANEL */}
+                  <div className="ReadytoSendQueue">
+                    <div className="ReadytoSendHeader">
+                      <p>Walk-in cases awaiting your request</p>
+                      {/* Real count from backend */}
+                      <span>{readyList.length}</span>
+                    </div>
+
+                    {readyLoading && (
+                      <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
+                    )}
+
+                    {!readyLoading && readyList.length === 0 && (
+                      <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>No cases awaiting verification request.</p>
+                    )}
+
+                    {!readyLoading && readyList.map((item) => (
+                      <div
+                        key={item.complaint_id}
+                        className={`QueueCard ${selectedComplaint?.complaint_id === item.complaint_id ? 'ActiveQueueCard' : ''}`}
+                        onClick={() => fetchComplaintDetail(item.complaint_id)}
+                      >
+                        <div className='QueueLabels'>
+                          <h4>{item.product_title}</h4>
+                          <p>{item.manufacturer || '—'}</p>
+                          <small>
+                            CASE ID: {item.case_reference}
+                          </small>
+                        </div>
+
+                        <div className="QueueTag">
+                          <span>{GetSourceLabel(item.source)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CHANGED — real data from selectedComplaint, was hardcoded */}
+                  {/* RIGHT PANEL */}
+                  <div className="VerificationDetails">
+                    <div className="VerificationCard">
+                      <div>
+                        {detailLoading ? (
+                          <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
+                        ) : selectedComplaint ? (
+                          <>
+                            <small>CASE ID: {selectedComplaint.case_reference}</small>
+                            <h2>{selectedComplaint.product_title}</h2>
+                            <p>{selectedComplaint.manufacturer || '—'}</p>
+
+                            <div className="CaseInfoGrid">
+                              <div>
+                                <label>Complainant</label>
+                                <p>{selectedComplaint.complainant_name || '—'}</p>
+                              </div>
+
+                              <div>
+                                <label>Cetegory</label>
+                                <p>{selectedComplaint.product_category || '—'}</p>
+                              </div>
+
+                              <div>
+                                <label>Logged</label>
+                                <p>{formatDateTime(selectedComplaint.created_at)}</p>
+                              </div>
+
+                              <div>
+                                <label>Source</label>
+                                <p>{GetSourceLabel(selectedComplaint.source)}</p>
+                              </div>
                             </div>
                           </>
                         ) : (
@@ -624,284 +727,27 @@ function LeaVerificationRequest(){
                             </select>
                           </div>
                         </div>
-                        {/*CONTENT FOR EACH TAB */}
 
-                        {/*READY TO SEND TAB CONTENT*/}
-                        <div className='VerificationTabContent ReadySendButtonContent'>
-                            {activeTab === 'Ready to Send' && 
-                            <div className="LeaVerifTabPanel">
-                            <div className="VerificationContent">
-                                {/* LEFT PANEL */}
-                                <div className="ReadytoSendQueue">
-                                    <div className="LeaVerifQueueFilterHeader">
-                                        <div className="LeaSearchWrapper">
-                                            <Search size={16} className="LeaSearchIcon" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search Case ID, Product, or Manufacturer..."
-                                                className="LeaCategoriesSearchInput"
-                                                value={readySearch}
-                                                onChange={(e) => setReadySearch(e.target.value)}
-                                            />
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
-                                            <Filter size={14} className="LeaVerifFilterIcon" />
-                                            <select
-                                                style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
-                                                value={readyCategory}
-                                                onChange={(e) => setReadyCategory(e.target.value)}
-                                            >
-                                                <option value="">All Categories</option>
-                                                <option value="Cosmetics">Cosmetics</option>
-                                                <option value="Foods">Foods</option>
-                                                <option value="Medical Devices">Medical Devices</option>
-                                                <option value="Drugs">Drugs</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="ReadytoSendHeader">
-                                        <p>Walk-in cases awaiting your request</p>
-                                        {/* REMOVE THIS */}
-                                        {/* BACKEND: count of cases where verification_request_status is 'queued' or 'recalled' */}
-                                        <span>{filteredReadyCases.length}</span> {/*walk in cases count need backend*/}
-                                    </div>
+                        <div className="VerificationNotes">
+                          <label>Notes to FDA verifier</label>
+                          {/*     BACKEND: maps to notes_to_fda in verification_requests */}
+                          <textarea
+                            rows="5"
+                            placeholder="Enter notes for FDA verification..."
+                            value={complaintStatement}
+                            onChange={(e) => setComplaintStatement(e.target.value)}
+                          ></textarea>
+                        </div>
 
-                                    {/* BACKEND: verification_request_status: 'queued' or 'recalled' */}
-                                    {filteredReadyCases.length > 0 ? (
-                                        filteredReadyCases.map((item) => (
-                                            <div key={item.id} className="QueueCard ActiveQueueCard" id=''>
-                                                <div className="QueueCardTopRow">
-                                                    <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
-                                                    <span className="QueueTagInline">Walk-in</span>
-                                                </div>
-                                                <h4>{item.product}</h4>
-                                                <p>{item.manufacturer}</p>
-                                                <div className="QueueCardFooterRow">
-                                                    <span className="QueueCategoryTag">{item.category}</span>
-                                                    <span className="QueueDateTag">
-                                                        <Calendar size={12} />
-                                                        {item.loggedDate}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="LeaVerifEmptyList">
-                                            <Search size={32} />
-                                            <p className="LeaVerifEmptyText">No cases match your current filters.</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* RIGHT PANEL */}
-                                <div className="VerificationDetails">
-                                    <div className="VerificationCard">
-                                        <div>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: caseNumber */}
-                                            <small>CASE ID: ICM-2025-00185</small>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: product_name */}
-                                            <h2>HerbalSlim Capsules</h2>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: manufacturer_name */}
-                                            <p>NatureFit Labs</p>
-
-                                            {/* BACKEND: complainant, category, source, and region are NOT stored
-                                                directly in verification_requests. */}
-                                            <div className="CaseInfoGrid">
-                                                <div>
-                                                    <label>Complainant</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: complainant name */}
-                                                    <p>M. Reyes</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Cetegory</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: category */}
-                                                    <p>Drugs</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Logged</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: created_at */}
-                                                    <p>2026-05-17 10:42</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Source</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: source */}
-                                                    <p>Walk-in Intake</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="VerificationRequestCard">
-                                            <div className="CaseInfoTitle">
-                                                <SquarePen /><h2>Compose verification request to FDA</h2>
-                                            </div>
-                                            <p>
-                                                Ask FDA to confirm whether the product or manufacturer is
-                                                registered. Your intake evidence is attached automatically.
-                                            </p>
-
-                                            <div className="VerificationRow">
-                                                <div>
-                                                    <label>Product code (if known)</label>
-                                                    {/* BACKEND: maps to product_code in verification_requests */}
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Barcode / lot number"
-                                                        value={productCode}
-                                                        onChange={(e) => setProductCode(e.target.value)}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label>Priority</label>
-                                                    {/* BACKEND: priority maps to priority column in verification_requests table */}
-                                                    <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-                                                        <option value="standard">Standard</option>
-                                                        <option value="high">High (48 hours)</option>
-                                                        <option value="urgent">Urgent (24 hours)</option>
-                                                        <option value="critical">Critical (1 hour)</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div className="VerificationNotes">
-                                                <label>Notes to FDA verifier</label>
-                                                {/*     BACKEND: maps to complaint_statement in verification_requests */}
-                                                <textarea
-                                                    rows="5"
-                                                    placeholder="Enter notes for FDA verification..."
-                                                    value={complaintStatement}
-                                                    onChange={(e) => setComplaintStatement(e.target.value)}
-                                                ></textarea>
-                                            </div>
-
-                                            <div className="LeaVerifSectionCard">
-                                                <div className="LeaVerifSectionHeader">
-                                                    <Paperclip size={16} className="LeaVerifBlueIcon" />
-                                                    <h3>Auto-Attached Evidence & Request Documents</h3>
-                                                </div>
-                                                <div className="LeaVerifDocsGrid">
-                                                    {leaAttachedDocuments.length > 0 ? (
-                                                        leaAttachedDocuments.map((doc) => (
-                                                            <div key={doc.id} className="LeaVerifDocCard">
-                                                                <div className="LeaVerifDocIcon">
-                                                                    <FileText size={18} />
-                                                                </div>
-                                                                <div className="LeaVerifDocInfo">
-                                                                    <p className="LeaVerifDocName">{doc.name}</p>
-                                                                    <span className="LeaVerifDocMeta">{doc.category} &bull; {doc.size}</span>
-                                                                </div>
-                                                                <div className="LeaVerifDocActions">
-                                                                    <button className="LeaVerifDocActionBtn" title="Inspect Attachment">
-                                                                        <Eye size={13} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <p className="LeaVerifNoDocsText">No evidence documents attached to this request.</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                            
-                                            <div className="VerificationActions">
-                                                {/* BACKEND: DELETE /api/complaints/:id */}
-                                                <button
-                                                    className="LeaVerDeleteBtn"
-                                                    onClick={handleLeaVerificationDelete}
-                                                >
-                                                    Delete
-                                                </button>
-                                                {/* BACKEND: POST to /api/verification-requests (status: draft) */}
-                                                <button className="DraftButton">
-                                                    Save Draft
-                                                </button>
-                                                {/* BACKEND: POST to /api/verification-requests (status: pending) */}
-                                                <button className="SendReqBtn">
-                                                    Send Request to FDA
-                                                </button>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                            </div>}
-
-                            {/*AWAITING FDA TAB CONTENT*/}
-                            {activeTab === 'Awaiting FDA' && 
-                            <div className="LeaVerifTabPanel">
-                            <div className='VerificationContent AwaitingButtonContent'>
-                                {/* LEFT PANEL */}
-                                <div className="AwaitingLEAQueue">
-                                    <div className="LeaVerifQueueFilterHeader">
-                                        <div className="LeaSearchWrapper">
-                                            <Search size={16} className="LeaSearchIcon" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search Case ID, Product, or Manufacturer..."
-                                                className="LeaCategoriesSearchInput"
-                                                value={awaitingSearch}
-                                                onChange={(e) => setAwaitingSearch(e.target.value)}
-                                            />
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
-                                            <Filter size={14} className="LeaVerifFilterIcon" />
-                                            <select
-                                                style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
-                                                value={awaitingCategory}
-                                                onChange={(e) => setAwaitingCategory(e.target.value)}
-                                            >
-                                                <option value="">All Categories</option>
-                                                <option value="Cosmetics">Cosmetics</option>
-                                                <option value="Foods">Foods</option>
-                                                <option value="Medical Devices">Medical Devices</option>
-                                                <option value="Drugs">Drugs</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="AwaitingHeader">
-                                        <p>Request Pending FDA Review</p>
-                                        {/* REMOVE THIS */}
-                                        {/* BACKEND: count of cases where verification_request_status is 'pending' */}
-                                        <span>{filteredAwaitingCases.length}</span>
-                                    </div>
-
-                                    {/* BACKEND: verification_request_status: 'pending' */}
-                                    {filteredAwaitingCases.length > 0 ? (
-                                        filteredAwaitingCases.map((item) => (
-                                            <div key={item.id} className="QueueCard ActiveQueueCard" id=''>
-                                                <div className="QueueCardTopRow">
-                                                    <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
-                                                    <span className="QueueTagInline">Walk-in</span>
-                                                </div>
-                                                <h4>{item.product}</h4>
-                                                <p>{item.manufacturer}</p>
-                                                <div className="QueueCardFooterRow">
-                                                    <span className="QueueCategoryTag">{item.category}</span>
-                                                    <span className="QueueDateTag">
-                                                        <Calendar size={12} />
-                                                        {item.loggedDate}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="LeaVerifEmptyList">
-                                            <Search size={32} />
-                                            <p className="LeaVerifEmptyText">No cases match your current filters.</p>
-                                        </div>
-                                    )}
+                        {/* CHANGED — renders real attached_files, no download link yet (pending teammate's file-view UI) */}
+                        <div className="AttachedFiles">
+                          <h4>Auto-attached from intake</h4>
+                          {selectedComplaint?.attached_files?.length > 0 ? (
+                            <p>
+                              {selectedComplaint.attached_files.map((f) => f.file_name).join(' · ')}
+                            </p>
+                          ) : null}
+                        </div>
 
                         <div className="VerificationActions">
                           {/* BACKEND: POST/PUT to /drafts/verification/ */}
@@ -914,152 +760,9 @@ function LeaVerificationRequest(){
                           </button>
                         </div>
 
-                                {/* RIGHT PANEL */}
-                                <div className="VerificationDetails">
-                                    <div className="VerificationCard">
-                                        <div>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: caseNumber */}
-                                            <small>CASE ID: ICM-2025-00185</small>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: product_name */}
-                                            <h2>HerbalSlim Capsules</h2>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: manufacturer_name */}
-                                            <p>NatureFit Labs</p>
-
-                                            {/* BACKEND: complainant, category, source, and region are NOT stored
-                                                directly in verification_requests. They are fetched via complaint_id
-                                                joining to the complaints and walkin_complainants tables through the
-                                                verification_requests_full view */}
-                                            <div className="CaseInfoGrid">
-                                                <div>
-                                                    <label>Complainant</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: complainant name */}
-                                                    <p>M. Reyes</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Cetegory</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: category */}
-                                                    <p>Drugs</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Logged</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: created_at */}
-                                                    <p>2026-05-17 10:42</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Source</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: source */}
-                                                    <p>Walk-in Intake</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className='UpdateForResponse'>
-                                            <div className='StatusTitle'>
-                                                <div className='TitleHolder'>
-                                                    <div className='WaitingIconBox'><Clock3 /></div>
-                                                    <div><h3>Awaiting FDA Response</h3></div>
-                                                </div>
-                                                {/* REMOVE THIS */}
-                                                {/* BACKEND: maps to requested_at in verification_requests */}
-                                                <p>Request sent 2026-05-18 08:10. FDA verifier will respond with a digital confirmation of registration status.</p>
-                                            </div>
-                                            <div className='ButtonsForResponse'>
-                                                {/* BACKEND: POST to /api/verification-requests/:id/reminder */}
-                                                <button className='SendReminderBtn' onClick={() => handleActionButtonClick('Send Reminder', 'ICM-2025-00185', 1)}>
-                                                    <BellRing />
-                                                    <p>Send Reminder</p>
-                                                </button>
-                                                {/* BACKEND: PATCH to /api/verification-requests/:id (status: recalled) */}
-                                                <button className='RecallRequestBtn' onClick={() => handleActionButtonClick('Recall Request', 'ICM-2025-00185', 1)}>Recall Request</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            
-                            </div>
-                            </div>}
-                            
-                            {/*FDA RESPONSE TAB CONTENT*/}
-                            {activeTab === 'FDA Response' && 
-                            <div className="LeaVerifTabPanel">
-                            <div className='VerificationContent FDAResponseButtonContent'>
-                                {/* LEFT PANEL */}
-                                <div className="LEAResponseQueue">
-                                    <div className="LeaVerifQueueFilterHeader">
-                                        <div className="LeaSearchWrapper">
-                                            <Search size={16} className="LeaSearchIcon" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search Case ID, Product, or Manufacturer..."
-                                                className="LeaCategoriesSearchInput"
-                                                value={responseSearch}
-                                                onChange={(e) => setResponseSearch(e.target.value)}
-                                            />
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
-                                            <Filter size={14} className="leaVerifFilterIcon" />
-                                            <select
-                                                style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
-                                                value={responseCategory}
-                                                onChange={(e) => setResponseCategory(e.target.value)}
-                                            >
-                                                <option value="">All Categories</option>
-                                                <option value="Cosmetics">Cosmetics</option>
-                                                <option value="Foods">Foods</option>
-                                                <option value="Medical Devices">Medical Devices</option>
-                                                <option value="Drugs">Drugs</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="LEAResponseHeader">
-                                        <p>FDA confirmations received</p>
-                                        {/* REMOVE THIS */}
-                                        {/* BACKEND: count of responseCases */}
-                                        <span>{filteredResponseCases.length}</span>
-                                    </div>
-
-                                    {filteredResponseCases.length > 0 ? filteredResponseCases.map((item) => (
-                                        <div 
-                                            key={item.id} 
-                                            className={`QueueCard ${selectedResponse.id === item.id ? 'ActiveQueueCard' : ''}`} 
-                                            id=''
-                                            onClick={() => setSelectedResponse(item)}
-                                        >
-                                            <div className="QueueCardTopRow">
-                                                <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
-                                                <span className={`QueueStatusBadge ${
-                                                    item.status === 'Registered' ? 'registered' :
-                                                    item.status === 'Rejected' ? 'rejected' : 'unregistered'
-                                                }`}>
-                                                    {item.status}
-                                                </span>
-                                            </div>
-                                            <h4>{item.product}</h4>
-                                            <p>{item.manufacturer}</p>
-                                            <div className="QueueCardFooterRow">
-                                                <span className="QueueCategoryTag">{item.category}</span>
-                                                <span className="QueueDateTag">
-                                                    <Calendar size={12} />
-                                                    {item.returnedDate}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )) : (
-                                        <div className="LeaVerifEmptyList">
-                                            <Search size={32} />
-                                            <p className="LeaVerifEmptyText">No cases match your current filters.</p>
-                                        </div>
-                                    )}
+                      </div>
+                    </div>
+                  </div>
 
                 </div>}
 
@@ -1067,206 +770,18 @@ function LeaVerificationRequest(){
               {activeTab === 'Awaiting FDA' &&
                 <div className='VerificationContent AwaitingButtonContent'>
 
-                                </div>
-                            </div>
-                            </div>}
+                  {/* CHANGED — real data from awaitingList/selectedAwaitingFda, was hardcoded */}
+                  {/* LEFT PANEL */}
+                  <div className="AwaitingFDAQueue">
+                    <div className="AwaitingHeader">
+                      <p>Request Pending FDA Review</p>
+                      {/* Real count from backend */}
+                      <span>{awaitingList.length}</span>
+                    </div>
 
-                            {/* INITIATED CASES TAB CONTENT */}
-                            {activeTab === 'Initiated Cases' && 
-                            <div className="LeaVerifTabPanel">
-                            <div className='VerificationContent FDAResponseButtonContent'>
-                                {/* LEFT PANEL */}
-                                <div className="LEAResponseQueue">
-                                    <div className="LeaVerifQueueFilterHeader">
-                                        <div className="LeaSearchWrapper">
-                                            <Search size={16} className="LeaSearchIcon" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search Case ID, Product, or Manufacturer..."
-                                                className="LeaCategoriesSearchInput"
-                                                value={initiatedSearch}
-                                                onChange={(e) => setInitiatedSearch(e.target.value)}
-                                            />
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
-                                            <Filter size={14} className="LeaVerifFilterIcon" />
-                                            <select
-                                                style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
-                                                value={initiatedCategory}
-                                                onChange={(e) => setInitiatedCategory(e.target.value)}
-                                            >
-                                                <option value="">All Categories</option>
-                                                <option value="Cosmetics">Cosmetics</option>
-                                                <option value="Foods">Foods</option>
-                                                <option value="Medical Devices">Medical Devices</option>
-                                                <option value="Drugs">Drugs</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="LEAResponseHeader">
-                                        <p>Cases with active takedown operations</p>
-                                        {/* REMOVE THIS */}
-                                        {/* BACKEND: count of cases where complaint_status = 'takedown_initiated' */}
-                                        <span>{filteredInitiatedCases.length}</span>
-                                    </div>
-
-                                    {filteredInitiatedCases.length > 0 ? filteredInitiatedCases.map((item) => (
-                                        <div 
-                                            key={item.id} 
-                                            className={`QueueCard ${selectedInitiatedCase.id === item.id ? 'ActiveQueueCard' : ''}`}
-                                            onClick={() => setSelectedInitiatedCase(item)}
-                                        >
-                                            <div className="QueueCardTopRow">
-                                                <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
-                                                <span className="OperationInProgressBadge">{item.status}</span>
-                                            </div>
-                                            <h4>{item.product}</h4>
-                                            <p>{item.manufacturer}</p>
-                                            <div className="QueueCardFooterRow">
-                                                <span className="QueueCategoryTag">{item.category}</span>
-                                                <span className="QueueDateTag">
-                                                    <Calendar size={12} />
-                                                    {item.returnedDate}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )) : (
-                                        <div className="LeaVerifEmptyList">
-                                            <Search size={32} />
-                                            <p className="LeaVerifEmptyText">No cases match your current filters.</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* RIGHT PANEL */}
-                                <div className='VerificationDetails'>
-                                    <div className='VerificationCard'>
-                                        <div>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: caseNumber */}
-                                            <small>CASE ID: {selectedInitiatedCase.caseNumber}</small>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: product_name */}
-                                            <h2>{selectedInitiatedCase.product}</h2>
-                                            {/* REMOVE THIS */}
-                                            {/* BACKEND: manufacturer_name */}
-                                            <p>{selectedInitiatedCase.manufacturer}</p>
-
-                                            {/* BACKEND: complainant, category, source, and region are NOT stored
-                                                directly in verification_requests. They are fetched via complaint_id
-                                                joining to the complaints and walkin_complainants tables through the
-                                                verification_requests full view */}
-                                            <div className="CaseInfoGrid">
-                                                <div>
-                                                    <label>Complainant</label>
-                                                    {/* REMOVE THIS */}
-                                                    {/* BACKEND: complainant name */}
-                                                    <p>{selectedInitiatedCase.complainant}</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Cetegory</label>
-                                                    {/*  REMOVE THIS */}
-                                                    {/* BACKEND: category */}
-                                                    <p>{selectedInitiatedCase.category}</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Logged</label>
-                                                    {/*  REMOVE THIS */}
-                                                    {/* BACKEND: created_at */}
-                                                    <p>{selectedInitiatedCase.loggedDate}</p>
-                                                </div>
-
-                                                <div>
-                                                    <label>Source</label>
-                                                    {/*  REMOVE THIS */}
-                                                    {/* BACKEND: source */}
-                                                    <p>{selectedInitiatedCase.source}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className='ConfirmationReturned'>
-                                            <div className='ResponseUpdateBox' style={{ marginTop: '0px' }}>
-                                                <h6>Field operation status update</h6>
-                                                {/* BACKEND: fieldOperationNotes maps to field_operation_notes column in verification_requests — PATCH to /api/verification-requests/:id */}
-                                                <textarea 
-                                                    placeholder="Enter notes on field operation progress..."
-                                                    value={fieldOperationNotes}
-                                                    onChange={(e) => setFieldOperationNotes(e.target.value)}
-                                                ></textarea>
-                                            </div>
-                                            <div className='ResponseBtn' style={{ marginTop: '20px' }}>
-                                                {/* BACKEND: Close Case -> PATCH /api/complaints/:id (complaint_status: completed) */}
-                                                <button onClick={() => handleActionButtonClick('Close Case', selectedInitiatedCase.caseNumber, selectedInitiatedCase.id)}>
-                                                    Close Case
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>}
-
-                            {/* DISMISSED CASES TAB CONTENT */}
-                            {activeTab === 'Dismissed Cases' && 
-                            <div className="DismissedTableContainer">
-
-                                {/* Filters Bar — matches Saved Drafts filter style */}
-                                <div className="LeaFilterPanel LeaVerifFilterPanel">
-                                    <div className="LeaVerifFilterControlsLeft">
-                                        <div className="LeaSearchWrapper">
-                                            <Search size={16} className="LeaSearchIcon" />
-                                            <input
-                                                type="text"
-                                                placeholder="Search Case ID, Product or Manufacturer..."
-                                                className="LeaSearchInput"
-                                                value={dismissedSearch}
-                                                onChange={(e) => setDismissedSearch(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="LeaVerifFilterControlsRight">
-                                        <div className="LeaFilterGroup">
-                                            {/* BACKEND: pass filterDateFrom as from_date query param */}
-                                            <label>From</label>
-                                            <input
-                                                type="date"
-                                                className="LeaVerifDateInput"
-                                                value={filterDateFrom}
-                                                onChange={(e) => setFilterDateFrom(e.target.value)}
-                                                title="Closed From"
-                                            />
-                                        </div>
-                                        <div className="LeaFilterGroup">
-                                            {/* BACKEND: pass filterDateTo as to_date query param */}
-                                            <label>To</label>
-                                            <input
-                                                type="date"
-                                                className="LeaVerifDateInput"
-                                                value={filterDateTo}
-                                                onChange={(e) => setFilterDateTo(e.target.value)}
-                                                title="Closed To"
-                                            />
-                                        </div>
-                                        <div className="LeaFilterGroup">
-                                            {/* BACKEND: pass filterCategory as category query param */}
-                                            <label>Category</label>
-                                            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                                                <option value="">All Categories</option>
-                                                <option value="Cosmetics">Cosmetics</option>
-                                                <option value="Foods">Foods</option>
-                                                <option value="Medical Devices">Medical Devices</option>
-                                                <option value="Drugs">Drugs</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    {/* BACKEND: GET /api/complaints?status=dismissed&from_date=${filterDateFrom}&to_date=${filterDateTo}&category=${filterCategory} */}
-                                    <div className="DraftsTotalCount">
-                                        Total Cases: {filteredDismissed.length}
-                                    </div>
-                                </div>
+                    {awaitingLoading && (
+                      <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
+                    )}
 
                     {!awaitingLoading && awaitingList.length === 0 && (
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>No pending verification requests.</p>
@@ -1878,6 +1393,6 @@ function LeaVerificationRequest(){
         </div>
       )}
     </div>
-  )
+  );
 }
 export default LeaVerificationRequest

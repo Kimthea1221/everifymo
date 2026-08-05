@@ -13,6 +13,7 @@ import {
     ChevronRight,
     ChevronLeft,
     AlertTriangle,
+    X,
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 5;
@@ -85,6 +86,9 @@ function FDASavedDraft() {
     // Delete modal
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [draftToDelete, setDraftToDelete] = useState(null);
+
+    // View Draft Summary modal
+    const [viewModalData, setViewModalData] = useState(null);
 
     // Toast
     const [toastMessage, setToastMessage] = useState(null);
@@ -296,7 +300,7 @@ function FDASavedDraft() {
                                                         <button
                                                             className="FdaViewBtn"
                                                             title="View Draft"
-                                                            onClick={() => handleViewDraft(draft)}
+                                                            onClick={() => setViewModalData(draft)}
                                                         >
                                                             <Eye size={15} />
                                                         </button>
@@ -409,6 +413,78 @@ function FDASavedDraft() {
                             </button>
                             <button className="BtnModalDelete" onClick={handleConfirmDelete}>
                                 Delete Draft
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Draft Summary Modal */}
+            {viewModalData && (
+                <div className="FdaVerifModalOverlay">
+                    <div className="FdaRecordModalContainer" style={{ width: "560px" }}>
+                        <div className="FdaRecordModalHeader">
+                            <div className="FdaRecordModalTitleGroup">
+                                <Eye size={20} className="FdaVerifGreenIcon" />
+                                <div>
+                                    <h3>Draft Summary</h3>
+                                    <p className="FdaRecordModalSubtitle">
+                                        {viewModalData.caseId} &bull; Last modified {viewModalData.lastModified}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                className="FdaVerifIconButton"
+                                onClick={() => setViewModalData(null)}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="FdaRecordModalBody">
+                            <div className="FdaRecordInfoGrid">
+                                <div className="FdaRecordInfoItem">
+                                    <span className="FdaVerifInfoLabel">CASE ID</span>
+                                    <span className="FdaVerifInfoValueHighlight">{viewModalData.caseId}</span>
+                                </div>
+                                <div className="FdaRecordInfoItem">
+                                    <span className="FdaVerifInfoLabel">PRODUCT NAME</span>
+                                    <span className="FdaVerifInfoValue">{viewModalData.product}</span>
+                                </div>
+                                <div className="FdaRecordInfoItem">
+                                    <span className="FdaVerifInfoLabel">MANUFACTURER</span>
+                                    <span className="FdaVerifInfoValue">{viewModalData.manufacturer}</span>
+                                </div>
+                                <div className="FdaRecordInfoItem">
+                                    <span className="FdaVerifInfoLabel">CATEGORY</span>
+                                    <span className="FdaVerifInfoValue">{viewModalData.category}</span>
+                                </div>
+                                <div className="FdaRecordInfoItem">
+                                    <span className="FdaVerifInfoLabel">SOURCE</span>
+                                    <span className="FdaVerifInfoValue">{viewModalData.source}</span>
+                                </div>
+                                <div className="FdaRecordInfoItem">
+                                    <span className="FdaVerifInfoLabel">DRAFT STATUS</span>
+                                    <span className="FdaSavedDraftStatusBadge">Draft</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="FdaRecordModalFooter">
+                            <button
+                                className="FdaVerifBtnOutline"
+                                onClick={() => setViewModalData(null)}
+                            >
+                                Close
+                            </button>
+                            <button
+                                className="FdaBtnCloseModal"
+                                onClick={() => {
+                                    setViewModalData(null);
+                                    handleContinueEditing(viewModalData);
+                                }}
+                            >
+                                Continue Editing
                             </button>
                         </div>
                     </div>
