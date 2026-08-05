@@ -109,15 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const isGuest = !isUserLoggedIn();
 
-        if (!isGuest) {
-          const reportData = collectReportFormData('report-form-view');
-          if (reportData && reportData.productName) {
-            addComplaintToStatus(reportData, () => {
-              showReportView('report-success-view');
-            });
-            return;
-          }
-        }
+        // if (!isGuest) {
+        //   const reportData = collectReportFormData('report-form-view');
+        //   if (reportData && reportData.productName) {
+        //     addComplaintToStatus(reportData, () => {
+        //       showReportView('report-success-view');
+        //     });
+        //     return;
+        //   }
+        // }
 
         showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
 
@@ -195,4 +195,43 @@ function applyAuthView() {
     const usernameEl = document.getElementById('home-username');
     if (usernameEl) usernameEl.textContent = getCurrentUser().username;
   }
+}
+
+// who's logged/active
+function isActive(id){
+  let type = isUserLoggedIn() ? '-user' : '-guest';
+  return document.getElementById(id + type);
+}
+
+function platform(url) {
+  if (url.includes("shopee")) return "shopee";
+  if (url.includes("lazada")) return "lazada";
+  if (url.includes("facebook")) return "facebook";
+  if (url.includes("tiktok")) return "tiktok";
+  return "no platform detected";
+}
+
+//auto-fill url
+function autoFillUrl() {
+  let params = new URLSearchParams(window.location.search);
+  let productUrl = params.get('productUrl');
+  if (productUrl) {
+    let input = isActive('complaint-product-url');
+    if (input) input.value = decodeURIComponent(productUrl);
+  }
+}
+
+function sanitizeUrl(rawUrl) {
+    try {
+        let url = new URL(rawUrl);
+        let suspiciousPatterns = /token|session|auth|sp_atk|spm/i;
+        [...url.searchParams.keys()].forEach(key => {
+            if (suspiciousPatterns.test(key)) {
+                url.searchParams.delete(key);
+            }
+        });
+        return url.toString();
+    } catch {
+        return rawUrl;
+    }
 }
