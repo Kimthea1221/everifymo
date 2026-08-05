@@ -209,46 +209,47 @@ function LeaSavedDraft() {
 
                     <div className="DraftsFilterSection">
                         <div className="DraftsFilterControls">
-                            <div className="DraftsFilterLeft">
-                                <input
-                                    type="text"
-                                    className="DraftsSearchInput"
-                                    placeholder="Search by Product Name or Product Category..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <div className="DraftsFilterRight">
-                                <select
-                                    className="DraftsFilterDropdown"
-                                    value={activeTab}
-                                    onChange={(e) => handleTabClick(e.target.value)}
-                                >
-                                    <option value="All">All Types</option>
-                                    <option value="Walk-in Intake">Walk-in Intake</option>
-                                    <option value="Verification Request">Verification Request</option>
-                                </select>
+                            <input
+                                type="text"
+                                className="DraftsSearchInput"
+                                placeholder="Search by Product Name or Product Category..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
 
-                                <select
-                                    className="DraftsFilterDropdown"
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                >
-                                    <option value="All">All Statuses</option>
-                                    <option value="Draft">Draft</option>
-                                    <option value="Incomplete">Incomplete</option>
-                                </select>
+                            <select
+                                className="DraftsFilterDropdown"
+                                value={activeTab}
+                                onChange={(e) => handleTabClick(e.target.value)}
+                            >
+                                <option value="All">All Types</option>
+                                <option value="walkin">Walk-in Intake</option>
+                                <option value="verification">Verification Request</option>
+                            </select>
 
-                                <select
-                                    className="DraftsFilterDropdown"
-                                    value={sortOption}
-                                    onChange={(e) => setSortOption(e.target.value)}
-                                >
-                                    <option value="Recently Edited">Recently Edited</option>
-                                    <option value="Oldest First">Oldest First</option>
-                                    <option value="Product Name">Product Name (A–Z)</option>
-                                </select>
-                            </div>
+                            <select
+                                className="DraftsFilterDropdown"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="All">All Statuses</option>
+                                <option value="draft">Draft</option>
+                                <option value="incomplete">Incomplete</option>
+                            </select>
+
+                            <select
+                                className="DraftsFilterDropdown"
+                                value={sortOption}
+                                onChange={(e) => setSortOption(e.target.value)}
+                            >
+                                <option value="recently_edited">Recently Edited</option>
+                                <option value="oldest_first">Oldest First</option>
+                                <option value="product_name_az">Product Name (A–Z)</option>
+                            </select>
+
+                            <button className="BtnClearFilters" onClick={handleClearFilters}>
+                                Clear Filters
+                            </button>
                         </div>
 
                         <div className="DraftsTotalCount">

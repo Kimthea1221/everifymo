@@ -30,8 +30,9 @@ REQUIRED_FIELDS = ["priority", "notes_to_fda"]
 
 def _determine_draft_status(data: VerificationRequestDraftSave) -> DraftStatus:
     for field_name in REQUIRED_FIELDS:
-        if getattr(data, field_name) is None:      
-            return DraftStatus.incomplete              
+        value = getattr(data, field_name)
+        if value is None or (isinstance(value, str) and value.strip() == ""):
+            return DraftStatus.incomplete
     return DraftStatus.draft                         
 
 
