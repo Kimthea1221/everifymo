@@ -56,6 +56,9 @@ from app.desktop.routers.verification.verification_requests import (
     list_router as verification_list_router,
 )
 
+# FDA Verification Drafts and Confirmation feature
+from app.desktop.routers.drafts.fda_verification_drafts import router as fda_verification_draft_router
+
 app = FastAPI()
 # Base.metadata.create_all(bind=engine) wag na iuuncomment this line, since we are using alembic for migrations
 
@@ -94,6 +97,8 @@ app.include_router(user_management_router)
 app.include_router(walkin_drafts_router)
 app.include_router(all_drafts_router)
 app.include_router(verification_drafts_router)
+app.include_router(fda_verification_draft_router)
+
 
 app.include_router(draft_submit_router)
 app.include_router(direct_complaint_router)

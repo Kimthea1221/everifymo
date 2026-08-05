@@ -170,3 +170,64 @@ class VerificationRequestDraftResponse(VerificationRequestDraftSave):
 
 class WalkinIntakeDraftDetailResponse(WalkinIntakeDraftResponse):
     attachments: list[DraftAttachmentResponse] = []
+
+
+# ============================================================
+# VERIFICATION CONFIRMATION DRAFT FDA SIDE
+# ============================================================
+
+class FdaDraftVerificationStatus(str, Enum):
+    registered = "registered"
+    unregistered = "unregistered"
+
+
+# What the officer's form sends on "Save Draft." Every field optional —
+# same reasoning as WalkinIntakeDraftSave: a half-filled save is valid,
+# and draft_status ('incomplete' vs 'draft') is decided in the endpoint,
+# not here.
+class FdaVerificationDraftSave(BaseModel):
+    draft_verification_status: FdaDraftVerificationStatus | None = None
+    draft_cpr_number: str | None = Field(None, max_length=100)
+    draft_cpr_expiry: date | None = None
+    draft_response_notes: str | None = None
+    draft_unregistered_reason: str | None = None
+
+
+# What we send back for a bare draft row — inherits the officer-typed
+# fields, adds the backend-controlled columns.
+class FdaVerificationDraftResponse(FdaVerificationDraftSave):
+    draft_id: UUID
+    saved_by: UUID
+    verification_request_id: UUID
+    draft_status: DraftStatus
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# One row of the Saved Drafts table (View/Edit/Delete screenshot).
+# Built manually from a join in the endpoint, same reasoning as
+# UnifiedDraftResponse — NOT from_attributes=True, since this never
+# maps 1:1 onto a single ORM object.
+class FdaVerificationDraftListItem(BaseModel):
+    draft_id: UUID
+    verification_request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    draft_status: DraftStatus
+    updated_at: datetime
+
+
+# Full detail view — View/Edit Draft buttons land here. Same
+# joined-data reasoning as WalkinIntakeDraftDetailResponse, just
+# extended with read-only case info instead of attachments.
+class FdaVerificationDraftDetailResponse(FdaVerificationDraftResponse):
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_by_name: str | None
+    requested_at: datetime
