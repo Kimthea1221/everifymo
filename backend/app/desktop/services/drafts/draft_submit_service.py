@@ -14,6 +14,8 @@ from app.core.case_reference import generate_case_reference
 
 
 SHARED_FILES_DIR = "uploads/shared_files"
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf", ".docx"}
+MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 
 
 def _create_complainant_and_complaint(
@@ -45,6 +47,7 @@ def _create_complainant_and_complaint(
         source="walk_in",
         status="open",
         complainant_id=new_complainant.complainant_id,
+        created_by=current_user.user_id, 
     )
     db.add(new_complaint)
     db.flush()
@@ -66,6 +69,12 @@ def _copy_attachment_to_shared_files(source_path: str, complaint_id) -> dict:
 
 
 def _save_new_upload_to_shared_files(file: UploadFile, complaint_id) -> dict:
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if file_extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type '{file_extension}' is not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
+        )
     """
     Used ONLY by the direct-submit path — the officer's files here
     were never saved anywhere before (unlike a draft's, which were
@@ -78,10 +87,16 @@ def _save_new_upload_to_shared_files(file: UploadFile, complaint_id) -> dict:
     os.makedirs(os.path.dirname(destination_path), exist_ok=True)
     with open(destination_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
+    actual_size = os.path.getsize(destination_path)
+    if actual_size > MAX_FILE_SIZE_BYTES:
+        os.remove(destination_path)
+        raise HTTPException(status_code=400, detail="File exceeds the 25 MB limit.")
+    
     return {
         "file_name": file.filename,
         "file_path": destination_path,
-        "file_size_bytes": os.path.getsize(destination_path),
+        "file_size_bytes": actual_size,
         "mime_type": file.content_type,
     }
 
@@ -94,6 +109,11 @@ def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
 
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found.")
+    
+    # ADDED — defense in depth. Frontend should already prevent this,
+    # but the backend must never trust that alone.
+    if draft.draft_status != "draft":
+        raise HTTPException(status_code=400, detail="This draft is still incomplete and cannot be submitted yet.")
 
     attachments = db.query(DraftAttachment).filter(
         DraftAttachment.walkin_draft_id == draft_id
@@ -157,6 +177,9 @@ def create_walkin_complaint_direct(
     and clicked "Log Complaint & Queue for FDA" directly, without
     ever saving a draft first (Image 1/2).
     """
+    if len(files) == 0:
+            raise HTTPException(status_code=400, detail="At least one file attachment is required.")
+    
     new_complaint = _create_complainant_and_complaint(
         db, current_user, current_user.region_id,
         complainant_fields=complainant_fields,
