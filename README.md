@@ -252,3 +252,4 @@ always commit every progress
 
 
 
+check repo
