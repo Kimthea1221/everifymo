@@ -3,14 +3,13 @@ from typing import Annotated
 
 from fastapi.middleware.cors import CORSMiddleware
 
+""" from app.routers.auth.invite import router as invite_router
+from app.routers.regions.regions import router as regions_router """
 
 from app.desktop.routers.auth.superadmin_login import router as superadmin_login_router
 from app.desktop.routers.auth.password_reset import router as password_reset_router
 from app.desktop.routers.auth.sessions import router as sessions_router
-
-# Registration feature
 from app.desktop.routers.auth import registration
-
 from app.desktop.routers.auth.invite import router as invite_router
 from app.desktop.routers.regions.regions import router as regions_router
 from app.desktop.routers.user_management.management import router as user_management_router
@@ -58,7 +57,7 @@ from app.desktop.routers.verification.verification_requests import (
 )
 
 app = FastAPI()
-# Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine) wag na iuuncomment this line, since we are using alembic for migrations
 
 app.add_middleware(
     CORSMiddleware,
