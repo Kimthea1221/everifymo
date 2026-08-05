@@ -3,14 +3,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './lea-css.css'
 import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
-import {
-  Clock3,
-  BellRing,
-  SquarePen,
-  ShieldCheck,
-  ShieldX,
-  CircleCheckBig,
-  XCircle
+import {Clock3,
+        BellRing,
+        SquarePen,
+        ShieldCheck,
+        ShieldX,
+        CircleCheckBig,
+        XCircle,
+        Inbox,
+        Siren,
+        Archive
 } from 'lucide-react';
 
 // ADDED — API_BASE, parseBackendError, formatDateTime helpers
@@ -380,6 +382,12 @@ function LeaVerificationRequest() {
       return;
     }
 
+    // Validate required fields for both new requests and existing drafts
+    if (!complaintStatement.trim()) {
+      showError('Please enter notes to FDA verifier.');
+      return;
+    }
+
     const token = localStorage.getItem('access_token');
     const headers = {
       authorization: `Bearer ${token}`,
@@ -389,17 +397,30 @@ function LeaVerificationRequest() {
     try {
       let res;
       if (currentDraftId) {
+        // Update the draft first
+        const updateRes = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            complaint_id: selectedComplaint.complaint_id,
+            product_code: productCode || null,
+            priority,
+            notes_to_fda: complaintStatement,
+          }),
+        });
+
+        if (!updateRes.ok) {
+          const msg = await parseBackendError(updateRes);
+          showError(msg);
+          return;
+        }
+
         // Finish an existing draft → submit it
         res = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}/submit`, {
           method: 'POST',
           headers: { authorization: `Bearer ${token}` },
         });
       } else {
-        // Fresh compose path — validate required fields first
-        if (!complaintStatement.trim()) {
-          showError('Please enter notes to FDA verifier.');
-          return;
-        }
         res = await fetch(`${API_BASE}/verification-requests/`, {
           method: 'POST',
           headers,
@@ -530,7 +551,7 @@ function LeaVerificationRequest() {
     });
   };
 
-  return (
+    return (
     <div className='LeaDashboardMain'>
       <Sidebar sidebarType="LEA" />
       <div className='LeaContentContainer'>
@@ -542,6 +563,40 @@ function LeaVerificationRequest() {
               <p>SEND & TRACK FDA VERIFICATION REQUEST</p>
             </div>
           </div>
+          
+          {/* STATS METRIC SUMMARY BAR (NON-CLICKABLE) */}
+                    <div className="LeaVerifStatsBar">
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeResponse">
+                                    <Inbox size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{responseCases.length}</p>
+                            <p className="LeaVerifStatLabel">FDA Response</p>
+                        </div>
+
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeInitiated">
+                                    <Siren size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{initiatedCases.length}</p>
+                            <p className="LeaVerifStatLabel">Initiated Cases</p>
+                        </div>
+
+                        <div className="LeaVerifStatCard">
+                            <div className="LeaVerifStatCardTop">
+                                <div className="LeaVerifStatBadge LeaVerifStatBadgeDismissed">
+                                    <Archive size={14} />
+                                </div>
+                            </div>
+                            <p className="LeaVerifStatValue">{dismissedCases.length}</p>
+                            <p className="LeaVerifStatLabel">Dismissed Cases</p>
+                        </div>
+                    </div>
+
           <div className="VerificationContainer">
 
             <div className="VerificationTabs">
@@ -562,7 +617,6 @@ function LeaVerificationRequest() {
             <div className='VerificationTabContent ReadySendButtonContent'>
               {activeTab === 'Ready to Send' &&
                 <div className="VerificationContent">
-
                   {/* CHANGED — real data from readyList, was hardcoded card */}
                   {/* LEFT PANEL */}
                   <div className="ReadytoSendQueue">
@@ -1339,6 +1393,6 @@ function LeaVerificationRequest() {
         </div>
       )}
     </div>
-  )
+  );
 }
 export default LeaVerificationRequest
