@@ -109,6 +109,11 @@ def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
 
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found.")
+    
+    # ADDED — defense in depth. Frontend should already prevent this,
+    # but the backend must never trust that alone.
+    if draft.draft_status != "draft":
+        raise HTTPException(status_code=400, detail="This draft is still incomplete and cannot be submitted yet.")
 
     attachments = db.query(DraftAttachment).filter(
         DraftAttachment.walkin_draft_id == draft_id

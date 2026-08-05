@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
 import './fda-css.css';
@@ -243,9 +244,9 @@ const dummyRejectedRequests = [
 ];
 
 function FDAVerification() {
-  // ============================================================================
-  // REACT STATES - UNIQUE TO FDA VERIFICATION PAGE
-  // ============================================================================
+
+
+
 
   // BACKEND: active tab filter state ('queue' | 'completed' | 'rejected')
   const [fdaActiveTab, setFdaActiveTab] = useState('queue');
@@ -301,6 +302,60 @@ function FDAVerification() {
   const [fdaDocPreviewModal, setFdaDocPreviewModal] = useState(null); // document object
   const [fdaRecordModalData, setFdaRecordModalData] = useState(null); // Completed or Rejected record for View modal
 
+  // Receives navigation state from FDA Saved Drafts page (openDraftId + draftRecord)
+  // and auto-opens that request in the Verification Queue tab.
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const incoming = location.state;
+    if (!incoming?.openDraftId) return;
+
+    // Try to match an item already present in the queue (by id or caseId)
+    const existing = fdaQueueList.find(
+      (q) => q.id === incoming.openDraftId || q.caseId === incoming.openDraftId
+    );
+
+    if (existing) {
+      setFdaActiveTab('queue');
+      handleSelectItem(existing);
+    } else if (incoming.draftRecord) {
+      // Draft wasn't in the queue mock data — reconstruct a queue-shaped item
+      // from the saved-draft record so it can be reviewed here.
+      const draft = incoming.draftRecord;
+      const restoredItem = {
+        id: draft.caseId,
+        caseId: draft.caseId,
+        productName: draft.product,
+        manufacturer: draft.manufacturer,
+        complainant: 'N/A',
+        category: draft.category,
+        dateLogged: draft.lastModified,
+        dateReceived: draft.lastModified,
+        source:
+          draft.source === 'Walk-in'
+            ? 'LEA Walk-in Intake'
+            : 'Browser Extension Submission',
+        productCode: 'N/A',
+        priority: 'Standard',
+        leaNotes: 'Restored from FDA Saved Drafts.',
+        documents: []
+      };
+
+      setFdaQueueList((prev) => [restoredItem, ...prev]);
+      setFdaActiveTab('queue');
+      setSelectedQueueItem(restoredItem);
+      setFdaVerificationStatus('');
+      setFdaCprNumber('');
+      setFdaCprExpiry('');
+      setFdaOfficialRemarks('');
+      setFdaUnregisteredReason('');
+    }
+
+    // Clear navigation state so refreshing/back doesn't re-trigger this
+    navigate(location.pathname, { replace: true, state: {} });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   // TAB SELECTION & VIEW TRANSITIONS
 
@@ -660,40 +715,42 @@ function FDAVerification() {
           {/* STATS METRIC SUMMARY BAR - INFORMATIONAL ONLY (NON-CLICKABLE) */}
 
           <div className="FdaVerifStatsBar">
-            <div className="FdaVerifStatCardDisplayOnly">
-              <div className="FdaVerifStatIcon FdaVerifStatIconQueue">
-                <Clock size={20} />
+
+            <div className="FdaVerifStatCard">
+              <div className="FdaVerifStatCardTop">
+                <span className="FdaVerifStatBadge FdaVerifStatBadgeQueue">
+                  <Clock size={14} />
+                </span>
               </div>
-              <div className="FdaVerifStatInfo">
-                <span className="FdaVerifStatValue">{fdaQueueList.length}</span>
-                <span className="FdaVerifStatLabel">Verification Queue</span>
-              </div>
+              <span className="FdaVerifStatValue">{fdaQueueList.length}</span>
+              <span className="FdaVerifStatLabel">Verification Queue</span>
             </div>
 
-            <div className="FdaVerifStatCardDisplayOnly">
-              <div className="FdaVerifStatIcon FdaVerifStatIconCompleted">
-                <CheckCircle2 size={20} />
+            <div className="FdaVerifStatCard">
+              <div className="FdaVerifStatCardTop">
+                <span className="FdaVerifStatBadge FdaVerifStatBadgeCompleted">
+                  <CheckCircle2 size={14} />
+                </span>
               </div>
-              <div className="FdaVerifStatInfo">
-                <span className="FdaVerifStatValue">{fdaCompletedList.length}</span>
-                <span className="FdaVerifStatLabel">Completed</span>
-              </div>
+              <span className="FdaVerifStatValue">{fdaCompletedList.length}</span>
+              <span className="FdaVerifStatLabel">Completed</span>
             </div>
 
-            <div className="FdaVerifStatCardDisplayOnly">
-              <div className="FdaVerifStatIcon FdaVerifStatIconRejected">
-                <XCircle size={20} />
+            <div className="FdaVerifStatCard">
+              <div className="FdaVerifStatCardTop">
+                <span className="FdaVerifStatBadge FdaVerifStatBadgeRejected">
+                  <XCircle size={14} />
+                </span>
               </div>
-              <div className="FdaVerifStatInfo">
-                <span className="FdaVerifStatValue">{fdaRejectedList.length}</span>
-                <span className="FdaVerifStatLabel">Rejected Requests</span>
-              </div>
+              <span className="FdaVerifStatValue">{fdaRejectedList.length}</span>
+              <span className="FdaVerifStatLabel">Rejected Requests</span>
             </div>
+
           </div>
 
           {/* WORKFLOW NAVIGATION TABS - VISUALLY IDENTICAL TO VIEW REPORTS PILL TABS */}
           {/* BACKEND: Tab switching triggers state filter & loads corresponding API dataset */}
-          <div className="FdaFilterRow">
+          <div className="FdaFilterRow FdaVerifTabsRow">
             <div className="FdaPillContainer">
               <button
                 className={`FdaPill ${fdaActiveTab === 'queue' ? 'active' : ''}`}
@@ -838,9 +895,11 @@ function FDAVerification() {
                       </div>
                     </div>
 
-                    <div className="FdaVerifDetailsGrid2">
+                    {/* MERGED CARD: Case Information + Verification Request Information + Auto-Attached Evidence */}
+                    <div className="FdaVerifMergedInfoCard">
+
                       {/* SECTION 1: CASE INFORMATION */}
-                      <div className="FdaVerifSectionCard">
+                      <div className="FdaVerifMergedSection">
                         <div className="FdaVerifSectionHeader">
                           <FileText size={16} className="FdaVerifGreenIcon" />
                           <h3>Case Information</h3>
@@ -891,10 +950,11 @@ function FDAVerification() {
                         </div>
                       </div>
 
+                      <hr className="FdaVerifSectionDivider" />
 
                       {/* SECTION 2: VERIFICATION REQUEST INFORMATION FROM LEA */}
 
-                      <div className="FdaVerifSectionCard">
+                      <div className="FdaVerifMergedSection">
                         <div className="FdaVerifSectionHeader">
                           <FileText size={16} className="FdaVerifGreenIcon" />
                           <h3>Verification Request Information (LEA-CIDG)</h3>
@@ -927,10 +987,11 @@ function FDAVerification() {
                         </div>
                       </div>
 
+                      <hr className="FdaVerifSectionDivider" />
 
                       {/* SECTION 3: AUTO-ATTACHED EVIDENCE & REQUEST DOCUMENTS */}
 
-                      <div className="FdaVerifSectionCard">
+                      <div className="FdaVerifMergedSection">
                         <div className="FdaVerifSectionHeader">
                           <Paperclip size={16} className="FdaVerifGreenIcon" />
                           <h3>Auto-Attached Evidence & Request Documents</h3>
@@ -964,9 +1025,10 @@ function FDAVerification() {
                           )}
                         </div>
                       </div>
+
                     </div>
 
-                    {/* SECTION 4: FDA VERIFICATION RESULT INTERACTIVE CONTROL PANEL */}
+                    {/* SECTION 4: FDA VERIFICATION RESULT INTERACTIVE CONTROL PANEL — REMAINS A SEPARATE STANDALONE CARD */}
                     {/* (For Verification Queue Tab) */}
 
                     <div className="FdaVerifSectionCard FdaVerifControlPanelCard">
@@ -1233,9 +1295,8 @@ function FDAVerification() {
             </div>
           )}
 
-          {/* ============================================================================ */}
           {/* COMPLETED VERIFICATIONS — FULL-WIDTH TABLE */}
-          {/* ============================================================================ */}
+      
 
           {fdaActiveTab === 'completed' && (() => {
             // Pagination helpers for Completed table
@@ -1248,9 +1309,9 @@ function FDAVerification() {
             return (
               <div className="FdaVerifTableSection">
 
-                {/* Filter Panel — matches fda-view-reports FdaFilterPanel style */}
-                <div className="FdaFilterPanel FdaVerifFilterPanel">
-                  <div className="FdaSearchWrapper">
+                {/* Filter Panel — search fixed-width left, dropdowns grouped right */}
+                <div className="FdaVerifFilterPanel">
+                  <div className="FdaSearchWrapper FdaSearchFixed">
                     <Search size={16} className="FdaSearchIcon" />
                     {/* BACKEND: pass completedSearch as keyword param to GET /api/fda/verification-requests?status=completed */}
                     <input
@@ -1263,54 +1324,56 @@ function FDAVerification() {
                     />
                   </div>
 
-                  <div className="FdaFilterGroup">
-                    {/* BACKEND: pass completedDateFrom as from_date query param */}
-                    <label>From</label>
-                    <input
-                      type="date"
-                      className="FdaVerifDateInput"
-                      value={completedDateFrom}
-                      onChange={(e) => { setCompletedDateFrom(e.target.value); setCompletedPage(1); }}
-                      title="Date Verified From"
-                    />
-                  </div>
+                  <div className="FdaFilterGroupsRight">
+                    <div className="FdaFilterGroup">
+                      {/* BACKEND: pass completedDateFrom as from_date query param */}
+                      <label>From</label>
+                      <input
+                        type="date"
+                        className="FdaVerifDateInput"
+                        value={completedDateFrom}
+                        onChange={(e) => { setCompletedDateFrom(e.target.value); setCompletedPage(1); }}
+                        title="Date Verified From"
+                      />
+                    </div>
 
-                  <div className="FdaFilterGroup">
-                    {/* BACKEND: pass completedDateTo as to_date query param */}
-                    <label>To</label>
-                    <input
-                      type="date"
-                      className="FdaVerifDateInput"
-                      value={completedDateTo}
-                      onChange={(e) => { setCompletedDateTo(e.target.value); setCompletedPage(1); }}
-                      title="Date Verified To"
-                    />
-                  </div>
+                    <div className="FdaFilterGroup">
+                      {/* BACKEND: pass completedDateTo as to_date query param */}
+                      <label>To</label>
+                      <input
+                        type="date"
+                        className="FdaVerifDateInput"
+                        value={completedDateTo}
+                        onChange={(e) => { setCompletedDateTo(e.target.value); setCompletedPage(1); }}
+                        title="Date Verified To"
+                      />
+                    </div>
 
-                  <div className="FdaFilterGroup">
-                    {/* BACKEND: pass completedCategory as category query param */}
-                    <label>Category</label>
-                    <select
-                      value={completedCategory}
-                      onChange={(e) => { setCompletedCategory(e.target.value); setCompletedPage(1); }}
-                      id="fda-completed-category-filter"
-                    >
-                      <option value="">All Categories</option>
-                      <option value="Cosmetics">Cosmetics</option>
-                      <option value="Foods">Foods</option>
-                      <option value="Medical Devices">Medical Devices</option>
-                      <option value="Drugs">Drugs</option>
-                    </select>
-                  </div>
+                    <div className="FdaFilterGroup">
+                      {/* BACKEND: pass completedCategory as category query param */}
+                      <label>Category</label>
+                      <select
+                        value={completedCategory}
+                        onChange={(e) => { setCompletedCategory(e.target.value); setCompletedPage(1); }}
+                        id="fda-completed-category-filter"
+                      >
+                        <option value="">All Categories</option>
+                        <option value="Cosmetics">Cosmetics</option>
+                        <option value="Foods">Foods</option>
+                        <option value="Medical Devices">Medical Devices</option>
+                        <option value="Drugs">Drugs</option>
+                      </select>
+                    </div>
 
-                  {(completedSearch || completedDateFrom || completedDateTo || completedCategory) && (
-                    <button
-                      className="BtnClearFilters"
-                      onClick={() => { setCompletedSearch(''); setCompletedDateFrom(''); setCompletedDateTo(''); setCompletedCategory(''); setCompletedPage(1); }}
-                    >
-                      Clear Filters
-                    </button>
-                  )}
+                    {(completedSearch || completedDateFrom || completedDateTo || completedCategory) && (
+                      <button
+                        className="BtnClearFilters"
+                        onClick={() => { setCompletedSearch(''); setCompletedDateFrom(''); setCompletedDateTo(''); setCompletedCategory(''); setCompletedPage(1); }}
+                      >
+                        Clear Filters
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Table — matches fda-view-reports FdaTableCard + FdaTableWrapper + FdaTable */}
@@ -1429,9 +1492,9 @@ function FDAVerification() {
             return (
               <div className="FdaVerifTableSection">
 
-                {/* Filter Panel — matches fda-view-reports FdaFilterPanel style */}
-                <div className="FdaFilterPanel FdaVerifFilterPanel">
-                  <div className="FdaSearchWrapper">
+                {/* Filter Panel — search fixed-width left, dropdowns grouped right */}
+                <div className="FdaVerifFilterPanel">
+                  <div className="FdaSearchWrapper FdaSearchFixed">
                     <Search size={16} className="FdaSearchIcon" />
                     {/* BACKEND: pass rejectedSearch as keyword param to GET /api/fda/verification-requests?status=rejected */}
                     <input
@@ -1444,54 +1507,56 @@ function FDAVerification() {
                     />
                   </div>
 
-                  <div className="FdaFilterGroup">
-                    {/* BACKEND: pass rejectedDateFrom as from_date query param */}
-                    <label>From</label>
-                    <input
-                      type="date"
-                      className="FdaVerifDateInput"
-                      value={rejectedDateFrom}
-                      onChange={(e) => { setRejectedDateFrom(e.target.value); setRejectedPage(1); }}
-                      title="Date Rejected From"
-                    />
-                  </div>
+                  <div className="FdaFilterGroupsRight">
+                    <div className="FdaFilterGroup">
+                      {/* BACKEND: pass rejectedDateFrom as from_date query param */}
+                      <label>From</label>
+                      <input
+                        type="date"
+                        className="FdaVerifDateInput"
+                        value={rejectedDateFrom}
+                        onChange={(e) => { setRejectedDateFrom(e.target.value); setRejectedPage(1); }}
+                        title="Date Rejected From"
+                      />
+                    </div>
 
-                  <div className="FdaFilterGroup">
-                    {/* BACKEND: pass rejectedDateTo as to_date query param */}
-                    <label>To</label>
-                    <input
-                      type="date"
-                      className="FdaVerifDateInput"
-                      value={rejectedDateTo}
-                      onChange={(e) => { setRejectedDateTo(e.target.value); setRejectedPage(1); }}
-                      title="Date Rejected To"
-                    />
-                  </div>
+                    <div className="FdaFilterGroup">
+                      {/* BACKEND: pass rejectedDateTo as to_date query param */}
+                      <label>To</label>
+                      <input
+                        type="date"
+                        className="FdaVerifDateInput"
+                        value={rejectedDateTo}
+                        onChange={(e) => { setRejectedDateTo(e.target.value); setRejectedPage(1); }}
+                        title="Date Rejected To"
+                      />
+                    </div>
 
-                  <div className="FdaFilterGroup">
-                    {/* BACKEND: pass rejectedCategory as category query param */}
-                    <label>Category</label>
-                    <select
-                      value={rejectedCategory}
-                      onChange={(e) => { setRejectedCategory(e.target.value); setRejectedPage(1); }}
-                      id="fda-rejected-category-filter"
-                    >
-                      <option value="">All Categories</option>
-                      <option value="Cosmetics">Cosmetics</option>
-                      <option value="Foods">Foods</option>
-                      <option value="Medical Devices">Medical Devices</option>
-                      <option value="Drugs">Drugs</option>
-                    </select>
-                  </div>
+                    <div className="FdaFilterGroup">
+                      {/* BACKEND: pass rejectedCategory as category query param */}
+                      <label>Category</label>
+                      <select
+                        value={rejectedCategory}
+                        onChange={(e) => { setRejectedCategory(e.target.value); setRejectedPage(1); }}
+                        id="fda-rejected-category-filter"
+                      >
+                        <option value="">All Categories</option>
+                        <option value="Cosmetics">Cosmetics</option>
+                        <option value="Foods">Foods</option>
+                        <option value="Medical Devices">Medical Devices</option>
+                        <option value="Drugs">Drugs</option>
+                      </select>
+                    </div>
 
-                  {(rejectedSearch || rejectedDateFrom || rejectedDateTo || rejectedCategory) && (
-                    <button
-                      className="BtnClearFilters"
-                      onClick={() => { setRejectedSearch(''); setRejectedDateFrom(''); setRejectedDateTo(''); setRejectedCategory(''); setRejectedPage(1); }}
-                    >
-                      Clear Filters
-                    </button>
-                  )}
+                    {(rejectedSearch || rejectedDateFrom || rejectedDateTo || rejectedCategory) && (
+                      <button
+                        className="BtnClearFilters"
+                        onClick={() => { setRejectedSearch(''); setRejectedDateFrom(''); setRejectedDateTo(''); setRejectedCategory(''); setRejectedPage(1); }}
+                      >
+                        Clear Filters
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Table — matches fda-view-reports FdaTableCard + FdaTableWrapper + FdaTable */}
@@ -1845,7 +1910,7 @@ function FDAVerification() {
                     Close Preview
                   </button>
                   <button
-                    className="FdaVerifBtnPrimary"
+                    className="FdaVerifBtnDownloadAttachment"
                     onClick={() => {
                       triggerAlert(`Downloaded attachment file: ${fdaDocPreviewModal.name}`, 'info');
                       setFdaDocPreviewModal(null);

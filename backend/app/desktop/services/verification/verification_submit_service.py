@@ -55,6 +55,10 @@ def submit_verification_draft(db: Session, draft_id: UUID, current_user) -> Veri
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found.")
 
+    # ADDED — same defense-in-depth check
+    if draft.draft_status != "draft":
+        raise HTTPException(status_code=400, detail="This draft is still incomplete and cannot be submitted yet.")
+
     new_request = _create_verification_request(
         db, current_user,
         complaint_id=draft.complaint_id,
