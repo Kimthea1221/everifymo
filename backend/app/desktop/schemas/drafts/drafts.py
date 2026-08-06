@@ -231,3 +231,12 @@ class FdaVerificationDraftDetailResponse(FdaVerificationDraftResponse):
     product_category: str | None
     requested_by_name: str | None
     requested_at: datetime
+
+# Wraps the Saved Drafts list with pagination info, so the frontend
+# can render "Showing X-Y of Z drafts" and build Prev/Next controls
+# without a second API call just to get the total count.
+class FdaVerificationDraftListResponse(BaseModel):
+    items: list[FdaVerificationDraftListItem]
+    total: int
+    page: int
+    page_size: int

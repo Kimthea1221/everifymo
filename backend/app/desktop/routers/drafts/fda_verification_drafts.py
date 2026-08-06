@@ -1,7 +1,11 @@
 from uuid import UUID
 
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
+from datetime import date
+from sqlalchemy import cast, Date
 
 from app.database.sessions import get_db
 from app.models.fda_verification_drafts import FdaVerificationDraft
@@ -13,6 +17,7 @@ from app.desktop.schemas.drafts.drafts import (
     FdaVerificationDraftResponse,
     FdaVerificationDraftDetailResponse,
     FdaVerificationDraftListItem,
+    FdaVerificationDraftListResponse,
     DraftStatus,
     SortOption,
 )
@@ -222,10 +227,14 @@ def delete_fda_verification_draft(
     # product_name/manufacturer/category pulled in from the joined
     # request+complaint, since none of that lives on the draft row
     # itself.
-@router.get("/", response_model=list[FdaVerificationDraftListItem])
+@router.get("/", response_model=FdaVerificationDraftListResponse)
 def list_fda_verification_drafts(
     search: str | None = Query(None),
+    category: str | None = Query(None),
+    date_filter: date | None = Query(None),
     sort: SortOption = Query(SortOption.recently_edited),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(5, ge=1, le=50),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -237,13 +246,22 @@ def list_fda_verification_drafts(
     )
 
     if search is not None:
-        # Matches on EITHER case reference or product name — mirrors
-        # the "Search Case ID, Product, or Manufacturer..." search
-        # box shown in the UI.
         query = query.filter(
             Complaint.case_reference.ilike(f"%{search}%")
             | VerificationRequest.product_name.ilike(f"%{search}%")
+            | Complaint.manufacturer.ilike(f"%{search}%")
         )
+
+    if category is not None:
+        query = query.filter(Complaint.product_category == category)
+
+    if date_filter is not None:
+        query = query.filter(cast(FdaVerificationDraft.updated_at, Date) == date_filter)
+
+    # Total count BEFORE pagination is applied — this is what powers
+    # "Showing 1-5 of 6 drafts." Counting after .offset()/.limit()
+    # would just return the page size, not the real total.
+    total = query.count()
 
     if sort == SortOption.recently_edited:
         query = query.order_by(FdaVerificationDraft.updated_at.desc())
@@ -252,12 +270,10 @@ def list_fda_verification_drafts(
     elif sort == SortOption.product_name_az:
         query = query.order_by(VerificationRequest.product_name.asc())
 
-    results = query.all()
+    offset = (page - 1) * page_size
+    results = query.offset(offset).limit(page_size).all()
 
-    # Each row comes back as a tuple (draft, verification_request,
-    # complaint) because of the multi-model query above — build the
-    # flat list item shape the frontend actually wants from each one.
-    return [
+    items = [
         FdaVerificationDraftListItem(
             draft_id=draft.draft_id,
             verification_request_id=draft.verification_request_id,
@@ -270,3 +286,10 @@ def list_fda_verification_drafts(
         )
         for draft, verification_request, complaint in results
     ]
+
+    return FdaVerificationDraftListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
