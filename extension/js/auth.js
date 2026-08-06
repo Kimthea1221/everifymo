@@ -38,8 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmPasswordError = document.getElementById('confirm-password-error');
   const forgotLink = document.querySelector('.forgot-link');
   const guestBtn = document.getElementById('btn-guest');
-  const googleLoginBtn = document.getElementById("google-login-btn");
-  const googleError = document.getElementById("googleError");
+  const googleLoginBtn = document.getElementById('google-login-btn');
+  const googleError = document.getElementById('googleError');
+  const forgotOtpField = document.getElementById('forgot-otp-field');
+  const forgotOtpInputs = Array.from(document.querySelectorAll('.forgot-otp-digit-input'));
+  const forgotOtpError = document.getElementById('forgot-otp-error');
+  const resendForgotOtpLink = document.getElementById('resend-forgot-otp-link');
+  const newPasswordField = document.getElementById('new-password-field');
+  const confirmNewPasswordField = document.getElementById('confirm-new-password-field');
 
   // --- Password show/hide eye icon toggle ---
   document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
@@ -97,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const setError = (node, message) => {
     if (node) {
       node.textContent = message;
+      node.classList.remove('is-success');
     }
   };
 
@@ -207,15 +214,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  let forgotStage = 'request';
+  let forgotPendingEmail = '';
+  let forgotPendingResetToken = '';
+
+  function getForgotOtpValue() {
+    return forgotOtpInputs.map(input => input.value).join('');
+  }
+
+  function clearForgotOtpInput() {
+    forgotOtpInputs.forEach(input => {
+      input.value = '';
+      input.classList.remove('is-invalid');
+    })
+  }
+
+  forgotOtpInputs.forEach((input, index) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '').slice(0, 1);
+      if (input.value && index < forgotOtpInputs.length - 1) {
+        forgotOtpInputs[index + 1].focus();
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && index > 0) {
+        forgotOtpInputs[index - 1].focus();
+      }
+    });
+  });
+
   // ---- Forgot Password mode switching — defined once, not inside updateMode ----
   function enterForgotMode() {
+    forgotStage = 'request';
+    forgotPendingEmail = '';
+
     if (tabsContainer) tabsContainer.classList.add('hidden');
     if (usernameField) usernameField.hidden = true;
     if (signinPasswordField) signinPasswordField.hidden = true;
     if (signupPasswordFields) signupPasswordFields.hidden = true;
+
     if (forgotPasswordFields) forgotPasswordFields.hidden = false;
+    if (forgotOtpField) forgotOtpField.hidden = true;
+    if (newPasswordField) newPasswordField.hidden = true;
+    if (confirmNewPasswordField) confirmNewPasswordField.hidden = true;
+    if (resendForgotOtpLink) resendForgotOtpLink.hidden = true;
+
+    if (emailField) emailField.hidden = false;
+
     if (primaryButton) primaryButton.classList.add('hidden');
-    if (forgotConfirmButton) forgotConfirmButton.classList.remove('hidden');
+    if (forgotConfirmButton) {
+      forgotConfirmButton.classList.remove('hidden');
+      forgotConfirmButton.textContent = "Send Reset Code";
+    }
     if (backToSigninLink) backToSigninLink.classList.remove('hidden');
     if (orDivider) orDivider.classList.add('hidden');
     if (guestBtn) guestBtn.classList.add('hidden');
@@ -223,11 +274,75 @@ document.addEventListener('DOMContentLoaded', () => {
     if (noticeTitle) noticeTitle.textContent = 'Reset your password';
     if (noticeText) noticeText.textContent = 'Enter your account email and choose a new password.';
 
+    if (googleLoginBtn) googleLoginBtn.style.display = "none";
+
     clearErrors();
+    if (forgotOtpError) forgotOtpError.textContent = '';
     if (newPasswordError) newPasswordError.textContent = '';
     if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+
+    // googleLoginBtn.style.display = "none";
   }
   
+  function enterForgotOtpStage(email) {
+    forgotStage = 'otp';
+    forgotPendingEmail = email;
+
+    if (emailField) emailField.hidden = true;
+
+    if (forgotOtpField) forgotOtpField.hidden = false;
+
+    if (newPasswordField) newPasswordField.hidden = true;
+    if (confirmNewPasswordField) confirmNewPasswordField.hidden = true;
+    if (resendForgotOtpLink) resendForgotOtpLink.hidden = false;
+
+    if (forgotConfirmButton) forgotConfirmButton.textContent = 'Confirm Password';
+
+    if (noticeTitle) noticeTitle.textContent = 'Check your email';
+    if (noticeText) noticeText.textContent = `Enter the 6-digit code sent to ${email} and choose a new password.`;
+
+    if (forgotOtpError) forgotOtpError.textContent = '';
+    clearForgotOtpInput();
+    if (forgotOtpInputs[0]) forgotOtpInputs[0].focus();
+  }
+
+  function enterForgotPasswordStage(){
+    forgotStage = 'reset';
+
+    if (emailField) emailField.hidden = true;
+
+    if (forgotOtpField) forgotOtpField.hidden = true;
+    if (resendForgotOtpLink) resendForgotOtpLink.hidden = true;
+
+    if (newPasswordField) newPasswordField.hidden = false;
+    if (confirmNewPasswordField) confirmNewPasswordField.hidden = false;
+
+    if (forgotConfirmButton) forgotConfirmButton.textContent = 'Reset Password';
+
+    if (noticeTitle) noticeTitle.textContent = 'Choose a new password';
+    if (noticeText) noticeText.textContent = 'Enter a new password for your account.';
+
+    if (newPasswordError) newPasswordError.textContent = '';
+    if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+    if (newPasswordInput) newPasswordInput.focus();
+  }
+
+  function exitForgotMode() {
+    forgotStage = 'request';
+    forgotPendingEmail = '';
+
+    if (forgotPasswordFields) forgotPasswordFields.hidden = true;
+    if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
+    if (backToSigninLink) backToSigninLink.classList.add('hidden');
+    if (emailField) emailField.hidden = false;
+    if (primaryButton) primaryButton.classList.remove('hidden');
+    if (tabsContainer) tabsContainer.classList.remove('hidden');
+    if (orDivider) orDivider.classList.remove('hidden');
+    if (guestBtn) guestBtn.classList.remove('hidden');
+
+    updateMode('signin');
+  }
+
   // Switches the screen into "enter your OTP code" view. 
   // (Called right after signup or login succeeds — email/mode are passed in)
   function enterOtpMode(email, mode) {
@@ -282,18 +397,18 @@ document.addEventListener('DOMContentLoaded', () => {
     updateMode(otpPendingMode === 'signup' ? 'signup' : 'signin');
   }
 
-  // Reverses enterForgotMode — goes back to the normal signin form
-  function exitForgotMode() {
-    if (forgotPasswordFields) forgotPasswordFields.hidden = true;
-    if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
-    if (backToSigninLink) backToSigninLink.classList.add('hidden');
-    if (primaryButton) primaryButton.classList.remove('hidden');
-    if (tabsContainer) tabsContainer.classList.remove('hidden');
-    if (orDivider) orDivider.classList.remove('hidden');
-    if (guestBtn) guestBtn.classList.remove('hidden');
+  // // Reverses enterForgotMode — goes back to the normal signin form (old, there is new one above)
+  // function exitForgotMode() {
+  //   if (forgotPasswordFields) forgotPasswordFields.hidden = true;
+  //   if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
+  //   if (backToSigninLink) backToSigninLink.classList.add('hidden');
+  //   if (primaryButton) primaryButton.classList.remove('hidden');
+  //   if (tabsContainer) tabsContainer.classList.remove('hidden');
+  //   if (orDivider) orDivider.classList.remove('hidden');
+  //   if (guestBtn) guestBtn.classList.remove('hidden');
 
-    updateMode('signin');
-  }
+  //   updateMode('signin');
+  // }
 
   // Checks the signin/signup form fields before submitting.
   // Returns true only if everything required is filled in correctly.
@@ -409,46 +524,103 @@ document.addEventListener('DOMContentLoaded', () => {
   // Submits a password reset request (email + new password)
   if (forgotConfirmButton) {
     forgotConfirmButton.addEventListener('click', () => {
-      clearErrors();
-      if (newPasswordError) newPasswordError.textContent = '';
-      if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+      if (forgotStage === 'request') {
+        clearErrors();
+        const emailValue = emailInput ? emailInput.value.trim() : '';
 
-      const emailValue = emailInput ? emailInput.value.trim() : '';
-      const newPw = newPasswordInput ? newPasswordInput.value : '';
-      const confirmPw = confirmNewPasswordInput ? confirmNewPasswordInput.value : '';
-      let isValid = true;
-
-      if (!emailValue || !isValidEmail(emailValue)) {
-        setError(emailError, 'Enter a valid email address.');
-        if (emailInput) emailInput.classList.add('is-invalid');
-        isValid = false;
-      }
-      if (!isStrongPassword(newPw)) {
-        setError(newPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
-        if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
-        isValid = false;
-      }
-      if (newPw && newPw !== confirmPw) {
-        setError(confirmNewPasswordError, 'Passwords do not match.');
-        if (confirmNewPasswordInput) confirmNewPasswordInput.classList.add('is-invalid');
-        isValid = false;
-      }
-
-      if (!isValid) return;
-
-      resetPasswordDirect(emailValue, newPw, (success, errorMsg) => {
-        if (!success) {
-          setError(emailError, errorMsg || 'Account does not exist.');
+        if (!emailValue || !isValidEmail(emailValue)) {
+          setError(emailError, 'Enter a valid email address.');
           if (emailInput) emailInput.classList.add('is-invalid');
           return;
         }
-        newPasswordInput.value = '';
-        confirmNewPasswordInput.value = '';
-        exitForgotMode();
-      });
+
+        requestPasswordReset(emailValue, (success, error) => {
+          enterForgotOtpStage(emailValue);
+        });
+
+      } else if (forgotStage === 'otp') {
+        if (forgotOtpError) forgotOtpError.textContent = '';
+        const otpValue = getForgotOtpValue();
+
+        if (otpValue.length < 6) {
+          setError(forgotOtpError, 'Please enter all 6 digits.');
+          forgotOtpInputs.forEach(input => { if (!input.value) input.classList.add('is-invalid'); });
+          return;
+        }
+
+        verifyResetOtp(forgotPendingEmail, otpValue, (success, resetToken, error) => {
+          if (!success) {
+            setError(forgotOtpError, error || 'Incorrect code. Please try again.');
+            forgotOtpInputs.forEach(input => input.classList.add('is-invalid'));
+            return;
+          }
+          
+          forgotPendingResetToken = resetToken;
+          enterForgotPasswordStage();
+        });
+
+      } else {
+        if (forgotOtpError) forgotOtpError.textContent = '';
+        if (newPasswordError) newPasswordError.textContent = '';
+        if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+
+        const otpValue = getForgotOtpValue();
+        const newPassword = newPasswordInput ? newPasswordInput.value : '';
+        const confirmPassword = confirmNewPasswordInput ? confirmNewPasswordInput.value : '';
+        
+        let isValid  = true;
+
+        if (!newPassword) {
+          setError(newPasswordError, 'Please enter a new password.');
+          if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
+          isValid = false;
+        } else if (!isStrongPassword(newPassword)) {
+          setError(newPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
+          if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
+          isValid = false;
+        }
+
+        if (!confirmPassword) {
+          setError(confirmNewPasswordError, 'Please confirm your new password.');
+          if (confirmNewPasswordInput) confirmNewPasswordInput.classList.add('is-invalid');
+          isValid = false;
+        } else if (newPassword && newPassword !== confirmPassword) {
+          setError(confirmNewPasswordError, 'Passwords do not match.');
+          if (confirmNewPasswordInput) confirmNewPasswordInput.classList.add('is-invalid');
+          isValid = false;
+        }
+
+        if (!isValid) return;
+
+        confirmPasswordReset(forgotPendingEmail, forgotPendingResetToken, newPassword, (success, error) => {
+          if (!success) {
+            enterForgotMode();
+            setError(newPasswordError, error || 'Session expired. Please request a new code.');
+            return;
+          }
+
+          newPasswordInput.value = '';
+          confirmNewPasswordInput.value = '';
+          sessionStorage.setItem('authFlashMessage', 'Password reset successfully. Please sign in to continue.');
+          sessionStorage.setItem('authFlashType', 'success');
+          window.location.href = 'auth.html';
+        });
+      }
     });
   }
 
+  if (resendForgotOtpLink) {
+    resendForgotOtpLink.addEventListener('click', (e) => {
+      e.preventDefault();
+        requestPasswordReset(forgotPendingEmail, () => {
+          clearForgotOtpInput();
+          if (forgotOtpError) {  
+            forgotOtpError.textContent = 'A new code has been sent.';
+            forgotOtpError.classList.add('is-success');
+          }
+        })
+    })
+  }
   // flash message after redirect to clear previous message
   const flashMessage = sessionStorage.getItem('authFlashMessage');
   const flashType = sessionStorage.getItem('authFlashType');

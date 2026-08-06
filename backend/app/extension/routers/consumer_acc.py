@@ -10,6 +10,8 @@ from app.extension.services import consumer_acc_service
 from app.core.security import get_current_user
 
 from app.extension.services.send_email import send_otp_email
+from app.extension.schemas import consumer_acc #ForgotPasswordRequest, ResetPassword
+from app.extension.services import consumer_otp_service
 
 router = APIRouter(
     prefix="/accounts",
@@ -47,3 +49,23 @@ async def resend_otp(db: db_dependency, request: RequestOTP, background_tasks: B
     background_tasks.add_task(send_otp_email, request.email, code)
     
     return {"detail": "OTP resent"}
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(db: db_dependency, request: consumer_acc.ForgotPasswordRequest, background_tasks: BackgroundTasks):
+    result = consumer_acc_service.request_password_reset(db, request.email)
+
+    if result:
+        email, otp_code = result
+        background_tasks.add_task(send_otp_email, email, otp_code)
+
+    return { "detail": "A reset code has been sent to your email." }
+
+@router.post("/verify-reset-otp", status_code=status.HTTP_200_OK)
+async def verify_reset_otp(db: db_dependency, request: consumer_acc.VerifyResetOtp):
+    reset_token = consumer_otp_service.verify_reset_otp(db, request.email, request.otp_code)
+    return { "reset_token": reset_token }
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(db: db_dependency, request: consumer_acc.ResetPassword):
+    consumer_acc_service.reset_password(db, request.email, request.reset_token, request.new_password)
+    return { "detail": "Password reset successfully" }
