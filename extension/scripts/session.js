@@ -103,6 +103,21 @@ function resendOtpSession(email, callback) {
       .catch(e => callback(false, e.message));
 }
 
+function verifyResetOtp(email, otpCode, callback) {
+  apiVerifyResetOtp(email, otpCode).then(data => callback(true, data.reset_token))
+      .catch(e => callback(false, null, e.message));
+}
+
+function requestPasswordReset(email, callback) {
+  apiPasswordReset(email).then(() => callback(true))
+      .catch(e => callback(false, e.message));
+}
+
+function confirmPasswordReset(email, resetToken, newPassword, callback) {
+  apiConfirmPassReset(email, resetToken, newPassword).then(() => callback(true))
+      .catch(e => callback(false, e.message))
+}
+
 function logoutUser(callback) {
   _session = null;
   chrome.storage.local.remove(['access_token', 'token_type', 'username', 'email'], callback);

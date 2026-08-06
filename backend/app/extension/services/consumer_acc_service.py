@@ -7,8 +7,8 @@ from app.models.consumer_accounts import ConsumerAccount
 from app.extension.schemas.consumer_acc import CreateConsumerAcc
 from app.models import consumer_accounts
 
-from app.extension.services.consumer_otp_service import create_otp, verify_otp
-from app.extension.services.google_auth_service import verify_google_token
+from app.extension.services import consumer_otp_service
+from app.extension.services import google_auth_service
 
 def create_user(db: Session, create_user_request: CreateConsumerAcc) -> ConsumerAccount:
     consumer_acc = ConsumerAccount(
@@ -37,7 +37,7 @@ def create_user(db: Session, create_user_request: CreateConsumerAcc) -> Consumer
         )
     db.refresh(consumer_acc)
 
-    code = create_otp(db, consumer_acc.consumer_id, purpose="signup_verification")
+    code = consumer_otp_service.create_otp(db, consumer_acc.consumer_id, purpose="signup_verification")
     return consumer_acc, code
 
 def verify_signup_otp(db: Session, email: str, otp_code: str) -> ConsumerAccount:
@@ -46,7 +46,7 @@ def verify_signup_otp(db: Session, email: str, otp_code: str) -> ConsumerAccount
     if not consumer:
         raise HTTPException(status_code=404, detail="Account not found")
 
-    verify_otp(db, consumer.consumer_id, otp_code, purpose="signup_verification")
+    consumer_otp_service.verify_otp(db, consumer.consumer_id, otp_code, purpose="signup_verification")
 
     consumer.is_verified = True
     db.commit()
@@ -61,7 +61,7 @@ def resend_signup_otp(db: Session, email: str) -> str:
     if consumer.is_verified:
         raise HTTPException(status_code=400, detail="Account already verified")
 
-    return create_otp(db, consumer.consumer_id, purpose="signup_verification")
+    return consumer_otp_service.create_otp(db, consumer.consumer_id, purpose="signup_verification")
 
 def update_username(db: Session, user_id: int, updatedUsername: str):
     user = db.query( consumer_accounts.ConsumerAccount
@@ -83,7 +83,7 @@ def update_username(db: Session, user_id: int, updatedUsername: str):
     return user
 
 def login_with_google(db: Session, google_token: str) -> ConsumerAccount:
-    infoID = verify_google_token(google_token)
+    infoID = google_auth_service.verify_google_token(google_token)
     email = infoID["email"]
 
     consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
@@ -95,3 +95,22 @@ def login_with_google(db: Session, google_token: str) -> ConsumerAccount:
         raise HTTPException(status_code=400, detail="Please verify your account before logging in.")
 
     return consumer
+
+def request_password_reset(db: Session, email: str):
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        return None
+
+    otp_code = consumer_otp_service.create_otp(db, consumer.consumer_id, purpose="password_reset")
+    return consumer.email, otp_code
+
+def reset_password(db: Session, email: str, reset_token: str, new_password: str):
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        raise HTTPException(status_code=400, detail="Invalid request")
+
+    consumer_otp_service.verify_otp(db, consumer.consumer_id, reset_token, purpose="password_reset_token")
+    consumer.password_hash = pwd_context.hash(new_password)
+    db.commit()

@@ -74,6 +74,56 @@ async function handleResponse(response) {
     return response.json();
 }
 
+async function apiVerifyOtp(email, inputCode, callback) {
+  const res = await fetch(`${API_BASE}/accounts/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, otp_code: inputCode }),
+  });
+
+  return handleResponse(res);
+}
+
+async function apiResendOtp(email, callback) {
+    const res = await fetch(`${API_BASE}/accounts/resend-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email }),
+    });
+
+    return handleResponse(res);
+}
+
+async function apiPasswordReset(email, callback) {
+    const res = await fetch(`${API_BASE}/accounts/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+    });
+
+    return handleResponse(res);
+}
+
+async function apiVerifyResetOtp(email, otpCode){
+    const res = await fetch(`${API_BASE}/accounts/verify-reset-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp_code: otpCode }),
+    });
+
+    return handleResponse(res);
+}
+
+async function apiConfirmPassReset(email, resetToken, newPassword) {
+    const res = await fetch(`${API_BASE}/accounts/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, reset_token: resetToken, new_password: newPassword }),
+    });
+
+    return handleResponse(res);
+}
+
 async function apiSubmitComplaint(complaintData, token){
     let headers = { 'Content-Type': 'application/json'};
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -104,26 +154,6 @@ async function apiGetStatus(token){
         headers: {
             'Authorization': `Bearer ${token}`
         }
-    });
-
-    return handleResponse(res);
-}
-
-async function apiVerifyOtp(email, inputCode, callback) {
-  const res = await fetch(`${API_BASE}/accounts/verify-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, otp_code: inputCode }),
-  });
-
-  return handleResponse(res);
-}
-
-async function apiResendOtp(email, callback) {
-    const res = await fetch(`${API_BASE}/accounts/resend-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email }),
     });
 
     return handleResponse(res);
