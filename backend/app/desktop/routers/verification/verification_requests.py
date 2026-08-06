@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
@@ -19,6 +19,9 @@ from app.models.walkin_complainants import WalkinComplainant
 from app.desktop.schemas.verification.verification import VerificationRequestAwaitingFDAResponse
 
 from app.models.verification_requests import VerificationRequest
+
+from app.desktop.schemas.verification.verification import FdaVerificationRequestDetailResponse
+from app.desktop.services.verification.fda_verification_response import get_fda_verification_request_detail
 
 # Same two-router-in-one-file pattern as walkin_complaints.py
 draft_submit_router = APIRouter(prefix="/drafts/verification", tags=["Verification Requests"])
@@ -78,17 +81,34 @@ list_router = APIRouter(prefix="/verification-requests", tags=["Verification Req
     # GET /verification-requests/awaiting-fda
 @list_router.get("/awaiting-fda", response_model=list[VerificationRequestAwaitingFDAResponse])
 def list_verification_requests_awaiting_fda(
+    search: str | None = Query(None),
+    priority: str | None = Query(None),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    results = db.query(VerificationRequest, Complaint, WalkinComplainant).join(
+    query = db.query(VerificationRequest, Complaint, WalkinComplainant).join(
         Complaint, VerificationRequest.complaint_id == Complaint.complaint_id
     ).outerjoin(
         WalkinComplainant, Complaint.complainant_id == WalkinComplainant.complainant_id
     ).filter(
         VerificationRequest.verification_request_status == "pending",
-        Complaint.region_id == current_user.region_id,   # region scoping from the start
-    ).order_by(VerificationRequest.requested_at.desc()).all()
+        Complaint.region_id == current_user.region_id,
+    )
+
+    if search is not None:
+        # Matches the "Search Case ID, Product, or Manufacturer..."
+        # box — same three-field pattern as the FDA drafts search.
+        query = query.filter(
+            Complaint.case_reference.ilike(f"%{search}%")
+            | VerificationRequest.product_name.ilike(f"%{search}%")
+            | Complaint.manufacturer.ilike(f"%{search}%")
+        )
+
+    if priority is not None:
+        # Exact match — "All Priorities" dropdown, not free text.
+        query = query.filter(VerificationRequest.priority == priority)
+
+    results = query.order_by(VerificationRequest.requested_at.desc()).all()
 
     return [
         VerificationRequestAwaitingFDAResponse(
@@ -105,3 +125,19 @@ def list_verification_requests_awaiting_fda(
         )
         for request, complaint, complainant in results
     ]
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/{request_id}
+@list_router.get("/{request_id}", response_model=FdaVerificationRequestDetailResponse)
+def get_verification_request_detail(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_fda_verification_request_detail(db, request_id, current_user)

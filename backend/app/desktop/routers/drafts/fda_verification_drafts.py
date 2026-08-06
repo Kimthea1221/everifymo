@@ -22,6 +22,7 @@ from app.desktop.schemas.drafts.drafts import (
     SortOption,
 )
 from app.core.dependencies import get_current_user
+from app.core.user_display import format_officer_display_name
 
 
 router = APIRouter(prefix="/drafts/fda-verification", tags=["FDA Verification Drafts"])
@@ -82,7 +83,16 @@ def save_fda_verification_draft(
     # Confirms the request is real and in-region BEFORE touching the
     # drafts table at all — no point creating a draft against a
     # request this officer shouldn't even be able to see.
-    _get_request_and_complaint_in_region(db, verification_request_id, current_user)
+    verification_request, complaint = _get_request_and_complaint_in_region(db, verification_request_id, current_user)
+
+    # Drafts only make sense while a request is still awaiting a
+    # decision — once it's been responded to, saving a draft against
+    # it would just be dead data nobody can ever act on.
+    if verification_request.verification_request_status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="This verification request has already been responded to and can no longer be drafted.",
+        )
 
     status = _determine_draft_status(data)
 
@@ -156,23 +166,10 @@ def get_fda_verification_draft(
         User.user_id == verification_request.requested_by
     ).first()
 
-    if not requesting_officer:
-        requested_by_name = None
-    else:
-        # Build the display name in the same format the UI shows:
-        # "Position FirstName LastName" — e.g. "PO3 R. Dela Cruz"
-        # Any of the three parts can be null in the DB (users can be
-        # invited but not fully set up yet), so we only include the
-        # parts that are actually there and join with spaces.
-        name_parts = [
-            requesting_officer.position,
-            requesting_officer.first_name,
-            requesting_officer.last_name,
-        ]
-        assembled = " ".join(part for part in name_parts if part is not None)
-        # If every single field was null, return None rather than an
-        # empty string — None is more honest ("we don't know") than "".
-        requested_by_name = assembled if assembled else None
+    requesting_officer = db.query(User).filter(
+        User.user_id == verification_request.requested_by
+    ).first()
+    requested_by_name = format_officer_display_name(requesting_officer)
 
     return FdaVerificationDraftDetailResponse(
         **FdaVerificationDraftResponse.model_validate(draft).model_dump(),
