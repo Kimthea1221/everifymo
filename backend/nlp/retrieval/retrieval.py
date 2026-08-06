@@ -8,6 +8,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from common.clean import clean_title
 from modelload import load_all_assets
 
+
 assets = load_all_assets()
 model = assets["model"]
 bm25RegisteredObj = assets["bm25RegisteredObj"]

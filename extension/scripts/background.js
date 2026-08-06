@@ -1,4 +1,6 @@
-﻿chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+﻿console.log("Background service worker started");
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === 'titleExtracted') {
 
