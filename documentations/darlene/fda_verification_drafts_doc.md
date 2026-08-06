@@ -126,15 +126,28 @@ Region scoping: enforced through `Complaint.region_id == current_user.region_id`
 
 ### GET `/drafts/fda-verification/`
 
-**What it does:** Returns the list of all drafts saved by the currently logged-in officer. Fills the Saved Drafts table in the UI. Each row includes joined case info (case reference, product name, manufacturer, category) since none of that lives on the draft row itself.
+**What it does:** Returns a paginated list of drafts saved by the currently logged-in officer. Fills the Saved Drafts table in the UI, including the "Showing X–Y of Z drafts" counter and Prev/Next controls. Each row includes joined case info (case reference, product name, manufacturer, category) since none of that lives on the draft row itself.
 
 **Query parameters:**
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `search` | string | none | Filters by case reference OR product name (case-insensitive). Useful when the list is long or paginated. |
+| `search` | string | none | Free-text match against case reference, product name, OR manufacturer (case-insensitive, partial match). Matches the UI's "Search Case ID, Product, or Manufacturer..." box. |
+| `category` | string | none | Exact match against product category (e.g. `Cosmetics`, `Drugs`). Maps to the Category dropdown filter. |
+| `date_filter` | date (`YYYY-MM-DD`) | none | Matches drafts last modified on this exact calendar day. Maps to the Date filter. |
 | `sort` | enum | `recently_edited` | `recently_edited` / `oldest_first` / `product_name_az` |
+| `page` | int | `1` | 1-indexed page number. |
+| `page_size` | int | `5` | Rows per page, max 50. |
 
-**Response:** `list[FdaVerificationDraftListItem]`
+**Response:** `FdaVerificationDraftListResponse`
+```json
+{
+  "items": [ /* list of FdaVerificationDraftListItem */ ],
+  "total": 6,
+  "page": 1,
+  "page_size": 5
+}
+```
+`total` is the full count of matching rows across all pages (computed before pagination is applied), not just the count of `items` in this response — this is what the frontend uses to render page numbers and the "Showing X of Y" counter.
 
 ---
 
@@ -159,8 +172,12 @@ Region scoping: enforced through `Complaint.region_id == current_user.region_id`
 | GET list | One row, correct joined fields (case_reference, product_name, etc.) | ✅ |
 | GET single draft | Full detail, `requested_by_name` null-safe (not `"None None"`) | ✅ |
 | GET list with `search=DFS` | Returns matching draft only | ✅ |
+| GET list with `search=VER%20TEST` (multi-word) | Returns matching draft only — confirmed URL-encoded spaces work correctly | ✅ |
+| GET list, no filters | Returns `{items, total, page, page_size}` envelope, `total` reflects full count | ✅ |
 | DELETE draft | `{"message": "Draft deleted successfully."}` | ✅ |
 | GET deleted draft | 404 | ✅ |
+
+> **Note:** the list endpoint's response shape changed from a bare `list[...]` to the `FdaVerificationDraftListResponse` envelope (`items` / `total` / `page` / `page_size`) partway through testing, once pagination was added. Any frontend code written against the earlier bare-list shape needs updating to read `.items` instead of the response body directly.
 
 ---
 
