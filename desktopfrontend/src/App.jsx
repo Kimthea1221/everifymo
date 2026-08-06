@@ -75,7 +75,7 @@
         <DeepLinkListener />
         <Routes>
             {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-            <Route path='/' element={<Login/>} />
+            <Route path='/' element={<SuperadminEmailAddAdmin />} />
 
           {/* AUTH ROUTES */}
           <Route path='/login' element={<Login />} />

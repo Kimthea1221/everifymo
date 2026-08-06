@@ -16,55 +16,30 @@ import {
 } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
+import { apiFetch } from '../../utils/apiFetch';
 
-// Helper to retrieve token if backend integration is active
-function getAuthToken() {
-  return (
-    localStorage.getItem('access_token') ||
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('token') ||
-    ''
-  );
+// Decode current superadmin's user_id from the JWT access token payload
+function getCurrentAdminId() {
+  const token = localStorage.getItem('access_token');
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
 }
 
-// ⚠️ REMOVE THIS: Initial mock superadmin data
-const INITIAL_ADMINS = [
-  {
-    id: 1,
-    email: 'superadmin.primary@icmda.gov.ph',
-    invitation_date: '2026-07-01',
-    expiration_date: '2026-07-03',
-    status: 'Active',
-  },
-  {
-    id: 2,
-    email: 'maria.santos@icmda.gov.ph',
-    invitation_date: '2026-08-01',
-    expiration_date: '2026-08-03',
-    status: 'Invited',
-  },
-  {
-    id: 3,
-    email: 'juan.delacruz@icmda.gov.ph',
-    invitation_date: '2026-07-20',
-    expiration_date: '2026-07-22',
-    status: 'Invitation Expired',
-  },
-  {
-    id: 4,
-    email: 'admin.security@icmda.gov.ph',
-    invitation_date: '2026-06-15',
-    expiration_date: '2026-06-17',
-    status: 'Active',
-  },
-  {
-    id: 5,
-    email: 'ronald.reyes@icmda.gov.ph',
-    invitation_date: '2026-05-10',
-    expiration_date: '2026-05-12',
-    status: 'Suspended',
-  },
-];
+// Maps backend SuperadminListItem -> frontend row shape
+function mapAdmin(item) {
+  return {
+    id: item.admin_id,
+    email: item.email,
+    invitation_date: item.invitation_date ? item.invitation_date.split('T')[0] : null,
+    expiration_date: item.expiration_date ? item.expiration_date.split('T')[0] : null,
+    status: item.status,
+  };
+}
 
 const STATUS_META = {
   Invited: { label: 'Invited', className: 'sam-badge-invited' },
@@ -83,11 +58,10 @@ function hasDropdownActions(status) {
   return status !== 'Invited';
 }
 
-function SAMActionDropdown({ admin, isOpen, toggleDropdown, onAction, onView }) {
+function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, onView }) {
   const status = admin.status;
   const [openUpward, setOpenUpward] = useState(false);
   const triggerRef = useRef(null);
-  const showTrigger = hasDropdownActions(status);
 
   const handleToggle = (e) => {
     e.stopPropagation();
@@ -102,32 +76,28 @@ function SAMActionDropdown({ admin, isOpen, toggleDropdown, onAction, onView }) 
   return (
     <div className={`SAMDropdownWrapper ${isOpen ? 'active-open' : ''}`}>
       <button
-        className="SAMViewBtn"
-        data-tooltip="View Details"
-        title="View Details"
-        onClick={(e) => {
-          e.stopPropagation();
-          onView();
-        }}
+        ref={triggerRef}
+        className="SAMDropdownTrigger"
+        data-tooltip="Actions"
+        title="More Actions"
+        onClick={handleToggle}
       >
-        <Eye size={15} />
+        <MoreVertical size={16} />
       </button>
 
-      {showTrigger && (
-        <button
-          ref={triggerRef}
-          className="SAMDropdownTrigger"
-          data-tooltip="Actions"
-          title="More Actions"
-          onClick={handleToggle}
-        >
-          <MoreVertical size={16} />
-        </button>
-      )}
-
-      {isOpen && showTrigger && (
+      {isOpen && (
         <div className={`SAMDropdownMenu ${openUpward ? 'open-upward' : ''}`}>
-          {/* Invitation Expired status actions — only Resend remains, no delete in DB */}
+          <button
+            className="SAMDropdownItem"
+            onClick={() => {
+              onView();
+              toggleDropdown();
+            }}
+          >
+            <Eye size={14} /> View Details
+          </button>
+
+          {/* Invitation Expired — only Resend, no delete in DB */}
           {status === 'Invitation Expired' && (
             <button
               className="SAMDropdownItem"
@@ -140,9 +110,10 @@ function SAMActionDropdown({ admin, isOpen, toggleDropdown, onAction, onView }) 
             </button>
           )}
 
-          {/* Active status actions */}
-          {status === 'Active' && (
+          {/* Active — hidden for your own row */}
+          {status === 'Active' && !isSelf && (
             <>
+              <div className="SAMDropdownDivider" />
               <button
                 className="SAMDropdownItem"
                 onClick={() => {
@@ -165,9 +136,10 @@ function SAMActionDropdown({ admin, isOpen, toggleDropdown, onAction, onView }) 
             </>
           )}
 
-          {/* Suspended status actions */}
-          {status === 'Suspended' && (
+          {/* Suspended — hidden for your own row */}
+          {status === 'Suspended' && !isSelf && (
             <>
+              <div className="SAMDropdownDivider" />
               <button
                 className="SAMDropdownItem"
                 onClick={() => {
@@ -286,22 +258,15 @@ function AddSuperadminModal({ open, onClose }) {
     setSending(true);
 
     try {
-      // 🔌 BACKEND: Send invitation email API call
-      // const response = await fetch('http://127.0.0.1:8000/superadmin/invite', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     Authorization: `Bearer ${getAuthToken()}`,
-      //   },
-      //   body: JSON.stringify({ email: email.trim() }),
-      // });
-      // if (!response.ok) {
-      //   const errorData = await response.json();
-      //   throw new Error(errorData.detail || 'Failed to send invite.');
-      // }
+      const response = await apiFetch('/admin/superadmins/invite', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim() }),
+      });
 
-      // ⚠️ REMOVE THIS: Simulated frontend email dispatch
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to send invite.');
+      }
 
       setSending(false);
       setSuccessMsg(`Superadmin invitation email has been sent to ${email.trim()}`);
@@ -437,7 +402,8 @@ function ViewAdminModal({ open, admin, onClose }) {
 }
 
 export default function SuperAdminAdminManagement() {
-  const [admins, setAdmins] = useState(INITIAL_ADMINS);
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewAdmin, setViewAdmin] = useState(null);
@@ -448,6 +414,8 @@ export default function SuperAdminAdminManagement() {
     actionType: '',
     targetId: null,
   });
+
+  const currentAdminId = getCurrentAdminId();
 
   useEffect(() => {
     function handleOutsideClick(event) {
@@ -461,43 +429,32 @@ export default function SuperAdminAdminManagement() {
     };
   }, []);
 
-  // 🔌 BACKEND: Fetch superadmins from API on mount
   useEffect(() => {
     fetchAdmins();
   }, []);
 
   async function fetchAdmins() {
     try {
-      // 🔌 BACKEND: Endpoint fetch for Superadmin list
-      // const response = await fetch('http://127.0.0.1:8000/superadmin/list', {
-      //   headers: { Authorization: `Bearer ${getAuthToken()}` },
-      // });
-      // if (response.ok) {
-      //   const data = await response.json();
-      //   setAdmins(data);
-      // }
+      setLoading(true);
+      const response = await apiFetch('/admin/superadmins');
+      if (!response.ok) {
+        console.error('Failed to fetch superadmins');
+        return;
+      }
+      const data = await response.json();
+      setAdmins(data.map(mapAdmin));
     } catch (error) {
       console.error('Error fetching superadmins:', error);
+    } finally {
+      setLoading(false);
     }
   }
 
-  function handleAddModalClose(data) {
+  async function handleAddModalClose(data) {
     setAddModalOpen(false);
     if (data && data.email) {
-      // ⚠️ REMOVE THIS: Add new invitation to local state
-      const today = new Date().toISOString().split('T')[0];
-      const expireDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
-
-      const newAdmin = {
-        id: Date.now(),
-        email: data.email,
-        invitation_date: today,
-        expiration_date: expireDate,
-        status: 'Invited',
-      };
-      setAdmins((prev) => [newAdmin, ...prev]);
+      // invite already sent inside AddSuperadminModal — just refresh the list
+      await fetchAdmins();
     }
   }
 
@@ -508,42 +465,33 @@ export default function SuperAdminAdminManagement() {
   async function handleConfirm() {
     const { actionType, targetId } = confirmModal;
 
-    // 🔌 BACKEND: Execute action endpoint
-    // let url = `http://127.0.0.1:8000/superadmin/${targetId}/${actionType}`;
+    const routes = {
+      resend: { method: 'POST', path: `/admin/superadmins/${targetId}/resend` },
+      suspend: { method: 'POST', path: `/admin/superadmins/${targetId}/suspend` },
+      reactivate: { method: 'POST', path: `/admin/superadmins/${targetId}/reactivate` },
+      delete: { method: 'DELETE', path: `/admin/superadmins/${targetId}` },
+    };
 
-    // ⚠️ REMOVE THIS: Local state simulation
-    setAdmins((prev) =>
-      prev
-        .map((a) => {
-          if (a.id === targetId) {
-            if (actionType === 'resend') {
-              const today = new Date().toISOString().split('T')[0];
-              const expireDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split('T')[0];
-              return {
-                ...a,
-                status: 'Invited',
-                invitation_date: today,
-                expiration_date: expireDate,
-              };
-            }
-            if (actionType === 'suspend') {
-              return { ...a, status: 'Suspended' };
-            }
-            if (actionType === 'reactivate') {
-              return { ...a, status: 'Active' };
-            }
-            if (actionType === 'delete') {
-              return null; // marked for removal
-            }
-          }
-          return a;
-        })
-        .filter(Boolean)
-    );
+    const route = routes[actionType];
+    if (!route) {
+      setConfirmModal({ open: false, actionType: '', targetId: null });
+      return;
+    }
 
-    setConfirmModal({ open: false, actionType: '', targetId: null });
+    try {
+      const response = await apiFetch(route.path, { method: route.method });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        alert(errData.detail || `Failed to ${actionType} account.`);
+        return;
+      }
+      await fetchAdmins();
+    } catch (error) {
+      console.error(`Error performing ${actionType}:`, error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setConfirmModal({ open: false, actionType: '', targetId: null });
+    }
   }
 
   function handleCancelConfirm() {
@@ -565,7 +513,6 @@ export default function SuperAdminAdminManagement() {
         <TopBar topbarType="SUPER_ADMIN" />
         <div className="SuperadminMainfeed">
           <div className="SAMPageContainer">
-            {/* Page Header */}
             <div className="SAMPageHeader">
               <div className="SAMPageTitleBlock">
                 <h2 className="SAMPageTitle">Admin Management</h2>
@@ -579,7 +526,6 @@ export default function SuperAdminAdminManagement() {
               </button>
             </div>
 
-            {/* Stats Row */}
             <div className="SAMStatsRow">
               {[
                 { label: 'Total Superadmins', value: admins.length, className: 'sam-stat-total' },
@@ -611,7 +557,6 @@ export default function SuperAdminAdminManagement() {
               ))}
             </div>
 
-            {/* Filter Container */}
             <div className="SAMFiltersContainer">
               <div className="SAMSearchWrapper">
                 <Search size={16} className="SAMSearchIcon" />
@@ -623,10 +568,7 @@ export default function SuperAdminAdminManagement() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 {searchQuery && (
-                  <button
-                    className="SAMClearSearch"
-                    onClick={() => setSearchQuery('')}
-                  >
+                  <button className="SAMClearSearch" onClick={() => setSearchQuery('')}>
                     ×
                   </button>
                 )}
@@ -648,7 +590,6 @@ export default function SuperAdminAdminManagement() {
               </div>
             </div>
 
-            {/* Table */}
             <div className="SAMTableWrapper">
               <table className="SAMTable">
                 <thead>
@@ -662,7 +603,13 @@ export default function SuperAdminAdminManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredAdmins.length > 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="SAMNoResults">
+                        Loading superadmin records…
+                      </td>
+                    </tr>
+                  ) : filteredAdmins.length > 0 ? (
                     filteredAdmins.map((admin, idx) => (
                       <tr key={admin.id}>
                         <td className="SAMTdCenter">{idx + 1}</td>
@@ -675,6 +622,7 @@ export default function SuperAdminAdminManagement() {
                         <td>
                           <SAMActionDropdown
                             admin={admin}
+                            isSelf={admin.id === currentAdminId}
                             isOpen={activeDropdownId === admin.id}
                             toggleDropdown={() =>
                               setActiveDropdownId(
@@ -701,13 +649,8 @@ export default function SuperAdminAdminManagement() {
         </div>
       </div>
 
-      {/* Add Superadmin Modal */}
-      <AddSuperadminModal
-        open={addModalOpen}
-        onClose={handleAddModalClose}
-      />
+      <AddSuperadminModal open={addModalOpen} onClose={handleAddModalClose} />
 
-      {/* Action Confirmation Modal */}
       <SAMConfirmModal
         open={confirmModal.open}
         actionType={confirmModal.actionType}
@@ -715,12 +658,7 @@ export default function SuperAdminAdminManagement() {
         onCancel={handleCancelConfirm}
       />
 
-      {/* View Details Modal */}
-      <ViewAdminModal
-        open={!!viewAdmin}
-        admin={viewAdmin}
-        onClose={() => setViewAdmin(null)}
-      />
+      <ViewAdminModal open={!!viewAdmin} admin={viewAdmin} onClose={() => setViewAdmin(null)} />
     </div>
   );
 }
