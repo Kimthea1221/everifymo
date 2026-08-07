@@ -1,29 +1,42 @@
-"""Seed script: create a test superadmin account for login testing.
+scripts/seed_supeadmin
+
+"""Seed script: create a superadmin account for login testing or deployment.
 
 Run this once to create a superadmin you can log in with via
-POST /auth/superadmin/login. Update TEST_EMAIL/TEST_PASSWORD below
-if you want different credentials.
+POST /auth/superadmin/login. You'll be prompted for the email and
+password at runtime — nothing is hardcoded, so nothing sensitive
+ends up committed to Git.
 """
+from getpass import getpass
+
 from app.database.sessions import SessionLocal
 from app.core.security import hash_password
 from app.models.users import User
 
 
-TEST_EMAIL = "darlenejoy.deleon16@gmail.com"
-TEST_PASSWORD = "TestPassword123!"
-
-
 def main():
+    email = input("Superadmin email: ")
+    password = getpass("Superadmin password (hidden): ")
+    password_confirm = getpass("Confirm password (hidden): ")
+
+    if password != password_confirm:
+        print("Passwords do not match. Aborting.")
+        return
+
+    if len(password) < 8:
+        print("Password must be at least 8 characters. Aborting.")
+        return
+
     db = SessionLocal()
     try:
-        existing = db.query(User).filter(User.email == TEST_EMAIL).first()
+        existing = db.query(User).filter(User.email == email).first()
         if existing:
             print(f"Superadmin already exists: {existing.email}")
             return
 
         user = User(
-            email=TEST_EMAIL,
-            password_hash=hash_password(TEST_PASSWORD),
+            email=email,
+            password_hash=hash_password(password),
             role="superadmin",
             is_active=True,
             is_locked=False,
@@ -34,8 +47,7 @@ def main():
         db.refresh(user)
 
         print(f"Created superadmin: {user.email}")
-        print(f"Password: {TEST_PASSWORD}")
-        print("You can now test POST /auth/superadmin/login with these credentials.")
+        print("You can now log in with these credentials.")
 
     finally:
         db.close()

@@ -17,4 +17,10 @@ class CreateConsumerAcc(BaseModel):
 class UpdateUsername(BaseModel):
     username: str
 
+class RequestOTP(BaseModel):
+    email: EmailStr
 
+class VerifyOTP(BaseModel):
+    email: EmailStr
+    otp_code: str
+    

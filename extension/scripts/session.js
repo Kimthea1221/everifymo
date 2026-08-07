@@ -84,6 +84,16 @@ function loginUser(email, password, callback) {
       .catch(e => callback(false, e.message));
 }
 
+function verifyOtp(email, inputCode, callback) {
+  apiVerifyOtp(email, inputCode).then(() => callback(true))
+      .catch(e => callback(false, e.message))
+}
+
+function resendOtpSession(email, callback) {
+  apiResendOtp(email).then(() => callback(true))
+      .catch(e => callback(false, e.message));
+}
+
 function logoutUser(callback) {
   _session = null;
   chrome.storage.local.remove(['access_token', 'token_type', 'username', 'email'], callback);
