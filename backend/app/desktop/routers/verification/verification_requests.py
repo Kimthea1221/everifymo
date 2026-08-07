@@ -113,12 +113,14 @@ def list_verification_requests_awaiting_fda(
     )
 
     if search is not None:
-        # Matches the "Search Case ID, Product, or Manufacturer..."
-        # box — same three-field pattern as the FDA drafts search.
+        # Category folded into the same free-text search rather than
+        # its own query param — the officer can type "Drugs", "Food",
+        # etc. and it matches alongside case reference/product/manufacturer.
         query = query.filter(
             Complaint.case_reference.ilike(f"%{search}%")
             | VerificationRequest.product_name.ilike(f"%{search}%")
             | Complaint.manufacturer.ilike(f"%{search}%")
+            | Complaint.product_category.ilike(f"%{search}%")
         )
 
     if priority is not None:

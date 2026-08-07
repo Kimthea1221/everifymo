@@ -243,6 +243,11 @@ const dummyRejectedRequests = [
   }
 ];
 
+// ADDED — base URL for all FDA backend API calls; mirrors the same constant
+// used in the LEA pages (e.g. lea-saved-draft.jsx) so the host is easy to
+// update from one place.
+const API_BASE = 'http://localhost:8000';
+
 function FDAVerification() {
 
 
@@ -251,13 +256,33 @@ function FDAVerification() {
   // BACKEND: active tab filter state ('queue' | 'completed' | 'rejected')
   const [fdaActiveTab, setFdaActiveTab] = useState('queue');
 
-  // BACKEND: dataset states (local state for frontend simulation)
-  const [fdaQueueList, setFdaQueueList] = useState(dummyQueueRequests);
+  // CHANGED — starts empty; real data is loaded by the fetch useEffect below
+  // instead of dummyQueueRequests (which is now only used for the Completed/Rejected tabs).
+  const [fdaQueueList, setFdaQueueList] = useState([]);
   const [fdaCompletedList, setFdaCompletedList] = useState(dummyCompletedRequests);
   const [fdaRejectedList, setFdaRejectedList] = useState(dummyRejectedRequests);
 
+  // ADDED — holds the three badge counts fetched from GET /verification-requests/counts.
+  // Starts as null (not 0) so the UI shows "-" while the request is in-flight
+  // instead of flashing a misleading "0" on first render.
+  const [queueCounts, setQueueCounts] = useState(null);
+
+  // ADDED — tracks whether the queue list fetch is in progress so the UI can
+  // show a loading state instead of an empty list while waiting.
+  const [queueLoading, setQueueLoading] = useState(true);
+
+  // ADDED — holds the full detail object fetched from GET /verification-requests/{request_id}
+  // when a card is selected. Separate from selectedQueueItem (which is the list-item
+  // shape used only for the card highlight). Null while no card has been selected.
+  const [selectedQueueDetail, setSelectedQueueDetail] = useState(null);
+
+  // ADDED — true while the per-item detail fetch is in flight, so the detail
+  // panel can show a loading indicator instead of stale or blank fields.
+  const [detailLoading, setDetailLoading] = useState(false);
+
   // BACKEND: selected item pointer for Verification Queue
-  const [selectedQueueItem, setSelectedQueueItem] = useState(dummyQueueRequests[0] || null);
+  // CHANGED — starts as null; real first selection is made after the fetch resolves.
+  const [selectedQueueItem, setSelectedQueueItem] = useState(null);
 
   // BACKEND: Queue search query & priority filter states
   const [fdaSearchQuery, setFdaSearchQuery] = useState('');
@@ -307,39 +332,36 @@ function FDAVerification() {
   const location = useLocation();
   const navigate = useNavigate();
 
+
   useEffect(() => {
     const incoming = location.state;
     if (!incoming?.openDraftId) return;
 
-    // Try to match an item already present in the queue (by id or caseId)
+    // CHANGED — now matches against real field names (request_id / case_reference)
+    // instead of the old dummy id / caseId.
     const existing = fdaQueueList.find(
-      (q) => q.id === incoming.openDraftId || q.caseId === incoming.openDraftId
+      (q) => q.request_id === incoming.openDraftId || q.case_reference === incoming.openDraftId
     );
 
     if (existing) {
       setFdaActiveTab('queue');
       handleSelectItem(existing);
     } else if (incoming.draftRecord) {
-      // Draft wasn't in the queue mock data — reconstruct a queue-shaped item
+      // Draft wasn't in the live queue — reconstruct a queue-shaped item
       // from the saved-draft record so it can be reviewed here.
+      // CHANGED — restoredItem now uses the real API field names so it
+      // is compatible with the card renderer and handleSelectItem.
       const draft = incoming.draftRecord;
       const restoredItem = {
-        id: draft.caseId,
-        caseId: draft.caseId,
-        productName: draft.product,
+        request_id: draft.caseId,
+        case_reference: draft.caseId,
+        product_name: draft.product,
         manufacturer: draft.manufacturer,
-        complainant: 'N/A',
-        category: draft.category,
-        dateLogged: draft.lastModified,
-        dateReceived: draft.lastModified,
-        source:
-          draft.source === 'Walk-in'
-            ? 'LEA Walk-in Intake'
-            : 'Browser Extension Submission',
-        productCode: 'N/A',
-        priority: 'Standard',
-        leaNotes: 'Restored from FDA Saved Drafts.',
-        documents: []
+        product_category: draft.category,
+        requested_at: draft.lastModified,
+        source: draft.source === 'Walk-in' ? 'walk_in' : 'online',
+        priority: 'standard',
+        complainant_name: null,
       };
 
       setFdaQueueList((prev) => [restoredItem, ...prev]);
@@ -362,7 +384,7 @@ function FDAVerification() {
   const handleTabChange = (tabKey) => {
     if (fdaActiveTab === tabKey) return;
     setFdaIsRejecting(false);
-    
+
     // BACKEND: Analytics / log tab change
     // GET /api/fda/verification-requests?status=${tabKey}
     if (!document.startViewTransition) {
@@ -377,22 +399,11 @@ function FDAVerification() {
 
   // FILTERING LOGIC FOR VERIFICATION QUEUE & FULL-WIDTH TABLES
 
-  const filteredQueue = useMemo(() => {
-    return fdaQueueList.filter((item) => {
-      const q = fdaSearchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        item.caseId.toLowerCase().includes(q) ||
-        item.productName.toLowerCase().includes(q) ||
-        item.manufacturer.toLowerCase().includes(q) ||
-        (item.productCode && item.productCode.toLowerCase().includes(q));
-
-      const matchesPriority =
-        fdaPriorityFilter === 'all' || item.priority === fdaPriorityFilter;
-
-      return matchesSearch && matchesPriority;
-    });
-  }, [fdaQueueList, fdaSearchQuery, fdaPriorityFilter]);
+  // CHANGED — queue filtering is now done server-side via query params, so
+  // filteredQueue is just the raw fetched list. The old client-side useMemo
+  // that filtered by fdaSearchQuery and fdaPriorityFilter has been removed;
+  // those states now drive the debounced fetch useEffect below instead.
+  const filteredQueue = fdaQueueList;
 
   const filteredCompleted = useMemo(() => {
     return fdaCompletedList.filter((item) => {
@@ -451,6 +462,9 @@ function FDAVerification() {
   // Active item in Verification Queue
   const currentItem = selectedQueueItem;
 
+  // CHANGED — sets selectedQueueItem on card click; fetchDetail is triggered
+  // automatically by the useEffect that watches selectedQueueItem.request_id,
+  // so it also fires on the initial auto-select after the list loads.
   const handleSelectItem = (item) => {
     setFdaIsRejecting(false);
     if (fdaActiveTab === 'queue') {
@@ -460,6 +474,8 @@ function FDAVerification() {
       setFdaCprExpiry(item.draftCprExpiry || '');
       setFdaOfficialRemarks(item.draftRemarks || '');
       setFdaUnregisteredReason(item.draftUnregisteredReason || '');
+      // fetchDetail is called below (defined after triggerAlert to avoid TDZ).
+      // The call is deferred to the useEffect that watches selectedQueueItem.
     }
   };
 
@@ -471,16 +487,119 @@ function FDAVerification() {
     }, 4500);
   };
 
+  // ADDED — fetches the full detail for a queue item by its request_id.
+  // Defined here (after triggerAlert) so the .catch() can call triggerAlert
+  // without hitting a temporal dead zone. Called from handleSelectItem on
+  // card click, and from a useEffect that watches selectedQueueItem so the
+  // detail panel is also populated on the initial auto-select after page load.
+  const fetchDetail = (requestId) => {
+    const token = localStorage.getItem('access_token');
+    setDetailLoading(true);
+    fetch(`${API_BASE}/verification-requests/${requestId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setSelectedQueueDetail(data))
+      .catch(() => {
+        triggerAlert('Could not load the verification request details.', 'danger');
+      })
+      .finally(() => setDetailLoading(false));
+  };
+
+  // ADDED — fetches the real badge counts on mount from the backend endpoint.
+  // Uses the same localStorage access_token pattern as the LEA pages.
+  // On success, populates queueCounts with the three fields from the response.
+  // On error, surfaces a toast via the existing triggerAlert helper instead of
+  // using alert() or inline error text.
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/verification-requests/counts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setQueueCounts({
+          verification_queue_count: data.verification_queue_count,
+          completed_count: data.completed_count,
+          rejected_count: data.rejected_count,
+        });
+      })
+      .catch(() => {
+        triggerAlert('Could not load verification queue counts from the server.', 'danger');
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ADDED — fetches the real Verification Queue list from the backend.
+  // Runs on mount and re-runs (with 300 ms debounce) whenever fdaSearchQuery
+  // or fdaPriorityFilter changes. Both filters are sent as a single combined
+  // request; if priority is 'all' the parameter is omitted entirely.
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+
+    const timer = setTimeout(() => {
+      setQueueLoading(true);
+
+      const params = new URLSearchParams();
+      if (fdaSearchQuery.trim()) params.set('search', fdaSearchQuery.trim());
+      if (fdaPriorityFilter !== 'all') params.set('priority', fdaPriorityFilter);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+
+      fetch(`${API_BASE}/verification-requests/awaiting-fda${qs}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          setFdaQueueList(data);
+          // Auto-select the first item after every refresh so the detail
+          // panel is never left blank, but only when nothing is selected yet.
+          setSelectedQueueItem((prev) => prev ?? data[0] ?? null);
+        })
+        .catch(() => {
+          triggerAlert('Could not load the verification queue from the server.', 'danger');
+        })
+        .finally(() => setQueueLoading(false));
+    }, 300);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fdaSearchQuery, fdaPriorityFilter]);
+
+
+  // ADDED — whenever selectedQueueItem changes (either from a manual card click
+  // via handleSelectItem, or from the auto-select after the list fetch resolves),
+  // fetch the full detail for that item. This single useEffect covers both paths
+  // cleanly and avoids calling fetchDetail from two separate places.
+  // FIX 3 — removed the setSelectedQueueDetail(null) call that was here.
+  // Keeping stale data visible while the next fetch is in-flight prevents the
+  // panel from blanking/flickering every time the user clicks a different card.
+  useEffect(() => {
+    if (selectedQueueItem?.request_id) {
+      fetchDetail(selectedQueueItem.request_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedQueueItem?.request_id]);
+
 
   // CONFIRMATION MODAL HANDLERS
- 
+
   // Open modal for Save Draft
   const handleOpenSaveDraftModal = () => {
     if (!currentItem) return;
     setFdaModalConfig({
       type: 'save_draft',
       title: 'Save Verification as Draft?',
-      description: `Save current verification draft for Case ID ${currentItem.caseId}? You can return to continue working on this request anytime from the Verification Queue.`,
+      // CHANGED — uses case_reference (real field name) instead of the old caseId.
+      description: `Save current verification draft for Case ID ${currentItem.case_reference}? You can return to continue working on this request anytime from the Verification Queue.`,
       confirmText: 'Save Draft',
       confirmVariant: 'secondary'
     });
@@ -505,7 +624,8 @@ function FDAVerification() {
     setFdaModalConfig({
       type: 'submit',
       title: 'Submit Verification Result back to LEA?',
-      description: `Transmit official FDA verification result (${fdaVerificationStatus.toUpperCase()}) for Case ID ${currentItem.caseId} back to LEA-CIDG? This will finalize the verification and notify the LEA investigation team.`,
+      // CHANGED — uses case_reference (real field name) instead of the old caseId.
+      description: `Transmit official FDA verification result (${fdaVerificationStatus.toUpperCase()}) for Case ID ${currentItem.case_reference} back to LEA-CIDG? This will finalize the verification and notify the LEA investigation team.`,
       confirmText: 'Submit Verification',
       confirmVariant: 'primary'
     });
@@ -522,7 +642,8 @@ function FDAVerification() {
     setFdaModalConfig({
       type: 'reject',
       title: 'Reject Verification Request?',
-      description: `Reject verification request for Case ID ${currentItem.caseId} back to LEA-CIDG? The request will be recorded as Rejected and LEA officers will be notified with your rejection reason.`,
+      // CHANGED — uses case_reference (real field name) instead of the old caseId.
+      description: `Reject verification request for Case ID ${currentItem.case_reference} back to LEA-CIDG? The request will be recorded as Rejected and LEA officers will be notified with your rejection reason.`,
       confirmText: 'Confirm Rejection',
       confirmVariant: 'danger'
     });
@@ -556,12 +677,13 @@ function FDAVerification() {
       };
 
       if (fdaActiveTab === 'queue') {
-        setFdaQueueList(fdaQueueList.map((item) => (item.id === currentItem.id ? updatedItem : item)));
+        setFdaQueueList(fdaQueueList.map((item) => (item.request_id === currentItem.request_id ? updatedItem : item)));
         setSelectedQueueItem(updatedItem);
       }
 
-      triggerAlert(`Draft saved successfully for Case ID ${currentItem.caseId}.`, 'success');
-    } 
+      // CHANGED — uses case_reference (real field name) instead of the old caseId.
+      triggerAlert(`Draft saved successfully for Case ID ${currentItem.case_reference}.`, 'success');
+    }
     else if (fdaModalConfig.type === 'submit') {
       // BACKEND:
       // After submitting verification:
@@ -599,7 +721,8 @@ function FDAVerification() {
 
       // Remove from current list and add to Completed
       if (fdaActiveTab === 'queue') {
-        const remaining = fdaQueueList.filter((q) => q.id !== currentItem.id);
+        // CHANGED — filters by request_id (real primary key) instead of the old dummy id.
+        const remaining = fdaQueueList.filter((q) => q.request_id !== currentItem.request_id);
         setFdaQueueList(remaining);
         setSelectedQueueItem(remaining[0] || null);
       }
@@ -638,7 +761,8 @@ function FDAVerification() {
       };
 
       if (fdaActiveTab === 'queue') {
-        const remaining = fdaQueueList.filter((q) => q.id !== currentItem.id);
+        // CHANGED — filters by request_id (real primary key) instead of the old dummy id.
+        const remaining = fdaQueueList.filter((q) => q.request_id !== currentItem.request_id);
         setFdaQueueList(remaining);
         setSelectedQueueItem(remaining[0] || null);
       }
@@ -649,20 +773,24 @@ function FDAVerification() {
       setFdaIsRejecting(false);
 
       setFdaRejectionReason('');
-      triggerAlert(`Request for Case ID ${currentItem.caseId} rejected and returned to LEA.`, 'success');
+      // CHANGED — uses case_reference (real field name) instead of the old caseId.
+      triggerAlert(`Request for Case ID ${currentItem.case_reference} rejected and returned to LEA.`, 'success');
     }
 
     setFdaModalConfig(null);
   };
 
-  // Helper badge color lookup for priorities
+  // CHANGED — switch cases updated to lowercase to match the backend's priority
+  // values ('urgent', 'high', 'standard', 'critical'). Also adds 'critical'.
   const getPriorityBadgeClass = (priority) => {
     switch (priority) {
-      case 'Urgent':
+      case 'urgent':
         return 'FdaVerifBadgeUrgent';
-      case 'High':
+      case 'high':
         return 'FdaVerifBadgeHigh';
-      case 'Standard':
+      case 'critical':
+        return 'FdaVerifBadgeUrgent'; // same red styling as urgent
+      case 'standard':
       default:
         return 'FdaVerifBadgeStandard';
     }
@@ -675,7 +803,7 @@ function FDAVerification() {
         <TopBar topbarType="FDA" />
 
         <div className="FdaMainFeed FdaVerifFeedContainer">
-          
+
           {/* HEADER SECTION */}
 
           <div className="FdaVerifHeader">
@@ -722,7 +850,10 @@ function FDAVerification() {
                   <Clock size={14} />
                 </span>
               </div>
-              <span className="FdaVerifStatValue">{fdaQueueList.length}</span>
+              {/* CHANGED — was fdaQueueList.length (dummy count); now reads from
+                  queueCounts.verification_queue_count fetched from the backend.
+                  Shows "-" while the fetch is pending. */}
+              <span className="FdaVerifStatValue">{queueCounts !== null ? queueCounts.verification_queue_count : '-'}</span>
               <span className="FdaVerifStatLabel">Verification Queue</span>
             </div>
 
@@ -732,7 +863,9 @@ function FDAVerification() {
                   <CheckCircle2 size={14} />
                 </span>
               </div>
-              <span className="FdaVerifStatValue">{fdaCompletedList.length}</span>
+              {/* CHANGED — was fdaCompletedList.length (dummy count); now reads
+                  from queueCounts.completed_count fetched from the backend. */}
+              <span className="FdaVerifStatValue">{queueCounts !== null ? queueCounts.completed_count : '-'}</span>
               <span className="FdaVerifStatLabel">Completed</span>
             </div>
 
@@ -742,7 +875,9 @@ function FDAVerification() {
                   <XCircle size={14} />
                 </span>
               </div>
-              <span className="FdaVerifStatValue">{fdaRejectedList.length}</span>
+              {/* CHANGED — was fdaRejectedList.length (dummy count); now reads
+                  from queueCounts.rejected_count fetched from the backend. */}
+              <span className="FdaVerifStatValue">{queueCounts !== null ? queueCounts.rejected_count : '-'}</span>
               <span className="FdaVerifStatLabel">Rejected Requests</span>
             </div>
 
@@ -758,7 +893,10 @@ function FDAVerification() {
                 id="fda-tab-verification-queue"
               >
                 Verification Queue
-                <span className="FdaPillCount">{fdaQueueList.length}</span>
+                {/* CHANGED — was fdaQueueList.length; now uses the real count
+                    from queueCounts so this tab badge stays in sync with the
+                    stat card above from the single API call. */}
+                <span className="FdaPillCount">{queueCounts !== null ? queueCounts.verification_queue_count : '-'}</span>
               </button>
 
               <button
@@ -767,7 +905,8 @@ function FDAVerification() {
                 id="fda-tab-completed"
               >
                 Completed
-                <span className="FdaPillCount">{fdaCompletedList.length}</span>
+                {/* CHANGED — was fdaCompletedList.length; now uses queueCounts.completed_count. */}
+                <span className="FdaPillCount">{queueCounts !== null ? queueCounts.completed_count : '-'}</span>
               </button>
 
               <button
@@ -776,7 +915,8 @@ function FDAVerification() {
                 id="fda-tab-rejected"
               >
                 Rejected Requests
-                <span className="FdaPillCount">{fdaRejectedList.length}</span>
+                {/* CHANGED — was fdaRejectedList.length; now uses queueCounts.rejected_count. */}
+                <span className="FdaPillCount">{queueCounts !== null ? queueCounts.rejected_count : '-'}</span>
               </button>
             </div>
           </div>
@@ -788,9 +928,9 @@ function FDAVerification() {
             <div className="FdaVerifSplitLayout">
 
               {/* LEFT COLUMN: QUEUE LIST PANEL */}
-   
+
               <div className="FdaVerifQueueColumn">
-                
+
                 {/* Search & Priority Filter Header */}
                 <div className="FdaVerifFilterHeader">
                   <div className="FdaVerifSearchBox">
@@ -819,50 +959,84 @@ function FDAVerification() {
                       id="fda-verification-priority-filter"
                     >
                       <option value="all">All Priorities</option>
-                      <option value="Urgent">Urgent</option>
-                      <option value="High">High</option>
-                      <option value="Standard">Standard</option>
+                      {/* CHANGED — option values are now lowercase to match the backend.
+                          'critical' added to align with the real API priority enum. */}
+                      <option value="urgent">Urgent</option>
+                      <option value="critical">Critical</option>
+                      <option value="high">High</option>
+                      <option value="standard">Standard</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Request Cards List */}
                 <div className="FdaVerifCardsScrollList">
-                  {filteredQueue.length === 0 ? (
+                  {/* ADDED — shows a loading skeleton row while the fetch is in-flight
+                    so the list doesn't just appear empty on initial load. */}
+                  {queueLoading ? (
+                    <div className="FdaVerifEmptyList">
+                      <Clock size={32} className="FdaVerifEmptyIcon" />
+                      <p className="FdaVerifEmptyTitle">Loading Queue…</p>
+                      <p className="FdaVerifEmptyText">Fetching verification requests from the server.</p>
+                    </div>
+                  ) : filteredQueue.length === 0 ? (
                     <div className="FdaVerifEmptyList">
                       <Clock size={32} className="FdaVerifEmptyIcon" />
                       <p className="FdaVerifEmptyTitle">No Queue Requests</p>
                       <p className="FdaVerifEmptyText">There are currently no new verification requests matching your filter.</p>
                     </div>
                   ) : (
+                    // CHANGED — card fields updated to match real API response field names.
+                    // item.id → item.request_id (primary key for API calls)
+                    // item.caseId → item.case_reference (display identifier)
+                    // item.productName → item.product_name
+                    // item.category → item.product_category
+                    // item.dateReceived → item.requested_at (ISO 8601, formatted for display)
+                    // item.priority — still used as-is (now lowercase from backend)
                     filteredQueue.map((item) => {
-                      const isSelected = selectedQueueItem?.id === item.id;
+                      const isSelected = selectedQueueItem?.request_id === item.request_id;
                       return (
                         <div
-                          key={item.id}
+                          key={item.request_id}
                           className={`FdaVerifCard ${isSelected ? 'FdaVerifCardSelected' : ''}`}
                           onClick={() => handleSelectItem(item)}
                           role="button"
                           tabIndex={0}
                         >
                           <div className="FdaVerifCardTop">
-                            <span className="FdaVerifCaseId">{item.caseId}</span>
+                            <span className="FdaVerifCaseId">{item.case_reference}</span>
+                            {/* CHANGED — priority is lowercase from the backend; capitalise
+                              it for display only so the label still reads 'Urgent' etc. */}
                             <span className={`FdaVerifPriorityBadge ${getPriorityBadgeClass(item.priority)}`}>
-                              {item.priority}
+                              {item.priority
+                                ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1)
+                                : ''}
                             </span>
                           </div>
 
-                          <h3 className="FdaVerifProductName">{item.productName}</h3>
-                          
+                          <h3 className="FdaVerifProductName">{item.product_name}</h3>
+
                           <div className="FdaVerifCardMetaRow">
                             <span>{item.manufacturer}</span>
                           </div>
 
                           <div className="FdaVerifCardFooter">
-                            <span className="FdaVerifCategoryTag">{item.category}</span>
+                            <span className="FdaVerifCategoryTag">{item.product_category}</span>
                             <span className="FdaVerifDateReceived">
                               <Calendar size={12} />
-                              {item.dateReceived}
+                              {/* CHANGED — formats the ISO 8601 requested_at timestamp using
+                                the same toLocaleString pattern already used in this file
+                                for the submit/reject timestamp (en-US, 12-hour clock). */}
+                              {item.requested_at
+                                ? new Date(item.requested_at).toLocaleString('en-US', {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true,
+                                })
+                                : '—'}
                             </span>
                           </div>
                         </div>
@@ -885,146 +1059,214 @@ function FDAVerification() {
                   <div className="FdaVerifDetailsScrollBody">
 
                     {/* DETAILS HEADER BAR */}
+                    {/* CHANGED — uses real field names from selectedQueueDetail (full
+                        detail response) instead of the old dummy currentItem fields.
+                        Falls back to currentItem (list-item shape) while the detail
+                        fetch is still loading so the breadcrumb is never blank. */}
                     <div className="FdaVerifDetailsHeader">
                       <div>
                         <div className="FdaVerifDetailsBreadcrumb">
-                          <span className="FdaVerifBreadcrumbActive">{currentItem.caseId}</span>
+                          <span className="FdaVerifBreadcrumbActive">
+                            {selectedQueueDetail?.case_reference ?? currentItem.case_reference}
+                          </span>
+                          {/* ADDED — subtle inline indicator when refetching details in background */}
+                          {detailLoading && selectedQueueDetail && (
+                            <span style={{ marginLeft: '8px', fontSize: '11px', color: '#1B4332', opacity: 0.8, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Clock size={12} /> Updating…
+                            </span>
+                          )}
                         </div>
-                        <h2 className="FdaVerifDetailsTitle">{currentItem.productName}</h2>
-                        <p className="FdaVerifDetailsSubTitle">Manufacturer: <strong>{currentItem.manufacturer}</strong></p>
+                        <h2 className="FdaVerifDetailsTitle">
+                          {selectedQueueDetail?.product_name ?? currentItem.product_name}
+                        </h2>
+                        <p className="FdaVerifDetailsSubTitle">Manufacturer: <strong>
+                          {selectedQueueDetail?.manufacturer ?? currentItem.manufacturer}
+                        </strong></p>
                       </div>
                     </div>
 
                     {/* MERGED CARD: Case Information + Verification Request Information + Auto-Attached Evidence */}
                     <div className="FdaVerifMergedInfoCard">
 
-                      {/* SECTION 1: CASE INFORMATION */}
-                      <div className="FdaVerifMergedSection">
-                        <div className="FdaVerifSectionHeader">
-                          <FileText size={16} className="FdaVerifGreenIcon" />
-                          <h3>Case Information</h3>
+                      {/* CHANGED — full loading skeleton only displays on initial load (when selectedQueueDetail is null AND detailLoading is true).
+                          When switching cards, existing detail data stays visible while the new request resolves in background without flickering. */}
+                      {detailLoading && !selectedQueueDetail ? (
+                        <div className="FdaVerifEmptyDetails" style={{ minHeight: '180px' }}>
+                          <FileText size={32} className="FdaVerifEmptyDetailsIcon" />
+                          <p style={{ marginTop: '0.5rem', color: 'var(--fda-text-muted, #888)' }}>Loading request details…</p>
                         </div>
+                      ) : (
+                        <>
+                          {/* SECTION 1: CASE INFORMATION */}
+                          <div className="FdaVerifMergedSection">
+                            <div className="FdaVerifSectionHeader">
+                              <FileText size={16} className="FdaVerifGreenIcon" />
+                              <h3>Case Information</h3>
+                            </div>
 
-                        <div className="FdaVerifGrid2">
-                          <div className="FdaVerifInfoGroup">
-                            <span className="FdaVerifInfoLabel">Case ID (LEA Reference):</span>
-                            {/* BACKEND: maps to verification_requests.case_id */}
-                            <span className="FdaVerifInfoValueHighlight">{currentItem.caseId}</span>
-                          </div>
+                            <div className="FdaVerifGrid2">
+                              <div className="FdaVerifInfoGroup">
+                                <span className="FdaVerifInfoLabel">Case ID (LEA Reference):</span>
+                                {/* CHANGED — was currentItem.caseId (dummy); now reads from
+                                    selectedQueueDetail.case_reference (real field name). */}
+                                <span className="FdaVerifInfoValueHighlight">{selectedQueueDetail?.case_reference ?? '—'}</span>
+                              </div>
 
-                          <div className="FdaVerifInfoGroup">
-                            <span className="FdaVerifInfoLabel">Product Name:</span>
-                            {/* BACKEND: maps to verification_requests.product_name */}
-                            <span className="FdaVerifInfoValue">{currentItem.productName}</span>
-                          </div>
+                              <div className="FdaVerifInfoGroup">
+                                <span className="FdaVerifInfoLabel">Product Name:</span>
+                                {/* CHANGED — was currentItem.productName; now product_name. */}
+                                <span className="FdaVerifInfoValue">{selectedQueueDetail?.product_name ?? '—'}</span>
+                              </div>
 
-                          <div className="FdaVerifInfoGroup">
-                            <span className="FdaVerifInfoLabel">Manufacturer:</span>
-                            {/* BACKEND: maps to verification_requests.manufacturer_name */}
-                            <span className="FdaVerifInfoValue">{currentItem.manufacturer}</span>
-                          </div>
+                              <div className="FdaVerifInfoGroup">
+                                <span className="FdaVerifInfoLabel">Manufacturer:</span>
+                                {/* CHANGED — field name unchanged (manufacturer), now from selectedQueueDetail. */}
+                                <span className="FdaVerifInfoValue">{selectedQueueDetail?.manufacturer ?? '—'}</span>
+                              </div>
 
-                          <div className="FdaVerifInfoGroup">
-                            <span className="FdaVerifInfoLabel">Requesting LEA Officer / Unit:</span>
-                            {/* BACKEND: maps to verification_requests.complainant_name */}
-                            <span className="FdaVerifInfoValue">{currentItem.complainant}</span>
-                          </div>
+                              <div className="FdaVerifInfoGroup">
+                                <span className="FdaVerifInfoLabel">Requesting LEA Officer / Unit:</span>
+                                {/* CHANGED — was currentItem.complainant (dummy); real field is
+                                    requested_by_name. Show 'N/A' when null so 'null' never
+                                    appears as literal text. */}
+                                <span className="FdaVerifInfoValue">
+                                  {selectedQueueDetail?.requested_by_name ?? 'N/A'}
+                                </span>
+                              </div>
 
-                          <div className="FdaVerifInfoGroup">
-                            <span className="FdaVerifInfoLabel">Product Category:</span>
-                            {/* BACKEND: maps to verification_requests.product_category */}
-                            <span className="FdaVerifInfoValue">{currentItem.category}</span>
-                          </div>
+                              <div className="FdaVerifInfoGroup">
+                                <span className="FdaVerifInfoLabel">Product Category:</span>
+                                {/* CHANGED — was currentItem.category; now product_category. */}
+                                <span className="FdaVerifInfoValue">{selectedQueueDetail?.product_category ?? '—'}</span>
+                              </div>
 
-                          <div className="FdaVerifInfoGroup">
-                            <span className="FdaVerifInfoLabel">Date Logged & Received:</span>
-                            {/* BACKEND: maps to verification_requests.created_at */}
-                            <span className="FdaVerifInfoValue">{currentItem.dateLogged}</span>
-                          </div>
+                              <div className="FdaVerifInfoGroup">
+                                <span className="FdaVerifInfoLabel">Date Logged &amp; Received:</span>
+                                {/* CHANGED — was currentItem.dateLogged (dummy string); now
+                                    formats selectedQueueDetail.requested_at (ISO 8601) using
+                                    the same toLocaleString pattern used elsewhere in this file. */}
+                                <span className="FdaVerifInfoValue">
+                                  {selectedQueueDetail?.requested_at
+                                    ? new Date(selectedQueueDetail.requested_at).toLocaleString('en-US', {
+                                      year: 'numeric',
+                                      month: '2-digit',
+                                      day: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: true,
+                                    })
+                                    : '—'}
+                                </span>
+                              </div>
 
-                          <div className="FdaVerifInfoGroup FdaVerifGridFull">
-                            <span className="FdaVerifInfoLabel">Verification Request Source:</span>
-                            {/* BACKEND: maps to verification_requests.intake_source */}
-                            <span className="FdaVerifInfoValue">{currentItem.source}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <hr className="FdaVerifSectionDivider" />
-
-                      {/* SECTION 2: VERIFICATION REQUEST INFORMATION FROM LEA */}
-
-                      <div className="FdaVerifMergedSection">
-                        <div className="FdaVerifSectionHeader">
-                          <FileText size={16} className="FdaVerifGreenIcon" />
-                          <h3>Verification Request Information (LEA-CIDG)</h3>
-                        </div>
-
-                        <div className="FdaVerifGrid2">
-                          <div className="FdaVerifInfoGroup">
-                            <span className="FdaVerifInfoLabel">Product Code / Barcode:</span>
-                            {/* BACKEND: maps to verification_requests.product_code */}
-                            <span className="FdaVerifCodeBadge">
-                              {currentItem.productCode || 'N/A'}
-                            </span>
-                          </div>
-
-                          <div className="FdaVerifInfoGroup">
-                            <span className="FdaVerifInfoLabel">Priority Level:</span>
-                            {/* BACKEND: maps to verification_requests.priority */}
-                            <span className={`FdaVerifPriorityBadge ${getPriorityBadgeClass(currentItem.priority)}`}>
-                              {currentItem.priority}
-                            </span>
-                          </div>
-
-                          <div className="FdaVerifInfoGroup FdaVerifGridFull">
-                            <span className="FdaVerifInfoLabel">Notes & Statement from LEA Officers:</span>
-                            {/* BACKEND: maps to verification_requests.lea_notes */}
-                            <div className="FdaVerifNotesBox">
-                              <p>{currentItem.leaNotes}</p>
+                              <div className="FdaVerifInfoGroup FdaVerifGridFull">
+                                <span className="FdaVerifInfoLabel">Verification Request Source:</span>
+                                {/* CHANGED — was currentItem.source which showed the raw backend
+                                    value e.g. "walk_in". Every request in this queue is
+                                    LEA-originated by definition, so we always display the
+                                    human-readable static label instead of transforming a field. */}
+                                <span className="FdaVerifInfoValue">LEA Verification Request</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
 
-                      <hr className="FdaVerifSectionDivider" />
+                          <hr className="FdaVerifSectionDivider" />
 
-                      {/* SECTION 3: AUTO-ATTACHED EVIDENCE & REQUEST DOCUMENTS */}
+                          {/* SECTION 2: VERIFICATION REQUEST INFORMATION FROM LEA */}
 
-                      <div className="FdaVerifMergedSection">
-                        <div className="FdaVerifSectionHeader">
-                          <Paperclip size={16} className="FdaVerifGreenIcon" />
-                          <h3>Auto-Attached Evidence & Request Documents</h3>
-                        </div>
+                          <div className="FdaVerifMergedSection">
+                            <div className="FdaVerifSectionHeader">
+                              <FileText size={16} className="FdaVerifGreenIcon" />
+                              <h3>Verification Request Information (LEA-CIDG)</h3>
+                            </div>
 
-                        {/* BACKEND: maps to verification_request_attachments table */}
-                        <div className="FdaVerifDocsGrid">
-                          {currentItem.documents && currentItem.documents.length > 0 ? (
-                            currentItem.documents.map((doc) => (
-                              <div key={doc.id} className="FdaVerifDocCard">
-                                <div className="FdaVerifDocIcon">
-                                  <FileText size={18} />
-                                </div>
-                                <div className="FdaVerifDocInfo">
-                                  <p className="FdaVerifDocName">{doc.name}</p>
-                                  <span className="FdaVerifDocMeta">{doc.category} &bull; {doc.size}</span>
-                                </div>
-                                <div className="FdaVerifDocActions">
-                                  <button
-                                    className="FdaVerifDocActionBtn"
-                                    title="Inspect Attachment"
-                                    onClick={() => setFdaDocPreviewModal(doc)}
-                                  >
-                                    <Eye size={13} />
-                                  </button>
+                            <div className="FdaVerifGrid2">
+                              <div className="FdaVerifInfoGroup">
+                                <span className="FdaVerifInfoLabel">Product Code / Barcode:</span>
+                                {/* CHANGED — was currentItem.productCode; now product_code
+                                    from selectedQueueDetail. Null-safe fallback to 'N/A'. */}
+                                <span className="FdaVerifCodeBadge">
+                                  {selectedQueueDetail?.product_code || 'N/A'}
+                                </span>
+                              </div>
+
+                              <div className="FdaVerifInfoGroup">
+                                <span className="FdaVerifInfoLabel">Priority Level:</span>
+                                {/* CHANGED — was currentItem.priority (dummy capitalized);
+                                    now from selectedQueueDetail.priority (lowercase from
+                                    backend). Capitalize for display, same as card badge. */}
+                                <span className={`FdaVerifPriorityBadge ${getPriorityBadgeClass(selectedQueueDetail?.priority)}`}>
+                                  {selectedQueueDetail?.priority
+                                    ? selectedQueueDetail.priority.charAt(0).toUpperCase() + selectedQueueDetail.priority.slice(1)
+                                    : '—'}
+                                </span>
+                              </div>
+
+                              <div className="FdaVerifInfoGroup FdaVerifGridFull">
+                                <span className="FdaVerifInfoLabel">Notes &amp; Statement from LEA Officers:</span>
+                                {/* CHANGED — was currentItem.leaNotes (dummy); now
+                                    complaint_statement from selectedQueueDetail. */}
+                                <div className="FdaVerifNotesBox">
+                                  <p>{selectedQueueDetail?.complaint_statement ?? 'No statement provided.'}</p>
                                 </div>
                               </div>
-                            ))
-                          ) : (
-                            <p className="FdaVerifNoDocsText">No evidence documents attached to this request.</p>
-                          )}
-                        </div>
-                      </div>
+                            </div>
+                          </div>
+
+                          <hr className="FdaVerifSectionDivider" />
+
+                          {/* SECTION 3: AUTO-ATTACHED EVIDENCE & REQUEST DOCUMENTS */}
+
+                          <div className="FdaVerifMergedSection">
+                            <div className="FdaVerifSectionHeader">
+                              <Paperclip size={16} className="FdaVerifGreenIcon" />
+                              <h3>Auto-Attached Evidence &amp; Request Documents</h3>
+                            </div>
+
+                            {/* CHANGED — was currentItem.documents (dummy array); now
+                                selectedQueueDetail.attached_files (real field name).
+                                Each file uses file_id as the React key and for the
+                                download endpoint. Download action calls
+                                GET /shared-files/{file_id}/download with Bearer auth
+                                and triggers a browser download via a temporary anchor. */}
+                            <div className="FdaVerifDocsGrid">
+                              {selectedQueueDetail?.attached_files && selectedQueueDetail.attached_files.length > 0 ? (
+                                selectedQueueDetail.attached_files.map((file) => (
+                                  <div key={file.file_id} className="FdaVerifDocCard">
+                                    <div className="FdaVerifDocIcon">
+                                      <FileText size={18} />
+                                    </div>
+                                    <div className="FdaVerifDocInfo">
+                                      {/* CHANGED — was doc.name; now file.file_name. */}
+                                      <p className="FdaVerifDocName">{file.file_name}</p>
+                                      {/* CHANGED — was doc.size; now file.file_size_display
+                                          (human-readable string e.g. "334.2 KB" already
+                                          formatted by the backend). */}
+                                      <span className="FdaVerifDocMeta">{file.file_size_display}</span>
+                                    </div>
+                                    <div className="FdaVerifDocActions">
+                                      {/* FIX 1 — restored original eye-icon pattern: clicking
+                                          opens the preview modal (fdaDocPreviewModal). The
+                                          actual download fetch has been MOVED to the
+                                          "Download Attachment" button inside that modal.
+                                          The eye icon's only job is to populate the modal. */}
+                                      <button
+                                        className="FdaVerifDocActionBtn"
+                                        title="Inspect Attachment"
+                                        onClick={() => setFdaDocPreviewModal(file)}
+                                      >
+                                        <Eye size={13} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="FdaVerifNoDocsText">No evidence documents attached to this request.</p>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
 
                     </div>
 
@@ -1032,7 +1274,7 @@ function FDAVerification() {
                     {/* (For Verification Queue Tab) */}
 
                     <div className="FdaVerifSectionCard FdaVerifControlPanelCard">
-                      
+
                       {!fdaIsRejecting ? (
                         <>
                           <div className="FdaVerifSectionHeader">
@@ -1044,13 +1286,13 @@ function FDAVerification() {
                           </div>
 
                           <div className="FdaVerifControlForm">
-                            
+
                             {/* Verification Status Radio Selection */}
                             <div className="FdaVerifFormGroup">
                               <label className="FdaVerifFormLabel">
                                 Verification Status <span className="FdaVerifRequired">*</span>
                               </label>
-                              
+
                               {/* BACKEND: maps to verification_requests.fda_verification_status */}
                               <div className="FdaVerifRadioOptionsGroup">
                                 <label
@@ -1073,7 +1315,7 @@ function FDAVerification() {
                                   </div>
                                 </label>
 
-                                 <label
+                                <label
                                   className={`FdaVerifRadioCard ${fdaVerificationStatus === 'Unregistered' ? 'FdaVerifRadioUnregisteredActive' : ''}`}
                                   id="fda-radio-status-unregistered"
                                 >
@@ -1230,7 +1472,7 @@ function FDAVerification() {
                             >
                               Cancel Rejection
                             </button>
-                            
+
                             {/* BACKEND: POST /api/fda/verification-requests/:id/reject */}
                             {/* BACKEND: Trigger notification to LEA TopBar notification panel */}
                             <button
@@ -1296,7 +1538,7 @@ function FDAVerification() {
           )}
 
           {/* COMPLETED VERIFICATIONS — FULL-WIDTH TABLE */}
-      
+
 
           {fdaActiveTab === 'completed' && (() => {
             // Pagination helpers for Completed table
@@ -1870,6 +2112,12 @@ function FDAVerification() {
           {/* ============================================================================ */}
           {/* INTAKE DOCUMENT PREVIEW MODAL */}
           {/* ============================================================================ */}
+          {/* FIX 1 — updated to use real API field names from selectedQueueDetail.attached_files:
+              fdaDocPreviewModal is now set to the file object itself (not a dummy doc object),
+              so .file_name replaces old .name, .file_size_display replaces old .size,
+              .mime_type is now available for display. The actual download fetch (Bearer auth
+              → blob → anchor click) lives here in the "Download Attachment" button,
+              moved from the inline card button. */}
           {fdaDocPreviewModal && (
             <div className="FdaVerifModalOverlay" role="dialog" aria-modal="true">
               <div className="FdaVerifDocModalContainer">
@@ -1877,8 +2125,12 @@ function FDAVerification() {
                   <div className="FdaVerifDocModalTitleGroup">
                     <Paperclip size={18} className="FdaVerifGreenIcon" />
                     <div>
-                      <h3>{fdaDocPreviewModal.name}</h3>
-                      <p className="FdaVerifDocModalMeta">{fdaDocPreviewModal.category} &bull; {fdaDocPreviewModal.size}</p>
+                      {/* FIX 1 — was fdaDocPreviewModal.name (dummy); now file_name. */}
+                      <h3>{fdaDocPreviewModal.file_name}</h3>
+                      {/* FIX 1 — was .category • .size (dummy); now mime_type • file_size_display. */}
+                      <p className="FdaVerifDocModalMeta">
+                        {fdaDocPreviewModal.mime_type} &bull; {fdaDocPreviewModal.file_size_display}
+                      </p>
                     </div>
                   </div>
                   <button
@@ -1892,13 +2144,11 @@ function FDAVerification() {
                 <div className="FdaVerifDocModalBody">
                   <div className="FdaVerifDocPlaceholderPreview">
                     <FileText size={48} className="FdaVerifDocPreviewIcon" />
-                    <p className="FdaVerifPreviewTitle">Document Preview Mode</p>
+                    <p className="FdaVerifPreviewTitle">Document Preview</p>
                     <p className="FdaVerifPreviewText">
-                      Showing auto-attached evidence document file: <strong>{fdaDocPreviewModal.name}</strong>.
+                      {/* FIX 1 — was .name (dummy); now file_name. */}
+                      Showing auto-attached evidence document: <strong>{fdaDocPreviewModal.file_name}</strong>.
                     </p>
-                    <span className="FdaVerifBackendBadge">
-                      // BACKEND: GET /api/attachments/{fdaDocPreviewModal.id}/download
-                    </span>
                   </div>
                 </div>
 
@@ -1909,11 +2159,34 @@ function FDAVerification() {
                   >
                     Close Preview
                   </button>
+                  {/* FIX 1 — "Download Attachment" button now performs the actual
+                      download fetch (moved here from the inline card button).
+                      Calls GET /shared-files/{file_id}/download with Bearer auth,
+                      converts the blob to an object URL, and triggers a browser
+                      download via a temporary anchor element. */}
                   <button
                     className="FdaVerifBtnDownloadAttachment"
                     onClick={() => {
-                      triggerAlert(`Downloaded attachment file: ${fdaDocPreviewModal.name}`, 'info');
-                      setFdaDocPreviewModal(null);
+                      const token = localStorage.getItem('access_token');
+                      fetch(`${API_BASE}/shared-files/${fdaDocPreviewModal.file_id}/download`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                      })
+                        .then((res) => {
+                          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                          return res.blob();
+                        })
+                        .then((blob) => {
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = fdaDocPreviewModal.file_name;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          setFdaDocPreviewModal(null);
+                        })
+                        .catch(() => {
+                          triggerAlert('Could not download the file. Please try again.', 'danger');
+                        });
                     }}
                   >
                     <Download size={14} />
