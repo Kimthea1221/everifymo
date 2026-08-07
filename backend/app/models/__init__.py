@@ -25,3 +25,6 @@ from .shared_files import SharedFile
 from .audit_logs import AuditLog
 
 from .consumer_otp_tokens import ConsumerOTPToken
+
+from .case_reference_counters import CaseReferenceCounter
+from .fda_verification_drafts import FdaVerificationDraft
