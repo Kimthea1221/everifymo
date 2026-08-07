@@ -16,7 +16,6 @@ def LoadRegAsset(asset_file: str):
     file_path = ASSET_DIR / asset_file
     try:
         registeredCleanedDf = pd.concat(map(pd.read_pickle, [file_path]))
-        print(registeredCleanedDf.head())
     except FileNotFoundError:
         raise (FileNotFoundError(f"Asset file not found: {file_path}"))
 
@@ -40,7 +39,7 @@ def LoadRegEmbedAsset(asset_file: str):
     try:
         with open(file_path, 'rb') as file:
             registeredEmbeddingsArray = np.load(file)
-        print(registeredEmbeddingsArray)
+        # print(registeredEmbeddingsArray)
     except FileNotFoundError:
         raise (FileNotFoundError(f"Asset file not found: {file_path}"))
 

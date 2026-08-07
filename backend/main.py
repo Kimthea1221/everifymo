@@ -26,6 +26,7 @@ from app.core.security import get_current_user
 from app.extension.routers import complaints
 
 from app.extension.routers import status as status_router
+from app.extension.routers import retrieval as retrieval_router
 
 
 # Saved Drafts feature
@@ -41,11 +42,18 @@ from app.desktop.routers.complaints.walkin_complaints import (
 
 
 app = FastAPI()
-Base.metadata.create_all(bind=engine)
+
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as exc:
+    print(f"Skipping database initialization for local startup: {exc}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "chrome-extension://ecnabcgnlhpacoimdaakjgpajdlojkff"
+        ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,6 +68,7 @@ app.include_router(auth_router.router)
 app.include_router(complaints.router)
 
 app.include_router(status_router.router)
+app.include_router(retrieval_router.router)
 
 consumer_dependency = Annotated[dict, Depends(get_current_user)]
 
@@ -86,4 +95,3 @@ async def user(consumer: consumer_dependency):
         "User": consumer
     }
 
-# Extension 

@@ -1,3 +1,4 @@
+//content.js
 console.log('FDA Checker content script loaded');
 
 let lastUrl = location.href;
@@ -250,12 +251,19 @@ function tryExtract(attempt = 1) {
 
     console.log('Clean title:', cleanedTitle);
 
-    chrome.runtime.sendMessage({
-        action: 'titleExtracted',
-        title: cleanedTitle,
-        platform: platform,
-        url: location.href
-    });
+    console.log('Sending extracted title to background:', cleanedTitle, platform, location.href);
+
+    try {
+        chrome.runtime.sendMessage({
+            action: 'titleExtracted',
+            title: rawTitle,
+            platform: platform,
+            url: location.href
+        });
+        console.log('Message sent to backend');
+    } catch (error) {
+        console.error('Error sending message to backend:', error);
+    }
 }
 
 tryExtract();

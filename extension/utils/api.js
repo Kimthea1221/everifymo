@@ -303,3 +303,4 @@ function verifyOtp(inputCode, callback) {
     chrome.storage.local.remove('pendingOtp', () => callback(true));
   });
 }
+}
