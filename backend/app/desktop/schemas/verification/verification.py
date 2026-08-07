@@ -118,3 +118,89 @@ class FdaVerificationRequestDetailResponse(BaseModel):
     priority: str
     complaint_statement: str
     attached_files: list[SharedFileResponse]
+
+
+# ============================================================
+# FDA VERIFICATION QUEUE - COMPLETED TAB
+# ============================================================
+
+class FdaVerificationResultChoice(str, Enum):
+    registered = "registered"
+    unregistered = "unregistered"
+
+
+class FdaVerificationCompletedListItem(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_at: datetime
+    responded_at: datetime
+    verification_result: FdaVerificationResultChoice
+    verified_by_name: str | None
+
+
+class FdaVerificationCompletedListResponse(BaseModel):
+    items: list[FdaVerificationCompletedListItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class FdaVerificationCompletedDetailResponse(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_at: datetime
+    requested_by_name: str | None
+    verification_result: FdaVerificationResultChoice
+    cpr_number: str | None
+    cpr_expiry: date | None
+    response_notes: str | None
+    unregistered_reason: str | None
+    verified_by_name: str | None
+    responded_at: datetime
+
+
+# ============================================================
+# FDA VERIFICATION QUEUE - REJECTED TAB
+# ============================================================
+
+class FdaVerificationRejectedListItem(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_at: datetime
+    responded_at: datetime
+    rejected_by_name: str | None
+
+
+class FdaVerificationRejectedListResponse(BaseModel):
+    items: list[FdaVerificationRejectedListItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class FdaVerificationRejectedDetailResponse(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_at: datetime
+    requested_by_name: str | None
+    rejected_by_name: str | None
+    responded_at: datetime
+    rejection_reason: str
+
+# tiny dashboard count 
+class FdaVerificationQueueCounts(BaseModel):
+    verification_queue_count: int
+    completed_count: int
+    rejected_count: int
