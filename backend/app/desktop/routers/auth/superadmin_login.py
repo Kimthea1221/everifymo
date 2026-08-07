@@ -7,13 +7,16 @@ from app.desktop.services.auth.superadmin_auth import authenticate_superadmin
 from app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
 from app.desktop.services.auth.email import send_superadmin_otp_email
 from app.models.users import User
-from app.core.security import create_access_token
+from app.core.security import create_desktop_access_token
 
 router = APIRouter(prefix="/auth/superadmin", tags=["superadmin-auth"])
 
 
+from sqlalchemy import text
+
 @router.post("/login")
 async def superadmin_login(request: SuperAdminLoginRequest, db: Session = Depends(get_db)):
+    db.execute(text("SET app.bypass_rls = 'true'"))
     try:
         user = authenticate_superadmin(db, request.email, request.password)
     except ValueError as exc:
@@ -28,6 +31,7 @@ async def superadmin_login(request: SuperAdminLoginRequest, db: Session = Depend
 
 @router.post("/verify-otp")
 def verify_otp(request: SuperAdminOTPVerifyRequest, db: Session = Depends(get_db)):
+    db.execute(text("SET app.bypass_rls = 'true'"))
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
@@ -40,7 +44,7 @@ def verify_otp(request: SuperAdminOTPVerifyRequest, db: Session = Depends(get_db
     otp_token.is_used = True
     db.commit()
 
-    access_token = create_access_token({"sub": str(user.user_id), "role": user.role})
+    access_token = create_desktop_access_token({"sub": str(user.user_id), "role": user.role})
 
     # create a refresh token and persist session
     from app.core.security import generate_refresh_token, hash_refresh_token
