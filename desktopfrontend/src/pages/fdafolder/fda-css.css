@@ -2503,7 +2503,13 @@ h1, h2, h3, h4, h5, h6 {
   font-family: monospace;
 }
 
+/* FIX 2 — added display: inline-block and width: fit-content so the colored
+   background only wraps as wide as the priority word + its padding, not the
+   full width of the parent container. Applies to both the card-list badge
+   and the detail-panel "Priority Level:" badge (they share this class). */
 .FdaVerifPriorityBadge {
+  display: inline-block;
+  width: fit-content;
   font-size: 10.5px;
   font-weight: 700;
   padding: 2px 7px;
