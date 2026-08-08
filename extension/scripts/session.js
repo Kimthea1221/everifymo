@@ -40,11 +40,16 @@ async function updateUsername(newUsername, callback) {
   );
 }
 
-// function deleteAccount(callback) {
-//   if (!_session) {
-//     callback(false);
-//     return;
-//   }
+async function deleteAccount(password, callback) {
+  if (!_session) {
+    callback(false);
+    return;
+  }
+
+  apiDeleteAccount(password, _session.access_token)
+    .then(() => logoutUser(() => callback(true)))
+    .catch(e => callback(false, e.message));
+}
 
 //   getRegisteredUsers((users) => {
 //     const remainingUsers = users.filter(u => u.email !== _session.email);

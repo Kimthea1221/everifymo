@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
+from datetime import datetime, timezone
 
 from app.core.security import pwd_context
 from app.models.consumer_accounts import ConsumerAccount
-from app.extension.schemas.consumer_acc import CreateConsumerAcc
+from app.extension.schemas.consumer_acc import CreateConsumerAcc, DeleteAccountRequest
 from app.models import consumer_accounts
 
 from app.extension.services import consumer_otp_service
@@ -64,7 +65,7 @@ def resend_signup_otp(db: Session, email: str) -> str:
     return consumer_otp_service.create_otp(db, consumer.consumer_id, purpose="signup_verification")
 
 def update_username(db: Session, user_id: int, updatedUsername: str):
-    user = db.query( consumer_accounts.ConsumerAccount
+    user = db.query(consumer_accounts.ConsumerAccount
         ).filter(consumer_accounts.ConsumerAccount.consumer_id == user_id).first()
 
     if not user:
@@ -81,6 +82,21 @@ def update_username(db: Session, user_id: int, updatedUsername: str):
     db.commit()
     db.refresh(user)
     return user
+
+def delete_account(db: Session, user_id, payload: DeleteAccountRequest, permanent: bool = False):
+    consumer = db.query(ConsumerAccount).filter(
+        ConsumerAccount.consumer_id == user_id
+    ).first()
+
+    if not consumer: 
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    if consumer.auth_provider == "local":
+        if not pwd_context.verify(payload.password, consumer.password_hash):
+            raise HTTPException(status_code=403, detail="Incorrect password")
+
+    db.delete(consumer)
+    db.commit()
 
 def login_with_google(db: Session, google_token: str) -> ConsumerAccount:
     infoID = google_auth_service.verify_google_token(google_token)

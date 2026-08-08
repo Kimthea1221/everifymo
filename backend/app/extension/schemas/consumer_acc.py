@@ -17,6 +17,9 @@ class CreateConsumerAcc(BaseModel):
 class UpdateUsername(BaseModel):
     username: str
 
+class DeleteAccountRequest(BaseModel):
+    password: str
+
 class RequestOTP(BaseModel):
     email: EmailStr
 

@@ -14,6 +14,12 @@ def generate_otp_code(length: int = 6) -> str:
     return "".join(str(secrets.randbelow(10)) for _ in range(length))
 
 def create_otp(db: Session, consumer_id, purpose: str) -> str:
+    db.query(ConsumerOTPToken).filter(
+        ConsumerOTPToken.consumer_id == consumer_id,
+        ConsumerOTPToken.purpose == purpose,
+        ConsumerOTPToken.is_used == False,
+    ).update({ "is_used": True })
+        
     code = generate_otp_code()
     otp = ConsumerOTPToken(
         consumer_id = consumer_id,
@@ -21,6 +27,7 @@ def create_otp(db: Session, consumer_id, purpose: str) -> str:
         expires_at = datetime.now(timezone.utc) + timedelta(minutes = OTP_EXPIRATION_MINS),
         purpose = purpose
     )
+
     db.add(otp)
     db.commit()
     return code

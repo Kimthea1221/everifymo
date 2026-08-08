@@ -173,6 +173,21 @@ async function apiUpdateUsername(newUsername, token) {
     return handleResponse(res);
 }
 
+async function apiDeleteAccount(password, token, permanent = false) {
+
+    const res = await fetch(`${API_BASE}/accounts/delete-account`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password })
+    });
+
+    if (res.status === 204) return true;
+    return handleResponse(res);
+}
+
 function getVerificationHistory() {
   return [
     { id: 1, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
