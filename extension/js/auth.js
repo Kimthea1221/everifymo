@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const emailField = document.getElementById('email-field');
   const otpField = document.getElementById('otp-field');
-  const otpDigitInputs = Array.from(document.querySelectorAll('.otp-digit-input'));
+  const otpDigitInputs = Array.from(document.querySelectorAll('#otp-field .otp-digit-input'));
   const otpError = document.getElementById('otp-error');
   const otpDevPreview = document.getElementById('otp-dev-preview');
   const otpVerifyButton = document.getElementById('otp-verify-button');
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const googleLoginBtn = document.getElementById('google-login-btn');
   const googleError = document.getElementById('googleError');
   const forgotOtpField = document.getElementById('forgot-otp-field');
-  const forgotOtpInputs = Array.from(document.querySelectorAll('.forgot-otp-digit-input'));
+  const forgotOtpInputs = Array.from(document.querySelectorAll('#forgot-otp-field .forgot-otp-digit-input'));
   const forgotOtpError = document.getElementById('forgot-otp-error');
   const resendForgotOtpLink = document.getElementById('resend-forgot-otp-link');
   const newPasswordField = document.getElementById('new-password-field');
@@ -207,7 +207,10 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, otpDigitInputs.length);
       pasted.split('').forEach((digit, i) => {
-        if (otpDigitInputs[i]) otpDigitInputs[i].value = digit;
+        if (otpDigitInputs[i]) {
+          otpDigitInputs[i].value = digit;
+          otpDigitInputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+        }
       });
       const nextIndex = Math.min(pasted.length, otpDigitInputs.length - 1);
       otpDigitInputs[nextIndex].focus();
@@ -241,6 +244,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Backspace' && !input.value && index > 0) {
         forgotOtpInputs[index - 1].focus();
       }
+    });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, forgotOtpInputs.length);
+      pasted.split('').forEach((digit, i) => {
+        if (forgotOtpInputs[i]) {
+          forgotOtpInputs[i].value = digit;
+          forgotOtpInputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+      const nextIndex = Math.min(pasted.length, forgotOtpInputs.length - 1);
+      forgotOtpInputs[nextIndex].focus();
     });
   });
 
@@ -624,11 +640,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // flash message after redirect to clear previous message
   const flashMessage = sessionStorage.getItem('authFlashMessage');
   const flashType = sessionStorage.getItem('authFlashType');
+  const flashTitle = sessionStorage.getItem('authFlashTitle');
 
   if (flashMessage) {
     const noticeBanner = document.querySelector('.notice-banner');
 
-    noticeTitle.textContent = "You're verified!";
+    noticeTitle.textContent = flashTitle || "You're verified!";
     noticeText.textContent = flashMessage;
 
     if (flashType === 'success') {
@@ -638,6 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear it so a page refresh doesn't show it again
     sessionStorage.removeItem('authFlashMessage');
     sessionStorage.removeItem('authFlashType');
+    sessionStorage.removeItem('authFlashTitle');
   }
 
   // Clicking "Verify and Sign In/Up" — collects the 6 digits and checks them with the backend
@@ -654,16 +672,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // otpPendingEmail was filled in back when enterOtpMode() ran —
       // that's the account this code is being checked against
-      verifyOtp(otpPendingEmail, enteredCode, (success, errorMsg) => {
+      verifyOtp(otpPendingEmail, enteredCode, (success, error) => {
         if (!success) {
-          setError(otpError, 'Incorrect code. Please try again.');
+          setError(otpError, error || 'Incorrect code. Please try again.');
           otpDigitInputs.forEach(inp => inp.classList.add('is-invalid'));
           return;
         }
         // Flash-style message, after redirect (successful signup)
         sessionStorage.setItem('authFlashMessage', 'Account verified! Please login to continue.');
         sessionStorage.setItem('authFlashType', 'success');
-        
+        sessionStorage.setItem('authFlashTitle', 'Email verified');
         window.location.href = 'auth.html';
       });
     });
