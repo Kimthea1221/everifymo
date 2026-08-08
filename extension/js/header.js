@@ -204,9 +204,23 @@ function initProfileActions() {
 
   if (confirmDeleteBtn) {
     confirmDeleteBtn.addEventListener('click', () => {
-      deleteAccount((success) => {
+      const passwordInput = document.getElementById('delete-password-input');
+      const password = passwordInput ? passwordInput.value : '';
+      const passwordError = document.getElementById('delete-password-error');
+
+      if (!password) {
+        if (passwordError) passwordError.textContent = 'Password is required';
+        return;
+      }
+
+      deleteAccount(password, (success, error) => {
         if (success) {
+          sessionStorage.setItem('authFlashMessage', 'Your account and personal information have been permanently removed.');
+          sessionStorage.setItem('authFlashType', 'success');
+          sessionStorage.setItem('authFlashTitle', 'Account deleted');
           window.location.href = 'auth.html';
+        } else {
+          if (passwordError) passwordError.textContent = error || 'Incorrect password';
         }
       });
     });
