@@ -30,23 +30,14 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
   const menuRef = useRef(null);
   const displayStatus = user.display_status || user.status;
 
-  /*function openMenu() { initial code
+  function openMenu() {
     const rect = triggerRef.current.getBoundingClientRect();
     setMenuPos({
-      top: rect.bottom + window.scrollY + 6,
-      left: rect.right + window.scrollX - 190, // 190 = menu width, right-aligns to button
+      top: rect.bottom + 6,
+      left: rect.right - 190,
     });
     setIsOpen(true);
-  }*/
-
- function openMenu() {
-  const rect = triggerRef.current.getBoundingClientRect();
-  setMenuPos({
-    top: rect.bottom + 6,
-    left: rect.right - 190,
-  });
-  setIsOpen(true);
-}
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,20 +59,11 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
         ref={triggerRef}
         className="UserMgmtDropdownTrigger"
         data-tooltip="Actions"
+        title="More Actions"
         onClick={(e) => {
           e.stopPropagation();
           isOpen ? setIsOpen(false) : openMenu();
         }}
-      >
-        <Eye size={15} />
-      </button>
-
-      <button
-        ref={triggerRef}
-        className="UserMgmtDropdownTrigger"
-        data-tooltip="Actions"
-        title="More Actions"
-        onClick={handleToggle}
       >
         <MoreVertical size={16} />
       </button>
