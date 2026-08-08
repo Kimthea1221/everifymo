@@ -1,4 +1,4 @@
-scripts/seed_supeadmin
+
 
 """Seed script: create a superadmin account for login testing or deployment.
 

@@ -1572,3 +1572,5 @@ body {
 .notice-banner-success .notice-text {
   color: #1e7e34;
 }
+
+.field-error.is-success { color: green; }
