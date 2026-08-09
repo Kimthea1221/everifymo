@@ -162,6 +162,7 @@ def list_verification_requests_awaiting_fda(
 def list_completed_verification_requests(
     search: str | None = Query(None),
     category: str | None = Query(None),
+    verification_result: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     page: int = Query(1, ge=1),
@@ -170,7 +171,7 @@ def list_completed_verification_requests(
     current_user=Depends(get_current_user),
 ):
     return list_fda_verification_completed(
-        db, current_user, search, category, date_from, date_to, page, page_size
+        db, current_user, search, category, verification_result, date_from, date_to, page, page_size
     )
 
 
