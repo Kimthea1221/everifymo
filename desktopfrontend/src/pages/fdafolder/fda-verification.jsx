@@ -256,11 +256,21 @@ function FDAVerification() {
   // BACKEND: active tab filter state ('queue' | 'completed' | 'rejected')
   const [fdaActiveTab, setFdaActiveTab] = useState('queue');
 
-  // CHANGED — starts empty; real data is loaded by the fetch useEffect below
-  // instead of dummyQueueRequests (which is now only used for the Completed/Rejected tabs).
+  // CHANGED — starts empty; real data is loaded by the fetch useEffect below.
   const [fdaQueueList, setFdaQueueList] = useState([]);
-  const [fdaCompletedList, setFdaCompletedList] = useState(dummyCompletedRequests);
-  const [fdaRejectedList, setFdaRejectedList] = useState(dummyRejectedRequests);
+  // CHANGED — starts empty; replaced by real fetch from GET /verification-requests/completed.
+  const [fdaCompletedList, setFdaCompletedList] = useState([]);
+  // CHANGED — starts empty; replaced by real fetch from GET /verification-requests/rejected.
+  const [fdaRejectedList, setFdaRejectedList] = useState([]);
+
+  // ADDED — tracks whether the completed list fetch is in progress.
+  const [completedLoading, setCompletedLoading] = useState(false);
+  // ADDED — total record count from the server response; drives server-side pagination.
+  const [completedTotal, setCompletedTotal] = useState(0);
+  // ADDED — tracks whether the rejected list fetch is in progress.
+  const [rejectedLoading, setRejectedLoading] = useState(false);
+  // ADDED — total rejected record count from the server response; drives server-side pagination.
+  const [rejectedTotal, setRejectedTotal] = useState(0);
 
   // ADDED — holds the three badge counts fetched from GET /verification-requests/counts.
   // Starts as null (not 0) so the UI shows "-" while the request is in-flight
@@ -293,6 +303,9 @@ function FDAVerification() {
   const [completedDateFrom, setCompletedDateFrom] = useState('');
   const [completedDateTo, setCompletedDateTo] = useState('');
   const [completedCategory, setCompletedCategory] = useState('');
+  // ADDED — new Verification Result filter dropdown; maps to verification_result query param.
+  // Empty string = All Results (param is omitted); 'registered' or 'unregistered' = filter.
+  const [completedResultFilter, setCompletedResultFilter] = useState('');
 
   // BACKEND: Rejected Records Table Filters
   const [rejectedSearch, setRejectedSearch] = useState('');
@@ -384,16 +397,7 @@ function FDAVerification() {
   const handleTabChange = (tabKey) => {
     if (fdaActiveTab === tabKey) return;
     setFdaIsRejecting(false);
-
-    // BACKEND: Analytics / log tab change
-    // GET /api/fda/verification-requests?status=${tabKey}
-    if (!document.startViewTransition) {
-      setFdaActiveTab(tabKey);
-    } else {
-      document.startViewTransition(() => {
-        setFdaActiveTab(tabKey);
-      });
-    }
+    setFdaActiveTab(tabKey);
   };
 
 
@@ -405,7 +409,8 @@ function FDAVerification() {
   // those states now drive the debounced fetch useEffect below instead.
   const filteredQueue = fdaQueueList;
 
-  const filteredCompleted = useMemo(() => {
+  // In case we'd need a client-side filtering, uncomment this and remove the server-side code
+  /* const filteredCompleted = useMemo(() => {
     return fdaCompletedList.filter((item) => {
       const q = completedSearch.toLowerCase().trim();
       const matchesSearch =
@@ -430,9 +435,18 @@ function FDAVerification() {
 
       return matchesSearch && matchesCategory && matchesDateFrom && matchesDateTo;
     });
-  }, [fdaCompletedList, completedSearch, completedCategory, completedDateFrom, completedDateTo]);
+  }, [fdaCompletedList, completedSearch, completedCategory, completedDateFrom, completedDateTo]); */
 
-  const filteredRejected = useMemo(() => {
+  // CHANGED — filtering is now done server-side via query params sent in the
+  // fetchCompletedList useEffect below. fdaCompletedList already holds the
+  // pre-filtered page of results returned by the backend.
+  const filteredCompleted = fdaCompletedList;
+
+  // CHANGED — filtering is now done server-side via query params sent in the
+  // fetchRejectedList useEffect below. fdaRejectedList already holds the
+  // pre-filtered page of results returned by the backend.
+  // In case we'd need a client-side filtering, uncomment this and remove the server-side code:
+  /* const filteredRejected = useMemo(() => {
     return fdaRejectedList.filter((item) => {
       const q = rejectedSearch.toLowerCase().trim();
       const matchesSearch =
@@ -457,7 +471,8 @@ function FDAVerification() {
 
       return matchesSearch && matchesCategory && matchesDateFrom && matchesDateTo;
     });
-  }, [fdaRejectedList, rejectedSearch, rejectedCategory, rejectedDateFrom, rejectedDateTo]);
+  }, [fdaRejectedList, rejectedSearch, rejectedCategory, rejectedDateFrom, rejectedDateTo]); */
+  const filteredRejected = fdaRejectedList;
 
   // Active item in Verification Queue
   const currentItem = selectedQueueItem;
@@ -509,12 +524,9 @@ function FDAVerification() {
       .finally(() => setDetailLoading(false));
   };
 
-  // ADDED — fetches the real badge counts on mount from the backend endpoint.
-  // Uses the same localStorage access_token pattern as the LEA pages.
-  // On success, populates queueCounts with the three fields from the response.
-  // On error, surfaces a toast via the existing triggerAlert helper instead of
-  // using alert() or inline error text.
-  useEffect(() => {
+  // ADDED — helper function to fetch badge counts from the backend endpoint.
+  // Called on component mount and after successful submit or reject actions.
+  const fetchCounts = () => {
     const token = localStorage.getItem('access_token');
     fetch(`${API_BASE}/verification-requests/counts`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -533,6 +545,10 @@ function FDAVerification() {
       .catch(() => {
         triggerAlert('Could not load verification queue counts from the server.', 'danger');
       });
+  };
+
+  useEffect(() => {
+    fetchCounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -540,11 +556,14 @@ function FDAVerification() {
   // Runs on mount and re-runs (with 300 ms debounce) whenever fdaSearchQuery
   // or fdaPriorityFilter changes. Both filters are sent as a single combined
   // request; if priority is 'all' the parameter is omitted entirely.
+  // SMOOTH LOADING — only triggers full loading state if list is currently empty.
   useEffect(() => {
     const token = localStorage.getItem('access_token');
 
     const timer = setTimeout(() => {
-      setQueueLoading(true);
+      if (fdaQueueList.length === 0) {
+        setQueueLoading(true);
+      }
 
       const params = new URLSearchParams();
       if (fdaSearchQuery.trim()) params.set('search', fdaSearchQuery.trim());
@@ -560,9 +579,13 @@ function FDAVerification() {
         })
         .then((data) => {
           setFdaQueueList(data);
-          // Auto-select the first item after every refresh so the detail
-          // panel is never left blank, but only when nothing is selected yet.
-          setSelectedQueueItem((prev) => prev ?? data[0] ?? null);
+          // Preserve currently selected card if it still exists in the new result
+          setSelectedQueueItem((prev) => {
+            if (prev && data.some((item) => item.request_id === prev.request_id)) {
+              return prev;
+            }
+            return data[0] ?? null;
+          });
         })
         .catch(() => {
           triggerAlert('Could not load the verification queue from the server.', 'danger');
@@ -590,6 +613,95 @@ function FDAVerification() {
   }, [selectedQueueItem?.request_id]);
 
 
+  // ADDED — fetches the Completed list from the backend whenever any filter or
+  // page changes. completedSearch is debounced (300 ms); all other dependencies
+  // trigger immediately since they come from dropdowns/date pickers, not typing.
+  // SMOOTH LOADING — only triggers full loading state if list is currently empty.
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+
+    const doFetch = () => {
+      if (fdaCompletedList.length === 0) {
+        setCompletedLoading(true);
+      }
+      const params = new URLSearchParams();
+      if (completedSearch.trim()) params.set('search', completedSearch.trim());
+      if (completedCategory) params.set('category', completedCategory);
+      if (completedDateFrom) params.set('date_from', completedDateFrom);
+      if (completedDateTo) params.set('date_to', completedDateTo);
+      // ADDED — sends verification_result only when a specific result is selected;
+      // omitted entirely when empty ('All Results') to let the backend return both.
+      if (completedResultFilter) params.set('verification_result', completedResultFilter);
+      params.set('page', String(completedPage));
+      params.set('page_size', '10');
+
+      fetch(`${API_BASE}/verification-requests/completed?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          setFdaCompletedList(data.items);
+          setCompletedTotal(data.total);
+        })
+        .catch(() => {
+          triggerAlert('Could not load completed verification records from the server.', 'danger');
+        })
+        .finally(() => setCompletedLoading(false));
+    };
+
+    // Debounce only the text search; other filters fire immediately.
+    const timer = setTimeout(doFetch, completedSearch ? 300 : 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // CHANGED — added completedResultFilter to the dependency array so changing the
+  // Verification Result dropdown immediately re-fetches without needing debounce.
+  }, [completedSearch, completedCategory, completedDateFrom, completedDateTo, completedPage, completedResultFilter]);
+
+  // ADDED — fetches the Rejected list from the backend whenever any filter or
+  // page changes. rejectedSearch is debounced (300 ms); all other dependencies
+  // trigger immediately since they come from dropdowns/date pickers, not typing.
+  // SMOOTH LOADING — only triggers full loading state if list is currently empty.
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+
+    const doFetch = () => {
+      if (fdaRejectedList.length === 0) {
+        setRejectedLoading(true);
+      }
+      const params = new URLSearchParams();
+      if (rejectedSearch.trim()) params.set('search', rejectedSearch.trim());
+      if (rejectedCategory) params.set('category', rejectedCategory);
+      if (rejectedDateFrom) params.set('date_from', rejectedDateFrom);
+      if (rejectedDateTo) params.set('date_to', rejectedDateTo);
+      params.set('page', String(rejectedPage));
+      params.set('page_size', '10');
+
+      fetch(`${API_BASE}/verification-requests/rejected?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          setFdaRejectedList(data.items);
+          setRejectedTotal(data.total);
+        })
+        .catch(() => {
+          triggerAlert('Could not load rejected verification records from the server.', 'danger');
+        })
+        .finally(() => setRejectedLoading(false));
+    };
+
+    // Debounce only the text search; other filters fire immediately.
+    const timer = setTimeout(doFetch, rejectedSearch ? 300 : 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rejectedSearch, rejectedCategory, rejectedDateFrom, rejectedDateTo, rejectedPage]);
+
   // CONFIRMATION MODAL HANDLERS
 
   // Open modal for Save Draft
@@ -606,19 +718,25 @@ function FDAVerification() {
   };
 
   // Open modal for Submit Verification
+  // CHANGED — Added client-side validation per backend specifications before opening modal.
   const handleOpenSubmitModal = () => {
     if (!currentItem) return;
     if (!fdaVerificationStatus) {
-      triggerAlert('Please select a Verification Status (Registered or Unregistered) before submitting.', 'warning');
+      triggerAlert('Please select a Verification Status (Registered or Unregistered) before submitting.', 'danger');
       return;
     }
-    if (fdaVerificationStatus === 'Registered' && !fdaOfficialRemarks.trim()) {
-      triggerAlert('Please provide Official FDA Verification Remarks for registered products.', 'warning');
-      return;
-    }
-    if (fdaVerificationStatus === 'Unregistered' && !fdaUnregisteredReason.trim()) {
-      triggerAlert('Please provide the Reason Product is Not Registered.', 'warning');
-      return;
+
+    const statusLower = fdaVerificationStatus.toLowerCase();
+    if (statusLower === 'registered') {
+      if (!fdaCprNumber.trim() || !fdaOfficialRemarks.trim()) {
+        triggerAlert('CPR Registration Number and Official FDA Verification Remarks are required for a Registered determination.', 'danger');
+        return;
+      }
+    } else if (statusLower === 'unregistered') {
+      if (!fdaUnregisteredReason.trim()) {
+        triggerAlert('Reason Product is Not Registered is required for an Unregistered determination.', 'danger');
+        return;
+      }
     }
 
     setFdaModalConfig({
@@ -632,10 +750,11 @@ function FDAVerification() {
   };
 
   // Open modal for Reject Request
+  // CHANGED — Added client-side validation for non-empty rejection reason before opening modal.
   const handleOpenRejectModal = () => {
     if (!currentItem) return;
     if (!fdaRejectionReason.trim()) {
-      triggerAlert('Please provide a detailed rejection reason for LEA before confirming rejection.', 'warning');
+      triggerAlert('Please provide a rejection reason before rejecting this request.', 'danger');
       return;
     }
 
@@ -650,17 +769,13 @@ function FDAVerification() {
   };
 
   // Modal execution handler
-  const handleExecuteModalAction = () => {
+  // CHANGED — Wired Submit and Reject modal confirmations to real backend API endpoints:
+  // POST /verification-requests/{request_id}/fda-response and POST /verification-requests/{request_id}/fda-reject.
+  // Performs error handling, item removal, form reset, and counts re-fetch.
+  const handleExecuteModalAction = async () => {
     if (!fdaModalConfig || !currentItem) return;
 
-    const timestamp = new Date().toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
+    const token = localStorage.getItem('access_token');
 
     if (fdaModalConfig.type === 'save_draft') {
       // BACKEND: PATCH /api/fda/verification-requests/:id/draft
@@ -683,101 +798,160 @@ function FDAVerification() {
 
       // CHANGED — uses case_reference (real field name) instead of the old caseId.
       triggerAlert(`Draft saved successfully for Case ID ${currentItem.case_reference}.`, 'success');
+      setFdaModalConfig(null);
     }
     else if (fdaModalConfig.type === 'submit') {
-      // BACKEND:
-      // After submitting verification:
-      // status = completed
-      // result = registered | unregistered
-      //
-      // API CALL: POST /api/fda/verification-requests/:id/submit
-      // Body: {
-      //   verification_status: fdaVerificationStatus, // 'Registered' | 'Unregistered'
-      //   cpr_number: fdaCprNumber,
-      //   cpr_expiry: fdaCprExpiry,
-      //   official_remarks: fdaOfficialRemarks,
-      //   unregistered_reason: fdaUnregisteredReason,
-      //   verified_at: new Date().toISOString(),
-      //   verified_by: current_user.id
-      // }
-      // DATABASE MUTATION:
-      // 1. UPDATE verification_requests SET status = 'completed', fda_verification_status = :verification_status WHERE id = :id
-      // 2. INSERT INTO verification_logs (case_id, action, performed_by) VALUES (:caseId, 'VERIFICATION_SUBMITTED', :user_id)
-      // 3. TRIGGER NOTIFICATION SERVICE:
-      //    // BACKEND: Trigger notification to LEA TopBar notification panel ("FDA has completed verification for CASE ID: [Case ID].")
+      try {
+        const payload = {
+          verification_status: fdaVerificationStatus.toLowerCase(),
+          cpr_number: fdaCprNumber.trim() || null,
+          cpr_expiry: fdaCprExpiry.trim() || null,
+          response_notes: fdaOfficialRemarks.trim() || null,
+          unregistered_reason: fdaUnregisteredReason.trim() || null
+        };
 
-      const completedItem = {
-        ...currentItem,
-        dateCompleted: timestamp,
-        verificationResult: fdaVerificationStatus,
-        cprNumber: fdaCprNumber || 'N/A',
-        cprExpiry: fdaCprExpiry || 'N/A',
-        ltoNumber: 'FDA-LTO-300000' + Math.floor(10000 + Math.random() * 90000),
-        verifierName: 'Dr. FDA Verifier',
-        verifierTitle: 'Senior Regulatory Inspector',
-        remarks: fdaOfficialRemarks || 'Verification completed.',
-        unregisteredReason: fdaUnregisteredReason
-      };
+        const res = await fetch(`${API_BASE}/verification-requests/${currentItem.request_id}/fda-response`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
 
-      // Remove from current list and add to Completed
-      if (fdaActiveTab === 'queue') {
-        // CHANGED — filters by request_id (real primary key) instead of the old dummy id.
-        const remaining = fdaQueueList.filter((q) => q.request_id !== currentItem.request_id);
-        setFdaQueueList(remaining);
-        setSelectedQueueItem(remaining[0] || null);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          const errMsg = errData?.detail || 'Failed to submit verification response.';
+          triggerAlert(errMsg, 'danger');
+          setFdaModalConfig(null);
+          return;
+        }
+
+        const caseRef = currentItem.case_reference || selectedQueueDetail?.case_reference || '';
+        triggerAlert(`Verification submitted successfully for Case ID ${caseRef}.`, 'success');
+
+        // Remove from current list and select next item if available
+        if (fdaActiveTab === 'queue') {
+          const remaining = fdaQueueList.filter((q) => q.request_id !== currentItem.request_id);
+          setFdaQueueList(remaining);
+          const nextItem = remaining[0] || null;
+          setSelectedQueueItem(nextItem);
+          if (!nextItem) {
+            setSelectedQueueDetail(null);
+          }
+        }
+
+        // Reset form states
+        setFdaVerificationStatus('');
+        setFdaCprNumber('');
+        setFdaCprExpiry('');
+        setFdaOfficialRemarks('');
+        setFdaUnregisteredReason('');
+
+        // Re-fetch badge counts
+        fetchCounts();
+
+      } catch (err) {
+        triggerAlert('Network error occurred while submitting verification.', 'danger');
+      } finally {
+        setFdaModalConfig(null);
       }
-
-      setFdaCompletedList([completedItem, ...fdaCompletedList]);
-      setSelectedCompletedItem(completedItem);
-      setFdaActiveTab('completed');
-
-      // Reset form states
-      setFdaVerificationStatus('');
-      setFdaCprNumber('');
-      setFdaCprExpiry('');
-      setFdaOfficialRemarks('');
-      setFdaUnregisteredReason('');
-
-      triggerAlert(`Verification for Case ID ${currentItem.caseId} submitted successfully back to LEA!`, 'success');
     }
     else if (fdaModalConfig.type === 'reject') {
-      // BACKEND:
-      // If verifier rejects due to incomplete information:
-      // status = rejected
-      //
-      // API CALL: POST /api/fda/verification-requests/:id/reject
-      // Body: { rejection_reason: fdaRejectionReason, rejected_by: current_user.id }
-      // DATABASE MUTATION:
-      // 1. UPDATE verification_requests SET status = 'rejected', rejection_reason = :rejection_reason WHERE id = :id
-      // 2. TRIGGER NOTIFICATION SERVICE:
-      //    // BACKEND: Trigger notification to LEA TopBar notification panel ("FDA rejected verification request for CASE ID: [Case ID].")
+      try {
+        const payload = {
+          rejection_reason: fdaRejectionReason.trim()
+        };
 
-      const rejectedItem = {
-        ...currentItem,
-        dateRejected: timestamp,
-        rejectedBy: 'Dr. FDA Verifier',
-        verifierTitle: 'FDA Senior Inspector',
-        rejectionReason: fdaRejectionReason
-      };
+        const res = await fetch(`${API_BASE}/verification-requests/${currentItem.request_id}/fda-reject`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
 
-      if (fdaActiveTab === 'queue') {
-        // CHANGED — filters by request_id (real primary key) instead of the old dummy id.
-        const remaining = fdaQueueList.filter((q) => q.request_id !== currentItem.request_id);
-        setFdaQueueList(remaining);
-        setSelectedQueueItem(remaining[0] || null);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          const errMsg = errData?.detail || 'Failed to reject verification request.';
+          triggerAlert(errMsg, 'danger');
+          setFdaModalConfig(null);
+          return;
+        }
+
+        const caseRef = currentItem.case_reference || selectedQueueDetail?.case_reference || '';
+        triggerAlert(`Verification request rejected for Case ID ${caseRef}.`, 'success');
+
+        // Remove from current list and select next item if available
+        if (fdaActiveTab === 'queue') {
+          const remaining = fdaQueueList.filter((q) => q.request_id !== currentItem.request_id);
+          setFdaQueueList(remaining);
+          const nextItem = remaining[0] || null;
+          setSelectedQueueItem(nextItem);
+          if (!nextItem) {
+            setSelectedQueueDetail(null);
+          }
+        }
+
+        // Reset form states
+        setFdaRejectionReason('');
+        setFdaIsRejecting(false);
+        setFdaVerificationStatus('');
+        setFdaCprNumber('');
+        setFdaCprExpiry('');
+        setFdaOfficialRemarks('');
+        setFdaUnregisteredReason('');
+
+        // Re-fetch badge counts
+        fetchCounts();
+
+      } catch (err) {
+        triggerAlert('Network error occurred while rejecting verification request.', 'danger');
+      } finally {
+        setFdaModalConfig(null);
       }
-
-      setFdaRejectedList([rejectedItem, ...fdaRejectedList]);
-      setSelectedRejectedItem(rejectedItem);
-      setFdaActiveTab('rejected');
-      setFdaIsRejecting(false);
-
-      setFdaRejectionReason('');
-      // CHANGED — uses case_reference (real field name) instead of the old caseId.
-      triggerAlert(`Request for Case ID ${currentItem.case_reference} rejected and returned to LEA.`, 'success');
     }
+  };
 
-    setFdaModalConfig(null);
+  // ADDED — fetches the full completed detail for a given request_id and opens
+  // the existing Verification Record modal with real API field names.
+  // Endpoint: GET /verification-requests/completed/{request_id}
+  const handleViewCompletedRecord = (requestId) => {
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/verification-requests/completed/${requestId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setFdaRecordModalData({ ...data, _type: 'completed' });
+      })
+      .catch(() => {
+        triggerAlert('Could not load the verification record details.', 'danger');
+      });
+  };
+
+  // ADDED — fetches the full rejected detail for a given request_id and opens
+  // the existing Record modal with _type: 'rejected'.
+  // Endpoint: GET /verification-requests/rejected/{request_id}
+  const handleViewRejectedRecord = (requestId) => {
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/verification-requests/rejected/${requestId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setFdaRecordModalData({ ...data, _type: 'rejected' });
+      })
+      .catch(() => {
+        triggerAlert('Could not load the rejected request record details.', 'danger');
+      });
   };
 
   // CHANGED — switch cases updated to lowercase to match the backend's priority
@@ -971,9 +1145,8 @@ function FDAVerification() {
 
                 {/* Request Cards List */}
                 <div className="FdaVerifCardsScrollList">
-                  {/* ADDED — shows a loading skeleton row while the fetch is in-flight
-                    so the list doesn't just appear empty on initial load. */}
-                  {queueLoading ? (
+                  {/* ADDED — shows a loading skeleton row only on initial load when queue is empty */}
+                  {queueLoading && filteredQueue.length === 0 ? (
                     <div className="FdaVerifEmptyList">
                       <Clock size={32} className="FdaVerifEmptyIcon" />
                       <p className="FdaVerifEmptyTitle">Loading Queue…</p>
@@ -1540,14 +1713,16 @@ function FDAVerification() {
           {/* COMPLETED VERIFICATIONS — FULL-WIDTH TABLE */}
 
 
+          {/* CHANGED — Completed tab is now fully server-driven. filteredCompleted holds
+              the page returned by the backend; pagination uses completedTotal (server)
+              instead of client-side slice calculations. */}
           {fdaActiveTab === 'completed' && (() => {
-            // Pagination helpers for Completed table
-            const totalCompleted = filteredCompleted.length;
-            const totalCompletedPages = Math.ceil(totalCompleted / FDA_VERIF_TABLE_PAGE_SIZE) || 1;
+            // CHANGED — server-side pagination: total comes from the API response.
+            const COMPLETED_PAGE_SIZE = 10;
+            const totalCompletedPages = Math.ceil(completedTotal / COMPLETED_PAGE_SIZE) || 1;
             const safeCompletedPage = Math.min(Math.max(1, completedPage), totalCompletedPages);
-            const cStartIdx = (safeCompletedPage - 1) * FDA_VERIF_TABLE_PAGE_SIZE;
-            const cEndIdx = Math.min(cStartIdx + FDA_VERIF_TABLE_PAGE_SIZE, totalCompleted);
-            const pagedCompleted = filteredCompleted.slice(cStartIdx, cEndIdx);
+            const cStartIdx = (safeCompletedPage - 1) * COMPLETED_PAGE_SIZE;
+            const cEndIdx = Math.min(cStartIdx + COMPLETED_PAGE_SIZE, completedTotal);
             return (
               <div className="FdaVerifTableSection">
 
@@ -1555,7 +1730,7 @@ function FDAVerification() {
                 <div className="FdaVerifFilterPanel">
                   <div className="FdaSearchWrapper FdaSearchFixed">
                     <Search size={16} className="FdaSearchIcon" />
-                    {/* BACKEND: pass completedSearch as keyword param to GET /api/fda/verification-requests?status=completed */}
+                    {/* CHANGED — triggers debounced server-side search via completedSearch state */}
                     <input
                       type="text"
                       placeholder="Search Case ID, Product or Manufacturer..."
@@ -1568,7 +1743,7 @@ function FDAVerification() {
 
                   <div className="FdaFilterGroupsRight">
                     <div className="FdaFilterGroup">
-                      {/* BACKEND: pass completedDateFrom as from_date query param */}
+                      {/* CHANGED — sends date_from query param to GET /verification-requests/completed */}
                       <label>From</label>
                       <input
                         type="date"
@@ -1580,7 +1755,7 @@ function FDAVerification() {
                     </div>
 
                     <div className="FdaFilterGroup">
-                      {/* BACKEND: pass completedDateTo as to_date query param */}
+                      {/* CHANGED — sends date_to query param to GET /verification-requests/completed */}
                       <label>To</label>
                       <input
                         type="date"
@@ -1592,7 +1767,7 @@ function FDAVerification() {
                     </div>
 
                     <div className="FdaFilterGroup">
-                      {/* BACKEND: pass completedCategory as category query param */}
+                      {/* CHANGED — sends category query param to GET /verification-requests/completed */}
                       <label>Category</label>
                       <select
                         value={completedCategory}
@@ -1601,25 +1776,45 @@ function FDAVerification() {
                       >
                         <option value="">All Categories</option>
                         <option value="Cosmetics">Cosmetics</option>
-                        <option value="Foods">Foods</option>
+                        <option value="Food">Food</option>
                         <option value="Medical Devices">Medical Devices</option>
                         <option value="Drugs">Drugs</option>
+                        <option value="Supplements">Supplements</option>
                       </select>
                     </div>
 
-                    {(completedSearch || completedDateFrom || completedDateTo || completedCategory) && (
-                      <button
-                        className="BtnClearFilters"
-                        onClick={() => { setCompletedSearch(''); setCompletedDateFrom(''); setCompletedDateTo(''); setCompletedCategory(''); setCompletedPage(1); }}
+                    {/* ADDED — Verification Result dropdown; sends verification_result query param.
+                        Mirrors the exact structure/classes of the Category dropdown above. */}
+                    <div className="FdaFilterGroup">
+                      <label>Verification Result</label>
+                      <select
+                        value={completedResultFilter}
+                        onChange={(e) => { setCompletedResultFilter(e.target.value); setCompletedPage(1); }}
+                        id="fda-completed-result-filter"
                       >
-                        Clear Filters
-                      </button>
-                    )}
+                        <option value="">All Results</option>
+                        <option value="registered">Registered</option>
+                        <option value="unregistered">Unregistered</option>
+                      </select>
+                    </div>
+
+                    {/* FIX 2 — always mounted (visibility:hidden vs conditional render) so
+                        the flex row never shifts when the button appears/disappears.
+                        disabled prevents clicks when hidden. */}
+                    <button
+                      className="BtnClearFilters"
+                      onClick={() => { setCompletedSearch(''); setCompletedDateFrom(''); setCompletedDateTo(''); setCompletedCategory(''); setCompletedResultFilter(''); setCompletedPage(1); }}
+                      disabled={!(completedSearch || completedDateFrom || completedDateTo || completedCategory || completedResultFilter)}
+                      style={{
+                        visibility: (completedSearch || completedDateFrom || completedDateTo || completedCategory || completedResultFilter) ? 'visible' : 'hidden'
+                      }}
+                    >
+                      Clear Filters
+                    </button>
                   </div>
                 </div>
 
-                {/* Table — matches fda-view-reports FdaTableCard + FdaTableWrapper + FdaTable */}
-                {/* BACKEND: GET /api/fda/verification-requests?status=completed&keyword=...&from_date=...&to_date=...&category=... */}
+                {/* CHANGED — table now maps real API field names from GET /verification-requests/completed */}
                 <div className="FdaTableCard FdaVerifTableCard">
                   <div className="FdaTableWrapper">
                     <table className="FdaTable">
@@ -1637,32 +1832,69 @@ function FDAVerification() {
                         </tr>
                       </thead>
                       <tbody>
-                        {pagedCompleted.length > 0 ? (
-                          pagedCompleted.map((item) => (
-                            <tr key={item.id}>
-                              <td className="CaseIdCell">{item.caseId}</td>
+                        {/* ADDED — loading row only when initial fetch is in flight and table is empty */}
+                        {completedLoading && filteredCompleted.length === 0 ? (
+                          <tr>
+                            <td colSpan="9" className="FdaEmptyState">
+                              <Clock size={28} style={{ opacity: 0.4 }} />
+                              <p>Loading completed records…</p>
+                            </td>
+                          </tr>
+                        ) : filteredCompleted.length > 0 ? (
+                          filteredCompleted.map((item) => (
+                            // CHANGED — key and all cells now use real API field names.
+                            <tr key={item.request_id}>
+                              {/* CHANGED — was item.caseId; now case_reference */}
+                              <td className="CaseIdCell">{item.case_reference}</td>
                               <td>
                                 <div className="ProductCell">
-                                  <span className="ProductCellTitle">{item.productName}</span>
+                                  {/* CHANGED — was item.productName; now product_name */}
+                                  <span className="ProductCellTitle">{item.product_name}</span>
                                 </div>
                               </td>
+                              {/* manufacturer field name is the same */}
                               <td style={{ fontSize: '12px', color: '#1F2937', opacity: 0.8 }}>{item.manufacturer}</td>
-                              <td>{item.category}</td>
-                              <td style={{ whiteSpace: 'nowrap' }}>{item.dateReceived}</td>
-                              <td style={{ whiteSpace: 'nowrap' }}>{item.dateCompleted}</td>
+                              {/* CHANGED — was item.category; now product_category */}
+                              <td>{item.product_category}</td>
+                              {/* CHANGED — was item.dateReceived (pre-formatted); now requested_at (ISO) formatted here */}
+                              <td style={{ whiteSpace: 'nowrap' }}>
+                                {item.requested_at
+                                  ? new Date(item.requested_at).toLocaleString('en-US', {
+                                    year: 'numeric', month: '2-digit', day: '2-digit',
+                                    hour: '2-digit', minute: '2-digit', hour12: true,
+                                  })
+                                  : '—'}
+                              </td>
+                              {/* CHANGED — was item.dateCompleted; now responded_at (ISO) formatted here */}
+                              <td style={{ whiteSpace: 'nowrap' }}>
+                                {item.responded_at
+                                  ? new Date(item.responded_at).toLocaleString('en-US', {
+                                    year: 'numeric', month: '2-digit', day: '2-digit',
+                                    hour: '2-digit', minute: '2-digit', hour12: true,
+                                  })
+                                  : '—'}
+                              </td>
+                              {/* CHANGED — was item.verificationResult (capitalized dummy);
+                                  now verification_result (lowercase from backend) — capitalize for display. */}
                               <td>
-                                <span className={`FdaVerifResultTag ${item.verificationResult === 'Registered' ? 'FdaVerifTagReg' : 'FdaVerifTagUnreg'}`}>
-                                  {item.verificationResult}
+                                <span className={`FdaVerifResultTag ${item.verification_result === 'registered' ? 'FdaVerifTagReg' : 'FdaVerifTagUnreg'
+                                  }`}>
+                                  {item.verification_result
+                                    ? item.verification_result.charAt(0).toUpperCase() + item.verification_result.slice(1)
+                                    : '—'}
                                 </span>
                               </td>
-                              <td style={{ fontSize: '12px' }}>{item.verifierName}</td>
+                              {/* CHANGED — was item.verifierName; now verified_by_name (null → 'N/A') */}
+                              <td style={{ fontSize: '12px' }}>{item.verified_by_name ?? 'N/A'}</td>
                               <td style={{ textAlign: 'center' }}>
-                                {/* BACKEND: GET verification record by verification_request_id */}
+                                {/* CHANGED — was inline setFdaRecordModalData; now calls
+                                    handleViewCompletedRecord which fetches the full detail
+                                    from GET /verification-requests/completed/{request_id}. */}
                                 <button
                                   className="BtnActionView"
-                                  onClick={() => setFdaRecordModalData({ ...item, _type: 'completed' })}
+                                  onClick={() => handleViewCompletedRecord(item.request_id)}
                                   title="View record details"
-                                  id={`fda-btn-view-completed-${item.id}`}
+                                  id={`fda-btn-view-completed-${item.request_id}`}
                                 >
                                   <Eye size={16} />
                                 </button>
@@ -1681,10 +1913,10 @@ function FDAVerification() {
                     </table>
                   </div>
 
-                  {/* Pagination Footer */}
+                  {/* CHANGED — pagination now driven by completedTotal (server) not client array length */}
                   <div className="FdaTableFooter">
                     <span className="FdaFooterInfo">
-                      Showing {totalCompleted === 0 ? 0 : cStartIdx + 1}–{cEndIdx} of {totalCompleted} entries
+                      Showing {completedTotal === 0 ? 0 : cStartIdx + 1}–{cEndIdx} of {completedTotal} entries
                     </span>
                     <div className="FdaPagination">
                       <button
@@ -1723,14 +1955,16 @@ function FDAVerification() {
           {/* REJECTED REQUESTS — FULL-WIDTH TABLE */}
           {/* ============================================================================ */}
 
+          {/* CHANGED — Rejected tab is now fully server-driven. filteredRejected holds
+              the page returned by the backend; pagination uses rejectedTotal (server)
+              instead of client-side slice calculations. */}
           {fdaActiveTab === 'rejected' && (() => {
-            // Pagination helpers for Rejected table
-            const totalRejected = filteredRejected.length;
-            const totalRejectedPages = Math.ceil(totalRejected / FDA_VERIF_TABLE_PAGE_SIZE) || 1;
+            // CHANGED — server-side pagination: total comes from the API response.
+            const REJECTED_PAGE_SIZE = 10;
+            const totalRejectedPages = Math.ceil(rejectedTotal / REJECTED_PAGE_SIZE) || 1;
             const safeRejectedPage = Math.min(Math.max(1, rejectedPage), totalRejectedPages);
-            const rStartIdx = (safeRejectedPage - 1) * FDA_VERIF_TABLE_PAGE_SIZE;
-            const rEndIdx = Math.min(rStartIdx + FDA_VERIF_TABLE_PAGE_SIZE, totalRejected);
-            const pagedRejected = filteredRejected.slice(rStartIdx, rEndIdx);
+            const rStartIdx = (safeRejectedPage - 1) * REJECTED_PAGE_SIZE;
+            const rEndIdx = Math.min(rStartIdx + REJECTED_PAGE_SIZE, rejectedTotal);
             return (
               <div className="FdaVerifTableSection">
 
@@ -1738,7 +1972,7 @@ function FDAVerification() {
                 <div className="FdaVerifFilterPanel">
                   <div className="FdaSearchWrapper FdaSearchFixed">
                     <Search size={16} className="FdaSearchIcon" />
-                    {/* BACKEND: pass rejectedSearch as keyword param to GET /api/fda/verification-requests?status=rejected */}
+                    {/* CHANGED — triggers debounced server-side search via rejectedSearch state */}
                     <input
                       type="text"
                       placeholder="Search Case ID, Product or Manufacturer..."
@@ -1751,7 +1985,7 @@ function FDAVerification() {
 
                   <div className="FdaFilterGroupsRight">
                     <div className="FdaFilterGroup">
-                      {/* BACKEND: pass rejectedDateFrom as from_date query param */}
+                      {/* CHANGED — sends date_from query param to GET /verification-requests/rejected */}
                       <label>From</label>
                       <input
                         type="date"
@@ -1763,7 +1997,7 @@ function FDAVerification() {
                     </div>
 
                     <div className="FdaFilterGroup">
-                      {/* BACKEND: pass rejectedDateTo as to_date query param */}
+                      {/* CHANGED — sends date_to query param to GET /verification-requests/rejected */}
                       <label>To</label>
                       <input
                         type="date"
@@ -1775,7 +2009,8 @@ function FDAVerification() {
                     </div>
 
                     <div className="FdaFilterGroup">
-                      {/* BACKEND: pass rejectedCategory as category query param */}
+                      {/* CHANGED — sends category query param to GET /verification-requests/rejected.
+                          FIXED: 'Foods' corrected to 'Food' to match real backend category strings. */}
                       <label>Category</label>
                       <select
                         value={rejectedCategory}
@@ -1784,25 +2019,30 @@ function FDAVerification() {
                       >
                         <option value="">All Categories</option>
                         <option value="Cosmetics">Cosmetics</option>
-                        <option value="Foods">Foods</option>
+                        <option value="Food">Food</option>
                         <option value="Medical Devices">Medical Devices</option>
                         <option value="Drugs">Drugs</option>
+                        <option value="Supplements">Supplements</option>
                       </select>
                     </div>
 
-                    {(rejectedSearch || rejectedDateFrom || rejectedDateTo || rejectedCategory) && (
-                      <button
-                        className="BtnClearFilters"
-                        onClick={() => { setRejectedSearch(''); setRejectedDateFrom(''); setRejectedDateTo(''); setRejectedCategory(''); setRejectedPage(1); }}
-                      >
-                        Clear Filters
-                      </button>
-                    )}
+                    {/* FIX 2 — always mounted (visibility:hidden vs conditional render) so
+                        the flex row never shifts when the button appears/disappears.
+                        disabled prevents clicks when hidden. */}
+                    <button
+                      className="BtnClearFilters"
+                      onClick={() => { setRejectedSearch(''); setRejectedDateFrom(''); setRejectedDateTo(''); setRejectedCategory(''); setRejectedPage(1); }}
+                      disabled={!(rejectedSearch || rejectedDateFrom || rejectedDateTo || rejectedCategory)}
+                      style={{
+                        visibility: (rejectedSearch || rejectedDateFrom || rejectedDateTo || rejectedCategory) ? 'visible' : 'hidden'
+                      }}
+                    >
+                      Clear Filters
+                    </button>
                   </div>
                 </div>
 
-                {/* Table — matches fda-view-reports FdaTableCard + FdaTableWrapper + FdaTable */}
-                {/* BACKEND: GET /api/fda/verification-requests?status=rejected&keyword=...&from_date=...&to_date=...&category=... */}
+                {/* CHANGED — table now maps real API field names from GET /verification-requests/rejected */}
                 <div className="FdaTableCard FdaVerifTableCard">
                   <div className="FdaTableWrapper">
                     <table className="FdaTable">
@@ -1819,27 +2059,59 @@ function FDAVerification() {
                         </tr>
                       </thead>
                       <tbody>
-                        {pagedRejected.length > 0 ? (
-                          pagedRejected.map((item) => (
-                            <tr key={item.id}>
-                              <td className="CaseIdCell">{item.caseId}</td>
+                        {/* ADDED — loading row only when initial fetch is in flight and table is empty */}
+                        {rejectedLoading && filteredRejected.length === 0 ? (
+                          <tr>
+                            <td colSpan="8" className="FdaEmptyState">
+                              <Clock size={28} style={{ opacity: 0.4 }} />
+                              <p>Loading rejected records…</p>
+                            </td>
+                          </tr>
+                        ) : filteredRejected.length > 0 ? (
+                          filteredRejected.map((item) => (
+                            // CHANGED — key and all cells now use real API field names.
+                            <tr key={item.request_id}>
+                              {/* CHANGED — was item.caseId; now case_reference */}
+                              <td className="CaseIdCell">{item.case_reference}</td>
                               <td>
                                 <div className="ProductCell">
-                                  <span className="ProductCellTitle">{item.productName}</span>
+                                  {/* CHANGED — was item.productName; now product_name */}
+                                  <span className="ProductCellTitle">{item.product_name}</span>
                                 </div>
                               </td>
+                              {/* manufacturer field name is the same */}
                               <td style={{ fontSize: '12px', color: '#1F2937', opacity: 0.8 }}>{item.manufacturer}</td>
-                              <td>{item.category}</td>
-                              <td style={{ whiteSpace: 'nowrap' }}>{item.dateReceived}</td>
-                              <td style={{ whiteSpace: 'nowrap' }}>{item.dateRejected}</td>
-                              <td style={{ fontSize: '12px' }}>{item.rejectedBy}</td>
+                              {/* CHANGED — was item.category; now product_category */}
+                              <td>{item.product_category}</td>
+                              {/* CHANGED — was item.dateReceived (pre-formatted); now requested_at (ISO) formatted here */}
+                              <td style={{ whiteSpace: 'nowrap' }}>
+                                {item.requested_at
+                                  ? new Date(item.requested_at).toLocaleString('en-US', {
+                                    year: 'numeric', month: '2-digit', day: '2-digit',
+                                    hour: '2-digit', minute: '2-digit', hour12: true,
+                                  })
+                                  : '—'}
+                              </td>
+                              {/* CHANGED — was item.dateRejected (pre-formatted); now responded_at (ISO) formatted here */}
+                              <td style={{ whiteSpace: 'nowrap' }}>
+                                {item.responded_at
+                                  ? new Date(item.responded_at).toLocaleString('en-US', {
+                                    year: 'numeric', month: '2-digit', day: '2-digit',
+                                    hour: '2-digit', minute: '2-digit', hour12: true,
+                                  })
+                                  : '—'}
+                              </td>
+                              {/* CHANGED — was item.rejectedBy; now rejected_by_name (null → 'N/A') */}
+                              <td style={{ fontSize: '12px' }}>{item.rejected_by_name ?? 'N/A'}</td>
                               <td style={{ textAlign: 'center' }}>
-                                {/* BACKEND: GET rejection details */}
+                                {/* CHANGED — was inline setFdaRecordModalData; now calls
+                                    handleViewRejectedRecord which fetches the full detail
+                                    from GET /verification-requests/rejected/{request_id}. */}
                                 <button
                                   className="BtnActionView"
-                                  onClick={() => setFdaRecordModalData({ ...item, _type: 'rejected' })}
+                                  onClick={() => handleViewRejectedRecord(item.request_id)}
                                   title="View rejection details"
-                                  id={`fda-btn-view-rejected-${item.id}`}
+                                  id={`fda-btn-view-rejected-${item.request_id}`}
                                 >
                                   <Eye size={16} />
                                 </button>
@@ -1858,10 +2130,10 @@ function FDAVerification() {
                     </table>
                   </div>
 
-                  {/* Pagination Footer */}
+                  {/* CHANGED — pagination now driven by rejectedTotal (server) not client array length */}
                   <div className="FdaTableFooter">
                     <span className="FdaFooterInfo">
-                      Showing {totalRejected === 0 ? 0 : rStartIdx + 1}–{rEndIdx} of {totalRejected} entries
+                      Showing {rejectedTotal === 0 ? 0 : rStartIdx + 1}–{rEndIdx} of {rejectedTotal} entries
                     </span>
                     <div className="FdaPagination">
                       <button
@@ -1937,6 +2209,14 @@ function FDAVerification() {
           {/* ============================================================================ */}
           {/* RECORD VIEW MODAL (COMPLETED & REJECTED) */}
           {/* ============================================================================ */}
+          {/* CHANGED — Record View Modal now maps real API field names from the completed
+              detail endpoint (GET /verification-requests/completed/{request_id}).
+              Dummy field names replaced. LTO field removed entirely (not in real API).
+              verification_result is lowercase from the backend; capitalised for display.
+              requested_by_name shown as 'N/A' when null.
+              Both registered and unregistered paths use response_notes for remarks.
+              Fallback to old camelCase names so the Rejected tab's existing dummy data
+              still renders without changes. */}
           {fdaRecordModalData && (
             <div className="FdaVerifModalOverlay" role="dialog" aria-modal="true">
               <div className="FdaRecordModalContainer">
@@ -1949,8 +2229,16 @@ function FDAVerification() {
                         <ShieldCheck size={20} className="FdaVerifGreenIcon" />
                         <div>
                           <h3>Verification Record</h3>
+                          {/* CHANGED — was .caseId / .dateCompleted (dummy);
+                              now case_reference / responded_at (real API fields). */}
                           <p className="FdaRecordModalSubtitle">
-                            {fdaRecordModalData.caseId} &bull; Completed on {fdaRecordModalData.dateCompleted}
+                            {fdaRecordModalData.case_reference} &bull; Completed on
+                            {fdaRecordModalData.responded_at
+                              ? ` ${new Date(fdaRecordModalData.responded_at).toLocaleString('en-US', {
+                                year: 'numeric', month: '2-digit', day: '2-digit',
+                                hour: '2-digit', minute: '2-digit', hour12: true,
+                              })}`
+                              : ''}
                           </p>
                         </div>
                       </>
@@ -1959,8 +2247,16 @@ function FDAVerification() {
                         <XCircle size={20} className="FdaVerifRedIcon" />
                         <div>
                           <h3>Rejected Request Record</h3>
+                          {/* CHANGED — was .caseId / .dateRejected (dummy);
+                              now case_reference / responded_at (real API fields). */}
                           <p className="FdaRecordModalSubtitle">
-                            {fdaRecordModalData.caseId} &bull; Rejected on {fdaRecordModalData.dateRejected}
+                            {fdaRecordModalData.case_reference ?? fdaRecordModalData.caseId} &bull; Rejected on
+                            {fdaRecordModalData.responded_at
+                              ? ` ${new Date(fdaRecordModalData.responded_at).toLocaleString('en-US', {
+                                year: 'numeric', month: '2-digit', day: '2-digit',
+                                hour: '2-digit', minute: '2-digit', hour12: true,
+                              })}`
+                              : (fdaRecordModalData.dateRejected ? ` ${fdaRecordModalData.dateRejected}` : '')}
                           </p>
                         </div>
                       </>
@@ -1974,11 +2270,13 @@ function FDAVerification() {
                   <div className="FdaRecordInfoGrid">
                     <div className="FdaRecordInfoItem">
                       <span className="FdaVerifInfoLabel">CASE ID</span>
-                      <span className="FdaVerifInfoValueHighlight">{fdaRecordModalData.caseId}</span>
+                      {/* CHANGED — was .caseId; now case_reference (fallback for rejected dummy) */}
+                      <span className="FdaVerifInfoValueHighlight">{fdaRecordModalData.case_reference ?? fdaRecordModalData.caseId}</span>
                     </div>
                     <div className="FdaRecordInfoItem">
                       <span className="FdaVerifInfoLabel">PRODUCT NAME</span>
-                      <span className="FdaVerifInfoValue">{fdaRecordModalData.productName}</span>
+                      {/* CHANGED — was .productName; now product_name */}
+                      <span className="FdaVerifInfoValue">{fdaRecordModalData.product_name ?? fdaRecordModalData.productName}</span>
                     </div>
                     <div className="FdaRecordInfoItem">
                       <span className="FdaVerifInfoLabel">MANUFACTURER</span>
@@ -1986,15 +2284,28 @@ function FDAVerification() {
                     </div>
                     <div className="FdaRecordInfoItem">
                       <span className="FdaVerifInfoLabel">PRODUCT CATEGORY</span>
-                      <span className="FdaVerifInfoValue">{fdaRecordModalData.category}</span>
+                      {/* CHANGED — was .category; now product_category */}
+                      <span className="FdaVerifInfoValue">{fdaRecordModalData.product_category ?? fdaRecordModalData.category}</span>
                     </div>
                     <div className="FdaRecordInfoItem">
                       <span className="FdaVerifInfoLabel">DATE RECEIVED</span>
-                      <span className="FdaVerifInfoValue">{fdaRecordModalData.dateReceived}</span>
+                      {/* CHANGED — was .dateReceived (pre-formatted string);
+                          now requested_at (ISO) formatted inline. */}
+                      <span className="FdaVerifInfoValue">
+                        {fdaRecordModalData.requested_at
+                          ? new Date(fdaRecordModalData.requested_at).toLocaleString('en-US', {
+                            year: 'numeric', month: '2-digit', day: '2-digit',
+                            hour: '2-digit', minute: '2-digit', hour12: true,
+                          })
+                          : (fdaRecordModalData.dateReceived ?? '—')}
+                      </span>
                     </div>
                     <div className="FdaRecordInfoItem">
                       <span className="FdaVerifInfoLabel">REQUESTING LEA OFFICER</span>
-                      <span className="FdaVerifInfoValue">{fdaRecordModalData.complainant}</span>
+                      {/* CHANGED — was .complainant; now requested_by_name (null → 'N/A') */}
+                      <span className="FdaVerifInfoValue">
+                        {fdaRecordModalData.requested_by_name ?? fdaRecordModalData.complainant ?? 'N/A'}
+                      </span>
                     </div>
                   </div>
 
@@ -2008,47 +2319,58 @@ function FDAVerification() {
 
                       <div className="FdaRecordResultRow">
                         <span className="FdaVerifInfoLabel">Verification Determination:</span>
-                        <span className={`FdaVerifResultTag ${fdaRecordModalData.verificationResult === 'Registered' ? 'FdaVerifTagReg' : 'FdaVerifTagUnreg'}`}>
-                          {fdaRecordModalData.verificationResult}
+                        {/* CHANGED — was .verificationResult (capitalized dummy);
+                            now verification_result (lowercase from API) — capitalised here. */}
+                        <span className={`FdaVerifResultTag ${fdaRecordModalData.verification_result === 'registered' ? 'FdaVerifTagReg' : 'FdaVerifTagUnreg'
+                          }`}>
+                          {fdaRecordModalData.verification_result
+                            ? fdaRecordModalData.verification_result.charAt(0).toUpperCase() + fdaRecordModalData.verification_result.slice(1)
+                            : '—'}
                         </span>
                       </div>
 
-                      {fdaRecordModalData.verificationResult === 'Registered' ? (
+                      {/* CHANGED — condition now uses lowercase 'registered' to match real API value */}
+                      {fdaRecordModalData.verification_result === 'registered' ? (
                         <div className="FdaRecordInfoGrid">
                           <div className="FdaRecordInfoItem">
                             <span className="FdaVerifInfoLabel">FDA CPR Number</span>
-                            <span className="FdaVerifInfoValueHighlight">{fdaRecordModalData.cprNumber}</span>
+                            {/* CHANGED — was .cprNumber; now cpr_number */}
+                            <span className="FdaVerifInfoValueHighlight">{fdaRecordModalData.cpr_number ?? '—'}</span>
                           </div>
                           <div className="FdaRecordInfoItem">
                             <span className="FdaVerifInfoLabel">CPR Expiry Date</span>
-                            <span className="FdaVerifInfoValue">{fdaRecordModalData.cprExpiry}</span>
+                            {/* CHANGED — was .cprExpiry; now cpr_expiry */}
+                            <span className="FdaVerifInfoValue">{fdaRecordModalData.cpr_expiry ?? '—'}</span>
                           </div>
-                          <div className="FdaRecordInfoItem">
-                            <span className="FdaVerifInfoLabel">License to Operate (LTO)</span>
-                            <span className="FdaVerifInfoValue">{fdaRecordModalData.ltoNumber}</span>
-                          </div>
+                          {/* REMOVED — License to Operate (LTO) field deleted;
+                              not present in the real API response. */}
                           <div className="FdaRecordInfoItem">
                             <span className="FdaVerifInfoLabel">Verified By</span>
-                            <span className="FdaVerifInfoValue">{fdaRecordModalData.verifierName} &bull; {fdaRecordModalData.verifierTitle}</span>
+                            {/* CHANGED — was .verifierName / .verifierTitle; now verified_by_name (null → 'N/A') */}
+                            <span className="FdaVerifInfoValue">{fdaRecordModalData.verified_by_name ?? 'N/A'}</span>
                           </div>
                           <div className="FdaRecordInfoItem FdaRecordInfoItemFull">
                             <span className="FdaVerifInfoLabel">Official FDA Remarks</span>
-                            <p className="FdaRecordRemarksText">{fdaRecordModalData.remarks}</p>
+                            {/* CHANGED — was .remarks; now response_notes */}
+                            <p className="FdaRecordRemarksText">{fdaRecordModalData.response_notes ?? '—'}</p>
                           </div>
                         </div>
                       ) : (
                         <div className="FdaRecordInfoGrid">
                           <div className="FdaRecordInfoItem">
                             <span className="FdaVerifInfoLabel">Verified By</span>
-                            <span className="FdaVerifInfoValue">{fdaRecordModalData.verifierName} &bull; {fdaRecordModalData.verifierTitle}</span>
+                            {/* CHANGED — was .verifierName / .verifierTitle; now verified_by_name (null → 'N/A') */}
+                            <span className="FdaVerifInfoValue">{fdaRecordModalData.verified_by_name ?? 'N/A'}</span>
                           </div>
                           <div className="FdaRecordInfoItem FdaRecordInfoItemFull">
                             <span className="FdaVerifInfoLabel">Reason Product is Unregistered</span>
-                            <p className="FdaRecordRemarksText">{fdaRecordModalData.unregisteredReason}</p>
+                            {/* CHANGED — was .unregisteredReason; now unregistered_reason */}
+                            <p className="FdaRecordRemarksText">{fdaRecordModalData.unregistered_reason ?? '—'}</p>
                           </div>
                           <div className="FdaRecordInfoItem FdaRecordInfoItemFull">
                             <span className="FdaVerifInfoLabel">FDA Advisory Remarks</span>
-                            <p className="FdaRecordRemarksText">{fdaRecordModalData.remarks}</p>
+                            {/* CHANGED — was .remarks; now response_notes */}
+                            <p className="FdaRecordRemarksText">{fdaRecordModalData.response_notes ?? '—'}</p>
                           </div>
                         </div>
                       )}
@@ -2066,16 +2388,27 @@ function FDAVerification() {
                       <div className="FdaRecordInfoGrid">
                         <div className="FdaRecordInfoItem">
                           <span className="FdaVerifInfoLabel">Rejected By</span>
-                          <span className="FdaVerifInfoValue">{fdaRecordModalData.rejectedBy}</span>
+                          {/* CHANGED — was .rejectedBy (dummy); now rejected_by_name (null → 'N/A') */}
+                          <span className="FdaVerifInfoValue">{fdaRecordModalData.rejected_by_name ?? 'N/A'}</span>
                         </div>
                         <div className="FdaRecordInfoItem">
                           <span className="FdaVerifInfoLabel">Date Rejected</span>
-                          <span className="FdaVerifInfoValue">{fdaRecordModalData.dateRejected}</span>
+                          {/* CHANGED — was .dateRejected (pre-formatted string);
+                              now responded_at (ISO) formatted inline. */}
+                          <span className="FdaVerifInfoValue">
+                            {fdaRecordModalData.responded_at
+                              ? new Date(fdaRecordModalData.responded_at).toLocaleString('en-US', {
+                                year: 'numeric', month: '2-digit', day: '2-digit',
+                                hour: '2-digit', minute: '2-digit', hour12: true,
+                              })
+                              : (fdaRecordModalData.dateRejected ?? '—')}
+                          </span>
                         </div>
                         <div className="FdaRecordInfoItem FdaRecordInfoItemFull">
                           <span className="FdaVerifInfoLabel">Rejection Rationale (Sent to LEA)</span>
+                          {/* CHANGED — was .rejectionReason (dummy); now rejection_reason */}
                           <div className="FdaRecordRejectionReasonBox">
-                            <p>{fdaRecordModalData.rejectionReason}</p>
+                            <p>{fdaRecordModalData.rejection_reason ?? '—'}</p>
                           </div>
                         </div>
                       </div>

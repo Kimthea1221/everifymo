@@ -66,6 +66,7 @@ def list_fda_verification_completed(
     current_user,
     search: str | None,
     category: str | None,
+    verification_result: str | None,
     date_from: date_type | None,
     date_to: date_type | None,
     page: int,
@@ -76,6 +77,16 @@ def list_fda_verification_completed(
             ["confirmed_registered", "confirmed_unregistered"]
         )
     )
+
+    # ADDED — narrows down to just one of the two completed outcomes,
+    # when the officer picks "Registered" or "Unregistered" specifically
+    # instead of leaving the dropdown on "All Results".
+    if verification_result is not None:
+        target_status = (
+            "confirmed_registered" if verification_result == "registered" else "confirmed_unregistered"
+        )
+        query = query.filter(VerificationRequest.verification_request_status == target_status)
+
     query = _apply_common_filters(query, search, category, date_from, date_to)
 
     total = query.count()
