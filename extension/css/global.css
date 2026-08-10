@@ -368,6 +368,11 @@ body {
   box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.15);
 }
 
+#delete-password-input {
+  text-align: left;
+  padding-right: 40px;
+}
+
 .profile-dropdown-btn img {
   transition: transform 0.2s ease;
 }
@@ -1190,6 +1195,7 @@ body {
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: underline;
 }
 
 /* INPUTS */
@@ -1280,6 +1286,19 @@ body {
   font-size: 12px;
   line-height: 1.4;
   color: #B91C1C;
+}
+
+.field-error.is-success {
+  color: #16A34A;
+}
+
+.otp-countdown-warning {
+  color: #B91C1C;
+}
+
+#otp-countdown,
+#forgot-otp-countdown {
+  text-align: center;
 }
 
 .signup-password-fields {
@@ -1562,4 +1581,46 @@ body {
   margin-top: 8px;
   border-radius: 8px;
   object-fit: contain;
+}
+
+.notice-banner-success {
+  background-color: #e6f7ed;
+  border-color: #34a853;
+}
+.notice-banner-success .notice-title,
+.notice-banner-success .notice-text {
+  color: #1e7e34;
+}
+
+.field-error.is-success { color: green; }
+
+/* GOOGLE BUTTON */
+.btn-google {
+  width: 100%;
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  margin-bottom: 16px;
+  border: 1px solid #E5E5E5;
+  background-color: #FDFDFD;
+  color: #030303;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.btn-google:hover {
+  background-color: #F3F3F3;
+}
+
+.icon-placeholder-google {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  transform: translateY(4px);
 }

@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initExitButton();
     renderProfileContent();
     initProfileActions();
+    initPasswordToggles();
     applyGuestHeaderVisibility();
   });
 });
@@ -68,6 +69,25 @@ function initNotifications() {
   }
 
   updateNotifBadge();
+}
+
+function initPasswordToggles() {
+  document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      const icon = btn.querySelector('.eye-icon');
+      if (!input) return;
+
+      const willShow = input.type === 'password';
+      input.type = willShow ? 'text' : 'password';
+      if (icon) {
+        icon.src = willShow
+          ? '../assets/images/eye_close_icon.png'
+          : '../assets/images/eye_open_icon.png';
+      }
+      btn.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
+    });
+  });
 }
 
 function renderNotifications() {
@@ -155,20 +175,20 @@ function initProfileActions() {
     });
   }
 
-  if (confirmUsernameBtn) {
-    confirmUsernameBtn.addEventListener('click', () => {
-      const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
-      if (!newValue) return;
+  // if (confirmUsernameBtn) {
+  //   confirmUsernameBtn.addEventListener('click', () => {
+  //     const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
+  //     if (!newValue) return;
 
-      updateUsername(newValue, (success) => {
-        if (success) {
-          renderProfileContent(); // this updates profile overlay text
-          if (typeof applyAuthView === 'function') applyAuthView(); // this updates popup home welcome text, if on that page
-          showProfileView('profile-main-view');
-        }
-      });
-    });
-  }
+  //     updateUsername(newValue, (success) => {
+  //       if (success) {
+  //         renderProfileContent(); // this updates profile overlay text
+  //         if (typeof applyAuthView === 'function') applyAuthView(); // this updates popup home welcome text, if on that page
+  //         showProfileView('profile-main-view');
+  //       }
+  //     });
+  //   });
+  // }
 
   if (cancelUsernameBtn) {
     cancelUsernameBtn.addEventListener('click', () => {
@@ -204,9 +224,23 @@ function initProfileActions() {
 
   if (confirmDeleteBtn) {
     confirmDeleteBtn.addEventListener('click', () => {
-      deleteAccount((success) => {
+      const passwordInput = document.getElementById('delete-password-input');
+      const password = passwordInput ? passwordInput.value : '';
+      const passwordError = document.getElementById('delete-password-error');
+
+      if (!password) {
+        if (passwordError) passwordError.textContent = 'Password is required';
+        return;
+      }
+
+      deleteAccount(password, (success, error) => {
         if (success) {
+          sessionStorage.setItem('authFlashMessage', 'Your account and personal information have been permanently removed.');
+          sessionStorage.setItem('authFlashType', 'success');
+          sessionStorage.setItem('authFlashTitle', 'Account deleted');
           window.location.href = 'auth.html';
+        } else {
+          if (passwordError) passwordError.textContent = error || 'Incorrect password';
         }
       });
     });
@@ -215,6 +249,26 @@ function initProfileActions() {
   if (cancelDeleteBtn) {
     cancelDeleteBtn.addEventListener('click', () => {
       showProfileView('profile-main-view');
+    });
+  }
+  
+  if (confirmUsernameBtn) {
+    confirmUsernameBtn.addEventListener('click', () => {
+      const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
+
+      if (!newValue) {
+        if (newUsernameInput) newUsernameInput.classList.add('is-invalid');
+        return;
+      }
+      if (newUsernameInput) newUsernameInput.classList.remove('is-invalid');
+
+      updateUsername(newValue, (success) => {
+        if (success) {
+          renderProfileContent();
+          if (typeof applyAuthView === 'function') applyAuthView();
+          showProfileView('profile-main-view');
+        }
+      });
     });
   }
 }
@@ -228,23 +282,3 @@ function applyGuestHeaderVisibility() {
   if (notifBtn) notifBtn.classList.toggle('hidden', !loggedIn);
   if (dropdownBtn) dropdownBtn.classList.toggle('hidden', !loggedIn);
 }
-
-// if (confirmUsernameBtn) {
-//   confirmUsernameBtn.addEventListener('click', () => {
-//     const newValue = newUsernameInput ? newUsernameInput.value.trim() : '';
-
-//     if (!newValue) {
-//       if (newUsernameInput) newUsernameInput.classList.add('is-invalid');
-//       return;
-//     }
-//     if (newUsernameInput) newUsernameInput.classList.remove('is-invalid');
-
-//     updateUsername(newValue, (success) => {
-//       if (success) {
-//         renderProfileContent();
-//         if (typeof applyAuthView === 'function') applyAuthView();
-//         showProfileView('profile-main-view');
-//       }
-//     });
-//   });
-// }
