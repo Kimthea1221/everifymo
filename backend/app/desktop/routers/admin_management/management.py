@@ -26,6 +26,8 @@ router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 
 
 def compute_admin_status(user: User, latest_token) -> str:
+    if user.is_locked:
+        return "Locked Account"
     if user.status == UserStatus.INVITED:
         expires_at = latest_token.expires_at if latest_token else None
         if expires_at:
@@ -71,6 +73,7 @@ def list_superadmins(
                 invitation_date=latest_token.created_at if latest_token else None,
                 expiration_date=latest_token.expires_at if latest_token else None,
                 status=compute_admin_status(admin, latest_token),
+                is_locked=admin.is_locked,
             )
         )
     return result
@@ -232,3 +235,19 @@ async def activate_superadmin_endpoint(
     admin = activate_superadmin(db, admin_id)
     await send_superadmin_activation_email(admin.email)
     return {"message": "Superadmin account activated."}
+
+
+@router.post("/{admin_id}/unlock")
+def unlock_superadmin(
+    admin_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin),
+):
+    db.execute(text("SET app.bypass_rls = 'true'"))
+    admin = db.query(User).filter(User.user_id == admin_id, User.role == "superadmin").first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Superadmin not found")
+    admin.is_locked = False
+    admin.failed_login_attempts = 0
+    db.commit()
+    return {"message": "Superadmin account unlocked successfully"}

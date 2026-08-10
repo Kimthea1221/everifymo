@@ -20,15 +20,8 @@ class CreatePasswordFromInviteRequest(BaseModel):
     @field_validator("new_password")
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters.")
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Password must include at least one uppercase letter.")
-        if not re.search(r"[0-9]", v):
-            raise ValueError("Password must include at least one number.")
-        if not re.search(r"[^A-Za-z0-9]", v):
-            raise ValueError("Password must include at least one special character.")
-        return v
+        from app.core.security import validate_password_strength as validate_strength
+        return validate_strength(v)
 
 
 class RequestNewInviteRequest(BaseModel):
