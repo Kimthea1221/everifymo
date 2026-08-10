@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 import {
   Eye,
   Pencil,
-  Archive,
   ArrowRightLeft,
   Plus,
   Search,
@@ -16,7 +15,8 @@ import {
   CheckCircle,
   Clock,
   ExternalLink,
-  Package
+  Package,
+  MoreVertical,
 } from 'lucide-react';
 import './fda-css.css';
 
@@ -26,6 +26,53 @@ const ITEMS_PER_PAGE = 5;
 // NOTE: Categories list options. 
 // 🔌 BACKEND: GET /api/categories for dynamic category list
 const defaultCategories = ['Cosmetics', 'Supplements', 'Drugs', 'Medical Devices'];
+
+// Reusable View + Dropdown action control (Superadmin-style pattern)
+function FdaActionDropdown({ id, activeDropdownId, setActiveDropdownId, onView, children }) {
+  const [openUpward, setOpenUpward] = useState(false);
+  const triggerRef = useRef(null);
+  const isOpen = activeDropdownId === id;
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < 150);
+    }
+    setActiveDropdownId(isOpen ? null : id);
+  };
+
+  return (
+    <div className={`FdaDropdownWrapper ${isOpen ? 'active-open' : ''}`}>
+      <button
+        className="FdaViewBtn"
+        title="View Details"
+        onClick={(e) => {
+          e.stopPropagation();
+          onView();
+        }}
+      >
+        <Eye size={16} />
+      </button>
+
+      <button
+        ref={triggerRef}
+        className="FdaDropdownTrigger"
+        title="More Actions"
+        onClick={handleToggle}
+      >
+        <MoreVertical size={16} />
+      </button>
+
+      {isOpen && (
+        <div className={`FdaDropdownMenu ${openUpward ? 'open-upward' : ''}`}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function FDAProductDB() {
   // =========================================================================
@@ -93,6 +140,8 @@ function FDAProductDB() {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterExpiry, setFilterExpiry] = useState('');
+  const [filterDateFromReg, setFilterDateFromReg] = useState('');
+  const [filterDateToReg, setFilterDateToReg] = useState('');
 
   // ⚠️ REMOVE THIS when backend is connected
   // DUMMY DATA for Unregistered Products (Advisories)
@@ -136,11 +185,25 @@ function FDAProductDB() {
   // single current page index that resets on tab change
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Row-level action dropdown state (shared between both tables)
+  const [activeDropdownId, setActiveDropdownId] = useState(null);
+
+  useEffect(() => {
+    function handleOutsideClick(event) {
+      if (!event.target.closest('.FdaDropdownWrapper')) {
+        setActiveDropdownId(null);
+      }
+    }
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
+
   // Modal states — registered
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showViewProductModal, setShowViewProductModal] = useState(false);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
-  const [showArchiveProductModal, setShowArchiveProductModal] = useState(false);
   const [showConvertToUnregisteredModal, setShowConvertToUnregisteredModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -148,7 +211,6 @@ function FDAProductDB() {
   const [showAddAdvisoryModal, setShowAddAdvisoryModal] = useState(false);
   const [showViewAdvisoryModal, setShowViewAdvisoryModal] = useState(false);
   const [showEditAdvisoryModal, setShowEditAdvisoryModal] = useState(false);
-  const [showArchiveAdvisoryModal, setShowArchiveAdvisoryModal] = useState(false);
   const [showConvertToRegisteredModal, setShowConvertToRegisteredModal] = useState(false);
   const [selectedAdvisory, setSelectedAdvisory] = useState(null);
 
@@ -261,7 +323,7 @@ function FDAProductDB() {
   // FILTERING LOGIC
 
 
-  // NOTE: Filter products list based on category, status, expiry and search filters
+  // NOTE: Filter products list based on category, status, expiry, date range and search filters
   const filteredProducts = registeredProducts.filter(product => {
     const matchesSearch = product.productName.toLowerCase().includes(searchRegistered.toLowerCase()) ||
       (product.manufacturer && product.manufacturer.toLowerCase().includes(searchRegistered.toLowerCase())) ||
@@ -279,7 +341,10 @@ function FDAProductDB() {
       if (filterExpiry === 'None' && expiryInfo.label !== '—') matchesExpiry = false;
     }
 
-    return matchesSearch && matchesCategory && matchesStatus && matchesExpiry;
+    const matchesDateFrom = filterDateFromReg === '' || (product.dateRegistered && product.dateRegistered >= filterDateFromReg);
+    const matchesDateTo = filterDateToReg === '' || (product.dateRegistered && product.dateRegistered <= filterDateToReg);
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesExpiry && matchesDateFrom && matchesDateTo;
   });
 
   // NOTE: Filter advisories list based on date ranges, source, and search filters
@@ -498,15 +563,6 @@ function FDAProductDB() {
     resetProductForm();
   };
 
-  // NOTE: Handles archiving a registered product.
-  // 🔌 BACKEND: PATCH /api/products/:id/archive
-  const handleArchiveProduct = () => {
-    // ⚠️ REMOVE THIS local deletion
-    setRegisteredProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
-    setShowArchiveProductModal(false);
-    setSelectedProduct(null);
-  };
-
   // NOTE: Handles converting a registered product into an unregistered product advisory.
   // 🔌 BACKEND: POST /api/advisories/convert-from-product/:product_id
   const handleConvertToUnregistered = (e) => {
@@ -662,15 +718,6 @@ function FDAProductDB() {
     resetAdvisoryForm();
   };
 
-  // NOTE: Handles archiving an unregistered product (advisory).
-  // 🔌 BACKEND: PATCH /api/advisories/:id/archive
-  const handleArchiveAdvisory = () => {
-    // ⚠️ REMOVE THIS local deletion
-    setUnregisteredAdvisories(prev => prev.filter(a => a.id !== selectedAdvisory.id));
-    setShowArchiveAdvisoryModal(false);
-    setSelectedAdvisory(null);
-  };
-
   // NOTE: Handles converting an unregistered product advisory to a registered product record.
   // 🔌 BACKEND: POST /api/products/convert-from-advisory/:advisory_id
   const handleConvertToRegistered = (e) => {
@@ -750,11 +797,6 @@ function FDAProductDB() {
     setShowEditProductModal(true);
   };
 
-  const openArchiveProduct = (p) => {
-    setSelectedProduct(p);
-    setShowArchiveProductModal(true);
-  };
-
   const openConvertProduct = (p) => {
     setSelectedProduct(p);
     resetConversionDetails();
@@ -775,11 +817,6 @@ function FDAProductDB() {
       sourceUrl: a.sourceUrl || '',
     });
     setShowEditAdvisoryModal(true);
-  };
-
-  const openArchiveAdvisory = (a) => {
-    setSelectedAdvisory(a);
-    setShowArchiveAdvisoryModal(true);
   };
 
   const openConvertAdvisory = (a) => {
@@ -810,7 +847,7 @@ function FDAProductDB() {
               </h1>
               <p className="FdaSubtitle">
                 {activeTab === 'registered' 
-                  ? 'Manage FDA-registered cosmetic products. Add, update, or archive product records.' 
+                  ? 'Manage FDA-registered cosmetic products. Add, update, or convert product records.' 
                   : 'Manage FDA flagged unregistered products.'}
               </p>
             </div>
@@ -821,35 +858,35 @@ function FDAProductDB() {
 
             {/* Card 1 — Total Products */}
             <div className="FdaStatCard">
-              <div className="FdaStatCardBody">
-                <p className="FdaStatLabel">Total Products</p>
-                <p className="FdaStatValue">{registeredProducts.length + unregisteredAdvisories.length}</p>
+              <div className="FdaStatCardTop">
+                <span className="FdaStatBadge FdaStatBadgeBlue">
+                  <Package size={16} />
+                </span>
               </div>
-              <div className="FdaStatIconWrap FdaStatIconBlue">
-                <Package size={22} />
-              </div>
+              <p className="FdaStatValue">{registeredProducts.length + unregisteredAdvisories.length}</p>
+              <p className="FdaStatLabel">Total Products</p>
             </div>
 
             {/* Card 2 — Registered */}
             <div className="FdaStatCard">
-              <div className="FdaStatCardBody">
-                <p className="FdaStatLabel">Registered</p>
-                <p className="FdaStatValue">{registeredProducts.length}</p>
+              <div className="FdaStatCardTop">
+                <span className="FdaStatBadge FdaStatBadgeGreen">
+                  <CheckCircle size={16} />
+                </span>
               </div>
-              <div className="FdaStatIconWrap FdaStatIconGreen">
-                <CheckCircle size={22} />
-              </div>
+              <p className="FdaStatValue">{registeredProducts.length}</p>
+              <p className="FdaStatLabel">Registered</p>
             </div>
 
             {/* Card 3 — Unregistered */}
             <div className="FdaStatCard">
-              <div className="FdaStatCardBody">
-                <p className="FdaStatLabel">Unregistered</p>
-                <p className="FdaStatValue">{unregisteredAdvisories.length}</p>
+              <div className="FdaStatCardTop">
+                <span className="FdaStatBadge FdaStatBadgeRed">
+                  <AlertTriangle size={16} />
+                </span>
               </div>
-              <div className="FdaStatIconWrap FdaStatIconRed">
-                <AlertTriangle size={22} />
-              </div>
+              <p className="FdaStatValue">{unregisteredAdvisories.length}</p>
+              <p className="FdaStatLabel">Unregistered</p>
             </div>
 
           </div>
@@ -901,8 +938,8 @@ function FDAProductDB() {
           {/* SEARCH & FILTERS ROW */}
           {activeTab === 'registered' ? (
             /* TAB 1: Registered Products Filter Row */
-            <div className="FdaFilterPanel">
-              <div className="FdaSearchWrapper">
+            <div className="FdaProductFilterPanel">
+              <div className="FdaSearchWrapper FdaSearchFixed">
                 <Search size={16} className="FdaSearchIcon" />
                 <input
                   type="text"
@@ -916,72 +953,87 @@ function FDAProductDB() {
                 />
               </div>
 
-              <div className="FdaFilterGroup">
-                <label>Category</label>
-                <select
-                  value={filterCategory}
-                  onChange={(e) => {
-                    setFilterCategory(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Categories</option>
-                  {defaultCategories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
+              <div className="FdaFilterGroupsRight">
+                <div className="FdaFilterGroup">
+                  <label>Category</label>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => {
+                      setFilterCategory(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="">All Categories</option>
+                    {defaultCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="FdaFilterGroup">
-                <label>Status</label>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => {
-                    setFilterStatus(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Status</option>
-                  <option value="registered">Registered</option>
-                  <option value="unregistered">Unregistered</option>
-                </select>
-              </div>
+                
 
-              <div className="FdaFilterGroup">
-                <label>Expiry</label>
-                <select
-                  value={filterExpiry}
-                  onChange={(e) => {
-                    setFilterExpiry(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All</option>
-                  <option value="Valid">Valid</option>
-                  <option value="Expiring Soon">Expiring Soon (within 30 days)</option>
-                  <option value="Expired">Expired</option>
-                </select>
-              </div>
+                <div className="FdaFilterGroup">
+                  <label>Expiry</label>
+                  <select
+                    value={filterExpiry}
+                    onChange={(e) => {
+                      setFilterExpiry(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="">All</option>
+                    <option value="Valid">Valid</option>
+                    <option value="Expiring Soon">Expiring Soon (within 30 days)</option>
+                    <option value="Expired">Expired</option>
+                  </select>
+                </div>
 
-              {(searchRegistered !== '' || filterCategory !== '' || filterStatus !== '' || filterExpiry !== '') && (
-                <button
-                  className="BtnClearFilters"
-                  onClick={() => {
-                    setSearchRegistered('');
-                    setFilterCategory('');
-                    setFilterStatus('');
-                    setFilterExpiry('');
-                    setCurrentPage(1);
-                  }}
-                >
-                  Clear Filters
-                </button>
-              )}
+                <div className="FdaFilterGroup">
+                  <label>From</label>
+                  <input
+                    type="date"
+                    value={filterDateFromReg}
+                    onChange={(e) => {
+                      setFilterDateFromReg(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <div className="FdaFilterGroup">
+                  <label>To</label>
+                  <input
+                    type="date"
+                    value={filterDateToReg}
+                    onChange={(e) => {
+                      setFilterDateToReg(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                {(searchRegistered !== '' || filterCategory !== '' || filterStatus !== '' || filterExpiry !== '' || filterDateFromReg !== '' || filterDateToReg !== '') && (
+                  <button
+                    className="BtnClearFilters"
+                    onClick={() => {
+                      setSearchRegistered('');
+                      setFilterCategory('');
+                      setFilterStatus('');
+                      setFilterExpiry('');
+                      setFilterDateFromReg('');
+                      setFilterDateToReg('');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             /* TAB 2: Unregistered Products Filter Row */
-            <div className="FdaFilterPanel">
-              <div className="FdaSearchWrapper">
+            <div className="FdaProductFilterPanel">
+              <div className="FdaSearchWrapper FdaSearchFixed">
                 <Search size={16} className="FdaSearchIcon" />
                 <input
                   type="text"
@@ -995,67 +1047,70 @@ function FDAProductDB() {
                 />
               </div>
 
-              <div className="FdaFilterGroup">
-                <label>Date From</label>
-                <input
-                  type="date"
-                  value={filterDateFrom}
-                  onChange={(e) => {
-                    setFilterDateFrom(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
+              <div className="FdaFilterGroupsRight">
+                
 
-              <div className="FdaFilterGroup">
-                <label>Date To</label>
-                <input
-                  type="date"
-                  value={filterDateTo}
-                  onChange={(e) => {
-                    setFilterDateTo(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
+                <div className="FdaFilterGroup">
+                  <label>Source</label>
+                  <select
+                    value={filterSource}
+                    onChange={(e) => {
+                      setFilterSource(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="">All Sources</option>
+                    <option value="Manually Added">Manually Added</option>
+                    <option value="Bulk Imported">Bulk Imported</option>
+                    <option value="Converted from Registered">Converted from Registered</option>
+                  </select>
+                </div>
+                <div className="FdaFilterGroup">
+                  <label>From</label>
+                  <input
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={(e) => {
+                      setFilterDateFrom(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
 
-              <div className="FdaFilterGroup">
-                <label>Source</label>
-                <select
-                  value={filterSource}
-                  onChange={(e) => {
-                    setFilterSource(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All Sources</option>
-                  <option value="Manually Added">Manually Added</option>
-                  <option value="Bulk Imported">Bulk Imported</option>
-                  <option value="Converted from Registered">Converted from Registered</option>
-                </select>
-              </div>
+                <div className="FdaFilterGroup">
+                  <label>To</label>
+                  <input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={(e) => {
+                      setFilterDateTo(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
 
-              {(searchAdvisory !== '' || filterDateFrom !== '' || filterDateTo !== '' || filterSource !== '') && (
-                <button
-                  className="BtnClearFilters"
-                  onClick={() => {
-                    setSearchAdvisory('');
-                    setFilterDateFrom('');
-                    setFilterDateTo('');
-                    setFilterSource('');
-                    setCurrentPage(1);
-                  }}
-                >
-                  Clear Filters
-                </button>
-              )}
+                {(searchAdvisory !== '' || filterDateFrom !== '' || filterDateTo !== '' || filterSource !== '') && (
+                  <button
+                    className="BtnClearFilters"
+                    onClick={() => {
+                      setSearchAdvisory('');
+                      setFilterDateFrom('');
+                      setFilterDateTo('');
+                      setFilterSource('');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
           {/* TABLE CONTAINER CARD */}
           <div className="FdaLayoutGrid">
-            <div className="FdaTableCard">
-              <div className="FdaTableWrapper">
+            <div className="FdaTableCard FdaProductTableCard">
+              <div className="FdaTableWrapper FdaProductTableWrapper">
                 <table className="FdaTable">
                   {activeTab === 'registered' ? (
                     /* TAB 1: Registered Products Data Table */
@@ -1063,15 +1118,15 @@ function FDAProductDB() {
                       <thead>
                         <tr>
                           <th style={{ width: '40px' }}>#</th>
-                          <th>Registration No.</th>
-                          <th>Product Name</th>
-                          <th>Manufacturer</th>
-                          <th>Category</th>
-                          <th>Date Registered</th>
-                          <th>Expiry Date</th>
-                          <th>Status</th>
-                          <th>Added By</th>
-                          <th style={{ width: '150px', textAlign: 'center' }}>Action</th>
+                          <th>REGISTRATION NO.</th>
+                          <th>PRODUCT NAME</th>
+                          <th>MANUFACTURER</th>
+                          <th>CATEGORY</th>
+                          <th>DATE REGISTERED</th>
+                          <th>EXPIRY DATE</th>
+                          <th>STATUS</th>
+                          <th>ADDED BY</th>
+                          <th style={{ width: '100px', textAlign: 'center' }}>ACTION</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1113,20 +1168,33 @@ function FDAProductDB() {
                                 <td>{product.addedBy}</td>
                                 <td>
                                   <div className="FdaActionCell">
-                                    <button className="BtnActionEdit" onClick={() => openViewProduct(product)} title="View Detail">
-                                      <Eye size={16} />
-                                    </button>
-                                    <button className="BtnActionEdit" onClick={() => openEditProduct(product)} title="Edit Record">
-                                      <Pencil size={16} />
-                                    </button>
-                                    <button className="BtnActionArchive" onClick={() => openArchiveProduct(product)} title="Archive Record">
-                                      <Archive size={16} />
-                                    </button>
-                                    {product.status === 'registered' && (
-                                      <button className="BtnActionConvert" onClick={() => openConvertProduct(product)} title="Convert to Unregistered Advisory">
-                                        <ArrowRightLeft size={16} />
+                                    <FdaActionDropdown
+                                      id={`reg-${product.id}`}
+                                      activeDropdownId={activeDropdownId}
+                                      setActiveDropdownId={setActiveDropdownId}
+                                      onView={() => openViewProduct(product)}
+                                    >
+                                      <button
+                                        className="FdaDropdownItem"
+                                        onClick={() => {
+                                          openEditProduct(product);
+                                          setActiveDropdownId(null);
+                                        }}
+                                      >
+                                        <Pencil size={14} /> Edit Product
                                       </button>
-                                    )}
+                                      {product.status === 'registered' && (
+                                        <button
+                                          className="FdaDropdownItem"
+                                          onClick={() => {
+                                            openConvertProduct(product);
+                                            setActiveDropdownId(null);
+                                          }}
+                                        >
+                                          <ArrowRightLeft size={14} /> Convert to Unregistered
+                                        </button>
+                                      )}
+                                    </FdaActionDropdown>
                                   </div>
                                 </td>
                               </tr>
@@ -1149,7 +1217,7 @@ function FDAProductDB() {
                           <th>Date Added</th>
                           <th>Added By</th>
                           <th>Converted</th>
-                          <th style={{ width: '150px', textAlign: 'center' }}>Action</th>
+                          <th style={{ width: '100px', textAlign: 'center' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1193,18 +1261,31 @@ function FDAProductDB() {
                               </td>
                               <td>
                                 <div className="FdaActionCell">
-                                  <button className="BtnActionEdit" onClick={() => openViewAdvisory(advisory)} title="View Detail">
-                                    <Eye size={16} />
-                                  </button>
-                                  <button className="BtnActionEdit" onClick={() => openEditAdvisory(advisory)} title="Edit Record">
-                                    <Pencil size={16} />
-                                  </button>
-                                  <button className="BtnActionArchive" onClick={() => openArchiveAdvisory(advisory)} title="Archive Record">
-                                    <Archive size={16} />
-                                  </button>
-                                  <button className="BtnActionConvert" onClick={() => openConvertAdvisory(advisory)} title="Convert to Registered Product">
-                                    <ArrowRightLeft size={16} />
-                                  </button>
+                                  <FdaActionDropdown
+                                    id={`adv-${advisory.id}`}
+                                    activeDropdownId={activeDropdownId}
+                                    setActiveDropdownId={setActiveDropdownId}
+                                    onView={() => openViewAdvisory(advisory)}
+                                  >
+                                    <button
+                                      className="FdaDropdownItem"
+                                      onClick={() => {
+                                        openEditAdvisory(advisory);
+                                        setActiveDropdownId(null);
+                                      }}
+                                    >
+                                      <Pencil size={14} /> Edit Advisory
+                                    </button>
+                                    <button
+                                      className="FdaDropdownItem"
+                                      onClick={() => {
+                                        openConvertAdvisory(advisory);
+                                        setActiveDropdownId(null);
+                                      }}
+                                    >
+                                      <ArrowRightLeft size={14} /> Convert to Registered
+                                    </button>
+                                  </FdaActionDropdown>
                                 </div>
                               </td>
                             </tr>
@@ -1498,29 +1579,7 @@ function FDAProductDB() {
             </div>
           )}
 
-          {/* Modal 4: Archive Confirmation Registered Product */}
-          {showArchiveProductModal && selectedProduct && (
-            <div className="FdaModalOverlay" onClick={() => setShowArchiveProductModal(false)}>
-              <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
-                <button className="FdaDetailClose" onClick={() => setShowArchiveProductModal(false)}>
-                  <X size={16} />
-                </button>
-                <div className="FdaDetailHeader">
-                  <h2>Archive Product?</h2>
-                </div>
-                <p className="FdaConfirmationMessage">
-                  This will archive <strong>{selectedProduct.productName}</strong>. The record will be preserved for historical references but removed from active use. This action cannot be undone from the frontend.
-                </p>
-                <div className="FdaModalFooter">
-                  <button className="BtnModalCancel" onClick={() => setShowArchiveProductModal(false)}>Cancel</button>
-                  {/* 🔌 BACKEND: PATCH /api/products/:id/archive sets deleted_at = NOW() and deleted_by = current_user_id */}
-                  <button className="BtnModalDelete" onClick={handleArchiveProduct}>Archive Product</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal 5: Convert to Unregistered Product (Advisory) */}
+          {/* Modal 4: Convert to Unregistered Product (Advisory) */}
           {showConvertToUnregisteredModal && selectedProduct && (
             <div className="FdaModalOverlay" onClick={() => setShowConvertToUnregisteredModal(false)}>
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
@@ -1576,9 +1635,9 @@ function FDAProductDB() {
             </div>
           )}
 
-          {/* MODALS — TAB 2: UNREGISTERED PRODUCTS (ADVISORIES)}
+          {/* MODALS — TAB 2: UNREGISTERED PRODUCTS (ADVISORIES) */}
 
-          {/* Modal 6: Add Advisory */}
+          {/* Modal 5: Add Advisory */}
           {showAddAdvisoryModal && (
             <div className="FdaModalOverlay" onClick={() => setShowAddAdvisoryModal(false)}>
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
@@ -1642,7 +1701,7 @@ function FDAProductDB() {
             </div>
           )}
 
-          {/* Modal 7: View Advisory Detail */}
+          {/* Modal 6: View Advisory Detail */}
           {showViewAdvisoryModal && selectedAdvisory && (
             <div className="FdaModalOverlay" onClick={() => setShowViewAdvisoryModal(false)}>
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
@@ -1712,7 +1771,7 @@ function FDAProductDB() {
             </div>
           )}
 
-          {/* Modal 8: Edit Advisory */}
+          {/* Modal 7: Edit Advisory */}
           {showEditAdvisoryModal && selectedAdvisory && (
             <div className="FdaModalOverlay" onClick={() => setShowEditAdvisoryModal(false)}>
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
@@ -1773,29 +1832,7 @@ function FDAProductDB() {
             </div>
           )}
 
-          {/* Modal 9: Archive Confirmation Unregistered Advisory */}
-          {showArchiveAdvisoryModal && selectedAdvisory && (
-            <div className="FdaModalOverlay" onClick={() => setShowArchiveAdvisoryModal(false)}>
-              <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
-                <button className="FdaDetailClose" onClick={() => setShowArchiveAdvisoryModal(false)}>
-                  <X size={16} />
-                </button>
-                <div className="FdaDetailHeader">
-                  <h2>Archive Advisory?</h2>
-                </div>
-                <p className="FdaConfirmationMessage">
-                  This will archive the advisory for <strong>{selectedAdvisory.productName}</strong>. The record will be preserved for historical references but removed from active advisories. This action cannot be undone from the frontend.
-                </p>
-                <div className="FdaModalFooter">
-                  <button className="BtnModalCancel" onClick={() => setShowArchiveAdvisoryModal(false)}>Cancel</button>
-                  {/* 🔌 BACKEND: PATCH /api/advisories/:id/archive sets deleted_at = NOW() and deleted_by = current_user_id */}
-                  <button className="BtnModalDelete" onClick={handleArchiveAdvisory}>Archive Advisory</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal 10: Convert Unregistered Product to Registered Product */}
+          {/* Modal 8: Convert Unregistered Product to Registered Product */}
           {showConvertToRegisteredModal && selectedAdvisory && (
             <div className="FdaModalOverlay" onClick={() => setShowConvertToRegisteredModal(false)}>
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>

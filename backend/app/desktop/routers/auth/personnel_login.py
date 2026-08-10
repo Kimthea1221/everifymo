@@ -8,7 +8,7 @@ from app.desktop.services.auth.personnel_auth import authenticate_personnel
 from app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
 from app.desktop.services.auth.email import send_personnel_otp_email
 from app.models.users import User
-from app.core.security import create_access_token, generate_refresh_token, hash_refresh_token
+from app.core.security import create_desktop_access_token, generate_refresh_token, hash_refresh_token
 from app.models.user_sessions import UserSession
 from app.core.config import settings
 from datetime import datetime, timezone, timedelta
@@ -44,7 +44,7 @@ def verify_personnel_otp(request: PersonnelOTPVerifyRequest, db: Session = Depen
     otp_token.is_used = True
     db.commit()
 
-    access_token = create_access_token({"sub": str(user.user_id), "role": user.role})
+    access_token = create_desktop_access_token({"sub": str(user.user_id), "role": user.role})
 
     refresh_token = generate_refresh_token()
     refresh_hash = hash_refresh_token(refresh_token)

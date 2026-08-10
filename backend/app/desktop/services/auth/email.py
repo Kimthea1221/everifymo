@@ -7,6 +7,7 @@ TEMPLATE_PATH = Path(__file__).parent / "templates" / "invite_email.html"
 TEMPLATE_PATH_SUPERADMIN = Path(__file__).parent / "templates" / "superadmin_otp_email.html"
 TEMPLATE_PATH_PERSONNEL = Path(__file__).parent / "templates" / "personnel_otp_email.html"
 TEMPLATE_PATH_ACTIVATION = Path(__file__).parent / "templates" / "user_activation_email.html"
+TEMPLATE_PATH_SUPERADMIN_INVITE = Path(__file__).parent / "templates" / "superadmin_invite_email.html"
 
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -41,6 +42,27 @@ async def send_invite_email(to_email: str, agency_name: str, token: str):
 
     message = MessageSchema(
         subject="You're invited to register — ICMDA",
+        recipients=[to_email],
+        body=html_body,
+        subtype=MessageType.html,
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
+    
+
+def render_superadmin_invite_email(deep_link: str) -> str:
+    html = TEMPLATE_PATH_SUPERADMIN_INVITE.read_text(encoding="utf-8")
+    html = html.replace("{{DEEP_LINK}}", deep_link)
+    return html
+
+
+async def send_superadmin_invite_email(to_email: str, token: str):
+    deep_link = f"everifymo://complete-registration?token={token}"
+    html_body = render_superadmin_invite_email(deep_link)
+
+    message = MessageSchema(
+        subject="You're invited as a Superadmin — ICMDA",
         recipients=[to_email],
         body=html_body,
         subtype=MessageType.html,

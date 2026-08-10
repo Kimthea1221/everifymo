@@ -513,6 +513,53 @@ function TopBar({ topbarType, role, agency }) {
                     background: #EDEDED;
                     margin: 4px 0;
                 }
+
+                    /* RESPONSIVE — TopBar (tablet/mobile)                                          */
+                    @media (max-width: 900px) {
+                        .TopbarContainer {
+                            padding: 0 16px;
+                            gap: 12px;
+                        }
+                    }
+
+                    @media (max-width: 640px) {
+                        .TopbarContainer {
+                            padding: 0 12px;
+                        }
+
+                        /* Hide username text, keep avatar + chevron only to save space */
+                        .TopbarUsername {
+                            display: none;
+                        }
+
+                        .TopbarProfileBox {
+                            padding: 6px 8px;
+                            gap: 6px;
+                        }
+
+                        /* Prevent dropdowns overflowing narrow viewports */
+                        .TopbarDropdown {
+                            width: min(320px, calc(100vw - 24px));
+                            right: -8px;
+                        }
+
+                        .TopbarProfileDropdown {
+                            width: min(200px, calc(100vw - 24px));
+                            right: -8px;
+                        }
+                    }
+
+                    @media (max-width: 400px) {
+                        .TopbarBox {
+                            width: 34px;
+                            height: 34px;
+                        }
+
+                        .TopbarAvatarCircle {
+                            width: 26px;
+                            height: 26px;
+                        }
+                    }
             `}</style>
 
             <div className='TopbarContainer'>
@@ -550,22 +597,16 @@ function TopBar({ topbarType, role, agency }) {
                         {isProfileOpen && (
                             <div className='TopbarProfileDropdown'>
 
-                                {/* Profile Settings — hidden for superadmin */}
-                                {/* NOTE: superadmin does not have a profile settings page */}
-                                {normalizedAgency !== 'superadmin' && (
-                                    <button
-                                        className='TopbarDropdownItem'
-                                        onClick={handleProfileClick}
-                                    >
-                                        <Settings size={16} />
-                                        <span>Profile Settings</span>
-                                    </button>
-                                )}
+                                {/* Profile Settings — visible for FDA, LEA, and SUPERADMIN */}
+                                <button
+                                    className='TopbarDropdownItem'
+                                    onClick={handleProfileClick}
+                                >
+                                    <Settings size={16} />
+                                    <span>Profile Settings</span>
+                                </button>
 
-                                {/* Divider — only show if profile settings is visible */}
-                                {normalizedAgency !== 'superadmin' && (
-                                    <div className='TopbarDropdownDivider' />
-                                )}
+                                <div className='TopbarDropdownDivider' />
 
                                 {/* Logout / End Session */}
                                 {/* redirects to superadmin-login if superadmin, else to /login */}

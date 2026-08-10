@@ -12,6 +12,9 @@ from app.desktop.schemas.drafts.drafts import (
     DraftStatus,
     SortOption,
 )
+from app.desktop.schemas.complaints.complaints import VerificationRequestDraftDetailResponse
+from app.desktop.services.complaints.complaint_detail_service import get_complaint_verification_detail
+
 from app.core.dependencies import get_current_user
 
 
@@ -27,8 +30,9 @@ REQUIRED_FIELDS = ["priority", "notes_to_fda"]
 
 def _determine_draft_status(data: VerificationRequestDraftSave) -> DraftStatus:
     for field_name in REQUIRED_FIELDS:
-        if getattr(data, field_name) is None:      
-            return DraftStatus.incomplete              
+        value = getattr(data, field_name)
+        if value is None or (isinstance(value, str) and value.strip() == ""):
+            return DraftStatus.incomplete
     return DraftStatus.draft                         
 
 
@@ -66,7 +70,7 @@ def save_verification_draft(
     #
     #
     # GET /drafts/verification/{draft_id}
-@router.get("/{draft_id}", response_model=VerificationRequestDraftResponse)
+@router.get("/{draft_id}", response_model=VerificationRequestDraftDetailResponse)
 def get_verification_draft(
     draft_id: UUID,
     db: Session = Depends(get_db),
@@ -80,7 +84,20 @@ def get_verification_draft(
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found.")
 
-    return draft
+    complaint_detail = get_complaint_verification_detail(db, draft.complaint_id, current_user.region_id)
+
+    return VerificationRequestDraftDetailResponse(
+        draft_id=draft.draft_id,
+        draft_status=draft.draft_status,
+        product_code=draft.product_code,
+        priority=draft.priority,
+        notes_to_fda=draft.notes_to_fda,
+        saved_by=draft.saved_by,
+        region_id=draft.region_id,
+        created_at=draft.created_at,
+        updated_at=draft.updated_at,
+        complaint=complaint_detail,
+    )
 
 
     #
