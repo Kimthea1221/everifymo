@@ -102,7 +102,25 @@
     </div>
 
       <div class="signup-password-fields" id="forgot-password-fields" hidden>
-        <div class="field">
+        <!--OTP for forgot password-->
+        <div class="field" id="forgot-otp-field" hidden>
+          <div class="field-row">
+            <label class="field-label">VERIFICATION CODE</label>
+          </div>
+          <p class="notice-text" style="margin-top: 0; margin-bottom: 8px;">Enter the 6-digit code sent to your email</p>
+          <div class="otp-input-group">
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input forgot-otp-digit-input" data-otp-index="0" />
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input forgot-otp-digit-input" data-otp-index="1" />
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input forgot-otp-digit-input" data-otp-index="2" />
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input forgot-otp-digit-input" data-otp-index="3" />
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input forgot-otp-digit-input" data-otp-index="4" />
+            <input type="text" inputmode="numeric" maxlength="1" class="otp-digit-input forgot-otp-digit-input" data-otp-index="5" />
+          </div>
+          <div class="field-error" id="forgot-otp-error" aria-live="polite"></div>
+          <a href="#" id="resend-forgot-otp-link" class="forgot-link" hidden>Resend code</a>
+        </div>
+
+        <div class="field" id="new-password-field" hidden>
           <div class="field-row">
             <label class="field-label" for="new-password">NEW PASSWORD</label>
           </div>
@@ -116,7 +134,7 @@
           <div class="field-error" id="new-password-error" aria-live="polite"></div>
         </div>
 
-        <div class="field">
+        <div class="field" id="confirm-new-password-field" hidden>
           <div class="field-row">
             <label class="field-label" for="confirm-new-password">CONFIRM NEW PASSWORD</label>
           </div>
@@ -149,6 +167,11 @@
       </div>
 
     <button class="btn-primary-green" type="button" id="auth-primary-button">Sign In</button>
+
+    <!---Sign in with google button and sign in error notification/msg -->
+    <button id="google-login-btn">Sign in with Google</button>
+    <div class="field-error" id="googleError" aria-live="polite"></div>
+
     <button class="btn-primary-green hidden" type="button" id="forgot-confirm-button">Confirm</button>
     <a href="#" id="back-to-signin-link" class="forgot-link back-to-signin-link hidden">Back to Sign In</a>
 

@@ -42,6 +42,22 @@ async function apiLogin(email, password) {
     return data;
 }
 
+async function apiGoogleLogin(token) {
+    const res = await fetch(`${API_BASE}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok){
+        throw new Error(data.detail || 'Login failed');
+    }
+
+    return data;
+}
+
 async function handleResponse(response) {
     if (response.status === 401) {
         throw new UnauthorizedError('Session expired. Please login once again');
@@ -56,6 +72,56 @@ async function handleResponse(response) {
     }
 
     return response.json();
+}
+
+async function apiVerifyOtp(email, inputCode, callback) {
+  const res = await fetch(`${API_BASE}/accounts/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, otp_code: inputCode }),
+  });
+
+  return handleResponse(res);
+}
+
+async function apiResendOtp(email, callback) {
+    const res = await fetch(`${API_BASE}/accounts/resend-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email }),
+    });
+
+    return handleResponse(res);
+}
+
+async function apiPasswordReset(email, callback) {
+    const res = await fetch(`${API_BASE}/accounts/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+    });
+
+    return handleResponse(res);
+}
+
+async function apiVerifyResetOtp(email, otpCode){
+    const res = await fetch(`${API_BASE}/accounts/verify-reset-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp_code: otpCode }),
+    });
+
+    return handleResponse(res);
+}
+
+async function apiConfirmPassReset(email, resetToken, newPassword) {
+    const res = await fetch(`${API_BASE}/accounts/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, reset_token: resetToken, new_password: newPassword }),
+    });
+
+    return handleResponse(res);
 }
 
 async function apiSubmitComplaint(complaintData, token){
@@ -93,26 +159,6 @@ async function apiGetStatus(token){
     return handleResponse(res);
 }
 
-async function apiVerifyOtp(email, inputCode, callback) {
-  const res = await fetch(`${API_BASE}/accounts/verify-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, otp_code: inputCode }),
-  });
-
-  return handleResponse(res);
-}
-
-async function apiResendOtp(email, callback) {
-    const res = await fetch(`${API_BASE}/accounts/resend-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email }),
-    });
-
-    return handleResponse(res);
-}
-
 async function apiUpdateUsername(newUsername, token) {
     
     const res = await fetch(`${API_BASE}/accounts/username`, {
@@ -124,6 +170,21 @@ async function apiUpdateUsername(newUsername, token) {
         body: JSON.stringify({ username: newUsername })
     })
 
+    return handleResponse(res);
+}
+
+async function apiDeleteAccount(password, token, permanent = false) {
+
+    const res = await fetch(`${API_BASE}/accounts/delete-account`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password })
+    });
+
+    if (res.status === 204) return true;
     return handleResponse(res);
 }
 

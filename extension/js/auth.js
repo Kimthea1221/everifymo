@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const emailField = document.getElementById('email-field');
   const otpField = document.getElementById('otp-field');
-  const otpDigitInputs = Array.from(document.querySelectorAll('.otp-digit-input'));
+  const otpDigitInputs = Array.from(document.querySelectorAll('#otp-field .otp-digit-input'));
   const otpError = document.getElementById('otp-error');
   const otpDevPreview = document.getElementById('otp-dev-preview');
   const otpVerifyButton = document.getElementById('otp-verify-button');
@@ -38,6 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmPasswordError = document.getElementById('confirm-password-error');
   const forgotLink = document.querySelector('.forgot-link');
   const guestBtn = document.getElementById('btn-guest');
+  const googleLoginBtn = document.getElementById('google-login-btn');
+  const googleError = document.getElementById('googleError');
+  const forgotOtpField = document.getElementById('forgot-otp-field');
+  const forgotOtpInputs = Array.from(document.querySelectorAll('#forgot-otp-field .forgot-otp-digit-input'));
+  const forgotOtpError = document.getElementById('forgot-otp-error');
+  const resendForgotOtpLink = document.getElementById('resend-forgot-otp-link');
+  const newPasswordField = document.getElementById('new-password-field');
+  const confirmNewPasswordField = document.getElementById('confirm-new-password-field');
 
   // --- Password show/hide eye icon toggle ---
   document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
@@ -95,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const setError = (node, message) => {
     if (node) {
       node.textContent = message;
+      node.classList.remove('is-success');
     }
   };
 
@@ -150,6 +159,13 @@ document.addEventListener('DOMContentLoaded', () => {
       forgotLink.hidden = mode === 'signup';
     }
 
+    // hide sign in with google on sign up page
+    if (currentMode === 'signup') {
+      googleLoginBtn.style.display = "none";
+    } else if (currentMode === 'signin') {
+      googleLoginBtn.style.display = "block";
+    }
+
     clearErrors();
 
     document.title = settings.documentTitle;
@@ -191,22 +207,82 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, otpDigitInputs.length);
       pasted.split('').forEach((digit, i) => {
-        if (otpDigitInputs[i]) otpDigitInputs[i].value = digit;
+        if (otpDigitInputs[i]) {
+          otpDigitInputs[i].value = digit;
+          otpDigitInputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+        }
       });
       const nextIndex = Math.min(pasted.length, otpDigitInputs.length - 1);
       otpDigitInputs[nextIndex].focus();
     });
   });
 
+  let forgotStage = 'request';
+  let forgotPendingEmail = '';
+  let forgotPendingResetToken = '';
+
+  function getForgotOtpValue() {
+    return forgotOtpInputs.map(input => input.value).join('');
+  }
+
+  function clearForgotOtpInput() {
+    forgotOtpInputs.forEach(input => {
+      input.value = '';
+      input.classList.remove('is-invalid');
+    })
+  }
+
+  forgotOtpInputs.forEach((input, index) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '').slice(0, 1);
+      if (input.value && index < forgotOtpInputs.length - 1) {
+        forgotOtpInputs[index + 1].focus();
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && index > 0) {
+        forgotOtpInputs[index - 1].focus();
+      }
+    });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, forgotOtpInputs.length);
+      pasted.split('').forEach((digit, i) => {
+        if (forgotOtpInputs[i]) {
+          forgotOtpInputs[i].value = digit;
+          forgotOtpInputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+      const nextIndex = Math.min(pasted.length, forgotOtpInputs.length - 1);
+      forgotOtpInputs[nextIndex].focus();
+    });
+  });
+
   // ---- Forgot Password mode switching — defined once, not inside updateMode ----
   function enterForgotMode() {
+    forgotStage = 'request';
+    forgotPendingEmail = '';
+
     if (tabsContainer) tabsContainer.classList.add('hidden');
     if (usernameField) usernameField.hidden = true;
     if (signinPasswordField) signinPasswordField.hidden = true;
     if (signupPasswordFields) signupPasswordFields.hidden = true;
+
     if (forgotPasswordFields) forgotPasswordFields.hidden = false;
+    if (forgotOtpField) forgotOtpField.hidden = true;
+    if (newPasswordField) newPasswordField.hidden = true;
+    if (confirmNewPasswordField) confirmNewPasswordField.hidden = true;
+    if (resendForgotOtpLink) resendForgotOtpLink.hidden = true;
+
+    if (emailField) emailField.hidden = false;
+
     if (primaryButton) primaryButton.classList.add('hidden');
-    if (forgotConfirmButton) forgotConfirmButton.classList.remove('hidden');
+    if (forgotConfirmButton) {
+      forgotConfirmButton.classList.remove('hidden');
+      forgotConfirmButton.textContent = "Send Reset Code";
+    }
     if (backToSigninLink) backToSigninLink.classList.remove('hidden');
     if (orDivider) orDivider.classList.add('hidden');
     if (guestBtn) guestBtn.classList.add('hidden');
@@ -214,11 +290,75 @@ document.addEventListener('DOMContentLoaded', () => {
     if (noticeTitle) noticeTitle.textContent = 'Reset your password';
     if (noticeText) noticeText.textContent = 'Enter your account email and choose a new password.';
 
+    if (googleLoginBtn) googleLoginBtn.style.display = "none";
+
     clearErrors();
+    if (forgotOtpError) forgotOtpError.textContent = '';
     if (newPasswordError) newPasswordError.textContent = '';
     if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+
+    // googleLoginBtn.style.display = "none";
   }
   
+  function enterForgotOtpStage(email) {
+    forgotStage = 'otp';
+    forgotPendingEmail = email;
+
+    if (emailField) emailField.hidden = true;
+
+    if (forgotOtpField) forgotOtpField.hidden = false;
+
+    if (newPasswordField) newPasswordField.hidden = true;
+    if (confirmNewPasswordField) confirmNewPasswordField.hidden = true;
+    if (resendForgotOtpLink) resendForgotOtpLink.hidden = false;
+
+    if (forgotConfirmButton) forgotConfirmButton.textContent = 'Confirm Password';
+
+    if (noticeTitle) noticeTitle.textContent = 'Check your email';
+    if (noticeText) noticeText.textContent = `Enter the 6-digit code sent to ${email} and choose a new password.`;
+
+    if (forgotOtpError) forgotOtpError.textContent = '';
+    clearForgotOtpInput();
+    if (forgotOtpInputs[0]) forgotOtpInputs[0].focus();
+  }
+
+  function enterForgotPasswordStage(){
+    forgotStage = 'reset';
+
+    if (emailField) emailField.hidden = true;
+
+    if (forgotOtpField) forgotOtpField.hidden = true;
+    if (resendForgotOtpLink) resendForgotOtpLink.hidden = true;
+
+    if (newPasswordField) newPasswordField.hidden = false;
+    if (confirmNewPasswordField) confirmNewPasswordField.hidden = false;
+
+    if (forgotConfirmButton) forgotConfirmButton.textContent = 'Reset Password';
+
+    if (noticeTitle) noticeTitle.textContent = 'Choose a new password';
+    if (noticeText) noticeText.textContent = 'Enter a new password for your account.';
+
+    if (newPasswordError) newPasswordError.textContent = '';
+    if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+    if (newPasswordInput) newPasswordInput.focus();
+  }
+
+  function exitForgotMode() {
+    forgotStage = 'request';
+    forgotPendingEmail = '';
+
+    if (forgotPasswordFields) forgotPasswordFields.hidden = true;
+    if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
+    if (backToSigninLink) backToSigninLink.classList.add('hidden');
+    if (emailField) emailField.hidden = false;
+    if (primaryButton) primaryButton.classList.remove('hidden');
+    if (tabsContainer) tabsContainer.classList.remove('hidden');
+    if (orDivider) orDivider.classList.remove('hidden');
+    if (guestBtn) guestBtn.classList.remove('hidden');
+
+    updateMode('signin');
+  }
+
   // Switches the screen into "enter your OTP code" view. 
   // (Called right after signup or login succeeds — email/mode are passed in)
   function enterOtpMode(email, mode) {
@@ -273,18 +413,18 @@ document.addEventListener('DOMContentLoaded', () => {
     updateMode(otpPendingMode === 'signup' ? 'signup' : 'signin');
   }
 
-  // Reverses enterForgotMode — goes back to the normal signin form
-  function exitForgotMode() {
-    if (forgotPasswordFields) forgotPasswordFields.hidden = true;
-    if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
-    if (backToSigninLink) backToSigninLink.classList.add('hidden');
-    if (primaryButton) primaryButton.classList.remove('hidden');
-    if (tabsContainer) tabsContainer.classList.remove('hidden');
-    if (orDivider) orDivider.classList.remove('hidden');
-    if (guestBtn) guestBtn.classList.remove('hidden');
+  // // Reverses enterForgotMode — goes back to the normal signin form (old, there is new one above)
+  // function exitForgotMode() {
+  //   if (forgotPasswordFields) forgotPasswordFields.hidden = true;
+  //   if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
+  //   if (backToSigninLink) backToSigninLink.classList.add('hidden');
+  //   if (primaryButton) primaryButton.classList.remove('hidden');
+  //   if (tabsContainer) tabsContainer.classList.remove('hidden');
+  //   if (orDivider) orDivider.classList.remove('hidden');
+  //   if (guestBtn) guestBtn.classList.remove('hidden');
 
-    updateMode('signin');
-  }
+  //   updateMode('signin');
+  // }
 
   // Checks the signin/signup form fields before submitting.
   // Returns true only if everything required is filled in correctly.
@@ -400,54 +540,112 @@ document.addEventListener('DOMContentLoaded', () => {
   // Submits a password reset request (email + new password)
   if (forgotConfirmButton) {
     forgotConfirmButton.addEventListener('click', () => {
-      clearErrors();
-      if (newPasswordError) newPasswordError.textContent = '';
-      if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+      if (forgotStage === 'request') {
+        clearErrors();
+        const emailValue = emailInput ? emailInput.value.trim() : '';
 
-      const emailValue = emailInput ? emailInput.value.trim() : '';
-      const newPw = newPasswordInput ? newPasswordInput.value : '';
-      const confirmPw = confirmNewPasswordInput ? confirmNewPasswordInput.value : '';
-      let isValid = true;
-
-      if (!emailValue || !isValidEmail(emailValue)) {
-        setError(emailError, 'Enter a valid email address.');
-        if (emailInput) emailInput.classList.add('is-invalid');
-        isValid = false;
-      }
-      if (!isStrongPassword(newPw)) {
-        setError(newPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
-        if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
-        isValid = false;
-      }
-      if (newPw && newPw !== confirmPw) {
-        setError(confirmNewPasswordError, 'Passwords do not match.');
-        if (confirmNewPasswordInput) confirmNewPasswordInput.classList.add('is-invalid');
-        isValid = false;
-      }
-
-      if (!isValid) return;
-
-      resetPasswordDirect(emailValue, newPw, (success, errorMsg) => {
-        if (!success) {
-          setError(emailError, errorMsg || 'Account does not exist.');
+        if (!emailValue || !isValidEmail(emailValue)) {
+          setError(emailError, 'Enter a valid email address.');
           if (emailInput) emailInput.classList.add('is-invalid');
           return;
         }
-        newPasswordInput.value = '';
-        confirmNewPasswordInput.value = '';
-        exitForgotMode();
-      });
+
+        requestPasswordReset(emailValue, (success, error) => {
+          enterForgotOtpStage(emailValue);
+        });
+
+      } else if (forgotStage === 'otp') {
+        if (forgotOtpError) forgotOtpError.textContent = '';
+        const otpValue = getForgotOtpValue();
+
+        if (otpValue.length < 6) {
+          setError(forgotOtpError, 'Please enter all 6 digits.');
+          forgotOtpInputs.forEach(input => { if (!input.value) input.classList.add('is-invalid'); });
+          return;
+        }
+
+        verifyResetOtp(forgotPendingEmail, otpValue, (success, resetToken, error) => {
+          if (!success) {
+            setError(forgotOtpError, error || 'Incorrect code. Please try again.');
+            forgotOtpInputs.forEach(input => input.classList.add('is-invalid'));
+            return;
+          }
+          
+          forgotPendingResetToken = resetToken;
+          enterForgotPasswordStage();
+        });
+
+      } else {
+        if (forgotOtpError) forgotOtpError.textContent = '';
+        if (newPasswordError) newPasswordError.textContent = '';
+        if (confirmNewPasswordError) confirmNewPasswordError.textContent = '';
+
+        const otpValue = getForgotOtpValue();
+        const newPassword = newPasswordInput ? newPasswordInput.value : '';
+        const confirmPassword = confirmNewPasswordInput ? confirmNewPasswordInput.value : '';
+        
+        let isValid  = true;
+
+        if (!newPassword) {
+          setError(newPasswordError, 'Please enter a new password.');
+          if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
+          isValid = false;
+        } else if (!isStrongPassword(newPassword)) {
+          setError(newPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
+          if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
+          isValid = false;
+        }
+
+        if (!confirmPassword) {
+          setError(confirmNewPasswordError, 'Please confirm your new password.');
+          if (confirmNewPasswordInput) confirmNewPasswordInput.classList.add('is-invalid');
+          isValid = false;
+        } else if (newPassword && newPassword !== confirmPassword) {
+          setError(confirmNewPasswordError, 'Passwords do not match.');
+          if (confirmNewPasswordInput) confirmNewPasswordInput.classList.add('is-invalid');
+          isValid = false;
+        }
+
+        if (!isValid) return;
+
+        confirmPasswordReset(forgotPendingEmail, forgotPendingResetToken, newPassword, (success, error) => {
+          if (!success) {
+            enterForgotMode();
+            setError(newPasswordError, error || 'Session expired. Please request a new code.');
+            return;
+          }
+
+          newPasswordInput.value = '';
+          confirmNewPasswordInput.value = '';
+          sessionStorage.setItem('authFlashMessage', 'Password reset successfully. Please sign in to continue.');
+          sessionStorage.setItem('authFlashType', 'success');
+          window.location.href = 'auth.html';
+        });
+      }
     });
   }
 
+  if (resendForgotOtpLink) {
+    resendForgotOtpLink.addEventListener('click', (e) => {
+      e.preventDefault();
+        requestPasswordReset(forgotPendingEmail, () => {
+          clearForgotOtpInput();
+          if (forgotOtpError) {  
+            forgotOtpError.textContent = 'A new code has been sent.';
+            forgotOtpError.classList.add('is-success');
+          }
+        })
+    })
+  }
   // flash message after redirect to clear previous message
   const flashMessage = sessionStorage.getItem('authFlashMessage');
   const flashType = sessionStorage.getItem('authFlashType');
+  const flashTitle = sessionStorage.getItem('authFlashTitle');
 
   if (flashMessage) {
     const noticeBanner = document.querySelector('.notice-banner');
 
-    noticeTitle.textContent = "You're verified!";
+    noticeTitle.textContent = flashTitle || "You're verified!";
     noticeText.textContent = flashMessage;
 
     if (flashType === 'success') {
@@ -457,6 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear it so a page refresh doesn't show it again
     sessionStorage.removeItem('authFlashMessage');
     sessionStorage.removeItem('authFlashType');
+    sessionStorage.removeItem('authFlashTitle');
   }
 
   // Clicking "Verify and Sign In/Up" — collects the 6 digits and checks them with the backend
@@ -473,16 +672,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // otpPendingEmail was filled in back when enterOtpMode() ran —
       // that's the account this code is being checked against
-      verifyOtp(otpPendingEmail, enteredCode, (success, errorMsg) => {
+      verifyOtp(otpPendingEmail, enteredCode, (success, error) => {
         if (!success) {
-          setError(otpError, 'Incorrect code. Please try again.');
+          setError(otpError, error || 'Incorrect code. Please try again.');
           otpDigitInputs.forEach(inp => inp.classList.add('is-invalid'));
           return;
         }
         // Flash-style message, after redirect (successful signup)
         sessionStorage.setItem('authFlashMessage', 'Account verified! Please login to continue.');
         sessionStorage.setItem('authFlashType', 'success');
-        
+        sessionStorage.setItem('authFlashTitle', 'Email verified');
         window.location.href = 'auth.html';
       });
     });
@@ -558,4 +757,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // sign in with google (connected to the backend)
+  googleLoginBtn.addEventListener("click", () => {
+    chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+      if (chrome.runtime.lastError || !token) {
+        setError(googleError, "Google sign-in failed. Please try again.");
+        return;
+      }
+
+      googleLogin(token, (success, error) => {
+        if (success) {
+          window.location.href = 'report-complaint.html';
+        } else {
+          setError(googleError, error || "Google sign-in failed. Please try again.")
+        }
+      });
+    });
+  });
+  
 });

@@ -812,7 +812,7 @@ h6 {
 /* FDA DASHBOARD CARDS */
 .FdaMetricGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -933,8 +933,9 @@ h6 {
 .FdaTrendChart {
   position: relative;
   min-height: 320px;
-  padding: 16px;
-  background: #F8FAFC;
+  padding: 20px;
+  background: #FAFBFD;
+  border: 1px solid #F1F5F9;
   border-radius: 18px;
   overflow: hidden;
   display: grid;
@@ -945,6 +946,61 @@ h6 {
   width: 100%;
   max-width: 100%;
   height: auto;
+}
+
+/* Premium Chart Tooltip Styles */
+.FdaChartTooltip {
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tooltipMonth {
+  font-weight: 700;
+  color: #94A3B8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #E2E8F0;
+}
+
+.tooltipDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.tooltipDot.blue {
+  background: #38BDF8;
+}
+
+.tooltipDot.green {
+  background: #34D399;
+}
+
+.tooltipRow.browser strong {
+  color: #38BDF8;
+}
+
+.tooltipRow.walkin strong {
+  color: #34D399;
 }
 
 .FdaTrendLegend {
@@ -4378,6 +4434,350 @@ h6 {
   line-height: 1.5;
   margin: 0;
 }
+
+.FdaOverviewLeftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.FdaTrendBadge.takedown-requested::before,
+.FdaTrendBadge.takedown-completed::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.FdaTrendBadge.takedown-requested::before {
+  background: #4f46e5;
+}
+
+.FdaTrendBadge.takedown-completed::before {
+  background: #0d9488;
+}
+
+.tooltipDot.indigo {
+  background: #818CF8;
+}
+
+.tooltipDot.teal {
+  background: #2DD4BF;
+}
+
+.tooltipRow.indigo strong {
+  color: #818CF8;
+}
+
+.tooltipRow.teal strong {
+  color: #2DD4BF;
+}
+
+/* Overview Right Column Container */
+.FdaOverviewRightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Awaiting Verification Card Styles */
+.FdaAwaitingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.FdaAwaitingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFFBEB;
+  border: 1px solid #FCD34D;
+  color: #D97706;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.FdaAwaitingList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.FdaAwaitingListItem {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.FdaAwaitingListItem:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.FdaAwaitingItemTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.FdaAwaitingItemTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.FdaAwaitingItemTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.FdaAwaitingItemTag.walkin {
+  background: rgba(13, 148, 136, 0.08);
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  color: #0d9488;
+}
+
+.FdaAwaitingItemTag.extension {
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  color: #2563eb;
+}
+
+.FdaAwaitingItemTag.pending {
+  background: rgba(217, 119, 6, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  color: #d97706;
+}
+
+.FdaAwaitingItemSubtitle {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.FdaAwaitingItemConfirmation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #0284c7;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* Recent Complaint Activity Card in FDA Dashboard */
+.FdaRecentComplaintsCard {
+  background: #FFFFFF;
+  border-radius: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.05);
+  margin-top: 20px;
+}
+
+.FdaRecentComplaintsCard .recentComplaintsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.FdaRecentComplaintsCard .recentComplaintsHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.FdaRecentComplaintsCard .openFullTableBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.FdaRecentComplaintsCard .openFullTableBtn:hover {
+  color: #1b4332;
+}
+
+.FdaRecentComplaintsCard .openFullTableBtn:hover .arrowIcon {
+  transform: translateX(3px);
+}
+
+.FdaRecentComplaintsCard .arrowIcon {
+  transition: transform 0.2s ease;
+  font-size: 14px;
+}
+
+.FdaRecentComplaintsCard .RecentComplaintsTableWrapper {
+  overflow-x: auto;
+}
+
+.FdaRecentComplaintsCard .RecentComplaintsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.FdaRecentComplaintsCard .RecentComplaintsTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  color: rgba(31, 41, 55, 0.65);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1.5px solid #F1F5F9;
+  text-transform: uppercase;
+  background: transparent;
+}
+
+.FdaRecentComplaintsCard .RecentComplaintsTable td {
+  padding: 16px;
+  font-size: 13px;
+  color: #111827;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.FdaRecentComplaintsCard .RecentComplaintsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.FdaRecentComplaintsCard .RecentComplaintsTable tr:hover {
+  background: #F8FAFC;
+}
+
+.FdaRecentComplaintsCard .CaseIdCol {
+  font-weight: 600;
+  color: rgba(31, 41, 55, 0.7);
+}
+
+.FdaRecentComplaintsCard .ProductCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.FdaRecentComplaintsCard .ProductNameText {
+  font-weight: 700;
+  color: #111827;
+  font-size: 14px;
+}
+
+.FdaRecentComplaintsCard .ManufacturerText {
+  font-size: 12px;
+  color: rgba(31, 41, 55, 0.6);
+}
+
+.FdaRecentComplaintsCard .LoggedCol {
+  color: rgba(31, 41, 55, 0.6);
+  font-size: 12px;
+}
+
+/* FDA Status Badges for table */
+.FdaStatusBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.FdaStatusBadge.badge-pending-verification {
+  background: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FCD34D;
+}
+
+.FdaStatusBadge.badge-verified {
+  background: #ECFDF5;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
+}
+
+.FdaStatusBadge.badge-under-review {
+  background: #EFF6FF;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.FdaStatusBadge.badge-takedown-requested {
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FCA5A5;
+}
+
+.FdaStatusBadge.badge-takedown-completed {
+  background: #ECFDF5;
+  color: #065f46;
+  border: 1px solid #A7F3D0;
+}
+
+.FdaStatusBadge.badge-forwarded-to-lea {
+  background: #EFF6FF;
+  color: #1E3A8A;
+  border: 1px solid #BFDBFE;
+}
+
+.FdaStatusBadge.badge-dismissed {
+  background: rgba(31, 41, 55, 0.08);
+  color: rgba(31, 41, 55, 0.6);
+  border: 1px solid rgba(31, 41, 55, 0.15);
+}
+
+/* FDA Source Badges for table */
+.FdaRecentComplaintsCard .FdaSourceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.FdaRecentComplaintsCard .FdaSourceBadge.walkin {
+  background: rgba(13, 148, 136, 0.08);
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  color: #0d9488;
+}
+
+.FdaRecentComplaintsCard .FdaSourceBadge.extension {
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  color: #2563eb;
+}
+
+/* Stretches the awaiting card to align with the left column cards */
+.FdaAwaitingCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 
 
 /* ============================================================================ */
