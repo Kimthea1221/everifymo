@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initExitButton();
     renderProfileContent();
     initProfileActions();
+    initPasswordToggles();
     applyGuestHeaderVisibility();
   });
 });
@@ -68,6 +69,25 @@ function initNotifications() {
   }
 
   updateNotifBadge();
+}
+
+function initPasswordToggles() {
+  document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      const icon = btn.querySelector('.eye-icon');
+      if (!input) return;
+
+      const willShow = input.type === 'password';
+      input.type = willShow ? 'text' : 'password';
+      if (icon) {
+        icon.src = willShow
+          ? '../assets/images/eye_close_icon.png'
+          : '../assets/images/eye_open_icon.png';
+      }
+      btn.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
+    });
+  });
 }
 
 function renderNotifications() {
