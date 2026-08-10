@@ -19,6 +19,7 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import './fda-css.css';
+import { apiFetch } from '../../utils/apiFetch';
 
 // NOTE: Items per page for table pagination
 const ITEMS_PER_PAGE = 5;
@@ -249,7 +250,7 @@ function FDAProductDB() {
 
 
   // UTILITIES & HELPER FUNCTIONS
- 
+
 
   // NOTE: Formats ISO dates into user-friendly "MMM DD, YYYY" format
   const formatDate = (dateStr) => {
@@ -448,11 +449,10 @@ function FDAProductDB() {
 
 
   // CRUD SUBMIT & VALIDATION HANDLERS
- 
 
-  // NOTE: Handles adding a registered product.
-  // 🔌 BACKEND: POST /api/products
-  const handleAddProduct = (e) => {
+
+  // NOTE: Handles adding a registered product. Connected to backend.
+  const handleAddProduct = async (e) => {
     e.preventDefault();
     const errors = {};
 
@@ -461,12 +461,6 @@ function FDAProductDB() {
     }
     if (!productForm.registrationNumber.trim()) {
       errors.registrationNumber = "Registration Number is required";
-    } else {
-      // Check for unique constraint
-      const exists = registeredProducts.some(p => p.registrationNumber.toLowerCase() === productForm.registrationNumber.trim().toLowerCase());
-      if (exists) {
-        errors.registrationNumber = "Registration Number must be unique. This number already exists.";
-      }
     }
     if (!productForm.category) {
       errors.category = "Product Category is required";
@@ -482,27 +476,51 @@ function FDAProductDB() {
       return;
     }
 
-    // ⚠️ REMOVE THIS local mock insertion
-    const newProduct = {
-      id: registeredProducts.length + 1,
-      registrationNumber: productForm.registrationNumber.trim(),
-      productName: productForm.productName.trim(),
-      manufacturer: productForm.manufacturer.trim() || null,
-      category: productForm.category,
-      dateRegistered: productForm.dateRegistered || null,
-      expiryDate: productForm.expiryDate || null,
-      status: 'registered',
-      addedBy: 'Officer K. Fajardo',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-      updatedBy: 'Officer K. Fajardo',
-      marketplaceDetectionCount: 0,
-      convertedFromAdvisoryId: null,
-    };
+    try {
+      const response = await apiFetch('/registered-products/', {
+        method: 'POST',
+        body: JSON.stringify({
+          product_name: productForm.productName.trim(),
+          brand_name: productForm.manufacturer.trim() || null,
+          registration_number: productForm.registrationNumber.trim(),
+          product_category: productForm.category,
+          date_registered: productForm.dateRegistered || null,
+          expiry_date: productForm.expiryDate || null,
+        }),
+      });
 
-    setRegisteredProducts([newProduct, ...registeredProducts]);
-    setShowAddProductModal(false);
-    resetProductForm();
+      if (!response.ok) {
+        const errorData = await response.json();
+        setFormErrors({ registrationNumber: errorData.detail || "Failed to save product." });
+        return;
+      }
+
+      const newProduct = await response.json();
+
+      // I-map yung response galing backend (snake_case) papunta sa frontend shape (camelCase)
+      const mappedProduct = {
+        id: newProduct.product_id,
+        registrationNumber: newProduct.registration_number,
+        productName: newProduct.product_name,
+        manufacturer: newProduct.brand_name,
+        category: newProduct.product_category,
+        dateRegistered: newProduct.date_registered,
+        expiryDate: newProduct.expiry_date,
+        status: newProduct.registration_status,
+        addedBy: newProduct.added_by,
+        createdAt: newProduct.created_at,
+        updatedAt: newProduct.created_at,
+        updatedBy: newProduct.added_by,
+        marketplaceDetectionCount: newProduct.marketplace_detection_count,
+        convertedFromAdvisoryId: null,
+      };
+
+      setRegisteredProducts([mappedProduct, ...registeredProducts]);
+      setShowAddProductModal(false);
+      resetProductForm();
+    } catch (err) {
+      setFormErrors({ productName: "Network error. Please try again." });
+    }
   };
 
   // NOTE: Handles editing a registered product.
@@ -518,8 +536,8 @@ function FDAProductDB() {
       errors.registrationNumber = "Registration Number is required";
     } else {
       // Check unique constraint excluding the current editing product
-      const exists = registeredProducts.some(p => 
-        p.id !== selectedProduct.id && 
+      const exists = registeredProducts.some(p =>
+        p.id !== selectedProduct.id &&
         p.registrationNumber.toLowerCase() === productForm.registrationNumber.trim().toLowerCase()
       );
       if (exists) {
@@ -618,9 +636,8 @@ function FDAProductDB() {
   // ADVISORY SUBMIT & VALIDATION HANDLERS
 
 
-  // NOTE: Handles adding an unregistered product (advisory).
-  // 🔌 BACKEND: POST /api/advisories
-  const handleAddAdvisory = (e) => {
+  // NOTE: Handles adding an unregistered product (advisory). Connected to backend.
+  const handleAddAdvisory = async (e) => {
     e.preventDefault();
     const errors = {};
 
@@ -647,25 +664,58 @@ function FDAProductDB() {
       return;
     }
 
-    // ⚠️ REMOVE THIS local insertion
-    const newAdvisory = {
-      id: unregisteredAdvisories.length + 1,
-      productName: advisoryForm.productName.trim(),
-      advisoryDetails: advisoryForm.advisoryDetails.trim() || null,
-      advisoryDate: advisoryForm.advisoryDate || null,
-      sourceUrl: advisoryForm.sourceUrl.trim() || null,
-      marketplaceDetectionCount: 0,
-      addedBy: 'K. Fajardo',
-      createdAt: new Date().toISOString().split('T')[0],
-      convertedFromProductId: null,
-      source: 'Manually Added',
-      updatedAt: new Date().toISOString().split('T')[0],
-      updatedBy: 'Officer K. Fajardo',
-    };
+    try {
+      const response = await apiFetch('/unregistered-advisories/', {
+        method: 'POST',
+        body: JSON.stringify({
+          product_name: advisoryForm.productName.trim(),
+          advisory_details: advisoryForm.advisoryDetails.trim() || null,
+          advisory_date: (advisoryForm.advisoryDate && advisoryForm.advisoryDate.trim()) || null,
+          source_url: advisoryForm.sourceUrl.trim() || null,
+        }),
+      });
 
-    setUnregisteredAdvisories([newAdvisory, ...unregisteredAdvisories]);
-    setShowAddAdvisoryModal(false);
-    resetAdvisoryForm();
+      if (!response.ok) {
+        const errorData = await response.json();
+        let errorMsg = "Failed to save advisory.";
+        if (errorData && errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            errorMsg = errorData.detail.map(err => {
+              const field = err.loc ? err.loc[err.loc.length - 1] : "";
+              return `${field}: ${err.msg}`;
+            }).join(', ');
+          } else if (typeof errorData.detail === 'string') {
+            errorMsg = errorData.detail;
+          }
+        }
+        setFormErrors({ productName: errorMsg });
+        return;
+      }
+
+      const newAdvisory = await response.json();
+
+      // I-map yung response galing backend (snake_case) papunta sa frontend shape (camelCase)
+      const mappedAdvisory = {
+        id: newAdvisory.advisory_id,
+        productName: newAdvisory.product_name,
+        advisoryDetails: newAdvisory.advisory_details,
+        advisoryDate: newAdvisory.advisory_date,
+        sourceUrl: newAdvisory.source_url,
+        marketplaceDetectionCount: newAdvisory.marketplace_detection_count,
+        addedBy: newAdvisory.added_by,
+        createdAt: newAdvisory.created_at,
+        convertedFromProductId: null,
+        source: 'Manually Added',
+        updatedAt: newAdvisory.created_at,
+        updatedBy: newAdvisory.added_by,
+      };
+
+      setUnregisteredAdvisories([mappedAdvisory, ...unregisteredAdvisories]);
+      setShowAddAdvisoryModal(false);
+      resetAdvisoryForm();
+    } catch (err) {
+      setFormErrors({ productName: "Network error. Please try again." });
+    }
   };
 
   // NOTE: Handles editing an unregistered product (advisory).
@@ -837,7 +887,7 @@ function FDAProductDB() {
         <TopBar topbarType="FDA" />
 
         <div className="FdaMainFeed">
-          
+
           {/* PAGE HEADER BLOCK */}
           <div className="FdaHeader">
             <div className="FdaHeaderLeft">
@@ -846,8 +896,8 @@ function FDAProductDB() {
                 {activeTab === 'registered' ? 'Registered Products' : 'Unregistered Products'}
               </h1>
               <p className="FdaSubtitle">
-                {activeTab === 'registered' 
-                  ? 'Manage FDA-registered cosmetic products. Add, update, or convert product records.' 
+                {activeTab === 'registered'
+                  ? 'Manage FDA-registered cosmetic products. Add, update, or convert product records.'
                   : 'Manage FDA flagged unregistered products.'}
               </p>
             </div>
@@ -895,7 +945,7 @@ function FDAProductDB() {
           <div className="FdaTabActionRow">
             {/* Left: Segmented Tab Control */}
             <div className="FdaTabContainer">
-              <button 
+              <button
                 className={`FDAButtonTab ${activeTab === 'registered' ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab('registered');
@@ -904,7 +954,7 @@ function FDAProductDB() {
               >
                 Registered Products
               </button>
-              <button 
+              <button
                 className={`FDAButtonTab ${activeTab === 'advisories' ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab('advisories');
@@ -970,7 +1020,7 @@ function FDAProductDB() {
                   </select>
                 </div>
 
-                
+
 
                 <div className="FdaFilterGroup">
                   <label>Expiry</label>
@@ -1048,7 +1098,7 @@ function FDAProductDB() {
               </div>
 
               <div className="FdaFilterGroupsRight">
-                
+
 
                 <div className="FdaFilterGroup">
                   <label>Source</label>
@@ -1234,7 +1284,7 @@ function FDAProductDB() {
                               <td>{startIndex + index + 1}</td>
                               <td style={{ fontWeight: '600' }}>{advisory.productName}</td>
                               <td>
-                                {advisory.advisoryDetails && advisory.advisoryDetails.length > 60 
+                                {advisory.advisoryDetails && advisory.advisoryDetails.length > 60
                                   ? `${advisory.advisoryDetails.slice(0, 60)}...`
                                   : advisory.advisoryDetails || '—'}
                               </td>
@@ -1422,7 +1472,6 @@ function FDAProductDB() {
 
                   <div className="FdaModalFooter span-two">
                     <button type="button" className="BtnModalCancel" onClick={() => setShowAddProductModal(false)}>Cancel</button>
-                    {/* 🔌 BACKEND: POST /api/products */}
                     <button type="submit" className="BtnModalSave">Save Product</button>
                   </div>
                 </form>
