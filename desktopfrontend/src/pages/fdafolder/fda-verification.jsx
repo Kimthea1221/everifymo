@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
@@ -326,12 +326,33 @@ function FDAVerification() {
   const [fdaCprNumber, setFdaCprNumber] = useState('');
   // Maps to: verification_requests.fda_cpr_expiry
   const [fdaCprExpiry, setFdaCprExpiry] = useState('');
-  // Maps to: verification_requests.fda_official_remarks
+  // Maps to: verification_requests.fda_official_remarks (Registered path)
   const [fdaOfficialRemarks, setFdaOfficialRemarks] = useState('');
+  // Maps to: verification_requests.fda_official_remarks (Unregistered advisory path)
+  const [fdaAdvisoryRemarks, setFdaAdvisoryRemarks] = useState('');
   // Maps to: verification_requests.fda_unregistered_reason
   const [fdaUnregisteredReason, setFdaUnregisteredReason] = useState('');
   // Maps to: verification_requests.fda_rejection_reason
   const [fdaRejectionReason, setFdaRejectionReason] = useState('');
+
+  // ADDED — trigger used to refresh Completed and Rejected list fetches after a successful submit or reject.
+  const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0);
+
+  // ADDED — refs for scrolling table containers back to top when table page changes (FIX 5)
+  const completedTableWrapperRef = useRef(null);
+  const rejectedTableWrapperRef = useRef(null);
+
+  useEffect(() => {
+    if (completedTableWrapperRef.current) {
+      completedTableWrapperRef.current.scrollTop = 0;
+    }
+  }, [completedPage]);
+
+  useEffect(() => {
+    if (rejectedTableWrapperRef.current) {
+      rejectedTableWrapperRef.current.scrollTop = 0;
+    }
+  }, [rejectedPage]);
 
   // BACKEND: UI view toggles & modal states
   const [fdaIsRejecting, setFdaIsRejecting] = useState(false);
@@ -340,54 +361,86 @@ function FDAVerification() {
   const [fdaDocPreviewModal, setFdaDocPreviewModal] = useState(null); // document object
   const [fdaRecordModalData, setFdaRecordModalData] = useState(null); // Completed or Rejected record for View modal
 
-  // Receives navigation state from FDA Saved Drafts page (openDraftId + draftRecord)
-  // and auto-opens that request in the Verification Queue tab.
+  // Receives navigation state from the FDA Saved Drafts page — either
+  // { openVerificationRequestId, draftId, mode } from "View"/"Continue
+  // Editing", or nothing at all if the officer navigated here some other
+  // way. Auto-opens the right request in the Verification Queue tab, and
+  // — if a draftId was included — fetches the actual saved draft values
+  // and pre-fills the determination form, so "Continue Editing" genuinely
+  // continues rather than reopening a blank form.
   const location = useLocation();
   const navigate = useNavigate();
 
-
   useEffect(() => {
     const incoming = location.state;
-    if (!incoming?.openDraftId) return;
+    if (!incoming?.openVerificationRequestId) return;
 
-    // CHANGED — now matches against real field names (request_id / case_reference)
-    // instead of the old dummy id / caseId.
-    const existing = fdaQueueList.find(
-      (q) => q.request_id === incoming.openDraftId || q.case_reference === incoming.openDraftId
-    );
+    const requestId = incoming.openVerificationRequestId;
+    const draftId = incoming.draftId;
+    const token = localStorage.getItem('access_token');
+
+    // If this request is already sitting in the currently loaded queue
+    // list, select it directly. Otherwise, set just the ID — the existing
+    // detail-fetch useEffect (watching selectedQueueItem?.request_id)
+    // picks this up automatically and fetches the full case detail.
+    const existing = fdaQueueList.find((q) => q.request_id === requestId);
+    setFdaActiveTab('queue');
 
     if (existing) {
-      setFdaActiveTab('queue');
       handleSelectItem(existing);
-    } else if (incoming.draftRecord) {
-      // Draft wasn't in the live queue — reconstruct a queue-shaped item
-      // from the saved-draft record so it can be reviewed here.
-      // CHANGED — restoredItem now uses the real API field names so it
-      // is compatible with the card renderer and handleSelectItem.
-      const draft = incoming.draftRecord;
-      const restoredItem = {
-        request_id: draft.caseId,
-        case_reference: draft.caseId,
-        product_name: draft.product,
-        manufacturer: draft.manufacturer,
-        product_category: draft.category,
-        requested_at: draft.lastModified,
-        source: draft.source === 'Walk-in' ? 'walk_in' : 'online',
-        priority: 'standard',
-        complainant_name: null,
-      };
+    } else {
+      setSelectedQueueItem({ request_id: requestId });
+    }
 
-      setFdaQueueList((prev) => [restoredItem, ...prev]);
-      setFdaActiveTab('queue');
-      setSelectedQueueItem(restoredItem);
+    if (draftId) {
+      // Arrived from a saved draft — fetch its actual values and restore
+      // them into the determination form.
+      fetch(`${API_BASE}/drafts/fda-verification/${draftId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          if (data.draft_verification_status === 'registered' || data.draft_verification_status?.toLowerCase() === 'registered') {
+            setFdaOfficialRemarks(data.draft_response_notes ?? '');
+            setFdaAdvisoryRemarks('');
+          } else if (data.draft_verification_status === 'unregistered' || data.draft_verification_status?.toLowerCase() === 'unregistered') {
+            setFdaAdvisoryRemarks(data.draft_response_notes ?? '');
+            setFdaOfficialRemarks('');
+          } else {
+            setFdaOfficialRemarks('');
+            setFdaAdvisoryRemarks('');
+          }
+          setFdaCprNumber(data.draft_cpr_number ?? '');
+          setFdaCprExpiry(data.draft_cpr_expiry ?? '');
+          setFdaUnregisteredReason(data.draft_unregistered_reason ?? '');
+          const rawStatus = data.draft_verification_status ?? '';
+          const formattedStatus = rawStatus ? (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase()) : '';
+          setFdaVerificationStatus(formattedStatus);
+        })
+        .catch(() => {
+          triggerAlert('Could not load the saved draft values. Starting with a blank form.', 'danger');
+          setFdaVerificationStatus('');
+          setFdaCprNumber('');
+          setFdaCprExpiry('');
+          setFdaOfficialRemarks('');
+          setFdaAdvisoryRemarks('');
+          setFdaUnregisteredReason('');
+        });
+    } else {
+      // No draft to restore — arrived from clicking a live queue card
+      // directly, so just clear any stale form values from before.
       setFdaVerificationStatus('');
       setFdaCprNumber('');
       setFdaCprExpiry('');
       setFdaOfficialRemarks('');
+      setFdaAdvisoryRemarks('');
       setFdaUnregisteredReason('');
     }
 
-    // Clear navigation state so refreshing/back doesn't re-trigger this
+    // Clear navigation state so refreshing/back doesn't re-trigger this.
     navigate(location.pathname, { replace: true, state: {} });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
@@ -484,11 +537,12 @@ function FDAVerification() {
     setFdaIsRejecting(false);
     if (fdaActiveTab === 'queue') {
       setSelectedQueueItem(item);
-      setFdaVerificationStatus(item.draftStatus || '');
-      setFdaCprNumber(item.draftCprNumber || '');
-      setFdaCprExpiry(item.draftCprExpiry || '');
-      setFdaOfficialRemarks(item.draftRemarks || '');
-      setFdaUnregisteredReason(item.draftUnregisteredReason || '');
+      setFdaVerificationStatus('');
+      setFdaCprNumber('');
+      setFdaCprExpiry('');
+      setFdaOfficialRemarks('');
+      setFdaAdvisoryRemarks('');
+      setFdaUnregisteredReason('');
       // fetchDetail is called below (defined after triggerAlert to avoid TDZ).
       // The call is deferred to the useEffect that watches selectedQueueItem.
     }
@@ -517,7 +571,12 @@ function FDAVerification() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then((data) => setSelectedQueueDetail(data))
+      .then((data) => {
+        setSelectedQueueDetail(data);
+        // FIX 1 — keep selectedQueueItem in sync so currentItem (used in toasts & dialogs)
+        // is enriched with case_reference and other fields when arriving via Continue Editing.
+        setSelectedQueueItem((prev) => (prev ? { ...prev, ...data } : data));
+      })
       .catch(() => {
         triggerAlert('Could not load the verification request details.', 'danger');
       })
@@ -656,9 +715,8 @@ function FDAVerification() {
     const timer = setTimeout(doFetch, completedSearch ? 300 : 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  // CHANGED — added completedResultFilter to the dependency array so changing the
-  // Verification Result dropdown immediately re-fetches without needing debounce.
-  }, [completedSearch, completedCategory, completedDateFrom, completedDateTo, completedPage, completedResultFilter]);
+    // CHANGED — added completedResultFilter and dataRefreshTrigger to the dependency array.
+  }, [completedSearch, completedCategory, completedDateFrom, completedDateTo, completedPage, completedResultFilter, dataRefreshTrigger]);
 
   // ADDED — fetches the Rejected list from the backend whenever any filter or
   // page changes. rejectedSearch is debounced (300 ms); all other dependencies
@@ -700,7 +758,7 @@ function FDAVerification() {
     const timer = setTimeout(doFetch, rejectedSearch ? 300 : 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rejectedSearch, rejectedCategory, rejectedDateFrom, rejectedDateTo, rejectedPage]);
+  }, [rejectedSearch, rejectedCategory, rejectedDateFrom, rejectedDateTo, rejectedPage, dataRefreshTrigger]);
 
   // CONFIRMATION MODAL HANDLERS
 
@@ -778,27 +836,58 @@ function FDAVerification() {
     const token = localStorage.getItem('access_token');
 
     if (fdaModalConfig.type === 'save_draft') {
-      // BACKEND: PATCH /api/fda/verification-requests/:id/draft
-      // Body: { fda_verification_status, fda_cpr_number, fda_cpr_expiry, fda_official_remarks, fda_unregistered_reason }
-      // STATUS UPDATE: verification_request_status remains 'pending'
-      // BACKEND: Trigger notification to FDA TopBar notification panel
-      const updatedItem = {
-        ...currentItem,
-        draftStatus: fdaVerificationStatus,
-        draftCprNumber: fdaCprNumber,
-        draftCprExpiry: fdaCprExpiry,
-        draftRemarks: fdaOfficialRemarks,
-        draftUnregisteredReason: fdaUnregisteredReason
-      };
+      // ADDED — calls the real upsert endpoint.
+      // POST /drafts/fda-verification/{verification_request_id}
+      // No required-field validation — saving a draft is always allowed with any
+      // combination of empty/filled fields, since the whole point is saving
+      // incomplete work. This intentionally has no validation guard, unlike Submit/Reject.
+      try {
+        const payload = {
+          // ADDED — each field maps from the corresponding form state variable.
+          // Empty strings are coerced to null so the backend never receives "".
+          draft_verification_status: fdaVerificationStatus.toLowerCase() || null,
+          draft_cpr_number: fdaCprNumber.trim() || null,
+          draft_cpr_expiry: fdaCprExpiry.trim() || null,
+          draft_response_notes: fdaVerificationStatus.toLowerCase() === 'registered'
+            ? (fdaOfficialRemarks.trim() || null)
+            : (fdaAdvisoryRemarks.trim() || null),
+          draft_unregistered_reason: fdaUnregisteredReason.trim() || null,
+        };
 
-      if (fdaActiveTab === 'queue') {
-        setFdaQueueList(fdaQueueList.map((item) => (item.request_id === currentItem.request_id ? updatedItem : item)));
-        setSelectedQueueItem(updatedItem);
+        const res = await fetch(`${API_BASE}/drafts/fda-verification/${currentItem.request_id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          // ADDED — reads the detail field from the error response body and surfaces
+          // it via triggerAlert, matching the same pattern used in the submit/reject
+          // handlers above. Modal is intentionally NOT closed on error so the user
+          // can see the message and decide whether to retry or cancel.
+          const errData = await res.json().catch(() => null);
+          const errMsg = errData?.detail || 'Failed to save draft.';
+          triggerAlert(errMsg, 'danger');
+          return;
+        }
+
+        // ADDED — on success: show toast, close modal.
+        // The card stays selected (selectedQueueItem / selectedQueueDetail are NOT cleared)
+        // and form fields are NOT reset — unlike Submit/Reject, saving a draft does not
+        // change the request's verification_request_status; the officer is still actively
+        // working on this request and expects their entered values to remain.
+        // CHANGED — uses case_reference (real field name) instead of the old caseId.
+        triggerAlert(`Draft saved successfully for Case ID ${currentItem.case_reference}.`, 'success');
+        setFdaModalConfig(null);
+
+      } catch (err) {
+        // ADDED — network-level failure (fetch throws entirely, e.g. server unreachable),
+        // matching the try/catch pattern used in the submit/reject handlers.
+        triggerAlert('Network error occurred while saving the draft.', 'danger');
       }
-
-      // CHANGED — uses case_reference (real field name) instead of the old caseId.
-      triggerAlert(`Draft saved successfully for Case ID ${currentItem.case_reference}.`, 'success');
-      setFdaModalConfig(null);
     }
     else if (fdaModalConfig.type === 'submit') {
       try {
@@ -806,7 +895,9 @@ function FDAVerification() {
           verification_status: fdaVerificationStatus.toLowerCase(),
           cpr_number: fdaCprNumber.trim() || null,
           cpr_expiry: fdaCprExpiry.trim() || null,
-          response_notes: fdaOfficialRemarks.trim() || null,
+          response_notes: fdaVerificationStatus.toLowerCase() === 'registered'
+            ? (fdaOfficialRemarks.trim() || null)
+            : (fdaAdvisoryRemarks.trim() || null),
           unregistered_reason: fdaUnregisteredReason.trim() || null
         };
 
@@ -846,10 +937,12 @@ function FDAVerification() {
         setFdaCprNumber('');
         setFdaCprExpiry('');
         setFdaOfficialRemarks('');
+        setFdaAdvisoryRemarks('');
         setFdaUnregisteredReason('');
 
-        // Re-fetch badge counts
+        // Re-fetch badge counts and trigger Completed/Rejected table refresh (FIX 4)
         fetchCounts();
+        setDataRefreshTrigger((prev) => prev + 1);
 
       } catch (err) {
         triggerAlert('Network error occurred while submitting verification.', 'danger');
@@ -901,10 +994,12 @@ function FDAVerification() {
         setFdaCprNumber('');
         setFdaCprExpiry('');
         setFdaOfficialRemarks('');
+        setFdaAdvisoryRemarks('');
         setFdaUnregisteredReason('');
 
-        // Re-fetch badge counts
+        // Re-fetch badge counts and trigger Completed/Rejected table refresh (FIX 4)
         fetchCounts();
+        setDataRefreshTrigger((prev) => prev + 1);
 
       } catch (err) {
         triggerAlert('Network error occurred while rejecting verification request.', 'danger');
@@ -1597,13 +1692,13 @@ function FDAVerification() {
                                   <label className="FdaVerifFormLabel">
                                     Advisory & Enforcement Recommendations for LEA
                                   </label>
-                                  {/* BACKEND: maps to verification_requests.fda_official_remarks */}
+                                  {/* FIX 3 — bound to fdaAdvisoryRemarks (separate state from fdaOfficialRemarks) */}
                                   <textarea
                                     className="FdaVerifTextarea"
                                     rows={2}
                                     placeholder="Recommended enforcement steps for LEA-CIDG (e.g. Initiate market seizure, request online domain takedown, issue public health warning)..."
-                                    value={fdaOfficialRemarks}
-                                    onChange={(e) => setFdaOfficialRemarks(e.target.value)}
+                                    value={fdaAdvisoryRemarks}
+                                    onChange={(e) => setFdaAdvisoryRemarks(e.target.value)}
                                     id="fda-textarea-unregistered-remarks"
                                   ></textarea>
                                 </div>
@@ -1816,7 +1911,7 @@ function FDAVerification() {
 
                 {/* CHANGED — table now maps real API field names from GET /verification-requests/completed */}
                 <div className="FdaTableCard FdaVerifTableCard">
-                  <div className="FdaTableWrapper">
+                  <div className="FdaTableWrapper" ref={completedTableWrapperRef}>
                     <table className="FdaTable">
                       <thead>
                         <tr>
@@ -2044,7 +2139,7 @@ function FDAVerification() {
 
                 {/* CHANGED — table now maps real API field names from GET /verification-requests/rejected */}
                 <div className="FdaTableCard FdaVerifTableCard">
-                  <div className="FdaTableWrapper">
+                  <div className="FdaTableWrapper" ref={rejectedTableWrapperRef}>
                     <table className="FdaTable">
                       <thead>
                         <tr>

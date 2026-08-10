@@ -567,8 +567,11 @@ h6 {
   padding: 12px 16px;
   text-align: left;
   font-size: 11px;
-  color: #1F2937;
-  opacity: 0.6;
+  /* CHANGED — was color: #1F2937 + opacity: 0.6, which made the entire th (including
+     its background) semi-transparent. Rows scrolling behind the sticky header would
+     bleed through. Replaced with a direct opaque color (#8c95a0 ≈ #1F2937 at 60%)
+     so the background stays fully solid and the header never overlaps row content. */
+  color: #8c95a0;
   font-weight: 600;
   letter-spacing: 0.5px;
   border-bottom: 1px solid #EDEDED;
