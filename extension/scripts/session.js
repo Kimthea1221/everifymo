@@ -40,11 +40,16 @@ async function updateUsername(newUsername, callback) {
   );
 }
 
-// function deleteAccount(callback) {
-//   if (!_session) {
-//     callback(false);
-//     return;
-//   }
+async function deleteAccount(password, callback) {
+  if (!_session) {
+    callback(false);
+    return;
+  }
+
+  apiDeleteAccount(password, _session.access_token)
+    .then(() => logoutUser(() => callback(true)))
+    .catch(e => callback(false, e.message));
+}
 
 //   getRegisteredUsers((users) => {
 //     const remainingUsers = users.filter(u => u.email !== _session.email);
@@ -80,8 +85,17 @@ function loginUser(email, password, callback) {
               { access_token: data.access_token, token_type: data.token_type, username: data.username, email },
               () => callback(true)
           );
-      })
-      .catch(e => callback(false, e.message));
+      }).catch(e => callback(false, e.message));
+}
+
+function googleLogin(token, callback) {
+  apiGoogleLogin(token).then(data => {
+      _session = { username: data.username, email: data.email, access_token: data.access_token };
+      chrome.storage.local.set(
+        { access_token: data.access_token, token_type: data.token_type, username: data.username, email: data.email },
+        () => callback(true)
+      );
+  }).catch(e => callback(false, e.message));
 }
 
 function verifyOtp(email, inputCode, callback) {
@@ -92,6 +106,21 @@ function verifyOtp(email, inputCode, callback) {
 function resendOtpSession(email, callback) {
   apiResendOtp(email).then(() => callback(true))
       .catch(e => callback(false, e.message));
+}
+
+function verifyResetOtp(email, otpCode, callback) {
+  apiVerifyResetOtp(email, otpCode).then(data => callback(true, data.reset_token))
+      .catch(e => callback(false, null, e.message));
+}
+
+function requestPasswordReset(email, callback) {
+  apiPasswordReset(email).then(() => callback(true))
+      .catch(e => callback(false, e.message));
+}
+
+function confirmPasswordReset(email, resetToken, newPassword, callback) {
+  apiConfirmPassReset(email, resetToken, newPassword).then(() => callback(true))
+      .catch(e => callback(false, e.message))
 }
 
 function logoutUser(callback) {
