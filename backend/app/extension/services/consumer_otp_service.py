@@ -75,31 +75,3 @@ def verify_reset_otp(db: Session, email: str, otp_code: str) -> str:
 
     verify_otp(db, consumer.consumer_id, otp_code, purpose="password_reset")
     return create_reset_token(db, consumer.consumer_id)
-
-
-# def verify_signup_otp(db: Session, email: str, otp_code: str) -> ConsumerAccount:
-#     consumer = db.query(ConsumerAccount).filter(
-#         ConsumerAccount.email == email).first()
-
-#     if not consumer:
-#         raise HTTPException(status_code=404, detail="Account not found")
-
-#     verify_otp(db, consumer.consumer_id, otp_code, purpose="signup_verification")
-
-#     consumer.is_verified = True
-#     db.commit()
-#     db.refresh(consumer)
-#     return consumer
-
-# def resend_signup_otp(db: Session, email: str) -> None:
-#     consumer = db.query(ConsumerAccount).filter(
-#         ConsumerAccount.email == email).first()
-
-#     if not consumer:
-#         raise HTTPException(status_code=404, detail="Account not found")
-#     if consumer.is_verified:
-#         raise HTTPException(status_code=400, detail="Account already verified")
-
-#     code = create_otp(db, consumer.consumer_id, purpose="signup_verification")
-
-#     return code

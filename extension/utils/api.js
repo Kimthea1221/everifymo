@@ -52,6 +52,11 @@ async function apiGoogleLogin(token) {
     const data = await res.json();
 
     if (!res.ok){
+        if (data.detail && typeof data.detail === 'object') {
+            const error = new Error(data.detail.message);
+            error.email = data.detail.email;
+            throw error;
+        }
         throw new Error(data.detail || 'Login failed');
     }
 
