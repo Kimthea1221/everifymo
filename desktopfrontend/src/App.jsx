@@ -41,32 +41,38 @@
   import FDASavedDraft from './pages/fdafolder/fda-saved-draft.jsx';
 
 
-  // deep-link listener component
   function DeepLinkListener() {
-    const navigate = useNavigate()
+  const navigate = useNavigate();
 
-    useEffect(() => {
-  console.log('DeepLinkListener mounted, waiting for token...')
+  useEffect(() => {
+    console.log('DeepLinkListener mounted, waiting for token...');
 
-      window.electronAPI.onDeepLinkToken((token) => {
-              console.log('Token received:', token)
+    window.electronAPI.onDeepLinkToken((token) => {
+      console.log('Token received:', token);
 
-        fetch(`http://localhost:8000/registration/validate/${token}`)
-          .then((res) => res.json())
-          .then((data) => {
-                      console.log('Validate response:', data)
+      fetch(`http://localhost:8000/registration/validate/${token}`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log('Validate response:', data);
 
-            if (data.status === 'valid') {
-              navigate('/user-registration', { state: { ...data, invite_token: token } })
-            } else {
-              navigate('/invitation-status', { state: {status: data.status, invite_token: token } })
-            }
-          })
-      })
-    }, [])
+          if (data.role === 'superadmin') {
+            navigate('/superadmin-invite-status', {
+              state: { status: data.status, token },
+            });
+            return;
+          }
 
-    return null   // this component doesn't render anything visible, it just listens
-  }
+          if (data.status === 'valid') {
+            navigate('/user-registration', { state: { ...data, invite_token: token } });
+          } else {
+            navigate('/invitation-status', { state: { status: data.status, invite_token: token } });
+          }
+        });
+    });
+  }, [navigate]);
+
+  return null;
+}
 
 
   export default function App(){
@@ -75,7 +81,7 @@
         <DeepLinkListener />
         <Routes>
             {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-            <Route path='/' element={<SuperadminEmailAddAdmin />} />
+            <Route path='/' element={<SuperAdminLogin />} />
 
           {/* AUTH ROUTES */}
           <Route path='/login' element={<Login />} />

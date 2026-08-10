@@ -126,6 +126,9 @@ function Login(){
       setLoginError('');
     }
 
+    // Format seconds as M:SS to match the superadmin login OTP timer
+    const formatTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
     // frontend password format validation (need din validate sa backend)
     function validatePassword(pwd) {
       if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter.';
@@ -372,7 +375,7 @@ function Login(){
 
                 <div className="LoginOtpTimerContainer">
                   {timer > 0 ? (
-                    <p>Resend code in <strong>{timer}s</strong></p>
+                    <p>Resend code in <strong>{formatTimer(timer)}</strong></p>
                   ) : (
                     <p>
                       Didn't receive the code?{' '}

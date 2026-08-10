@@ -17,8 +17,10 @@ from app.desktop.schemas.admin_management.management import (
 from app.core.constants import UserStatus
 from app.core.dependencies import get_current_superadmin
 from app.desktop.services.auth.email import send_invite_email
-#from app.desktop.services.auth.email import send_superadmin_invite_email
+from app.desktop.services.auth.email import send_superadmin_invite_email
 from app.desktop.services.admin_management.invite import create_invited_superadmin
+from app.desktop.services.admin_management.invite import activate_superadmin
+from app.desktop.services.auth.email import send_superadmin_activation_email
 
 router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 
@@ -32,6 +34,8 @@ def compute_admin_status(user: User, latest_token) -> str:
             if expires_at < datetime.now(timezone.utc):
                 return "Invitation Expired"
         return "Invited"
+    if user.status == UserStatus.PENDING_APPROVAL:
+        return "Pending Approval"
     if user.status == UserStatus.ACTIVE:
         return "Active" if user.is_active else "Suspended"
     return user.status
@@ -216,3 +220,15 @@ def delete_superadmin(
     db.delete(admin)
     db.commit()
     return {"message": "Superadmin deleted successfully"}
+
+
+
+@router.post("/{admin_id}/activate")
+async def activate_superadmin_endpoint(
+    admin_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin),
+):
+    admin = activate_superadmin(db, admin_id)
+    await send_superadmin_activation_email(admin.email)
+    return {"message": "Superadmin account activated."}
