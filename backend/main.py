@@ -27,6 +27,8 @@ from app.core.security import get_current_user
 from app.extension.routers import complaints
 
 from app.extension.routers import status as status_router
+from app.desktop.routers.Product_database.registered_product import router as registered_product_router
+from app.desktop.routers.Product_database.unregistered_advisory import router as unregistered_advisory_router
 
 
 # Saved Drafts feature
@@ -72,6 +74,9 @@ app.add_middleware(
 app.include_router(invite_router)
 app.include_router(regions_router)
 app.include_router(registration.router)
+app.include_router(registered_product_router)
+app.include_router(unregistered_advisory_router)
+
 
 app.include_router(consumer_acc_router.router)
 app.include_router(auth_router.router)
