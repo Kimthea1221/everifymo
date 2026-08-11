@@ -33,41 +33,39 @@ router = APIRouter(prefix="/registration", tags=["Registration"])
     # GET /registration/validate/{invite_token}
 @router.get("/validate/{invite_token}", response_model=ValidateTokenResponse)
 def validate_token(invite_token: str, db: Session = Depends(get_db)):
-    # invite_token comes straight from the URL, e.g. /registration/validate/abc123
-
-    # Registration happens before login, so there's no logged-in region yet.
-    # This tells our RLS policy on "users" to allow this lookup anyway,
-    # only for this one request.
     db.execute(text("SET app.bypass_rls = 'true'"))
 
-    # Look up the invitation by the token value sent in the URL
     token_row = db.query(AccountInvitationToken).filter(
         AccountInvitationToken.invite_token == invite_token
     ).first()
 
-    # No matching row at all — token is fake/mistyped/never existed
     if not token_row:
-        return ValidateTokenResponse(status=TokenStatus.invalid, message="This invitation link is not valid.",)
+        return ValidateTokenResponse(status=TokenStatus.invalid, message="This invitation link is not valid.")
 
-    # used_at gets set once someone already completed registration with this token
-    if token_row.used_at is not None:
-        return ValidateTokenResponse(status=TokenStatus.used, message="This invitation has already been used to complete registration.",)
-
-    # Token existed and hasn't been used, but the 48-hour window has passed
-    if token_row.expires_at < datetime.now(timezone.utc):
-        return ValidateTokenResponse(status=TokenStatus.expired, message="This invitation link has expired. Please request a new one.",)
-
-    # Token is genuinely good — fetch the stub account and its region
-    # so we can show the officer their pre-filled info
     user_row = db.query(User).filter(User.user_id == token_row.user_id).first()
+    role = user_row.role if user_row else None
+
+    if token_row.used_at is not None:
+        return ValidateTokenResponse(
+            status=TokenStatus.used,
+            message="This invitation has already been used to complete registration.",
+            role=role,
+        )
+
+    if token_row.expires_at < datetime.now(timezone.utc):
+        return ValidateTokenResponse(
+            status=TokenStatus.expired,
+            message="This invitation link has expired. Please request a new one.",
+            role=role,
+        )
+
     region_row = db.query(Region).filter(Region.region_id == user_row.region_id).first()
 
     return ValidateTokenResponse(
         status=TokenStatus.valid,
         email=user_row.email,
-        role=user_row.role,
+        role=role,
         region_id=user_row.region_id,
-        # SuperAdmin stub accounts have no region, so region_row could be None
         region_name=region_row.region_name if region_row else None,
     )
 

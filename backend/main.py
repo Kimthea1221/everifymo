@@ -17,6 +17,8 @@ from app.desktop.routers.admin_management import management as admin_management_
 from app.desktop.routers.auth.personnel_login import router as personnel_login_router
 from app.desktop.routers.auth.password_change import router as password_change_router
 from app.desktop.routers.profile_setting import profile as profile_router
+from app.desktop.routers.auth.superadmin_invite_public import router as superadmin_invite_public_router
+
 
 from app.database.base import Base
 from app.database.sessions import engine, get_db
@@ -117,6 +119,7 @@ app.include_router(verification_list_router)
 app.include_router(personnel_login_router)
 app.include_router(password_change_router)
 app.include_router(profile_router.router)
+app.include_router(superadmin_invite_public_router)
 
 @app.get("/", status_code=status.HTTP_200_OK)
 async def user(consumer: consumer_dependency):
