@@ -38,6 +38,16 @@ async def update_username(db: db_dependency, current_user: user_dependency, upda
         "username": updated_user.username
     }
 
+@router .put("/change-pending-username", status_code=status.HTTP_200_OK)
+async def change_pending_username(db: db_dependency, update_request: consumer_acc.ChangePendingUsername):
+    updated_user = consumer_acc_service.change_pending_username(
+        db, update_request.email, update_request.username)
+
+    return {
+        "detail": "Username updated succesfully",
+        "username": updated_user.username
+    }
+
 @router .delete("/delete-account", status_code=status.HTTP_204_NO_CONTENT)
 def soft_delete_account(db: db_dependency, current_user: user_dependency, delete_request: consumer_acc.DeleteAccountRequest):
     consumer_acc_service.delete_account(db, current_user["id"], delete_request)

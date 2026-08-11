@@ -52,10 +52,28 @@ async function apiGoogleLogin(token) {
     const data = await res.json();
 
     if (!res.ok){
+        if (data.detail && typeof data.detail === 'object') {
+            const error = new Error(data.detail.message);
+            error.email = data.detail.email;
+            throw error;
+        }
         throw new Error(data.detail || 'Login failed');
     }
 
     return data;
+}
+
+async function apiChangeUsername(email, newUsername) {
+
+    const res = await fetch(`${API_BASE}/accounts/change-pending-username`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, username: newUsername })
+        })
+
+    return handleResponse(res);
 }
 
 async function handleResponse(response) {
