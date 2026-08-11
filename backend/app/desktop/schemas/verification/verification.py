@@ -199,8 +199,17 @@ class FdaVerificationRejectedDetailResponse(BaseModel):
     responded_at: datetime
     rejection_reason: str
 
-# tiny dashboard count 
+# tiny dashboard count fda
 class FdaVerificationQueueCounts(BaseModel):
     verification_queue_count: int
     completed_count: int
     rejected_count: int
+
+# LEA-side dashboard counts — status counts on Complaint, not
+# VerificationRequest, since these three tabs track what LEA does
+# AFTER FDA responds (takedown_requested/initiated/dismissed+completed),
+# not the verification request lifecycle itself.
+class LeaVerificationQueueCounts(BaseModel):
+    fda_response_count: int
+    initiated_count: int
+    dismissed_count: int
