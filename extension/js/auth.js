@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const backFromOtpLink = document.getElementById('back-from-otp-link');
   let otpPendingEmail = '';
   let otpPendingMode = 'signin';
+  let lastEnteredOtp = '';
   const forgotPasswordFields = document.getElementById('forgot-password-fields');
   const forgotConfirmButton = document.getElementById('forgot-confirm-button');
   const newPasswordInput = document.getElementById('new-password');
@@ -46,6 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const resendForgotOtpLink = document.getElementById('resend-forgot-otp-link');
   const newPasswordField = document.getElementById('new-password-field');
   const confirmNewPasswordField = document.getElementById('confirm-new-password-field');
+  const otpUsernameFixField = document.getElementById('otp-username-fix-field');
+  const otpNewUsernameInput = document.getElementById('otp-new-username');
+  const otpUsernameFixError = document.getElementById('otp-username-fix-error');
+  const otpUsernameFixButton = document.getElementById('otp-username-fix-button');
+
 
   // --- Password show/hide eye icon toggle ---
   document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
@@ -698,6 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
     otpVerifyButton.addEventListener('click', () => {
       if (otpError) otpError.textContent = '';
       const enteredCode = getOtpValue();
+      lastEnteredOtp = enteredCode;
 
       if (enteredCode.length < 6) {
         setError(otpError, 'Please enter all 6 digits.');
@@ -709,6 +716,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // that's the account this code is being checked against
       verifyOtp(otpPendingEmail, enteredCode, (success, error) => {
         if (!success) {
+          if (error && error.toLowerCase().includes('username')) {
+            setError(otpError, error);
+            if (otpUsernameFixField) otpUsernameFixField.hidden = false;
+            return;
+          }
+
           setError(otpError, error || 'Incorrect code. Please try again.');
           otpDigitInputs.forEach(inp => inp.classList.add('is-invalid'));
           return;
@@ -718,6 +731,61 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionStorage.setItem('authFlashType', 'success');
         sessionStorage.setItem('authFlashTitle', 'Email verified');
         window.location.href = 'auth.html';
+      });
+    });
+  }
+
+  if (otpUsernameFixButton) {
+    otpUsernameFixButton.addEventListener('click', () => {
+      if (otpUsernameFixButton) otpUsernameFixError.textContent = '';
+      const newUsername = otpNewUsernameInput.value.trim();
+
+      if (!newUsername) {
+        setError(otpUsernameFixError, 'Enter a new username.');
+        return;
+      }
+
+      otpUsernameFixButton.disabled = true;
+      otpUsernameFixButton.textContent = 'Updating...';
+
+      changePendingUsername(otpPendingEmail, newUsername, (success, error) => {
+        if (!success) {
+          otpUsernameFixButton.disabled = false;
+          otpUsernameFixButton.textContent = 'Update Username';
+          setError(otpUsernameFixError, error || 'Could not update username.');
+          return;
+        } 
+
+        otpUsernameFixField.hidden = true;
+        if (otpError) {
+          otpError.textContent = 'Username updated - verifying...';
+          otpError.classList.add('is-success');
+        }
+
+        setTimeout(() => {
+          if (otpError) otpError.textContent = 'Verifying your account...';
+
+          verifyOtp(otpPendingEmail, lastEnteredOtp, (success, error) => {
+            if (!success) {
+              if (otpError) otpError.classList.remove('is-success');
+              setError(otpError, error || 'Your code expired - please request a new one.');
+              clearOtpInputs();
+              otpUsernameFixButton.disabled = false;
+              otpUsernameFixButton.textContent = 'Update Username';
+              return;
+            }
+            if (otpError) otpError.textContent = 'Verified! Redirecting...';
+
+            sessionStorage.setItem('authFlashMessage', 'Account verified! Please login to continue.');
+            sessionStorage.setItem('authFlashType', 'success');
+            sessionStorage.setItem('authFlashTitle', 'Email verified');
+
+            setTimeout(() => {
+              window.location.href = 'auth.html';
+            }, 700);
+          });
+        }, 600);
+        
       });
     });
   }
