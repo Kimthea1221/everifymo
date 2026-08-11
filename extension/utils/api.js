@@ -63,6 +63,19 @@ async function apiGoogleLogin(token) {
     return data;
 }
 
+async function apiChangeUsername(email, newUsername) {
+
+    const res = await fetch(`${API_BASE}/accounts/change-pending-username`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, username: newUsername })
+        })
+
+    return handleResponse(res);
+}
+
 async function handleResponse(response) {
     if (response.status === 401) {
         throw new UnauthorizedError('Session expired. Please login once again');

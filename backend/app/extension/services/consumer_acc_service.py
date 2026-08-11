@@ -70,21 +70,25 @@ def verify_signup_otp(db: Session, email: str, otp_code: str) -> ConsumerAccount
     if not consumer:
         raise HTTPException(status_code=404, detail="Account not found")
 
-    consumer_otp_service.verify_otp(db, consumer.consumer_id, otp_code, purpose="signup_verification")
+    taken = db.query(ConsumerAccount).filter(
+        ConsumerAccount.username == consumer.username,
+        ConsumerAccount.is_verified == True,
+        ConsumerAccount.consumer_id != consumer.consumer_id,
+    ).first()
+    if taken:
+        raise HTTPException(
+            status_code=400,
+            detail="Username was taken by someone else. Please choose a new username to complete verification."
+        )
 
+    consumer_otp_service.verify_otp(db, consumer.consumer_id, otp_code, purpose="signup_verification")
     consumer.is_verified = True
 
     try:
         db.commit()
     except IntegrityError as e:
         db.rollback()
-        error = str(e.orig)
-        if "username" in error:
-            raise HTTPException(
-                status_code=400,
-                detail="Your username was taken by someone else while you were verifying. Please choose a new username to complete verification."
-            )
-        raise HTTPException(status_code=400, detail="Account could not be verified")
+        raise HTTPException( status_code=400, detail="Account could not be verified")
     
     db.refresh(consumer)
     return consumer
@@ -98,6 +102,36 @@ def resend_signup_otp(db: Session, email: str) -> str:
         raise HTTPException(status_code=400, detail="Account already verified")
 
     return consumer_otp_service.create_otp(db, consumer.consumer_id, purpose="signup_verification")
+
+def change_pending_username(db: Session, email: str, new_username: str) -> ConsumerAccount:
+    consumer = db.query (ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    if consumer.is_verified:
+        raise HTTPException(status_code=400, detail="Account already verified")
+
+    if consumer.username == new_username:
+        return consumer
+
+    taken = db.query(ConsumerAccount).filter(
+        ConsumerAccount.username == new_username,
+        ConsumerAccount.is_verified == True,
+    ).first()
+    if taken:
+        raise HTTPException(status_code=400, detail="Username already taken.")
+
+    consumer.username = new_username
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Username already taken.")
+
+    db.refresh(consumer)
+    return consumer
 
 def update_username(db: Session, user_id: int, updatedUsername: str):
     user = db.query(consumer_accounts.ConsumerAccount

@@ -98,6 +98,11 @@ function googleLogin(token, callback) {
   }).catch(e => callback(false, e.message, e.email));
 }
 
+function changePendingUsername(email, newUsername, callback) {
+  apiChangeUsername(email, newUsername).then(() => callback(true))
+      .catch(e => callback(false, e.message));
+}
+
 function verifyOtp(email, inputCode, callback) {
   apiVerifyOtp(email, inputCode).then(() => callback(true))
       .catch(e => callback(false, e.message))
