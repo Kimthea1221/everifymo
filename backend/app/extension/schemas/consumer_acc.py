@@ -17,6 +17,10 @@ class CreateConsumerAcc(BaseModel):
 class UpdateUsername(BaseModel):
     username: str
 
+class ChangePendingUsername(BaseModel):
+    email: EmailStr
+    username: str
+
 class DeleteAccountRequest(BaseModel):
     password: str
 
