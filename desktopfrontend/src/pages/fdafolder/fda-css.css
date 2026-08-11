@@ -3644,13 +3644,31 @@ h6 {
 }
 
 /* INTAKE DOC MODAL */
+/* CHANGED — widened to 900px/90vw for real document previews. Uses flex-column so
+   the header and footer always stay fully visible at their natural heights; the body
+   grows to fill the remaining space. max-height 90vh keeps the whole modal on-screen.
+   No overflow-y anywhere — no scroll inside or outside the modal. */
 .FdaVerifDocModalContainer {
   background: #FDFDFD;
   border-radius: 12px;
-  max-width: 540px;
-  width: 100%;
+  max-width: 1100px;
+  width: 92vw;
+  height: 90vh;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
   padding: 20px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+}
+
+/* ADDED — body grows to fill the space between header and footer;
+   min-height: 0 is required for flex children to shrink below content size. */
+.FdaVerifDocModalBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .FdaVerifDocModalHeader {
@@ -3709,6 +3727,27 @@ h6 {
 .FdaVerifDocPreviewIcon {
   color: #1B4332;
   margin-bottom: 10px;
+}
+
+/* CHANGED — switched from fixed vh heights to flex: 1 so image/PDF fills whatever
+   height FdaVerifDocModalBody gives them; no fixed vh, no scroll generated. */
+.FdaVerifDocImagePreview {
+  max-width: 100%;
+  max-height: 100%;
+  flex: 1;
+  min-height: 0;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.FdaVerifDocPdfPreview {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  border: none;
+  border-radius: 8px;
 }
 
 .FdaVerifPreviewTitle {

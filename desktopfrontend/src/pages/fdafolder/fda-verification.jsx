@@ -361,6 +361,51 @@ function FDAVerification() {
   const [fdaDocPreviewModal, setFdaDocPreviewModal] = useState(null); // document object
   const [fdaRecordModalData, setFdaRecordModalData] = useState(null); // Completed or Rejected record for View modal
 
+  // ADDED — preview fetch state for the intake document preview modal.
+  // fdaDocPreviewUrl holds a blob object URL (revoked on close); Loading and Error
+  // track the in-flight fetch so the modal can show a spinner or fallback.
+  const [fdaDocPreviewUrl, setFdaDocPreviewUrl] = useState(null);
+  const [fdaDocPreviewLoading, setFdaDocPreviewLoading] = useState(false);
+  const [fdaDocPreviewError, setFdaDocPreviewError] = useState(false);
+
+  // ADDED — fetches a preview blob from GET /shared-files/{file_id}/preview whenever
+  // fdaDocPreviewModal changes. Supports images and PDFs; other types are left to
+  // the download-only fallback. Object URL is revoked on cleanup to avoid memory leaks.
+  useEffect(() => {
+    if (!fdaDocPreviewModal) {
+      setFdaDocPreviewUrl(null);
+      setFdaDocPreviewError(false);
+      return;
+    }
+
+    const isImage = fdaDocPreviewModal.mime_type?.startsWith('image/');
+    const isPdf = fdaDocPreviewModal.mime_type === 'application/pdf';
+    if (!isImage && !isPdf) return; // unsupported types keep the placeholder
+
+    let objectUrl = null;
+    setFdaDocPreviewLoading(true);
+    setFdaDocPreviewError(false);
+
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/shared-files/${fdaDocPreviewModal.file_id}/preview`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setFdaDocPreviewUrl(objectUrl);
+      })
+      .catch(() => setFdaDocPreviewError(true))
+      .finally(() => setFdaDocPreviewLoading(false));
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [fdaDocPreviewModal]);
+
   // Receives navigation state from the FDA Saved Drafts page — either
   // { openVerificationRequestId, draftId, mode } from "View"/"Continue
   // Editing", or nothing at all if the officer navigated here some other
@@ -1869,12 +1914,11 @@ function FDAVerification() {
                         onChange={(e) => { setCompletedCategory(e.target.value); setCompletedPage(1); }}
                         id="fda-completed-category-filter"
                       >
-                        <option value="">All Categories</option>
+                        <option value="All">All Categories</option>
                         <option value="Cosmetics">Cosmetics</option>
                         <option value="Food">Food</option>
                         <option value="Medical Devices">Medical Devices</option>
                         <option value="Drugs">Drugs</option>
-                        <option value="Supplements">Supplements</option>
                       </select>
                     </div>
 
@@ -2112,12 +2156,11 @@ function FDAVerification() {
                         onChange={(e) => { setRejectedCategory(e.target.value); setRejectedPage(1); }}
                         id="fda-rejected-category-filter"
                       >
-                        <option value="">All Categories</option>
+                        <option value="All">All Categories</option>
                         <option value="Cosmetics">Cosmetics</option>
                         <option value="Food">Food</option>
                         <option value="Medical Devices">Medical Devices</option>
                         <option value="Drugs">Drugs</option>
-                        <option value="Supplements">Supplements</option>
                       </select>
                     </div>
 
@@ -2515,11 +2558,35 @@ function FDAVerification() {
                 {/* Modal Footer */}
                 <div className="FdaRecordModalFooter">
                   {/* BACKEND: GET /api/fda/verification-requests/:id/export-pdf */}
+                  {/* CHANGED — wired to real export endpoints (CHANGE 3).
+                      Routes to completed or rejected export based on _type tag.
+                      Also fixed fdaRecordModalData.caseId → case_reference. */}
                   <button
                     className="FdaVerifBtnOutline"
                     onClick={() => {
-                      triggerAlert(`Exported record for ${fdaRecordModalData.caseId} as PDF.`, 'info');
-                      setFdaRecordModalData(null);
+                      const token = localStorage.getItem('access_token');
+                      const endpoint = fdaRecordModalData._type === 'completed'
+                        ? `${API_BASE}/verification-requests/completed/${fdaRecordModalData.request_id}/export-pdf`
+                        : `${API_BASE}/verification-requests/rejected/${fdaRecordModalData.request_id}/export-pdf`;
+
+                      fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } })
+                        .then((res) => {
+                          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                          return res.blob();
+                        })
+                        .then((blob) => {
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${fdaRecordModalData.case_reference}-${fdaRecordModalData._type}-record.pdf`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          triggerAlert(`Exported record for ${fdaRecordModalData.case_reference} as PDF.`, 'info');
+                          setFdaRecordModalData(null);
+                        })
+                        .catch(() => {
+                          triggerAlert('Could not export the PDF. Please try again.', 'danger');
+                        });
                     }}
                   >
                     <Download size={14} />
@@ -2569,15 +2636,42 @@ function FDAVerification() {
                   </button>
                 </div>
 
+                {/* CHANGED — replaced static placeholder with live image/PDF preview.
+                    Fetched from GET /shared-files/{file_id}/preview (CHANGE 2). */}
                 <div className="FdaVerifDocModalBody">
-                  <div className="FdaVerifDocPlaceholderPreview">
-                    <FileText size={48} className="FdaVerifDocPreviewIcon" />
-                    <p className="FdaVerifPreviewTitle">Document Preview</p>
-                    <p className="FdaVerifPreviewText">
-                      {/* FIX 1 — was .name (dummy); now file_name. */}
-                      Showing auto-attached evidence document: <strong>{fdaDocPreviewModal.file_name}</strong>.
-                    </p>
-                  </div>
+                  {(fdaDocPreviewModal.mime_type?.startsWith('image/') || fdaDocPreviewModal.mime_type === 'application/pdf') ? (
+                    fdaDocPreviewLoading ? (
+                      <div className="FdaVerifDocPlaceholderPreview">
+                        <p className="FdaVerifPreviewText">Loading preview&hellip;</p>
+                      </div>
+                    ) : fdaDocPreviewError ? (
+                      <div className="FdaVerifDocPlaceholderPreview">
+                        <FileText size={48} className="FdaVerifDocPreviewIcon" />
+                        <p className="FdaVerifPreviewTitle">Preview unavailable</p>
+                        <p className="FdaVerifPreviewText">Try downloading the file instead.</p>
+                      </div>
+                    ) : fdaDocPreviewModal.mime_type.startsWith('image/') ? (
+                      <img
+                        src={fdaDocPreviewUrl}
+                        alt={fdaDocPreviewModal.file_name}
+                        className="FdaVerifDocImagePreview"
+                      />
+                    ) : (
+                      <iframe
+                        src={fdaDocPreviewUrl}
+                        title={fdaDocPreviewModal.file_name}
+                        className="FdaVerifDocPdfPreview"
+                      />
+                    )
+                  ) : (
+                    <div className="FdaVerifDocPlaceholderPreview">
+                      <FileText size={48} className="FdaVerifDocPreviewIcon" />
+                      <p className="FdaVerifPreviewTitle">Preview not supported</p>
+                      <p className="FdaVerifPreviewText">
+                        <strong>{fdaDocPreviewModal.file_name}</strong> can't be previewed inline &mdash; use download instead.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="FdaVerifModalFooter">

@@ -2,6 +2,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+import io
+from fastapi.responses import StreamingResponse
 
 from app.database.sessions import get_db
 from app.core.dependencies import get_current_user
@@ -39,6 +41,12 @@ from app.desktop.services.verification.fda_verification_lists import (
     get_fda_verification_rejected_detail,
     get_fda_verification_queue_counts,
 )
+
+from app.desktop.services.verification.fda_verification_export import (
+    build_completed_pdf,
+    build_rejected_pdf,
+)
+
 
 # Same two-router-in-one-file pattern as walkin_complaints.py
 draft_submit_router = APIRouter(prefix="/drafts/verification", tags=["Verification Requests"])
@@ -197,6 +205,29 @@ def get_completed_verification_request_detail(
     #
     #
     #
+    # GET /verification-requests/completed/{request_id}/export-pdf
+@list_router.get("/completed/{request_id}/export-pdf")
+def export_completed_verification_pdf(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    detail = get_fda_verification_completed_detail(db, request_id, current_user)
+    pdf_bytes = build_completed_pdf(detail)
+    filename = f"{detail.case_reference}-verification-record.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+    #
+    #
+    #
+    #
+    #
+    #
     # GET /verification-requests/rejected
 @list_router.get("/rejected", response_model=FdaVerificationRejectedListResponse)
 def list_rejected_verification_requests(
@@ -228,6 +259,29 @@ def get_rejected_verification_request_detail(
     current_user=Depends(get_current_user),
 ):
     return get_fda_verification_rejected_detail(db, request_id, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/rejected/{request_id}/export-pdf
+@list_router.get("/rejected/{request_id}/export-pdf")
+def export_rejected_verification_pdf(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    detail = get_fda_verification_rejected_detail(db, request_id, current_user)
+    pdf_bytes = build_rejected_pdf(detail)
+    filename = f"{detail.case_reference}-rejected-record.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
     #

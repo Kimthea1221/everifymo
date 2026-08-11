@@ -34,6 +34,7 @@ class ComplaintAwaitingRequestResponse(BaseModel):
     case_reference: str
     product_title: str
     manufacturer: str | None
+    product_category: str | None
     source: str
     created_at: datetime
 
