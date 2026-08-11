@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
+import re
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -82,4 +83,16 @@ def get_current_user(token: Annotated[str | None, Depends(oauth2_bearer)]):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized access"
         )
+
+
+def validate_password_strength(v: str) -> str:
+    if len(v) < 8:
+        raise ValueError("Password must be at least 8 characters.")
+    if not re.search(r"[A-Z]", v):
+        raise ValueError("Password must include at least one uppercase letter.")
+    if not re.search(r"[0-9]", v):
+        raise ValueError("Password must include at least one number.")
+    if not re.search(r"[^A-Za-z0-9]", v):
+        raise ValueError("Password must include at least one special character.")
+    return v
     
