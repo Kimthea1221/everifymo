@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, CheckConstraint, text
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, CheckConstraint, text, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -30,8 +30,13 @@ class VerificationRequest(Base):
     complaint_statement = Column(Text, nullable=False)
 
     verification_request_status = Column(
-        String(50), nullable=False, server_default=text("'queued'")
+    String(50), nullable=False
+    # No server_default anymore — the app must always pass 'pending'
+    # explicitly on insert, since a row is only ever created at the
+    # moment it's actually sent to FDA. There's no "default" state
+    # that makes sense to fall back to.
     )
+
     priority = Column(String(20), nullable=False, server_default=text("'standard'"))
 
     field_operation_notes = Column(Text, nullable=True)
@@ -64,13 +69,18 @@ class VerificationRequest(Base):
     )
     response_notes = Column(Text, nullable=True)
 
+    # --- NEW: FDA registration findings, only populated on confirmed_registered ---
+    cpr_number = Column(String(100), nullable=True)
+    cpr_expiry = Column(Date, nullable=True)
+    unregistered_reason = Column(Text, nullable=True)
+
     requested_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     responded_at = Column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint(
             "verification_request_status IN "
-            "('queued', 'pending', 'confirmed_registered', "
+            "('pending', 'confirmed_registered', "
             "'confirmed_unregistered', 'rejected', 'recalled')",
             name="ck_verification_requests_status",
         ),
@@ -86,5 +96,17 @@ class VerificationRequest(Base):
             "(recalled_at IS NULL AND recalled_by IS NULL) OR "
             "(recalled_at IS NOT NULL AND recalled_by IS NOT NULL)",
             name="ck_verification_requests_recalled_pair",
+        ),
+        # NEW: registered requires both CPR number and remarks (response_notes)
+        CheckConstraint(
+            "(verification_request_status != 'confirmed_registered') OR "
+            "(cpr_number IS NOT NULL AND response_notes IS NOT NULL)",
+            name="ck_verification_requests_registered_fields_required",
+        ),
+         # NEW — unregistered requires its own reason field, not response_notes
+        CheckConstraint(
+            "(verification_request_status != 'confirmed_unregistered') OR "
+            "(unregistered_reason IS NOT NULL)",
+            name="ck_verification_requests_unregistered_reason_required",
         ),
     )

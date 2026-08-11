@@ -11,23 +11,31 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "identity"
   ],
+
+  "oauth2": {
+    "client_id": "1094392645082-414ug60ltdckhnnvdbkovnauo3f3srnf.apps.googleusercontent.com",
+    "scopes": [
+      "openid",
+      "email",
+      "profile"
+    ]
+  },
 
   "host_permissions": [
     "https://shopee.ph/*",
     "https://www.lazada.com.ph/*",
     "https://www.tiktok.com/*",
-    "https://www.facebook.com/marketplace/*"
+    "https://www.facebook.com/marketplace/*",
+    "http://localhost:8000/*"
   ],
 
   "content_scripts": [
     {
       "matches": [
-        "https://shopee.ph/*",
-        "https://www.lazada.com.ph/*",
-        "https://www.tiktok.com/*",
-        "https://www.facebook.com/marketplace/*"
+        "<all_urls>"  
       ],
       "js": ["scripts/content.js"],
       "run_at": "document_idle"

@@ -1,5 +1,5 @@
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from app.core.config import settings
-
 
 def send_transactional_email(to: str, subject: str, html_body: str) -> None:
     """
