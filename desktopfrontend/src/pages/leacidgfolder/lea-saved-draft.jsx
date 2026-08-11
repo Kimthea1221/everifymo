@@ -1,3 +1,4 @@
+// merged lea-save-drafts.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './lea-css.css';
@@ -207,54 +208,67 @@ function LeaSavedDraft() {
                         </div>
                     </div>
 
+                    {/* MERGED-CHANGED — re-added the DraftsFilterLeft / DraftsFilterRight wrapper divs from the
+                        design source. lea-css.css's @media (max-width: 768px) rules target these exact classes
+                        to stack search left / filters right responsively — without the wrappers here, that
+                        responsive behavior has nothing to apply to. Target's real filter values/handlers are
+                        unchanged, just re-grouped into the two wrappers, and the Clear Filters button (target's
+                        own addition) now sits inside DraftsFilterRight alongside the dropdowns. */}
                     <div className="DraftsFilterSection">
                         <div className="DraftsFilterControls">
-                            <input
-                                type="text"
-                                className="DraftsSearchInput"
-                                placeholder="Search by Product Name or Product Category..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                            <div className="DraftsFilterLeft">
+                                <input
+                                    type="text"
+                                    className="DraftsSearchInput"
+                                    placeholder="Search by Product Name or Product Category..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={activeTab}
-                                onChange={(e) => handleTabClick(e.target.value)}
-                            >
-                                <option value="All">All Types</option>
-                                <option value="walkin">Walk-in Intake</option>
-                                <option value="verification">Verification Request</option>
-                            </select>
+                            <div className="DraftsFilterRight">
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={activeTab}
+                                    onChange={(e) => handleTabClick(e.target.value)}
+                                >
+                                    <option value="All">All Types</option>
+                                    <option value="walkin">Walk-in Intake</option>
+                                    <option value="verification">Verification Request</option>
+                                </select>
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <option value="All">All Statuses</option>
-                                <option value="draft">Draft</option>
-                                <option value="incomplete">Incomplete</option>
-                            </select>
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="All">All Statuses</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="incomplete">Incomplete</option>
+                                </select>
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={sortOption}
-                                onChange={(e) => setSortOption(e.target.value)}
-                            >
-                                <option value="recently_edited">Recently Edited</option>
-                                <option value="oldest_first">Oldest First</option>
-                                <option value="product_name_az">Product Name (A–Z)</option>
-                            </select>
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={sortOption}
+                                    onChange={(e) => setSortOption(e.target.value)}
+                                >
+                                    <option value="recently_edited">Recently Edited</option>
+                                    <option value="oldest_first">Oldest First</option>
+                                    <option value="product_name_az">Product Name (A–Z)</option>
+                                </select>
 
-                            <button className="BtnClearFilters" onClick={handleClearFilters}>
-                                Clear Filters
-                            </button>
+                                <button className="BtnClearFilters" onClick={handleClearFilters}>
+                                    Clear Filters
+                                </button>
+                            </div>
                         </div>
+                    </div>
 
-                        <div className="DraftsTotalCount">
-                            Total Drafts: {filteredDrafts.length}
-                        </div>
+                    {/* MERGED-CHANGED — Total Drafts moved outside the DraftsFilterSection box, to match the
+                        Dismissed Cases "Total Cases" placement for uniformity across both pages: its own line,
+                        outside the filter panel's bordered/padded container, not nested inside it. */}
+                    <div className="DraftsTotalCount" style={{ margin: '4px 2px 16px 20px' }}>
+                        Total Drafts: {filteredDrafts.length}
                     </div>
 
                     {loading ? (

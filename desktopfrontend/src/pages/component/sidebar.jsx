@@ -172,13 +172,13 @@ const sidebarStyles = `
 /* LEA Sidebar Styles                         */
 /* ========================================== */
 .LeaSidebarMain {
-  width: 280px;
+  width: 250px;
   height: 100vh;
   background: #1a1a2e;
 }
 
 .LeaSidebarTop {
-  width: 280px;
+  width: 250px;
   height: fit-content;
   display: flex;
   justify-content: center;
