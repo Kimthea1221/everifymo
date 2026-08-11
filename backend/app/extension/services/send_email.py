@@ -3,6 +3,7 @@ from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from app.core.config import settings
 
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "otp_email.html"
+LOGO_PATH = Path(__file__).parent.parent.parent.parent.parent / "extension" / "assets" / "images" / "extension_icon.png"  # adjust if needed, file path for logo icon
 
 extension_mail_conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_EXTENSION_USERNAME, 
@@ -33,7 +34,18 @@ async def send_otp_email(to_email: str, otp_code: str, expire_minutes: int = Non
         subject="Your verification code",
         recipients=[to_email],
         body=html_body,
-        subtype=MessageType.html
+        subtype=MessageType.html,
+        attachments=[
+            {
+                "file": str(LOGO_PATH),
+                "headers": {
+                    "Content-ID": "<extension_logo>",
+                    "Content-Disposition": "inline; filename=\"extension_icon.png\"",
+                },
+                "mime_type": "image",
+                "mime_subtype": "png",
+            }
+        ],
     )
     mail = FastMail(extension_mail_conf)
 

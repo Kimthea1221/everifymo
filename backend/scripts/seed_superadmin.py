@@ -38,6 +38,7 @@ def main():
             email=email,
             password_hash=hash_password(password),
             role="superadmin",
+            status="active",  
             is_active=True,
             is_locked=False,
             force_password_change=False,

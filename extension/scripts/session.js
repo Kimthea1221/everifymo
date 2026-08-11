@@ -95,7 +95,12 @@ function googleLogin(token, callback) {
         { access_token: data.access_token, token_type: data.token_type, username: data.username, email: data.email },
         () => callback(true)
       );
-  }).catch(e => callback(false, e.message));
+  }).catch(e => callback(false, e.message, e.email));
+}
+
+function changePendingUsername(email, newUsername, callback) {
+  apiChangeUsername(email, newUsername).then(() => callback(true))
+      .catch(e => callback(false, e.message));
 }
 
 function verifyOtp(email, inputCode, callback) {
