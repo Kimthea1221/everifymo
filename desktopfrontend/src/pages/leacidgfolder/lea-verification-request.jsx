@@ -234,6 +234,9 @@ function LeaVerificationRequest() {
   const [docPreviewLoading, setDocPreviewLoading] = useState(false);
   const [docPreviewError, setDocPreviewError] = useState(false);
 
+  // ADDED — real counts for the 3 top stat cards, replaces the dummy-array .length
+  const [leaCounts, setLeaCounts] = useState({ fda_response_count: 0, initiated_count: 0, dismissed_count: 0 });
+
   // ─── Helpers ─────────────────────────────────────────────────────────────
   const showSuccess = (msg) => {
     setSuccessMessage(msg);
@@ -315,6 +318,25 @@ function LeaVerificationRequest() {
       setAwaitingLoading(false);
     }
   };
+
+  // ADDED — fetches the real counts for the FDA Response / Initiated / Dismissed stat cards
+  const fetchLeaCounts = async () => {
+    const token = localStorage.getItem('access_token');
+    try {
+      const res = await fetch(`${API_BASE}/verification-requests/lea-counts`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setLeaCounts(data);
+    } catch (err) {
+      console.error('Failed to fetch LEA verification counts:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaCounts();
+  }, []);
 
   // ADDED — loads existing draft when arriving via Edit Draft navigation
   // ─── On mount: handle "Edit Draft" navigation state ──────────────────────
@@ -687,7 +709,8 @@ function LeaVerificationRequest() {
                   <Inbox size={14} />
                 </div>
               </div>
-              <p className="LeaVerifStatValue">{responseCases.length}</p>
+              {/* CHANGED — was {responseCases.length}, now uses real backend count */}
+              <p className="LeaVerifStatValue">{leaCounts.fda_response_count}</p>
               <p className="LeaVerifStatLabel">FDA Response</p>
             </div>
 
@@ -697,7 +720,8 @@ function LeaVerificationRequest() {
                   <Siren size={14} />
                 </div>
               </div>
-              <p className="LeaVerifStatValue">{initiatedCases.length}</p>
+              {/* CHANGED — was {initiatedCases.length}, now uses real backend count */}
+              <p className="LeaVerifStatValue">{leaCounts.initiated_count}</p>
               <p className="LeaVerifStatLabel">Initiated Cases</p>
             </div>
 
@@ -707,7 +731,8 @@ function LeaVerificationRequest() {
                   <Archive size={14} />
                 </div>
               </div>
-              <p className="LeaVerifStatValue">{dismissedCases.length}</p>
+              {/* CHANGED — was {dismissedCases.length}, now uses real backend count */}
+              <p className="LeaVerifStatValue">{leaCounts.dismissed_count}</p>
               <p className="LeaVerifStatLabel">Dismissed Cases</p>
             </div>
           </div>
