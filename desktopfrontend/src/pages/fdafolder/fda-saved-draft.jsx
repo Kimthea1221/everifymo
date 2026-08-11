@@ -403,12 +403,11 @@ function FDASavedDraft() {
                   }}
                   id="fda-drafts-category-filter"
                 >
-                  <option value="">All Categories</option>
-                  <option value="Food">Food</option>
+                  <option value="All">All Categories</option>
                   <option value="Cosmetics">Cosmetics</option>
-                  <option value="Drugs">Drugs</option>
+                  <option value="Food">Food</option>
                   <option value="Medical Devices">Medical Devices</option>
-                  <option value="Supplements">Supplements</option>
+                  <option value="Drugs">Drugs</option>
                 </select>
               </div>
 

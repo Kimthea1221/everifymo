@@ -69,22 +69,12 @@ function DeepLinkListener() {
 }
 
 
-<<<<<<< HEAD
 export default function App() {
   return (
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<LeaDashboard />} />
-=======
-  export default function App(){
-    return(
-      <BrowserRouter>
-        <DeepLinkListener />
-        <Routes>
-            {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-            <Route path='/' element={<SuperadminEmailAddAdmin />} />
->>>>>>> 7c6de13c47387ed2c2423742740d48ba51fed491
+        <Route path='/' element={<Login />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
