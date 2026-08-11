@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from app.database.sessions import get_db
 from app.core.dependencies import get_current_user
 from app.desktop.schemas.verification.verification import (
+    LeaVerificationQueueCounts,
     VerificationRequestCreate,
     VerificationRequestResponse,
 )
@@ -32,6 +33,7 @@ from app.desktop.schemas.verification.verification import (
     FdaVerificationRejectedListResponse,
     FdaVerificationRejectedDetailResponse,
     FdaVerificationQueueCounts,
+    LeaVerificationQueueCounts,
 )
 
 from app.desktop.services.verification.fda_verification_lists import (
@@ -45,6 +47,10 @@ from app.desktop.services.verification.fda_verification_lists import (
 from app.desktop.services.verification.fda_verification_export import (
     build_completed_pdf,
     build_rejected_pdf,
+)
+
+from app.desktop.services.verification.lea_verification_lists import (
+    get_lea_verification_queue_counts,
 )
 
 
@@ -297,6 +303,21 @@ def get_verification_queue_counts(
     current_user=Depends(get_current_user),
 ):
     return get_fda_verification_queue_counts(db, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/lea-counts
+@list_router.get("/lea-counts", response_model=LeaVerificationQueueCounts)
+def get_lea_verification_queue_counts_endpoint(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_lea_verification_queue_counts(db, current_user)
 
 
     #
