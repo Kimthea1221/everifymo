@@ -80,36 +80,7 @@ export default function App() {
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<LeaDashboard />} />
-  export default function App(){
-    return(
-      <BrowserRouter>
-        <DeepLinkListener />
-        <Routes>
-            {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-            <Route path='/' element={<Login />} />
-
-          {/* AUTH ROUTES */}
-          <Route path='/login' element={<Login />} />
-          <Route path='/superadmin-login' element={<SuperAdminLogin />} />
-          <Route path='/forgot-password' element={<ForgotPassword />} />
-          <Route path='/change-password' element={<ChangePassword />} />
-          <Route path='/create-new-password' element={<CreateNewPassword />} />
-          <Route path='/user-registration' element={<UserRegistration />} />
-
-          {/* LEA-CIDG ROUTES */}
-          <Route path='/leacidgfolder/lea-dashboard' element={<LeaDashboard />} />
-          <Route path='/leacidgfolder/lea-walkin-complaints' element={<LeaWalkinComplaints />} />
-          <Route path='/leacidgfolder/lea-verification-request' element={<LeaVerificationRequest />} />
-          <Route path='/leacidgfolder/lea-new-intake' element={<LeaNewIntake />} />
-          <Route path='/leacidgfolder/lea-saved-draft' element={<LeaSavedDraft />} />
-
-          {/* SUPERADMIN ROUTES */}
-          <Route path='/superadminfolder/superadmin-user-management' element={<SuperAdminUserManagement />} />
-          <Route path='/superadminfolder/superadmin-admin-management' element={<SuperAdminAdminManagement />} />
-          <Route path='/superadminfolder/superadmin-audit-log' element={<SuperAdminAuditLog />} />
-
-          {/* EMAIL PREVIEW ROUTES:
+        <Route path='/' element={<Login />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
