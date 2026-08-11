@@ -75,6 +75,12 @@
 }
 
 
+export default function App() {
+  return (
+    <BrowserRouter>
+      <DeepLinkListener />
+      <Routes>
+        <Route path='/' element={<LeaDashboard />} />
   export default function App(){
     return(
       <BrowserRouter>
@@ -104,28 +110,51 @@
           <Route path='/superadminfolder/superadmin-audit-log' element={<SuperAdminAuditLog />} />
 
           {/* EMAIL PREVIEW ROUTES:
+
+        {/* AUTH ROUTES */}
+        <Route path='/login' element={<Login />} />
+        <Route path='/superadmin-login' element={<SuperAdminLogin />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/change-password' element={<ChangePassword />} />
+        <Route path='/create-new-password' element={<CreateNewPassword />} />
+        <Route path='/user-registration' element={<UserRegistration />} />
+
+        {/* LEA-CIDG ROUTES */}
+        <Route path='/leacidgfolder/lea-dashboard' element={<LeaDashboard />} />
+        <Route path='/leacidgfolder/lea-walkin-complaints' element={<LeaWalkinComplaints />} />
+        <Route path='/leacidgfolder/lea-verification-request' element={<LeaVerificationRequest />} />
+        <Route path='/leacidgfolder/lea-new-intake' element={<LeaNewIntake />} />
+        <Route path='/leacidgfolder/lea-saved-draft' element={<LeaSavedDraft />} />
+
+        {/* SUPERADMIN ROUTES */}
+        <Route path='/superadminfolder/superadmin-user-management' element={<SuperAdminUserManagement />} />
+        <Route path='/superadminfolder/superadmin-admin-management' element={<SuperAdminAdminManagement />} />
+        <Route path='/superadminfolder/superadmin-audit-log' element={<SuperAdminAuditLog />} />
+
+        {/* EMAIL PREVIEW ROUTES:
+
           *makikita niyo din to sa localhost:15173/preview-email/
           */}
-          <Route path='/preview-email/interagency-otp' element={<OtpEmailTemplate />} />
-          <Route path='/preview-email/registration' element={<UserEmailRegistration />} />
-          <Route path='/preview-email/activation' element={<UserEmailActivation />} />
-          <Route path='/preview-email/superadmin-otp' element={<SuperadminOtpEmail />} />
-          <Route path='/preview-email/superadmin-add-admin' element={<SuperadminEmailAddAdmin />} />
+        <Route path='/preview-email/interagency-otp' element={<OtpEmailTemplate />} />
+        <Route path='/preview-email/registration' element={<UserEmailRegistration />} />
+        <Route path='/preview-email/activation' element={<UserEmailActivation />} />
+        <Route path='/preview-email/superadmin-otp' element={<SuperadminOtpEmail />} />
+        <Route path='/preview-email/superadmin-add-admin' element={<SuperadminEmailAddAdmin />} />
 
-          {/* DEEP LINK ROUTES */}
-          <Route path='/invitation-status' element={<DeepLinkStatus />} />
-          <Route path='/superadmin-invite-status' element={<SuperadminInviteStatus />} />
+        {/* DEEP LINK ROUTES */}
+        <Route path='/invitation-status' element={<DeepLinkStatus />} />
+        <Route path='/superadmin-invite-status' element={<SuperadminInviteStatus />} />
 
-          <Route path='/profile-setting' element={<ProfileSetting />} />
+        <Route path='/profile-setting' element={<ProfileSetting />} />
 
-          {/* FDA ROUTES */}
-          <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
-          <Route path='/fdafolder/fda-view-reports' element={<FDAViewReports />} />
-          <Route path='/fdafolder/fda-verification' element={<FDAVerification />} />
-          <Route path='/fdafolder/fda-status' element={<FDAStatus />} />
-          <Route path='/fdafolder/fda-product-db' element={<FDAProductDB />} />
-          <Route path='/fdafolder/fda-saved-draft' element={<FDASavedDraft />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
+        {/* FDA ROUTES */}
+        <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
+        <Route path='/fdafolder/fda-view-reports' element={<FDAViewReports />} />
+        <Route path='/fdafolder/fda-verification' element={<FDAVerification />} />
+        <Route path='/fdafolder/fda-status' element={<FDAStatus />} />
+        <Route path='/fdafolder/fda-product-db' element={<FDAProductDB />} />
+        <Route path='/fdafolder/fda-saved-draft' element={<FDASavedDraft />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

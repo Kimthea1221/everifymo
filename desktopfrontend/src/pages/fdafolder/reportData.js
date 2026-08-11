@@ -5,7 +5,8 @@ const allConsumerReports = [
     product: "HerbalSlim Capsules",
     manufacturer: "NatureFit Labs",
     category: "Supplement",
-    source: "Browser Extension",
+    source: "Walk-in",
+    leaConfirmation: true,
     status: "Pending Verification",
     region: "Region IV-A",
     dateReceived: "2026-05-17 10:42",
@@ -85,15 +86,15 @@ const allConsumerReports = [
   },
   {
     id: 8,
-    caseId: "ICM-2026-00922",
-    product: "SaniGel Sanitizer",
-    manufacturer: "CleanSanitize Co.",
+    caseId: "ICM-2025-00191",
+    product: "FreshBreath Mouthwash",
+    manufacturer: "OralCare PH",
     category: "Cosmetics",
     source: "Walk-in",
     status: "Pending Verification",
     region: "CAR",
-    dateReceived: "2026-06-20 10:15",
-    description: "Intake form submitted by local pharmacy owner. Suspicious labeling and active ingredients concentration needs lab verification."
+    dateReceived: "2026-05-18 08:02",
+    description: "Intake form submitted by consumer. Suspicious labeling and active ingredients concentration needs lab verification."
   },
   {
     id: 9,
@@ -149,7 +150,7 @@ function getReportStats(reports) {
   const categoryMix = [
     { label: 'Cosmetics', value: categoryCounts['Cosmetics'] || 0, color: '#2563eb' },
     { label: 'Supplements', value: categoryCounts['Supplement'] || 0, color: '#10b981' },
-    { label: 'Pharma', value: categoryCounts['Pharmaceutical'] || 0, color: '#06b6d4' },
+    { label: 'Drugs', value: categoryCounts['Pharmaceutical'] || 0, color: '#06b6d4' },
     { label: 'Med Device', value: categoryCounts['Medical Device'] || 0, color: '#f59e0b' }
   ];
 
