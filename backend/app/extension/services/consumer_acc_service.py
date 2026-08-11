@@ -1,25 +1,132 @@
-# from sqlalchemy.orm import Session
-# from sqlalchemy.exc import IntegrityError
-# from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from fastapi import HTTPException, status
+from datetime import datetime, timezone
 
-# from app.core.security import bcrypt_context
-# from app.models.consumer_accounts import ConsumerAccount
-# from app.schemas.consumer_acc import CreateConsumerAcc
+from app.core.security import pwd_context
+from app.models.consumer_accounts import ConsumerAccount
+from app.extension.schemas.consumer_acc import CreateConsumerAcc, DeleteAccountRequest
+from app.models import consumer_accounts
 
-# def create_user(db: Session, create_user_request: CreateConsumerAcc) -> ConsumerAccount:
-#     consumer_acc = ConsumerAccount(
-#         email = create_user_request.email,
-#         username = create_user_request.username,
-#         password_hash = bcrypt_context.hash(create_user_request.password),
-#     )
-#     db.add(consumer_acc)
-#     try:
-#         db.commit()
-#     except IntegrityError:
-#         db.rollback()
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="Username already taken",
-#         )
-#     db.refresh(consumer_acc)
-#     return consumer_acc
+from app.extension.services import consumer_otp_service
+from app.extension.services import google_auth_service
+
+def create_user(db: Session, create_user_request: CreateConsumerAcc) -> ConsumerAccount:
+    consumer_acc = ConsumerAccount(
+        email = create_user_request.email,
+        username = create_user_request.username,
+        password_hash = pwd_context.hash(create_user_request.password),
+        consumer_type = "verified account",
+        auth_provider = "local",
+    )
+    db.add(consumer_acc)
+
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        error = str(e.orig)
+        if "email" in error: 
+            detail = "Email already registered"
+        elif "username" in error: 
+            detail = "Username already taken"
+        else: 
+            detail = "Account could not be created"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detail,
+        )
+    db.refresh(consumer_acc)
+
+    code = consumer_otp_service.create_otp(db, consumer_acc.consumer_id, purpose="signup_verification")
+    return consumer_acc, code
+
+def verify_signup_otp(db: Session, email: str, otp_code: str) -> ConsumerAccount:
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    consumer_otp_service.verify_otp(db, consumer.consumer_id, otp_code, purpose="signup_verification")
+
+    consumer.is_verified = True
+    db.commit()
+    db.refresh(consumer)
+    return consumer
+
+def resend_signup_otp(db: Session, email: str) -> str:
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if consumer.is_verified:
+        raise HTTPException(status_code=400, detail="Account already verified")
+
+    return consumer_otp_service.create_otp(db, consumer.consumer_id, purpose="signup_verification")
+
+def update_username(db: Session, user_id: int, updatedUsername: str):
+    user = db.query(consumer_accounts.ConsumerAccount
+        ).filter(consumer_accounts.ConsumerAccount.consumer_id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    usernameExist = db.query(consumer_accounts.ConsumerAccount).filter(
+        consumer_accounts.ConsumerAccount.username == updatedUsername,
+        consumer_accounts.ConsumerAccount.consumer_id != user_id).first()
+
+    if usernameExist:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exist.")
+
+    user.username = updatedUsername
+    db.commit()
+    db.refresh(user)
+    return user
+
+def delete_account(db: Session, user_id, payload: DeleteAccountRequest, permanent: bool = False):
+    consumer = db.query(ConsumerAccount).filter(
+        ConsumerAccount.consumer_id == user_id
+    ).first()
+
+    if not consumer: 
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    if consumer.auth_provider == "local":
+        if not pwd_context.verify(payload.password, consumer.password_hash):
+            raise HTTPException(status_code=403, detail="Incorrect password")
+
+    db.delete(consumer)
+    db.commit()
+
+def login_with_google(db: Session, google_token: str) -> ConsumerAccount:
+    infoID = google_auth_service.verify_google_token(google_token)
+    email = infoID["email"]
+
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        raise HTTPException(status_code=404, detail="No account found with this email. Please sign up first.")
+
+    if not consumer.is_verified:
+        raise HTTPException(status_code=400, detail="Please verify your account before logging in.")
+
+    return consumer
+
+def request_password_reset(db: Session, email: str):
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        return None
+
+    otp_code = consumer_otp_service.create_otp(db, consumer.consumer_id, purpose="password_reset")
+    return consumer.email, otp_code
+
+def reset_password(db: Session, email: str, reset_token: str, new_password: str):
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
+
+    if not consumer:
+        raise HTTPException(status_code=400, detail="Invalid request")
+
+    consumer_otp_service.verify_otp(db, consumer.consumer_id, reset_token, purpose="password_reset_token")
+    consumer.password_hash = pwd_context.hash(new_password)
+    db.commit()

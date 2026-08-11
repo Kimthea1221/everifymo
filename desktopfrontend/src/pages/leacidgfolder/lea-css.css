@@ -1,5 +1,4 @@
-
-
+/* new lea-css.css */
 .LeaDashboardMain {
   display: flex;
   height: 100vh;
@@ -7,13 +6,10 @@
 
 .LeaMainfeed {
   flex: 1;
-  padding: 32px;
+  padding: 24px 28px;
   background: #f5f5f5;
   overflow-y: auto;
 }
-
-
-
 
 .LeaContentContainer {
   display: flex;
@@ -24,17 +20,7 @@
 }
 
 /*WALK IN COMPLAINT PAGE*/
-.LeaDashboardMain {
-  display: flex;
-  height: 100vh;
-}
 
-.LeaMainfeed {
-  flex: 1;
-  padding: 32px;
-  background: #EDEDED;
-  overflow-y: auto;
-}
 
 .LeaHeader {
   display: flex;
@@ -98,6 +84,112 @@
   color: #030303;
 }
 
+/* LEA VERIFICATION REQUEST - STATS METRIC SUMMARY BAR (NON-CLICKABLE) */
+.LeaVerifStatsBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 0 30px 20px 30px;
+  max-width: 1150px;
+}
+
+.LeaVerifStatCard {
+  --lea-verif-accent: #055db5;
+  position: relative;
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  border-radius: 14px;
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  cursor: default;
+  user-select: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  margin-bottom: 20px;
+}
+
+.LeaVerifStatCard:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.LeaVerifStatCard::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  border-radius: 0 0 14px 14px;
+  background: var(--lea-verif-accent);
+}
+
+.LeaVerifStatCardTop {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.LeaVerifStatBadge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.LeaVerifStatBadgeResponse {
+  background: rgba(19, 33, 60, 0.1);
+  color: #13213C;
+}
+
+.LeaVerifStatBadgeInitiated {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.LeaVerifStatBadgeDismissed {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
+}
+
+.LeaVerifStatValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0 0 3px 0;
+  line-height: 1;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.LeaVerifStatLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(31, 41, 55, 0.6);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 900px) {
+  .LeaVerifStatsBar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .LeaVerifStatsBar {
+    grid-template-columns: 1fr;
+  }
+
+  .LeaVerifStatValue {
+    font-size: 22px;
+  }
+}
 
 .TableCard {
   background: #FDFDFD;
@@ -201,7 +293,255 @@
   border: 1px solid #f5a0a0;
 }
 
+/* ======================================================
+   WALK-IN COMPLAINTS — SCOPED STYLES (WC prefix)
+   These class names are unique to lea-walkin-complaints
+   and will not conflict with other pages.
+   ====================================================== */
 
+/* Status badge base — walk-in complaints only */
+.WcStatusBadge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* queued → Ready to Send */
+.WcStatus-queued {
+  background: #e8f4ff;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+/* pending → Pending FDA Verification */
+.WcStatus-pending {
+  background: #fff4e5;
+  color: #b76e00;
+  border: 1px solid #f5c97a;
+}
+
+/* confirmed_registered → Confirmed Registered */
+.WcStatus-confirmed-registered {
+  background: #e6f9f0;
+  color: #1a7a4a;
+  border: 1px solid #7dd9a8;
+}
+
+/* confirmed_unregistered → Confirmed Unregistered */
+.WcStatus-confirmed-unregistered {
+  background: #fff0f0;
+  color: #cc0000;
+  border: 1px solid #f5a0a0;
+}
+
+/* rejected → Verification Rejected */
+.WcStatus-rejected {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #c084fc;
+}
+
+/* recalled → Request Recalled */
+.WcStatus-recalled {
+  background: #f5f5f5;
+  color: #555;
+  border: 1px solid #ccc;
+}
+
+/* Product name cell — walk-in complaints table */
+.WcProductName {
+  font-weight: 600;
+  color: #030303;
+  font-size: 13px;
+  margin: 0;
+}
+
+/* Manufacturer name cell — walk-in complaints table */
+.WcManufacturerName {
+  font-size: 13px;
+  color: #444;
+  margin: 0;
+}
+
+/* Category cell — walk-in complaints table */
+.WcCategoryCell {
+  font-size: 13px;
+  color: #030303;
+}
+
+/* Walk-in complaints table — manufacturer column width hint */
+.WcComplaintsTable th:nth-child(4),
+.WcComplaintsTable td:nth-child(4) {
+  min-width: 120px;
+}
+
+/* ---- ACTION COLUMN — walk-in complaints (WC scoped) ---- */
+
+/* Flex container that keeps icons side by side */
+.WcActionCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Wrapper that enables the tooltip positioning */
+.WcActionTooltipWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Shared base for both icon buttons */
+.WcBtnIconView,
+.WcBtnIconEdit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1.5px solid #d8d8d8;
+  background: transparent;
+  cursor: pointer;
+  color: #444;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  padding: 0;
+}
+
+.WcBtnIconView:hover {
+  background: #e8f4ff;
+  border-color: #90caf9;
+  color: #1565c0;
+}
+
+.WcBtnIconEdit:hover {
+  background: rgba(252, 163, 17, 0.12);
+  border-color: #FCA311;
+  color: #b76000;
+}
+
+/* Three-dot (MoreVertical) trigger button */
+.WcBtnIconMore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1.5px solid #d8d8d8;
+  background: transparent;
+  cursor: pointer;
+  color: #444;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  padding: 0;
+}
+
+.WcBtnIconMore:hover {
+  background: #f0f0f0;
+  border-color: #b0b0b0;
+  color: #13213C;
+}
+
+/* Wrapper that creates the relative stacking context for the dropdown */
+.WcMenuWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Dropdown panel */
+.WcDropdownMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 200;
+  background: #FDFDFD;
+  border: 1px solid #d8d8d8;
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 172px;
+  padding: 4px 0;
+  animation: WcDropdownFadeIn 0.12s ease;
+}
+
+@keyframes WcDropdownFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Individual dropdown rows */
+.WcDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #030303;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.WcDropdownItem:hover {
+  background: #f5f5f5;
+}
+
+.WcDropdownItem--edit:hover {
+  background: rgba(252, 163, 17, 0.10);
+  color: #b76000;
+}
+
+.WcDropdownItem--delete {
+  color: #cc0000;
+}
+
+.WcDropdownItem--delete:hover {
+  background: rgba(204, 0, 0, 0.07);
+  color: #aa0000;
+}
+
+/* Tooltip bubble */
+.WcTooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #13213C;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+/* Arrow under the tooltip */
+.WcTooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #13213C;
+}
+
+.WcActionTooltipWrap:hover .WcTooltip {
+  opacity: 1;
+}
+
+/* ---- (legacy) BtnView kept for other pages if referenced ---- */
 .BtnView {
   background: transparent;
   border: 1.5px solid #d8d8d8;
@@ -387,12 +727,7 @@
 
 /* LEA NEW INTAKE PAGE*/
 
-.LeaMainfeed {
-    flex: 1;
-    background: #EDEDED;
-    padding: 24px;
-    overflow-y: auto;
-}
+/* LeaMainfeed base styles are defined at the top of this file */
 
 
 .LeaHeader {
@@ -672,6 +1007,25 @@
     background: #d8d8d8;
 }
 
+/* Delete button — Ready to Send tab (LEA Verification Request page only) */
+.LeaVerDeleteBtn {
+    border: none;
+    border-radius: 8px;
+    height: 44px;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    background: #cc0000;
+    color: #FDFDFD;
+    margin-right: auto; /* pushes Save Draft and Send to the right */
+}
+
+.LeaVerDeleteBtn:hover {
+    background: #aa0000;
+}
+
 
 .LogButton, .SendReqBtn {
     background: #13213C;
@@ -767,7 +1121,7 @@
 
 /*LEFT PANEL*/
 
-.ReadytoSendQueue, .AwaitingFDAQueue, .FDAResponseQueue{
+.ReadytoSendQueue, .AwaitingLEAQueue, .LEAResponseQueue{
     background: #FDFDFD;
     border: 1px solid #d8d8d8;
     border-radius: 12px;
@@ -775,7 +1129,7 @@
     min-height: 650px;
 }
 
-.ReadytoSendHeader, .AwaitingHeader, .FDAResponseHeader {
+.ReadytoSendHeader, .AwaitingHeader, .LEAResponseHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -783,13 +1137,13 @@
     border-bottom: 1px solid #EDEDED;
 }
 
-.ReadytoSendHeader p, .AwaitingHeader p, .FDAResponseHeader p {
+.ReadytoSendHeader p, .AwaitingHeader p, .LEAResponseHeader p {
     font-size: 13px;
     font-weight: 600;
     margin: 0;
 }
 
-.ReadytoSendHeader span, .AwaitingHeader span, .FDAResponseHeader span {
+.ReadytoSendHeader span, .AwaitingHeader span, .LEAResponseHeader span {
     background: rgba(252, 163, 17, 0.12);
     border: 1px solid rgba(252, 163, 17, 0.4);
     border-radius: 6px;
@@ -800,13 +1154,92 @@
 }
 
 .QueueCard {
-    width: 100%;
-    padding: 16px;
-    border-bottom: 1px solid #EDEDED;
-    cursor: pointer;
-    transition: .2s;
-    display: inline-flex;
-    gap: 30px;
+  width: 100%;
+  padding: 16px;
+  border-bottom: 1px solid #EDEDED;
+  cursor: pointer;
+  transition: .2s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.QueueCardTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.QueueCardFooterRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #EDEDED;
+}
+
+.QueueCategoryTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: rgba(27, 67, 50, 0.12);
+  color: #1A1A2E;
+  flex-shrink: 0;
+}
+
+.QueueDateTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #1F2937;
+  opacity: 0.6;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.QueueTagInline {
+  background: rgba(252, 163, 17, 0.12);
+  color: #13213C;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.QueueStatusBadge {
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-block;
+}
+.QueueStatusBadge.unregistered {
+  background-color: rgba(224, 21, 21, 0.1);
+  border: 1px solid #ff0000a8;
+  color: #030303;
+}
+.QueueStatusBadge.registered {
+  background-color: rgba(5, 150, 105, 0.1);
+  border: 1px solid #059669;
+  color: #030303;
+}
+.QueueStatusBadge.rejected {
+  background-color: rgba(249, 115, 22, 0.1);
+  border: 1px solid #f97316;
+  color: #ea580c;
+}
+
+.OperationInProgressBadge {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .QueueCard:hover {
@@ -1276,6 +1709,47 @@
     .VerificationActions button {
         width: 100%;
     }
+
+    .DraftsFilterControls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .DraftsFilterLeft,
+    .DraftsFilterRight {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+
+    .DraftsFilterRight .DraftsFilterDropdown,
+    .DraftsFilterLeft .DraftsSearchInput {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .LeaVerifFilterControlsLeft,
+    .LeaVerifFilterControlsRight {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+
+    .LeaVerifFilterControlsLeft .LeaSearchInput,
+    .LeaVerifFilterControlsRight .LeaVerifDateInput,
+    .LeaVerifFilterControlsRight .LeaFilterGroup select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .LeaVerifFilterPanelWithDateIcon {
+        padding-right: 20px;
+    }
+
+    .LeaVerifDateRangeIcon {
+        position: static;
+        margin-left: auto;
+    }
 }
 
 /* SAVED DRAFTS PAGE CUSTOM STYLES */
@@ -1296,12 +1770,36 @@
     justify-self: center;
 }
 
+.DraftsFilterSection {
+    max-width: none !important;
+    justify-self: unset !important;
+}
+
 .DraftsFilterControls {
     display: flex;
-    align-items: center;
+    justify-content: space-between;
+    align-items: flex-end;
     gap: 12px;
     flex-wrap: wrap;
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+.DraftsFilterLeft {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
     flex: 1;
+    min-width: 280px;
+}
+
+.DraftsFilterRight {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-left: auto;
 }
 
 .DraftsSearchInput {
@@ -1360,6 +1858,286 @@
     font-size: 14px;
     font-weight: 600;
     color: #13213C;
+}
+
+/* FDA verification queue filter/search pattern reused for LEA verification parity */
+.LeaVerifTabPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.LeaVerifFilterPanel {
+    max-width: none !important;
+    justify-self: unset !important;
+    width: 100%;
+}
+
+.LeaVerifFilterControlsLeft {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+    min-width: 260px;
+}
+
+.LeaVerifFilterControlsRight {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.LeaVerifFilterPanelWithDateIcon {
+    position: relative;
+    padding-right: 52px;
+}
+
+.LeaVerifDateRangeIcon {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.LeaVerifQueueFilterHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #FDFDFD;
+  border-bottom: 1.5px solid #EDEDED;
+  padding: 14px;
+}
+
+.LeaSearchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.LeaSearchIcon {
+  position: absolute;
+  left: 12px;
+  color: #1F2937;
+  opacity: 0.6;
+}
+
+.LeaSearchInput {
+  height: 40px;
+  min-width: 260px;
+  border: 1px solid #EDEDED;
+  border-radius: 8px;
+  padding: 0 16px 0 38px;
+  font-size: 14px;
+  background: #FDFDFD;
+  color: #030303;
+  outline: none;
+  transition: 0.2s;
+}
+
+.LeaCategoriesSearchInput {
+  width: 100%;        
+  box-sizing: border-box; 
+  height: 40px;
+  border: 1px solid #EDEDED;
+  border-radius: 8px;
+  padding: 0 16px 0 38px;
+  font-size: 14px;
+  background: #FDFDFD;
+  color: #030303;
+  outline: none;
+  transition: 0.2s;
+}
+
+.LeaSearchInput:focus, .LeaCategoriesSearchInput:focus {
+  border-color: #1A1A2E;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
+}
+
+.LeaFilterPanel {
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.LeaFilterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.LeaFilterGroup label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(31, 41, 55, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.LeaFilterGroup select {
+  height: 40px;
+  border: 1px solid #EDEDED;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  background: #FDFDFD;
+  outline: none;
+  cursor: pointer;
+  min-width: 160px;
+  transition: 0.2s;
+}
+
+.LeaFilterGroup select:focus {
+  border-color: #1A1A2E;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
+}
+
+.LeaVerifDateInput {
+  height: 40px;
+  border: 1px solid #EDEDED;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  background: #FDFDFD;
+  outline: none;
+  cursor: pointer;
+  transition: 0.2s;
+  min-width: 140px;
+  color: #1F2937;
+  font-family: var(--font-body);
+}
+
+.LeaVerifDateInput:focus {
+  border-color: #1A1A2E;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
+}
+
+.LeaVerifFilterIcon {
+  color: #1F2937;
+  opacity: 0.6;
+}
+
+.LeaVerifEmptyList {
+  background: #FDFDFD;
+  border: 1.5px dashed #EDEDED;
+  border-radius: 10px;
+  padding: 24px 14px;
+  text-align: center;
+  color: #1F2937;
+}
+
+.LeaVerifEmptyText {
+  font-size: 12px;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.leaVerifSectionCard {
+  background: #FDFDFD;
+  border: 1.5px solid #EDEDED;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.LeaVerifSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #EDEDED;
+}
+
+.LeaVerifSectionHeader h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0;
+}
+
+.LeaVerifBlueIcon { color: #1A1A2E; }
+
+.LeaVerifDocsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.LeaVerifDocCard {
+  background: #EDEDED;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.LeaVerifDocIcon {
+  color: #1A1A2E;
+  flex-shrink: 0;
+}
+
+.LeaVerifDocInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.LeaVerifDocName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #030303;
+  margin: 0 0 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.LeaVerifDocMeta {
+  font-size: 10.5px;
+  color: #1F2937;
+  opacity: 0.6;
+}
+
+.LeaVerifDocActions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.LeaVerifDocActionBtn {
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  color: #13213C;
+  padding: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.LeaVerifDocActionBtn:hover {
+  background: #1A1A2E;
+  color: #FDFDFD;
+}
+
+.LeaVerifNoDocsText {
+  font-size: 12.5px;
+  color: #1F2937;
+  opacity: 0.6;
+  margin: 0;
 }
 
 /* Status badge variants */
@@ -1779,4 +2557,697 @@
 .LeaWalkinComplaintsMain .BtnEdit svg {
     display: inline-block;
     flex-shrink: 0;
+}
+
+.LeaDashboardMain {
+  display: flex;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.LeaContentContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* LeaMainfeed background is set to #f5f5f5 at the top of this file */
+
+/* 4 Top Stats Cards Grid */
+.LeaStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.LeaStatCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 18px 20px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 118px;
+}
+
+.statTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.statLabel {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.statIconSquare {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statIconSquare.navy {
+  background: #EBF3F8;
+  color: #07476F;
+}
+
+.statIconSquare.teal {
+  background: #EBF7F6;
+  color: #0D7685;
+}
+
+.statIconSquare.green {
+  background: #ECFDF5;
+  color: #16A34A;
+}
+
+.statValue {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 4px 0;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.statBottomRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.statTrendGreen {
+  color: #16A34A;
+  font-weight: 600;
+}
+
+.statNoteText {
+  color: #64748B;
+  font-weight: 400;
+}
+
+/* Charts Grid Row */
+.LeaChartsLeftCol,  
+.LeaChartsRightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.LeaChartsRow {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 16px;
+}
+
+.LeaChartCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 22px 24px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.PipelineCard {
+  margin-top: 0;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.chartHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.chartSubtitle {
+  margin: 3px 0 0;
+  color: #64748B;
+  font-size: 0.82rem;
+}
+
+/* Legend Inline Top Right of Line Chart */
+.chartLegendInline {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.legendItemInline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.legendDotNavy {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #07476F;
+  display: inline-block;
+}
+
+.legendDotTeal {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #14B8A6;
+  display: inline-block;
+}
+
+.legendDotGreen {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #059669;
+  display: inline-block;
+}
+
+/* Interactive SVG Line Chart */
+.svgChartWrapper {
+  width: 100%;
+  height: 260px;
+  position: relative;
+  margin-top: 10px;
+}
+
+.interactiveLineSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.yAxisText {
+  font-size: 13px;
+  fill: #64748B;
+  text-anchor: end;
+  font-weight: 500;
+}
+
+.xAxisText {
+  font-size: 13px;
+  fill: #64748B;
+  text-anchor: middle;
+  font-weight: 500;
+}
+
+.lineTooltipClean {
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.ttDay {
+  font-weight: 700;
+  color: #94A3B8;
+  margin-bottom: 2px;
+}
+
+.ttRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ttRow.navy strong { color: #38BDF8; }
+.ttRow.teal strong { color: #2DD4BF; }
+
+.interactiveBarSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.barTooltipClean {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+}
+
+.ttWeek {
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.barTooltipClean .ttRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.barTooltipClean .ttRow.navy {
+  color: #0f172a;
+}
+
+.barTooltipClean .ttRow.green {
+  color: #059669;
+}
+
+/* Awaiting FDA verification card */
+.AwaitingFDACard {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1;
+  gap: 12px;
+}
+
+.awaitingBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFFBEB;
+  border: 1px solid #FCD34D;
+  color: #D97706;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.awaitingList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.awaitingListItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+.awaitingListItem:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.awaitingItemLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.awaitingItemTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.awaitingItemSubtitle {
+  font-size: 0.85rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.awaitingItemRight {
+  display: flex;
+  align-items: center;
+}
+
+.walkinTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  color: #0284c7;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Recent walk-in complaints table */
+.RecentComplaintsCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 22px 24px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  margin-top: 20px;
+}
+
+.recentComplaintsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.recentComplaintsHeader h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.openFullTableBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.openFullTableBtn:hover {
+  color: #07476F;
+}
+
+.openFullTableBtn:hover .arrowIcon {
+  transform: translateX(3px);
+}
+
+.arrowIcon {
+  transition: transform 0.2s ease;
+  font-size: 1rem;
+}
+
+.RecentComplaintsTableWrapper {
+  overflow-x: auto;
+}
+
+.RecentComplaintsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.RecentComplaintsTable th {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #64748B;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1.5px solid #F1F5F9;
+  text-transform: uppercase;
+  background: transparent;
+}
+
+.RecentComplaintsTable td {
+  padding: 18px;
+  font-size: 0.95rem;
+  color: #0F172A;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.RecentComplaintsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.RecentComplaintsTable tr:hover {
+  background: #F8FAFC;
+}
+
+.CaseIdCol {
+  font-weight: 600;
+  color: #475569;
+}
+
+.ProductCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ProductNameText {
+  font-weight: 700;
+  color: #0F172A;
+  font-size: 0.95rem;
+}
+
+.ManufacturerText {
+  font-size: 0.85rem;
+  color: #64748B;
+}
+
+.ComplainantCol {
+  color: #334155;
+  font-weight: 500;
+}
+
+.LoggedCol {
+  color: #64748B;
+  font-size: 0.8rem;
+}
+
+.DashboardStatusBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.badge-pending-verification {
+  background: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FCD34D;
+}
+
+.badge-verified {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.badge-forwarded-to-lea {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+/* Dashboard responsiveness */
+@media (max-width: 1024px) {
+  .LeaStatsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .LeaChartsRow {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .AwaitingFDACard {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .LeaStatsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .LeaMainfeed {
+    padding: 16px 20px;
+  }
+
+  .svgChartWrapper {
+    height: 160px;
+  }
+}
+
+/* Donut Chart Card & SVG */
+.DonutCard {
+  justify-content: space-between;
+}
+
+.donutChartContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 15px 0 20px;
+}
+
+.donutSvgClean {
+  width: 180px;
+  height: 180px;
+  overflow: visible;
+}
+
+/* 2-Column Donut Legend Grid */
+.donutLegendGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+  margin-top: auto;
+}
+
+.legendCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legendRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+
+.legendRow.active {
+  background: #F1F5F9;
+}
+
+.legendLabelGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dotIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.regionName {
+  color: #334155;
+  font-weight: 500;
+}
+
+.regionPercent {
+  color: #0F172A;
+  font-weight: 700;
+}
+
+/* ============================================================================ */
+/* ROW ACTION DROPDOWN (View + More Actions) — used in lea-save-drafts.jsx      */
+/* Ported 1:1 from fda-css.css's .FdaDropdown* classes, Fda->Lea prefix swap    */
+/* ============================================================================ */
+
+.LeaDropdownWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.LeaViewBtn,
+.LeaDropdownTrigger {
+  background: #FDFDFD;
+  border: 1.5px solid #EDEDED;
+  color: #1F2937;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.LeaViewBtn:hover {
+  background: #13213C;
+  color: #FDFDFD;
+  border-color: #13213C;
+}
+
+.LeaDropdownTrigger:hover {
+  background: #EDEDED;
+  color: #030303;
+}
+
+.LeaDropdownWrapper.active-open {
+  z-index: 50;
+}
+
+.LeaDropdownMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.LeaDropdownMenu.open-upward {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.LeaDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1F2937;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.LeaDropdownItem:hover {
+  background: #EDEDED;
+  color: #13213C;
 }
