@@ -60,7 +60,12 @@
     </div>
     <p class="profile-welcome">Are you sure?</p>
     <p class="profile-detail profile-detail-center">Deleting an account means you will lose access to all of your records. This cannot be undone.</p>
-    <input type="password" id="delete-password-input" class="profile-input" placeholder="Confirm your password" />
+    <div class="input-wrap">
+      <input type="password" id="delete-password-input" class="profile-input" placeholder="Confirm your password" />
+      <button type="button" class="icon-placeholder-eye toggle-password-visibility" data-target="delete-password-input" aria-label="Show password">
+        <img src="../assets/images/eye_open_icon.png" class="eye-icon" alt="" />
+      </button>
+    </div>
     <div class="field-error" id="delete-password-error" aria-live="polite"></div>
     <div class="profile-confirm-row">
       <button class="profile-action-link" id="btn-confirm-delete">

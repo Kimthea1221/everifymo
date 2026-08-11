@@ -8,8 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const otpVerifyButton = document.getElementById('otp-verify-button');
   const resendOtpLink = document.getElementById('resend-otp-link');
   const backFromOtpLink = document.getElementById('back-from-otp-link');
+  const backFromForgotOtpLink = document.getElementById('back-from-forgot-otp-link');
   let otpPendingEmail = '';
+  let otpCountdownInterval = null;
+  let forgotOtpCountdownInterval = null;
   let otpPendingMode = 'signin';
+  const otpCountdownEl = document.getElementById('otp-countdown');
+  const forgotOtpCountdownEl = document.getElementById('forgot-otp-countdown');
+  let lastEnteredOtp = '';
   const forgotPasswordFields = document.getElementById('forgot-password-fields');
   const forgotConfirmButton = document.getElementById('forgot-confirm-button');
   const newPasswordInput = document.getElementById('new-password');
@@ -46,6 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const resendForgotOtpLink = document.getElementById('resend-forgot-otp-link');
   const newPasswordField = document.getElementById('new-password-field');
   const confirmNewPasswordField = document.getElementById('confirm-new-password-field');
+  const otpUsernameFixField = document.getElementById('otp-username-fix-field');
+  const otpNewUsernameInput = document.getElementById('otp-new-username');
+  const otpUsernameFixError = document.getElementById('otp-username-fix-error');
+  const otpUsernameFixButton = document.getElementById('otp-username-fix-button');
+
 
   // --- Password show/hide eye icon toggle ---
   document.querySelectorAll('.toggle-password-visibility').forEach(btn => {
@@ -124,6 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
     currentMode = mode;
     const settings = authModes[mode] || authModes.signin;
 
+    const noticeBanner = document.querySelector('.notice-banner');
+    if (noticeBanner) noticeBanner.classList.remove('notice-banner-success');
+
     tabs.forEach((tab) => {
       const isActive = tab.dataset.authMode === mode;
       tab.classList.toggle('active', isActive);
@@ -184,6 +198,35 @@ document.addEventListener('DOMContentLoaded', () => {
       inp.classList.remove('is-invalid');
     });
     if (otpDigitInputs[0]) otpDigitInputs[0].focus();
+  }
+  
+  // otp countdown ui
+  function runCountdown(displayEl, seconds) {
+    let remaining = seconds;
+
+    const render = () => {
+      if (!displayEl) return;
+      const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+      const s = (remaining % 60).toString().padStart(2, '0');
+      displayEl.textContent = `Code expires in ${m}:${s}`;
+      displayEl.classList.toggle('otp-countdown-warning', remaining <= 30);
+    };
+
+    render();
+    const id = setInterval(() => {
+      remaining -= 1;
+      if (remaining < 0) {
+        clearInterval(id);
+        if (displayEl) {
+          displayEl.textContent = 'Code expired. Please resend.';
+          displayEl.classList.add('otp-countdown-warning');
+        }
+        return;
+      }
+      render();
+    }, 1000);
+
+    return id;
   }
 
   // --- Makes the 6 OTP boxes behave like one connected input ---
@@ -265,10 +308,17 @@ document.addEventListener('DOMContentLoaded', () => {
     forgotStage = 'request';
     forgotPendingEmail = '';
 
+    const noticeBanner = document.querySelector('.notice-banner');
+    if (noticeBanner) noticeBanner.classList.remove('notice-banner-success');
+
     if (tabsContainer) tabsContainer.classList.add('hidden');
+    if (backFromForgotOtpLink) backFromForgotOtpLink.hidden = true;
     if (usernameField) usernameField.hidden = true;
     if (signinPasswordField) signinPasswordField.hidden = true;
     if (signupPasswordFields) signupPasswordFields.hidden = true;
+
+    if (forgotOtpCountdownInterval) { clearInterval(forgotOtpCountdownInterval); forgotOtpCountdownInterval = null; }
+    if (forgotOtpCountdownEl) forgotOtpCountdownEl.textContent = '';
 
     if (forgotPasswordFields) forgotPasswordFields.hidden = false;
     if (forgotOtpField) forgotOtpField.hidden = true;
@@ -287,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (orDivider) orDivider.classList.add('hidden');
     if (guestBtn) guestBtn.classList.add('hidden');
 
-    if (noticeTitle) noticeTitle.textContent = 'Reset your password';
+    if (noticeTitle) noticeTitle.textContent = 'Reset your password.';
     if (noticeText) noticeText.textContent = 'Enter your account email and choose a new password.';
 
     if (googleLoginBtn) googleLoginBtn.style.display = "none";
@@ -311,21 +361,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newPasswordField) newPasswordField.hidden = true;
     if (confirmNewPasswordField) confirmNewPasswordField.hidden = true;
     if (resendForgotOtpLink) resendForgotOtpLink.hidden = false;
+    if (backFromForgotOtpLink) backFromForgotOtpLink.hidden = false;
+    if (backToSigninLink) backToSigninLink.classList.add('hidden');
 
-    if (forgotConfirmButton) forgotConfirmButton.textContent = 'Confirm Password';
+    // if (forgotConfirmButton) forgotConfirmButton.textContent = 'Confirm Password';
+    if (forgotConfirmButton) forgotConfirmButton.textContent = 'Verify Code';
 
-    if (noticeTitle) noticeTitle.textContent = 'Check your email';
-    if (noticeText) noticeText.textContent = `Enter the 6-digit code sent to ${email} and choose a new password.`;
+    if (noticeTitle) noticeTitle.textContent = 'Check your email.';
+    // if (noticeText) noticeText.textContent = `Enter the 6-digit code sent to ${email} and choose a new password.`;
+    if (noticeText) noticeText.innerHTML = `Enter the 6-digit code sent to <u>${email}</u> and choose a new password. Don't see it? Check your spam or junk folder.`;
 
     if (forgotOtpError) forgotOtpError.textContent = '';
     clearForgotOtpInput();
+    if (forgotOtpCountdownInterval) clearInterval(forgotOtpCountdownInterval);
+    forgotOtpCountdownInterval = runCountdown(forgotOtpCountdownEl, 5 * 60);
     if (forgotOtpInputs[0]) forgotOtpInputs[0].focus();
   }
 
   function enterForgotPasswordStage(){
     forgotStage = 'reset';
 
+    if (backFromForgotOtpLink) backFromForgotOtpLink.hidden = true;
+    if (backToSigninLink) backToSigninLink.classList.remove('hidden');
+
     if (emailField) emailField.hidden = true;
+
+    if (forgotOtpCountdownInterval) { clearInterval(forgotOtpCountdownInterval); forgotOtpCountdownInterval = null; }
 
     if (forgotOtpField) forgotOtpField.hidden = true;
     if (resendForgotOtpLink) resendForgotOtpLink.hidden = true;
@@ -391,15 +452,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (noticeTitle) noticeTitle.textContent = 'Verify your email';
-    if (noticeText) noticeText.textContent = `Enter the 6-digit code sent to ${email}.`;
+    // if (noticeText) noticeText.textContent = `Enter the 6-digit code sent to ${email}.`;
+    if (noticeText) noticeText.innerHTML = `Enter the 6-digit code sent to <u>${email}</u>. Don't see it? Check your spam or junk folder.`;
 
     if (otpError) otpError.textContent = '';
+    if (googleError) googleError.innerHTML = '';
     clearOtpInputs();
+
+    if (otpCountdownInterval) clearInterval(otpCountdownInterval);
+      otpCountdownInterval = runCountdown(otpCountdownEl, 5 * 60);
 
   }
 
   // Reverses enterOtpMode — goes back to showing the normal signin/signup form
   function exitOtpMode() {
+    if (otpCountdownInterval) { clearInterval(otpCountdownInterval); otpCountdownInterval = null; }
+    if (otpCountdownEl) otpCountdownEl.textContent = '';
     if (otpField) otpField.hidden = true;
     if (otpVerifyButton) otpVerifyButton.classList.add('hidden');
     if (resendOtpLink) resendOtpLink.hidden = true;
@@ -537,6 +605,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (backFromForgotOtpLink) {
+    backFromForgotOtpLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      newPasswordInput.value = '';
+      confirmNewPasswordInput.value = '';
+      exitForgotMode();
+    });
+  }
+
+  
+  function reVerifyEmail (email, error){
+    const verifyLink = document.getElementById('verify-now-link');
+    if (verifyLink) {
+      verifyLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        resendOtpSession(email, (success, error) => {
+          if (success) {
+            enterOtpMode(email, 'signup');
+            if (googleLoginBtn) googleLoginBtn.style.display = 'none'; 
+          } else {
+            setError(googleError, error || 'Could not resend code. Please try again.');
+          }
+        });
+      });
+    }  
+  }
+
   // Submits a password reset request (email + new password)
   if (forgotConfirmButton) {
     forgotConfirmButton.addEventListener('click', () => {
@@ -551,7 +646,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         requestPasswordReset(emailValue, (success, error) => {
-          enterForgotOtpStage(emailValue);
+          if (success) {
+            enterForgotOtpStage(emailValue);
+            return;
+          }
+
+          if (error && error.toLowerCase().includes('verify')) {
+            if (emailError){
+              emailError.innerHTML ='Please verify your email before signing in. ' + 
+                '<a href="#" id="verify-now-link" style="color:#1F2937; font-weight:700; text-decoration:underline; cursor:pointer;">Verify now</a>';
+            }
+
+            if (emailInput) emailInput.classList.add('is-invalid');
+            reVerifyEmail(emailValue, emailError);            
+            return;
+          }
+
+          setError(emailError, error || 'Something went wrong. Please try again.');
+          if (emailInput) emailInput.classList.add('is-invalid');
         });
 
       } else if (forgotStage === 'otp') {
@@ -619,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
           confirmNewPasswordInput.value = '';
           sessionStorage.setItem('authFlashMessage', 'Password reset successfully. Please sign in to continue.');
           sessionStorage.setItem('authFlashType', 'success');
+          sessionStorage.setItem('authFlashTitle', 'Password reset');
           window.location.href = 'auth.html';
         });
       }
@@ -634,6 +747,8 @@ document.addEventListener('DOMContentLoaded', () => {
             forgotOtpError.textContent = 'A new code has been sent.';
             forgotOtpError.classList.add('is-success');
           }
+          if (forgotOtpCountdownInterval) clearInterval(forgotOtpCountdownInterval);
+            forgotOtpCountdownInterval = runCountdown(forgotOtpCountdownEl, 5 * 60);
         })
     })
   }
@@ -663,6 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
     otpVerifyButton.addEventListener('click', () => {
       if (otpError) otpError.textContent = '';
       const enteredCode = getOtpValue();
+      lastEnteredOtp = enteredCode;
 
       if (enteredCode.length < 6) {
         setError(otpError, 'Please enter all 6 digits.');
@@ -674,6 +790,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // that's the account this code is being checked against
       verifyOtp(otpPendingEmail, enteredCode, (success, error) => {
         if (!success) {
+          if (error && error.toLowerCase().includes('username')) {
+            setError(otpError, error);
+            if (otpUsernameFixField) otpUsernameFixField.hidden = false;
+            return;
+          }
+
           setError(otpError, error || 'Incorrect code. Please try again.');
           otpDigitInputs.forEach(inp => inp.classList.add('is-invalid'));
           return;
@@ -687,13 +809,85 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (otpUsernameFixButton) {
+    otpUsernameFixButton.addEventListener('click', () => {
+      if (otpUsernameFixButton) otpUsernameFixError.textContent = '';
+      const newUsername = otpNewUsernameInput.value.trim();
+
+      if (!newUsername) {
+        setError(otpUsernameFixError, 'Enter a new username.');
+        return;
+      }
+
+      otpUsernameFixButton.disabled = true;
+      otpUsernameFixButton.textContent = 'Updating...';
+
+      changePendingUsername(otpPendingEmail, newUsername, (success, error) => {
+        if (!success) {
+          otpUsernameFixButton.disabled = false;
+          otpUsernameFixButton.textContent = 'Update Username';
+          setError(otpUsernameFixError, error || 'Could not update username.');
+          return;
+        } 
+
+        otpUsernameFixField.hidden = true;
+        if (otpError) {
+          otpError.textContent = 'Username updated - verifying...';
+          otpError.classList.add('is-success');
+        }
+
+        setTimeout(() => {
+          if (otpError) otpError.textContent = 'Verifying your account...';
+
+          verifyOtp(otpPendingEmail, lastEnteredOtp, (success, error) => {
+            if (!success) {
+              if (otpError) otpError.classList.remove('is-success');
+              setError(otpError, error || 'Your code expired - please request a new one.');
+              clearOtpInputs();
+              otpUsernameFixButton.disabled = false;
+              otpUsernameFixButton.textContent = 'Update Username';
+              return;
+            }
+            if (otpError) otpError.textContent = 'Verified! Redirecting...';
+
+            sessionStorage.setItem('authFlashMessage', 'Account verified! Please login to continue.');
+            sessionStorage.setItem('authFlashType', 'success');
+            sessionStorage.setItem('authFlashTitle', 'Email verified');
+
+            setTimeout(() => {
+              window.location.href = 'auth.html';
+            }, 700);
+          });
+        }, 600);
+        
+      });
+    });
+  }
+
   // "Resend code" — asks the backend to generate and email a fresh code
+  // if (resendOtpLink) {
+  //   resendOtpLink.addEventListener('click', (e) => {
+  //     e.preventDefault();
+  //     resendOtpSession(otpPendingEmail, (success, errorMsg) => {
+  //       if (otpError) otpError.textContent = success ? '' : (errorMsg || 'Could not resend code.');
+  //       clearOtpInputs();
+  //     });
+  //   });
+  // }
+
   if (resendOtpLink) {
     resendOtpLink.addEventListener('click', (e) => {
       e.preventDefault();
       resendOtpSession(otpPendingEmail, (success, errorMsg) => {
-        if (otpError) otpError.textContent = success ? '' : (errorMsg || 'Could not resend code.');
         clearOtpInputs();
+        if (success) {
+          setError(otpError, 'A new code has been sent.');
+          otpError.classList.add('is-success');
+          if (otpCountdownInterval) clearInterval(otpCountdownInterval);
+          otpCountdownInterval = runCountdown(otpCountdownEl, 5 * 60);
+        } else {
+          setError(otpError, errorMsg || 'Could not resend code.');
+        }
       });
     });
   }
@@ -747,7 +941,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'report-complaint.html';
             // enterOtpMode(emailValue, 'signin');
           } else if (error && error.toLowerCase().includes('verify')) {
-            setError(passwordError, 'Please verify your email before signing in.');
+            if (passwordError){
+              passwordError.innerHTML ='Please verify your email before signing in. ' + 
+                '<a href="#" id="verify-now-link" style="color:#1F2937; font-weight:700; text-decoration:underline; cursor:pointer;">Verify now</a>';
+            }
+            
+            passwordInput.classList.add('is-invalid');
+            reVerifyEmail(emailValue, passwordError);
             // enterOtpMode(emailValue, 'signup'); //redirect to OTP screen
           } else {
             setError(passwordError, 'Incorrect email or password.');
@@ -766,9 +966,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      googleLogin(token, (success, error) => {
+      googleLogin(token, (success, error, email) => {
         if (success) {
           window.location.href = 'report-complaint.html';
+        } else if (error && error.toLowerCase().includes('verify')) {
+            if (googleError){
+              googleError.innerHTML ='Please verify your email before signing in. ' + 
+                '<a href="#" id="verify-now-link" style="color:#1F2937; font-weight:700; text-decoration:underline; cursor:pointer;">Verify now</a>';
+            }
+            
+            reVerifyEmail(email, googleError);
         } else {
           setError(googleError, error || "Google sign-in failed. Please try again.")
         }

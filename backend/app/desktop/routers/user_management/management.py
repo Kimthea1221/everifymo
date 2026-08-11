@@ -20,6 +20,8 @@ router = APIRouter(prefix="/admin/users", tags=["user-management"])
 
 
 def compute_display_status(user: User, latest_token) -> str:
+    if user.is_locked:
+        return "Locked Account"
     if user.status == UserStatus.INVITED:
         if latest_token:
             if latest_token.resend_requested_at is not None:
@@ -80,6 +82,7 @@ def list_users(
                 contact_number=user.contact_number,
                 display_status=compute_display_status(user, latest_token),
                 is_active=user.is_active,
+                is_locked=user.is_locked,
             )
         )
 
@@ -243,3 +246,19 @@ def delete_user(
     db.delete(user)
     db.commit()
     return {"message": "User deleted successfully"}
+
+
+@router.post("/{user_id}/unlock")
+def unlock_user(
+    user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin),
+):
+    db.execute(text("SET app.bypass_rls = 'true'"))
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_locked = False
+    user.failed_login_attempts = 0
+    db.commit()
+    return {"message": "User account unlocked successfully"}
