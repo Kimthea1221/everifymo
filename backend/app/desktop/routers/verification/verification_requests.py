@@ -1,7 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+import io
+from fastapi.responses import StreamingResponse
 
 from app.database.sessions import get_db
 from app.core.dependencies import get_current_user
@@ -19,6 +21,32 @@ from app.models.walkin_complainants import WalkinComplainant
 from app.desktop.schemas.verification.verification import VerificationRequestAwaitingFDAResponse
 
 from app.models.verification_requests import VerificationRequest
+
+from app.desktop.schemas.verification.verification import FdaVerificationRequestDetailResponse
+from app.desktop.services.verification.fda_verification_response import get_fda_verification_request_detail
+
+from datetime import date
+from app.desktop.schemas.verification.verification import (
+    FdaVerificationCompletedListResponse,
+    FdaVerificationCompletedDetailResponse,
+    FdaVerificationRejectedListResponse,
+    FdaVerificationRejectedDetailResponse,
+    FdaVerificationQueueCounts,
+)
+
+from app.desktop.services.verification.fda_verification_lists import (
+    list_fda_verification_completed,
+    get_fda_verification_completed_detail,
+    list_fda_verification_rejected,
+    get_fda_verification_rejected_detail,
+    get_fda_verification_queue_counts,
+)
+
+from app.desktop.services.verification.fda_verification_export import (
+    build_completed_pdf,
+    build_rejected_pdf,
+)
+
 
 # Same two-router-in-one-file pattern as walkin_complaints.py
 draft_submit_router = APIRouter(prefix="/drafts/verification", tags=["Verification Requests"])
@@ -78,17 +106,36 @@ list_router = APIRouter(prefix="/verification-requests", tags=["Verification Req
     # GET /verification-requests/awaiting-fda
 @list_router.get("/awaiting-fda", response_model=list[VerificationRequestAwaitingFDAResponse])
 def list_verification_requests_awaiting_fda(
+    search: str | None = Query(None),
+    priority: str | None = Query(None),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    results = db.query(VerificationRequest, Complaint, WalkinComplainant).join(
+    query = db.query(VerificationRequest, Complaint, WalkinComplainant).join(
         Complaint, VerificationRequest.complaint_id == Complaint.complaint_id
     ).outerjoin(
         WalkinComplainant, Complaint.complainant_id == WalkinComplainant.complainant_id
     ).filter(
         VerificationRequest.verification_request_status == "pending",
-        Complaint.region_id == current_user.region_id,   # region scoping from the start
-    ).order_by(VerificationRequest.requested_at.desc()).all()
+        Complaint.region_id == current_user.region_id,
+    )
+
+    if search is not None:
+        # Category folded into the same free-text search rather than
+        # its own query param — the officer can type "Drugs", "Food",
+        # etc. and it matches alongside case reference/product/manufacturer.
+        query = query.filter(
+            Complaint.case_reference.ilike(f"%{search}%")
+            | VerificationRequest.product_name.ilike(f"%{search}%")
+            | Complaint.manufacturer.ilike(f"%{search}%")
+            | Complaint.product_category.ilike(f"%{search}%")
+        )
+
+    if priority is not None:
+        # Exact match — "All Priorities" dropdown, not free text.
+        query = query.filter(VerificationRequest.priority == priority)
+
+    results = query.order_by(VerificationRequest.requested_at.desc()).all()
 
     return [
         VerificationRequestAwaitingFDAResponse(
@@ -105,3 +152,164 @@ def list_verification_requests_awaiting_fda(
         )
         for request, complaint, complainant in results
     ]
+
+
+# ============================================================
+# FDA COMPLETED AND REJECTED LISTS
+# ============================================================
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/completed
+@list_router.get("/completed", response_model=FdaVerificationCompletedListResponse)
+def list_completed_verification_requests(
+    search: str | None = Query(None),
+    category: str | None = Query(None),
+    verification_result: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(5, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return list_fda_verification_completed(
+        db, current_user, search, category, verification_result, date_from, date_to, page, page_size
+    )
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/completed/{request_id}
+@list_router.get("/completed/{request_id}", response_model=FdaVerificationCompletedDetailResponse)
+def get_completed_verification_request_detail(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_fda_verification_completed_detail(db, request_id, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/completed/{request_id}/export-pdf
+@list_router.get("/completed/{request_id}/export-pdf")
+def export_completed_verification_pdf(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    detail = get_fda_verification_completed_detail(db, request_id, current_user)
+    pdf_bytes = build_completed_pdf(detail)
+    filename = f"{detail.case_reference}-verification-record.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/rejected
+@list_router.get("/rejected", response_model=FdaVerificationRejectedListResponse)
+def list_rejected_verification_requests(
+    search: str | None = Query(None),
+    category: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(5, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return list_fda_verification_rejected(
+        db, current_user, search, category, date_from, date_to, page, page_size
+    )
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/rejected/{request_id}
+@list_router.get("/rejected/{request_id}", response_model=FdaVerificationRejectedDetailResponse)
+def get_rejected_verification_request_detail(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_fda_verification_rejected_detail(db, request_id, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/rejected/{request_id}/export-pdf
+@list_router.get("/rejected/{request_id}/export-pdf")
+def export_rejected_verification_pdf(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    detail = get_fda_verification_rejected_detail(db, request_id, current_user)
+    pdf_bytes = build_rejected_pdf(detail)
+    filename = f"{detail.case_reference}-rejected-record.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/counts
+@list_router.get("/counts", response_model=FdaVerificationQueueCounts)
+def get_verification_queue_counts(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_fda_verification_queue_counts(db, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/{request_id}
+@list_router.get("/{request_id}", response_model=FdaVerificationRequestDetailResponse)
+def get_verification_request_detail(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_fda_verification_request_detail(db, request_id, current_user)

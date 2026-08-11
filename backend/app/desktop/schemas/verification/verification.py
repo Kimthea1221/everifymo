@@ -1,9 +1,13 @@
 from uuid import UUID
-from datetime import datetime
+from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
+from enum import Enum
 
 from app.desktop.schemas.drafts.drafts import Priority
+from app.desktop.schemas.common import NonEmptyStr
+from app.desktop.schemas.complaints.complaints import SharedFileResponse
+
 
 
 # Used ONLY by the direct path (no draft) — officer composes and
@@ -43,3 +47,160 @@ class VerificationRequestAwaitingFDAResponse(BaseModel):
     source: str
     priority: str
     requested_at: datetime
+
+# ============================================================
+# FDA VERIFICATION RESPONSE (real submit — not a draft)
+# ============================================================
+
+class FdaVerificationStatusChoice(str, Enum):
+    registered = "registered"
+    unregistered = "unregistered"
+
+
+# What the FDA officer's form sends on "Submit Verification." Unlike
+# the draft version, this is NOT all-optional — but the required-ness
+# depends on which status was chosen (CPR fields for registered,
+# unregistered_reason for unregistered), which is conditional logic a
+# flat Pydantic schema can't express cleanly. So this stays loose at
+# the schema level, and the actual required-field checks happen in
+# the service, where we can give a specific, readable error message
+# per case instead of a generic Pydantic validation error.
+class FdaVerificationSubmitRequest(BaseModel):
+    verification_status: FdaVerificationStatusChoice
+    cpr_number: str | None = Field(None, max_length=100)
+    cpr_expiry: date | None = None
+    response_notes: str | None = None
+    unregistered_reason: str | None = None
+
+
+# Built manually in the router from (VerificationRequest, Complaint)
+# — NOT from_attributes=True, since complaint_status doesn't live on
+# the VerificationRequest object itself.
+class FdaVerificationSubmitResponse(BaseModel):
+    request_id: UUID
+    verification_request_status: str
+    cpr_number: str | None
+    cpr_expiry: date | None
+    response_notes: str | None
+    unregistered_reason: str | None
+    responded_by: UUID
+    responded_at: datetime
+    complaint_id: UUID
+    complaint_status: str
+
+
+class FdaVerificationRejectRequest(BaseModel):
+    rejection_reason: NonEmptyStr
+
+
+class FdaVerificationRejectResponse(BaseModel):
+    request_id: UUID
+    verification_request_status: str
+    rejection_reason: str
+    responded_by: UUID
+    responded_at: datetime
+    complaint_id: UUID
+    complaint_status: str
+
+
+# Full detail for the right panel — fetched only when an officer
+# clicks a specific card in the queue, not included in the lean list
+# response. Built manually from a join, not from_attributes=True.
+class FdaVerificationRequestDetailResponse(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_by_name: str | None
+    requested_at: datetime
+    product_code: str | None
+    priority: str
+    complaint_statement: str
+    attached_files: list[SharedFileResponse]
+
+
+# ============================================================
+# FDA VERIFICATION QUEUE - COMPLETED TAB
+# ============================================================
+
+class FdaVerificationResultChoice(str, Enum):
+    registered = "registered"
+    unregistered = "unregistered"
+
+
+class FdaVerificationCompletedListItem(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_at: datetime
+    responded_at: datetime
+    verification_result: FdaVerificationResultChoice
+    verified_by_name: str | None
+
+
+class FdaVerificationCompletedListResponse(BaseModel):
+    items: list[FdaVerificationCompletedListItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class FdaVerificationCompletedDetailResponse(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_at: datetime
+    requested_by_name: str | None
+    verification_result: FdaVerificationResultChoice
+    cpr_number: str | None
+    cpr_expiry: date | None
+    response_notes: str | None
+    unregistered_reason: str | None
+    verified_by_name: str | None
+    responded_at: datetime
+
+
+# ============================================================
+# FDA VERIFICATION QUEUE - REJECTED TAB
+# ============================================================
+
+class FdaVerificationRejectedListItem(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_at: datetime
+    responded_at: datetime
+    rejected_by_name: str | None
+
+
+class FdaVerificationRejectedListResponse(BaseModel):
+    items: list[FdaVerificationRejectedListItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class FdaVerificationRejectedDetailResponse(BaseModel):
+    request_id: UUID
+    case_reference: str
+    product_name: str
+    manufacturer: str | None
+    product_category: str | None
+    requested_at: datetime
+    requested_by_name: str | None
+    rejected_by_name: str | None
+    responded_at: datetime
+    rejection_reason: str
+
+# tiny dashboard count 
+class FdaVerificationQueueCounts(BaseModel):
+    verification_queue_count: int
+    completed_count: int
+    rejected_count: int
