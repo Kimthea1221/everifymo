@@ -14,6 +14,7 @@ class SuperadminListItem(BaseModel):
     invitation_date: Optional[datetime] = None
     expiration_date: Optional[datetime] = None
     status: str
+    is_locked: bool
 
     class Config:
         from_attributes = True
