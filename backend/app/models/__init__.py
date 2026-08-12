@@ -30,3 +30,4 @@ from .consumer_otp_tokens import ConsumerOTPToken
 
 from .case_reference_counters import CaseReferenceCounter
 from .fda_verification_drafts import FdaVerificationDraft
+from .superadmin_notifications import SuperadminNotification
