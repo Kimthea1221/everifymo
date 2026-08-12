@@ -20,6 +20,9 @@ import secrets
 
 from app.desktop.schemas.auth.registration import RequestResendRequest, RequestResendResponse
 
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+
 
 # All registration-related endpoints will start with /registration
 router = APIRouter(prefix="/registration", tags=["Registration"])
@@ -124,6 +127,14 @@ def complete_registration(data: RegistrationCompleteRequest, db: Session = Depen
     # Save both changes together — either both go through, or neither does
     db.commit()   
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.REGISTRATION_ACCOMPLISHED,
+        title="Registration completed",
+        message=f"{user_row.email} completed registration and is now awaiting approval.",
+        related_user_id=user_row.user_id,
+    )
+
     return RegistrationCompleteResponse(
         message="Registration submitted successfully.",
         status=UserStatus.PENDING_APPROVAL,   
@@ -175,6 +186,15 @@ def resend_invite(data: ResendInviteRequest, db: Session = Depends(get_db)):
     db.add(new_token)   
     db.commit()
 
+    user_row = db.query(User).filter(User.user_id == old_token_row.user_id).first()
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Invitation link resent",
+        message=f"{user_row.email if user_row else 'A user'} generated a new invitation link after theirs expired.",
+        related_user_id=old_token_row.user_id,
+    )
+
     return ResendInviteResponse(
         message="A new invitation has been generated.",
     )
@@ -213,6 +233,15 @@ def request_resend(data: RequestResendRequest, db: Session = Depends(get_db)):
     # Just flag the request — SuperAdmin decides whether to actually resend
     token_row.resend_requested_at = datetime.now(timezone.utc)
     db.commit()
+
+    user_row = db.query(User).filter(User.user_id == token_row.user_id).first()
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Resend requested",
+        message=f"{user_row.email if user_row else 'A user'} requested a new invitation link.",
+        related_user_id=token_row.user_id,
+    )
 
     return RequestResendResponse(
         message="Your request has been sent to the administrator.",

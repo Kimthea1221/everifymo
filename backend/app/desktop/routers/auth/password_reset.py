@@ -12,6 +12,8 @@ from app.desktop.schemas.auth.password_reset import (
 from app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
 from app.desktop.services.auth.email import send_superadmin_otp_email, send_personnel_otp_email
 from app.core.security import hash_password
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/auth/password", tags=["auth-password"])
 
@@ -63,5 +65,13 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     user.force_password_change = False
     otp_token.is_used = True
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.PASSWORD_CHANGED,
+        title="Password reset completed",
+        message=f"{user.email} reset their password via forgot-password flow.",
+        related_user_id=user.user_id,
+    )
 
     return {"message": "Password updated"}

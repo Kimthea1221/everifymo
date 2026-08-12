@@ -21,6 +21,8 @@ from app.desktop.services.auth.email import send_superadmin_invite_email
 from app.desktop.services.admin_management.invite import create_invited_superadmin
 from app.desktop.services.admin_management.invite import activate_superadmin
 from app.desktop.services.auth.email import send_superadmin_activation_email
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 
@@ -166,6 +168,14 @@ async def resend_superadmin_invitation(
 
     await send_superadmin_invite_email(admin.email, token)
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Invitation resent",
+        message=f"Invitation resent to {admin.email}.",
+        related_user_id=admin.user_id,
+    )
+
     return {"message": "Invitation resent successfully"}
 
 
@@ -184,6 +194,15 @@ def suspend_superadmin(
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_active = False
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_SUSPENDED,
+        title="Superadmin suspended",
+        message=f"{admin.email}'s superadmin account has been suspended.",
+        related_user_id=admin.user_id,
+    )
+
     return {"message": "Superadmin account suspended successfully"}
 
 
@@ -199,6 +218,15 @@ def reactivate_superadmin(
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_active = True
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_REACTIVATED,
+        title="Superadmin reactivated",
+        message=f"{admin.email}'s superadmin account has been reactivated.",
+        related_user_id=admin.user_id,
+    )
+
     return {"message": "Superadmin account reactivated successfully"}
 
 
