@@ -49,3 +49,38 @@ def download_shared_file(
         filename=file_row.file_name,
         media_type=file_row.mime_type,
     )
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /shared-files/{file_id}/preview
+@router.get("/{file_id}/preview")
+def preview_shared_file(
+    file_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    file_row = db.query(SharedFile).filter(
+        SharedFile.file_id == file_id,
+        SharedFile.region_id == current_user.region_id,   # same region scoping as download
+    ).first()
+
+    if not file_row:
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    if not os.path.exists(file_row.file_path):
+        raise HTTPException(status_code=404, detail="File no longer exists on disk.")
+
+    # Identical to download, except content_disposition_type="inline" —
+    # this is what tells the browser to render the file (for our
+    # <img>/<iframe> preview) instead of forcing a save-as download.
+    return FileResponse(
+        path=file_row.file_path,
+        filename=file_row.file_name,
+        media_type=file_row.mime_type,
+        content_disposition_type="inline",
+    )
