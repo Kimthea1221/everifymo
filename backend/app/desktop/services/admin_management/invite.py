@@ -8,6 +8,8 @@ from app.core.security import hash_password
 
 from app.models.users import User
 from app.models.account_invitation_tokens import AccountInvitationToken
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 
 def create_invited_superadmin(db: Session, email: str, created_by) -> tuple[User, str]:
@@ -33,6 +35,14 @@ def create_invited_superadmin(db: Session, email: str, created_by) -> tuple[User
     db.add(invite)
     db.commit()
     db.refresh(user)
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.SUPERADMIN_INVITED,
+        title="New superadmin invited",
+        message=f"{user.email} was invited as a new superadmin.",
+        related_user_id=user.user_id,
+    )
 
     return user, token
 
@@ -77,6 +87,15 @@ def complete_superadmin_registration(db: Session, token: str, new_password: str)
 
     db.commit()
     db.refresh(user)
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.SUPERADMIN_PASSWORD_CREATED,
+        title="Superadmin password created",
+        message=f"{user.email} created their password and is now awaiting activation.",
+        related_user_id=user.user_id,
+    )
+
     return user
 
 
@@ -108,6 +127,14 @@ def request_new_superadmin_invite(db: Session, old_token: str) -> tuple[User, st
     db.add(new_invite)
     db.commit()
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Invite resend requested",
+        message=f"A new invitation link was requested for {user.email}.",
+        related_user_id=user.user_id,
+    )
+
     return user, new_token
 
 # Replace approve_superadmin() in services/admin_management/invite.py with this:
@@ -126,4 +153,13 @@ def activate_superadmin(db: Session, admin_id) -> User:
     admin.is_active = True
     db.commit()
     db.refresh(admin)
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_ACTIVATED,
+        title="Account activated",
+        message=f"{admin.email} has been activated and is now a full superadmin.",
+        related_user_id=admin.user_id,
+    )
+
     return admin

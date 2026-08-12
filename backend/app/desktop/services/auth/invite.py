@@ -5,6 +5,8 @@ from sqlalchemy import text
 
 from app.models.users import User
 from app.models.account_invitation_tokens import AccountInvitationToken
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 
 def create_invited_user(db: Session, email: str, region_id, role: str, created_by) -> tuple[User, str]:
@@ -30,5 +32,13 @@ def create_invited_user(db: Session, email: str, region_id, role: str, created_b
     db.add(invite)
     db.commit()
     db.refresh(user)
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.PERSONNEL_INVITED,
+        title="New personnel invited",
+        message=f"{user.email} was invited as new {role.replace('_', ' ')}.",
+        related_user_id=user.user_id,
+    )
 
     return user, token
