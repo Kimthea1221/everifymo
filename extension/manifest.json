@@ -11,15 +11,26 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "identity"
   ],
+
+  "oauth2": {
+    "client_id": "1094392645082-414ug60ltdckhnnvdbkovnauo3f3srnf.apps.googleusercontent.com",
+    "scopes": [
+      "openid",
+      "email",
+      "profile"
+    ]
+  },
 
   "host_permissions": [
     "https://shopee.ph/*",
     "https://www.lazada.com.ph/*",
     "https://www.tiktok.com/*",
     "https://www.facebook.com/marketplace/*",
-    "http://localhost:8000/*"
+    "http://localhost:8001/*",
+    "https://localhost:8001/verify"
   ],
 
   "content_scripts": [

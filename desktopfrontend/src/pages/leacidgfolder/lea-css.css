@@ -1,5 +1,4 @@
-
-
+/* new lea-css.css */
 .LeaDashboardMain {
   display: flex;
   height: 100vh;
@@ -11,9 +10,6 @@
   background: #f5f5f5;
   overflow-y: auto;
 }
-
-
-
 
 .LeaContentContainer {
   display: flex;
@@ -87,6 +83,7 @@
   background: #FCA311;
   color: #030303;
 }
+
 /* LEA VERIFICATION REQUEST - STATS METRIC SUMMARY BAR (NON-CLICKABLE) */
 .LeaVerifStatsBar {
   display: grid;
@@ -1189,7 +1186,7 @@
   padding: 2px 7px;
   border-radius: 8px;
   background: rgba(27, 67, 50, 0.12);
-  color: #1B4332;
+  color: #1A1A2E;
   flex-shrink: 0;
 }
 
@@ -1773,6 +1770,11 @@
     justify-self: center;
 }
 
+.DraftsFilterSection {
+    max-width: none !important;
+    justify-self: unset !important;
+}
+
 .DraftsFilterControls {
     display: flex;
     justify-content: space-between;
@@ -1952,7 +1954,7 @@
 }
 
 .LeaSearchInput:focus, .LeaCategoriesSearchInput:focus {
-  border-color: #1B4332;
+  border-color: #1A1A2E;
   box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
 }
 
@@ -1998,7 +2000,7 @@
 }
 
 .LeaFilterGroup select:focus {
-  border-color: #1B4332;
+  border-color: #1A1A2E;
   box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
 }
 
@@ -2018,7 +2020,7 @@
 }
 
 .LeaVerifDateInput:focus {
-  border-color: #1B4332;
+  border-color: #1A1A2E;
   box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
 }
 
@@ -2127,7 +2129,7 @@
 }
 
 .LeaVerifDocActionBtn:hover {
-  background: #1B4332;
+  background: #1A1A2E;
   color: #FDFDFD;
 }
 
@@ -2575,7 +2577,7 @@
 /* 4 Top Stats Cards Grid */
 .LeaStatsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -2599,7 +2601,7 @@
 }
 
 .statLabel {
-  font-size: 0.88rem;
+  font-size: 1rem;
   font-weight: 500;
   color: #475569;
 }
@@ -2656,6 +2658,13 @@
 }
 
 /* Charts Grid Row */
+.LeaChartsLeftCol,  
+.LeaChartsRightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .LeaChartsRow {
   display: grid;
   grid-template-columns: 1.8fr 1fr;
@@ -2672,6 +2681,10 @@
   flex-direction: column;
 }
 
+.PipelineCard {
+  margin-top: 0;
+}
+
 .chartHeader {
   display: flex;
   justify-content: space-between;
@@ -2681,7 +2694,7 @@
 
 .chartHeader h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #0F172A;
 }
@@ -2703,7 +2716,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8rem;
+  font-size: 0.92rem;
   color: #475569;
   font-weight: 500;
 }
@@ -2724,10 +2737,18 @@
   display: inline-block;
 }
 
+.legendDotGreen {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #059669;
+  display: inline-block;
+}
+
 /* Interactive SVG Line Chart */
 .svgChartWrapper {
   width: 100%;
-  height: 230px;
+  height: 260px;
   position: relative;
   margin-top: 10px;
 }
@@ -2739,14 +2760,14 @@
 }
 
 .yAxisText {
-  font-size: 11px;
+  font-size: 13px;
   fill: #64748B;
   text-anchor: end;
   font-weight: 500;
 }
 
 .xAxisText {
-  font-size: 11px;
+  font-size: 13px;
   fill: #64748B;
   text-anchor: middle;
   font-weight: 500;
@@ -2776,6 +2797,302 @@
 
 .ttRow.navy strong { color: #38BDF8; }
 .ttRow.teal strong { color: #2DD4BF; }
+
+.interactiveBarSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.barTooltipClean {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+}
+
+.ttWeek {
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.barTooltipClean .ttRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.barTooltipClean .ttRow.navy {
+  color: #0f172a;
+}
+
+.barTooltipClean .ttRow.green {
+  color: #059669;
+}
+
+/* Awaiting FDA verification card */
+.AwaitingFDACard {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1;
+  gap: 12px;
+}
+
+.awaitingBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFFBEB;
+  border: 1px solid #FCD34D;
+  color: #D97706;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.awaitingList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.awaitingListItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+.awaitingListItem:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.awaitingItemLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.awaitingItemTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.awaitingItemSubtitle {
+  font-size: 0.85rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.awaitingItemRight {
+  display: flex;
+  align-items: center;
+}
+
+.walkinTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  color: #0284c7;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Recent walk-in complaints table */
+.RecentComplaintsCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 22px 24px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  margin-top: 20px;
+}
+
+.recentComplaintsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.recentComplaintsHeader h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.openFullTableBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.openFullTableBtn:hover {
+  color: #07476F;
+}
+
+.openFullTableBtn:hover .arrowIcon {
+  transform: translateX(3px);
+}
+
+.arrowIcon {
+  transition: transform 0.2s ease;
+  font-size: 1rem;
+}
+
+.RecentComplaintsTableWrapper {
+  overflow-x: auto;
+}
+
+.RecentComplaintsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.RecentComplaintsTable th {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #64748B;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-bottom: 1.5px solid #F1F5F9;
+  text-transform: uppercase;
+  background: transparent;
+}
+
+.RecentComplaintsTable td {
+  padding: 18px;
+  font-size: 0.95rem;
+  color: #0F172A;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.RecentComplaintsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.RecentComplaintsTable tr:hover {
+  background: #F8FAFC;
+}
+
+.CaseIdCol {
+  font-weight: 600;
+  color: #475569;
+}
+
+.ProductCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ProductNameText {
+  font-weight: 700;
+  color: #0F172A;
+  font-size: 0.95rem;
+}
+
+.ManufacturerText {
+  font-size: 0.85rem;
+  color: #64748B;
+}
+
+.ComplainantCol {
+  color: #334155;
+  font-weight: 500;
+}
+
+.LoggedCol {
+  color: #64748B;
+  font-size: 0.8rem;
+}
+
+.DashboardStatusBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.badge-pending-verification {
+  background: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FCD34D;
+}
+
+.badge-verified {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.badge-forwarded-to-lea {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+/* Dashboard responsiveness */
+@media (max-width: 1024px) {
+  .LeaStatsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .LeaChartsRow {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .AwaitingFDACard {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .LeaStatsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .LeaMainfeed {
+    padding: 16px 20px;
+  }
+
+  .svgChartWrapper {
+    height: 160px;
+  }
+}
 
 /* Donut Chart Card & SVG */
 .DonutCard {
@@ -2845,4 +3162,264 @@
 .regionPercent {
   color: #0F172A;
   font-weight: 700;
+}
+
+/* ============================================================================ */
+/* ROW ACTION DROPDOWN (View + More Actions) — used in lea-save-drafts.jsx      */
+/* Ported 1:1 from fda-css.css's .FdaDropdown* classes, Fda->Lea prefix swap    */
+/* ============================================================================ */
+
+.LeaDropdownWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.LeaViewBtn,
+.LeaDropdownTrigger {
+  background: #FDFDFD;
+  border: 1.5px solid #EDEDED;
+  color: #1F2937;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.LeaViewBtn:hover {
+  background: #13213C;
+  color: #FDFDFD;
+  border-color: #13213C;
+}
+
+.LeaDropdownTrigger:hover {
+  background: #EDEDED;
+  color: #030303;
+}
+
+.LeaDropdownWrapper.active-open {
+  z-index: 50;
+}
+
+.LeaDropdownMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #FDFDFD;
+  border: 1px solid #EDEDED;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.LeaDropdownMenu.open-upward {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.LeaDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1F2937;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.LeaDropdownItem:hover {
+  background: #EDEDED;
+  color: #13213C;
+}
+
+/* ADDED — LEA-side doc preview modal, same layout as the FDA version.
+   height: 85vh (not just max-height) is required for the flex:1 preview
+   elements below to actually get a real height to grow into. */
+.LeaVerifDocModalContainer {
+  background: #FDFDFD;
+  border-radius: 12px;
+  max-width: 1100px;
+  width: 92vw;
+  height: 90vh;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+}
+
+/* ADDED — body grows to fill space between header and footer */
+.LeaVerifDocModalBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.LeaVerifDocModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #EDEDED;
+}
+
+.LeaVerifDocModalTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.LeaVerifDocModalTitleGroup h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0 0 2px 0;
+}
+
+.LeaVerifDocModalMeta {
+  font-size: 11.5px;
+  color: #1F2937;
+  opacity: 0.6;
+  margin: 0;
+}
+
+.LeaVerifDocPlaceholderPreview {
+  background: #EDEDED;
+  border: 1.5px dashed #1B4332;
+  border-radius: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.LeaVerifDocPreviewIcon {
+  color: #1B4332;
+  margin-bottom: 10px;
+}
+
+/* ADDED — flex:1 so image/PDF fills whatever height LeaVerifDocModalBody gives them */
+.LeaVerifDocImagePreview {
+  max-width: 100%;
+  max-height: 100%;
+  flex: 1;
+  min-height: 0;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.LeaVerifDocPdfPreview {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  border: none;
+  border-radius: 8px;
+}
+
+.LeaVerifPreviewTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0 0 4px 0;
+}
+
+.LeaVerifPreviewText {
+  font-size: 12.5px;
+  color: #1F2937;
+  opacity: 0.8;
+  margin: 0 0 10px 0;
+}
+
+/* ADDED — close (X) button on the doc preview modal header, matches
+   LeaVerifDocActionBtn's icon-button pattern but transparent/borderless
+   since it sits in the header, not a card */
+.LeaVerifIconButton {
+  background: transparent;
+  border: none;
+  color: #1F2937;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.LeaVerifIconButton:hover {
+  opacity: 1;
+  background: #EDEDED;
+}
+
+/* ADDED — footer bar for the doc preview modal (Close / Download buttons) */
+.LeaVerifModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #EDEDED;
+}
+
+/* ADDED — "Close Preview" button, same shape/weight as BtnCancelModal
+   used elsewhere in this file, kept separate since it lives in a
+   different footer layout (flex-end, not space-between) */
+.LeaVerifBtnOutline {
+  padding: 10px 20px;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 8px;
+  background: #FDFDFD;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #030303;
+  transition: background 0.2s;
+}
+
+.LeaVerifBtnOutline:hover {
+  background: #EDEDED;
+}
+
+/* ADDED — "Download Attachment" button, reuses the same navy/amber
+   pattern as SendReqBtn/LogButton elsewhere in this file, for LEA
+   theme consistency (FDA side uses green — LEA uses navy) */
+.LeaVerifBtnPrimary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #13213C;
+  color: #FDFDFD;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.LeaVerifBtnPrimary:hover {
+  background: #FCA311;
+  color: #030303;
 }

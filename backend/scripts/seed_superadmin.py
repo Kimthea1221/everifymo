@@ -1,3 +1,5 @@
+
+
 """Seed script: create a superadmin account for login testing or deployment.
 
 Run this once to create a superadmin you can log in with via
@@ -36,6 +38,7 @@ def main():
             email=email,
             password_hash=hash_password(password),
             role="superadmin",
+            status="active",  
             is_active=True,
             is_locked=False,
             force_password_change=False,

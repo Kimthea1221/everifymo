@@ -11,7 +11,7 @@ the same way.
 from sqlalchemy import text  # add this import at the top
 
 from app.database.sessions import SessionLocal
-from app.core.security import create_access_token
+from app.core.security import create_desktop_access_token
 from app.models.users import User
 
 
@@ -36,7 +36,7 @@ def main():
         # to this user's ID, or the real dependency won't recognize
         # it as valid. Cast to str() since UUID objects aren't
         # directly JSON-serializable, which jwt.encode requires.
-        token = create_access_token({"sub": str(user.user_id)})
+        token = create_desktop_access_token({"sub": str(user.user_id)})
 
         print(f"\nUser: {user.email} ({user.role})")
         print(f"\nBearer token:\n{token}")

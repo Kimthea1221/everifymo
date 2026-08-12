@@ -41,85 +41,91 @@
   import FDASavedDraft from './pages/fdafolder/fda-saved-draft.jsx';
 
 
-  // deep-link listener component
   function DeepLinkListener() {
-    const navigate = useNavigate()
+  const navigate = useNavigate();
 
-    useEffect(() => {
-  console.log('DeepLinkListener mounted, waiting for token...')
+  useEffect(() => {
+    console.log('DeepLinkListener mounted, waiting for token...');
 
-      window.electronAPI.onDeepLinkToken((token) => {
-              console.log('Token received:', token)
+    window.electronAPI.onDeepLinkToken((token) => {
+      console.log('Token received:', token);
 
-        fetch(`http://localhost:8000/registration/validate/${token}`)
-          .then((res) => res.json())
-          .then((data) => {
-                      console.log('Validate response:', data)
+      fetch(`http://localhost:8000/registration/validate/${token}`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log('Validate response:', data);
 
-            if (data.status === 'valid') {
-              navigate('/user-registration', { state: { ...data, invite_token: token } })
-            } else {
-              navigate('/invitation-status', { state: {status: data.status, invite_token: token } })
-            }
-          })
-      })
-    }, [])
+          if (data.role === 'superadmin') {
+            navigate('/superadmin-invite-status', {
+              state: { status: data.status, token },
+            });
+            return;
+          }
 
-    return null   // this component doesn't render anything visible, it just listens
-  }
+          if (data.status === 'valid') {
+            navigate('/user-registration', { state: { ...data, invite_token: token } });
+          } else {
+            navigate('/invitation-status', { state: { status: data.status, invite_token: token } });
+          }
+        });
+    });
+  }, [navigate]);
+
+  return null;
+}
 
 
-  export default function App(){
-    return(
-      <BrowserRouter>
-        <DeepLinkListener />
-        <Routes>
-            {/*CHANGE THIS LINE ONLY WHEN TESTING */}
-            <Route path='/' element={<SuperadminEmailAddAdmin />} />
+export default function App() {
+  return (
+    <BrowserRouter>
+      <DeepLinkListener />
+      <Routes>
+        <Route path='/' element={<Login />} />
 
-          {/* AUTH ROUTES */}
-          <Route path='/login' element={<Login />} />
-          <Route path='/superadmin-login' element={<SuperAdminLogin />} />
-          <Route path='/forgot-password' element={<ForgotPassword />} />
-          <Route path='/change-password' element={<ChangePassword />} />
-          <Route path='/create-new-password' element={<CreateNewPassword />} />
-          <Route path='/user-registration' element={<UserRegistration />} />
+        {/* AUTH ROUTES */}
+        <Route path='/login' element={<Login />} />
+        <Route path='/superadmin-login' element={<SuperAdminLogin />} />
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/change-password' element={<ChangePassword />} />
+        <Route path='/create-new-password' element={<CreateNewPassword />} />
+        <Route path='/user-registration' element={<UserRegistration />} />
 
-          {/* LEA-CIDG ROUTES */}
-          <Route path='/leacidgfolder/lea-dashboard' element={<LeaDashboard />} />
-          <Route path='/leacidgfolder/lea-walkin-complaints' element={<LeaWalkinComplaints />} />
-          <Route path='/leacidgfolder/lea-verification-request' element={<LeaVerificationRequest />} />
-          <Route path='/leacidgfolder/lea-new-intake' element={<LeaNewIntake />} />
-          <Route path='/leacidgfolder/lea-saved-draft' element={<LeaSavedDraft />} />
+        {/* LEA-CIDG ROUTES */}
+        <Route path='/leacidgfolder/lea-dashboard' element={<LeaDashboard />} />
+        <Route path='/leacidgfolder/lea-walkin-complaints' element={<LeaWalkinComplaints />} />
+        <Route path='/leacidgfolder/lea-verification-request' element={<LeaVerificationRequest />} />
+        <Route path='/leacidgfolder/lea-new-intake' element={<LeaNewIntake />} />
+        <Route path='/leacidgfolder/lea-saved-draft' element={<LeaSavedDraft />} />
 
-          {/* SUPERADMIN ROUTES */}
-          <Route path='/superadminfolder/superadmin-user-management' element={<SuperAdminUserManagement />} />
-          <Route path='/superadminfolder/superadmin-admin-management' element={<SuperAdminAdminManagement />} />
-          <Route path='/superadminfolder/superadmin-audit-log' element={<SuperAdminAuditLog />} />
+        {/* SUPERADMIN ROUTES */}
+        <Route path='/superadminfolder/superadmin-user-management' element={<SuperAdminUserManagement />} />
+        <Route path='/superadminfolder/superadmin-admin-management' element={<SuperAdminAdminManagement />} />
+        <Route path='/superadminfolder/superadmin-audit-log' element={<SuperAdminAuditLog />} />
 
-          {/* EMAIL PREVIEW ROUTES:
+        {/* EMAIL PREVIEW ROUTES:
+
           *makikita niyo din to sa localhost:15173/preview-email/
           */}
-          <Route path='/preview-email/interagency-otp' element={<OtpEmailTemplate />} />
-          <Route path='/preview-email/registration' element={<UserEmailRegistration />} />
-          <Route path='/preview-email/activation' element={<UserEmailActivation />} />
-          <Route path='/preview-email/superadmin-otp' element={<SuperadminOtpEmail />} />
-          <Route path='/preview-email/superadmin-add-admin' element={<SuperadminEmailAddAdmin />} />
+        <Route path='/preview-email/interagency-otp' element={<OtpEmailTemplate />} />
+        <Route path='/preview-email/registration' element={<UserEmailRegistration />} />
+        <Route path='/preview-email/activation' element={<UserEmailActivation />} />
+        <Route path='/preview-email/superadmin-otp' element={<SuperadminOtpEmail />} />
+        <Route path='/preview-email/superadmin-add-admin' element={<SuperadminEmailAddAdmin />} />
 
-          {/* DEEP LINK ROUTES */}
-          <Route path='/invitation-status' element={<DeepLinkStatus />} />
-          <Route path='/superadmin-invite-status' element={<SuperadminInviteStatus />} />
+        {/* DEEP LINK ROUTES */}
+        <Route path='/invitation-status' element={<DeepLinkStatus />} />
+        <Route path='/superadmin-invite-status' element={<SuperadminInviteStatus />} />
 
-          <Route path='/profile-setting' element={<ProfileSetting />} />
+        <Route path='/profile-setting' element={<ProfileSetting />} />
 
-          {/* FDA ROUTES */}
-          <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
-          <Route path='/fdafolder/fda-view-reports' element={<FDAViewReports />} />
-          <Route path='/fdafolder/fda-verification' element={<FDAVerification />} />
-          <Route path='/fdafolder/fda-status' element={<FDAStatus />} />
-          <Route path='/fdafolder/fda-product-db' element={<FDAProductDB />} />
-          <Route path='/fdafolder/fda-saved-draft' element={<FDASavedDraft />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
+        {/* FDA ROUTES */}
+        <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
+        <Route path='/fdafolder/fda-view-reports' element={<FDAViewReports />} />
+        <Route path='/fdafolder/fda-verification' element={<FDAVerification />} />
+        <Route path='/fdafolder/fda-status' element={<FDAStatus />} />
+        <Route path='/fdafolder/fda-product-db' element={<FDAProductDB />} />
+        <Route path='/fdafolder/fda-saved-draft' element={<FDASavedDraft />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

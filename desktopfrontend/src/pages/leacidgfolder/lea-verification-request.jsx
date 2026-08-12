@@ -1,18 +1,29 @@
+// merged lea-verification-request.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './lea-css.css'
 import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
-import {Clock3,
-        BellRing,
-        SquarePen,
-        ShieldCheck,
-        ShieldX,
-        CircleCheckBig,
-        XCircle,
-        Inbox,
-        Siren,
-        Archive
+import {
+  Clock3,
+  BellRing,
+  SquarePen,
+  ShieldCheck,
+  ShieldX,
+  CircleCheckBig,
+  XCircle,
+  Inbox,
+  Siren,
+  Archive,
+  Search,
+  Filter,
+  Calendar,
+  Paperclip,
+  FileText,
+  Eye,
+  X,
+  Download,
+  Image as ImageIcon
 } from 'lucide-react';
 
 // ADDED — API_BASE, parseBackendError, formatDateTime helpers
@@ -60,7 +71,7 @@ const responseCases = [
     product: "HerbalSlim Capsules",
     manufacturer: "NatureFit Labs",
     complainant: "M. Reyes",
-    category: "Supplement",
+    category: "Drugs",
     loggedDate: "2026-05-17 10:42",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 16:02",
@@ -88,7 +99,7 @@ const responseCases = [
     product: "PureVita Multivitamin",
     manufacturer: "Vita Manufacturing Inc.",
     complainant: "J. Cruz",
-    category: "Supplement",
+    category: "Drugs",
     loggedDate: "2026-05-16 11:21",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 09:00",
@@ -108,7 +119,7 @@ const initiatedCases = [
     product: "HerbalSlim Capsules",
     manufacturer: "NatureFit Labs",
     complainant: "M. Reyes",
-    category: "Supplement",
+    category: "Drugs",
     loggedDate: "2026-05-17 10:42",
     source: "Walk-in Intake",
     returnedDate: "2026-05-17 16:02",
@@ -125,7 +136,7 @@ const dismissedCases = [
     caseId: 'ICM-2025-00185',
     product: 'HerbalSlim Capsules',
     manufacturer: 'NatureFit Labs',
-    category: 'Supplement',
+    category: 'Drugs',
     dateFiled: '2026-05-17',
     dateClosed: '2026-05-20',
     closedBy: 'Officer J. Domingo',
@@ -136,7 +147,7 @@ const dismissedCases = [
     caseId: 'ICM-2026-00188',
     product: 'PureVita Multivitamin',
     manufacturer: 'Vita Manufacturing Inc.',
-    category: 'Supplement',
+    category: 'Drugs',
     dateFiled: '2026-05-16',
     dateClosed: '2026-05-21',
     closedBy: 'Officer M. Santos',
@@ -179,7 +190,18 @@ function LeaVerificationRequest() {
   // NOTE: States for the new tabs' selected items
   const [selectedInitiatedCase, setSelectedInitiatedCase] = useState(initiatedCases[0]);
 
+  // MERGED-ADD — search & category filter state for Ready to Send / Awaiting FDA / FDA Response / Initiated Cases queues
+  const [readySearch, setReadySearch] = useState('');
+  const [readyCategory, setReadyCategory] = useState('');
+  const [awaitingSearch, setAwaitingSearch] = useState('');
+  const [awaitingCategory, setAwaitingCategory] = useState('');
+  const [responseSearch, setResponseSearch] = useState('');
+  const [responseCategory, setResponseCategory] = useState('');
+  const [initiatedSearch, setInitiatedSearch] = useState('');
+  const [initiatedCategory, setInitiatedCategory] = useState('');
+
   // NOTE: States for Dismissed Cases tab filters
+  const [dismissedSearch, setDismissedSearch] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -203,6 +225,17 @@ function LeaVerificationRequest() {
   const [awaitingList, setAwaitingList] = useState([]);
   const [awaitingLoading, setAwaitingLoading] = useState(false);
   const [selectedAwaitingFda, setSelectedAwaitingFda] = useState(null);
+
+  // ADDED — doc preview modal state, mirrors the FDA-side implementation.
+  // docPreviewModal holds the clicked attachment object (file_id, file_name, mime_type, file_size_display).
+  // docPreviewUrl holds a blob object URL (revoked on close); Loading/Error track the in-flight fetch.
+  const [docPreviewModal, setDocPreviewModal] = useState(null);
+  const [docPreviewUrl, setDocPreviewUrl] = useState(null);
+  const [docPreviewLoading, setDocPreviewLoading] = useState(false);
+  const [docPreviewError, setDocPreviewError] = useState(false);
+
+  // ADDED — real counts for the 3 top stat cards, replaces the dummy-array .length
+  const [leaCounts, setLeaCounts] = useState({ fda_response_count: 0, initiated_count: 0, dismissed_count: 0 });
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
   const showSuccess = (msg) => {
@@ -286,6 +319,25 @@ function LeaVerificationRequest() {
     }
   };
 
+  // ADDED — fetches the real counts for the FDA Response / Initiated / Dismissed stat cards
+  const fetchLeaCounts = async () => {
+    const token = localStorage.getItem('access_token');
+    try {
+      const res = await fetch(`${API_BASE}/verification-requests/lea-counts`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setLeaCounts(data);
+    } catch (err) {
+      console.error('Failed to fetch LEA verification counts:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaCounts();
+  }, []);
+
   // ADDED — loads existing draft when arriving via Edit Draft navigation
   // ─── On mount: handle "Edit Draft" navigation state ──────────────────────
   useEffect(() => {
@@ -323,6 +375,44 @@ function LeaVerificationRequest() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // ADDED — fetches a preview blob from GET /shared-files/{file_id}/preview whenever
+  // docPreviewModal changes. Supports images and PDFs; other types are left to
+  // the download-only fallback. Object URL is revoked on cleanup to avoid memory leaks.
+  useEffect(() => {
+    if (!docPreviewModal) {
+      setDocPreviewUrl(null);
+      setDocPreviewError(false);
+      return;
+    }
+
+    const isImage = docPreviewModal.mime_type?.startsWith('image/');
+    const isPdf = docPreviewModal.mime_type === 'application/pdf';
+    if (!isImage && !isPdf) return; // unsupported types keep the placeholder
+
+    let objectUrl = null;
+    setDocPreviewLoading(true);
+    setDocPreviewError(false);
+
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/shared-files/${docPreviewModal.file_id}/preview`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setDocPreviewUrl(objectUrl);
+      })
+      .catch(() => setDocPreviewError(true))
+      .finally(() => setDocPreviewLoading(false));
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [docPreviewModal]);
 
   // ADDED — POST/PUT /drafts/verification/
   // ─── Save Draft handler ───────────────────────────────────────────────────
@@ -457,12 +547,59 @@ function LeaVerificationRequest() {
     }
   };
 
+  // MERGED-ADD — client-side search + category filtering for the four queue tabs
+  const filteredReadyList = readyList.filter((item) => {
+    const q = readySearch.toLowerCase().trim();
+    const matchesSearch = !q ||
+      (item.case_reference || '').toLowerCase().includes(q) ||
+      (item.product_title || '').toLowerCase().includes(q) ||
+      (item.manufacturer || '').toLowerCase().includes(q);
+    const matchesCategory = !readyCategory || item.product_category === readyCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const filteredAwaitingList = awaitingList.filter((item) => {
+    const q = awaitingSearch.toLowerCase().trim();
+    const matchesSearch = !q ||
+      (item.case_reference || '').toLowerCase().includes(q) ||
+      (item.product_name || '').toLowerCase().includes(q) ||
+      (item.manufacturer || '').toLowerCase().includes(q);
+    const matchesCategory = !awaitingCategory || item.product_category === awaitingCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const filteredResponseCases = responseCases.filter((item) => {
+    const q = responseSearch.toLowerCase().trim();
+    const matchesSearch = !q ||
+      item.caseNumber.toLowerCase().includes(q) ||
+      item.product.toLowerCase().includes(q) ||
+      item.manufacturer.toLowerCase().includes(q);
+    const matchesCategory = !responseCategory || item.category === responseCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const filteredInitiatedCases = initiatedCases.filter((item) => {
+    const q = initiatedSearch.toLowerCase().trim();
+    const matchesSearch = !q ||
+      item.caseNumber.toLowerCase().includes(q) ||
+      item.product.toLowerCase().includes(q) ||
+      item.manufacturer.toLowerCase().includes(q);
+    const matchesCategory = !initiatedCategory || item.category === initiatedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   // NOTE: Filter logic for closed/dismissed complaints table rows
+  // MERGED-CHANGED — now also matches dismissedSearch against case ID / product / manufacturer
   const filteredDismissed = dismissedCases.filter((c) => {
+    const q = dismissedSearch.toLowerCase().trim();
+    const matchSearch = !q ||
+      c.caseId.toLowerCase().includes(q) ||
+      c.product.toLowerCase().includes(q) ||
+      c.manufacturer.toLowerCase().includes(q);
     const matchCategory = filterCategory ? c.category === filterCategory : true;
     const matchFrom = filterDateFrom ? c.dateClosed >= filterDateFrom : true;
     const matchTo = filterDateTo ? c.dateClosed <= filterDateTo : true;
-    return matchCategory && matchFrom && matchTo;
+    return matchSearch && matchCategory && matchFrom && matchTo;
   });
 
   // NOTE: Trigger confirmation modals and success alerts for actions
@@ -551,7 +688,7 @@ function LeaVerificationRequest() {
     });
   };
 
-    return (
+  return (
     <div className='LeaDashboardMain'>
       <Sidebar sidebarType="LEA" />
       <div className='LeaContentContainer'>
@@ -563,39 +700,42 @@ function LeaVerificationRequest() {
               <p>SEND & TRACK FDA VERIFICATION REQUEST</p>
             </div>
           </div>
-          
+
           {/* STATS METRIC SUMMARY BAR (NON-CLICKABLE) */}
-                    <div className="LeaVerifStatsBar">
-                        <div className="LeaVerifStatCard">
-                            <div className="LeaVerifStatCardTop">
-                                <div className="LeaVerifStatBadge LeaVerifStatBadgeResponse">
-                                    <Inbox size={14} />
-                                </div>
-                            </div>
-                            <p className="LeaVerifStatValue">{responseCases.length}</p>
-                            <p className="LeaVerifStatLabel">FDA Response</p>
-                        </div>
+          <div className="LeaVerifStatsBar">
+            <div className="LeaVerifStatCard">
+              <div className="LeaVerifStatCardTop">
+                <div className="LeaVerifStatBadge LeaVerifStatBadgeResponse">
+                  <Inbox size={14} />
+                </div>
+              </div>
+              {/* CHANGED — was {responseCases.length}, now uses real backend count */}
+              <p className="LeaVerifStatValue">{leaCounts.fda_response_count}</p>
+              <p className="LeaVerifStatLabel">FDA Response</p>
+            </div>
 
-                        <div className="LeaVerifStatCard">
-                            <div className="LeaVerifStatCardTop">
-                                <div className="LeaVerifStatBadge LeaVerifStatBadgeInitiated">
-                                    <Siren size={14} />
-                                </div>
-                            </div>
-                            <p className="LeaVerifStatValue">{initiatedCases.length}</p>
-                            <p className="LeaVerifStatLabel">Initiated Cases</p>
-                        </div>
+            <div className="LeaVerifStatCard">
+              <div className="LeaVerifStatCardTop">
+                <div className="LeaVerifStatBadge LeaVerifStatBadgeInitiated">
+                  <Siren size={14} />
+                </div>
+              </div>
+              {/* CHANGED — was {initiatedCases.length}, now uses real backend count */}
+              <p className="LeaVerifStatValue">{leaCounts.initiated_count}</p>
+              <p className="LeaVerifStatLabel">Initiated Cases</p>
+            </div>
 
-                        <div className="LeaVerifStatCard">
-                            <div className="LeaVerifStatCardTop">
-                                <div className="LeaVerifStatBadge LeaVerifStatBadgeDismissed">
-                                    <Archive size={14} />
-                                </div>
-                            </div>
-                            <p className="LeaVerifStatValue">{dismissedCases.length}</p>
-                            <p className="LeaVerifStatLabel">Dismissed Cases</p>
-                        </div>
-                    </div>
+            <div className="LeaVerifStatCard">
+              <div className="LeaVerifStatCardTop">
+                <div className="LeaVerifStatBadge LeaVerifStatBadgeDismissed">
+                  <Archive size={14} />
+                </div>
+              </div>
+              {/* CHANGED — was {dismissedCases.length}, now uses real backend count */}
+              <p className="LeaVerifStatValue">{leaCounts.dismissed_count}</p>
+              <p className="LeaVerifStatLabel">Dismissed Cases</p>
+            </div>
+          </div>
 
           <div className="VerificationContainer">
 
@@ -620,10 +760,37 @@ function LeaVerificationRequest() {
                   {/* CHANGED — real data from readyList, was hardcoded card */}
                   {/* LEFT PANEL */}
                   <div className="ReadytoSendQueue">
+                    {/* MERGED-ADD — search bar + category filter dropdown */}
+                    <div className="LeaVerifQueueFilterHeader">
+                      <div className="LeaSearchWrapper">
+                        <Search size={16} className="LeaSearchIcon" />
+                        <input
+                          type="text"
+                          placeholder="Search Case ID, Product, or Manufacturer..."
+                          className="LeaCategoriesSearchInput"
+                          value={readySearch}
+                          onChange={(e) => setReadySearch(e.target.value)}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
+                        <Filter size={14} className="LeaVerifFilterIcon" />
+                        <select
+                          style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
+                          value={readyCategory}
+                          onChange={(e) => setReadyCategory(e.target.value)}
+                        >
+                          <option value="">All Categories</option>
+                          <option value="Cosmetics">Cosmetics</option>
+                          <option value="Food">Foods</option>
+                          <option value="Medical Devices">Medical Devices</option>
+                          <option value="Drugs">Drugs</option>
+                        </select>
+                      </div>
+                    </div>
                     <div className="ReadytoSendHeader">
                       <p>Walk-in cases awaiting your request</p>
-                      {/* Real count from backend */}
-                      <span>{readyList.length}</span>
+                      {/* MERGED-CHANGED — count now reflects filtered results */}
+                      <span>{filteredReadyList.length}</span>
                     </div>
 
                     {readyLoading && (
@@ -634,7 +801,15 @@ function LeaVerificationRequest() {
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>No cases awaiting verification request.</p>
                     )}
 
-                    {!readyLoading && readyList.map((item) => (
+                    {/* MERGED-ADD — empty state for when filters exclude everything */}
+                    {!readyLoading && readyList.length > 0 && filteredReadyList.length === 0 && (
+                      <div className="LeaVerifEmptyList">
+                        <Search size={32} />
+                        <p className="LeaVerifEmptyText">No cases match your current filters.</p>
+                      </div>
+                    )}
+
+                    {!readyLoading && filteredReadyList.map((item) => (
                       <div
                         key={item.complaint_id}
                         className={`QueueCard ${selectedComplaint?.complaint_id === item.complaint_id ? 'ActiveQueueCard' : ''}`}
@@ -650,6 +825,18 @@ function LeaVerificationRequest() {
 
                         <div className="QueueTag">
                           <span>{GetSourceLabel(item.source)}</span>
+                        </div>
+
+                        {/* MERGED-ADD — category + date, matching old version's QueueCardFooterRow.
+                            FLAGGED: date field name not confirmed against the real API response for this
+                            list endpoint — using item.created_at as the best guess; please confirm the
+                            actual field the backend returns (or add it if it's missing from that endpoint). */}
+                        <div className="QueueCardFooterRow">
+                          <span className="QueueCategoryTag">{item.product_category || '—'}</span>
+                          <span className="QueueDateTag">
+                            <Calendar size={12} />
+                            {item.created_at ? formatDateTime(item.created_at) : '—'}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -739,14 +926,46 @@ function LeaVerificationRequest() {
                           ></textarea>
                         </div>
 
-                        {/* CHANGED — renders real attached_files, no download link yet (pending teammate's file-view UI) */}
-                        <div className="AttachedFiles">
-                          <h4>Auto-attached from intake</h4>
-                          {selectedComplaint?.attached_files?.length > 0 ? (
-                            <p>
-                              {selectedComplaint.attached_files.map((f) => f.file_name).join(' · ')}
-                            </p>
-                          ) : null}
+                        {/* CHANGED — now driven by the real SharedFileResponse shape (file_id, file_name,
+                            file_size_bytes, mime_type, file_size_display). Icon picks image vs generic
+                            document based on mime_type; meta line shows file size only, per your call —
+                            file_name is the card's title, file_size_display is the only thing under it. */}
+                        <div className="LeaVerifSectionCard">
+                          <div className="LeaVerifSectionHeader">
+                            <Paperclip size={16} className="LeaVerifBlueIcon" />
+                            <h3>Auto-Attached Evidence & Request Documents</h3>
+                          </div>
+                          <div className="LeaVerifDocsGrid">
+                            {selectedComplaint?.attached_files?.length > 0 ? (
+                              selectedComplaint.attached_files.map((f, idx) => (
+                                <div key={f.file_id || idx} className="LeaVerifDocCard">
+                                  <div className="LeaVerifDocIcon">
+                                    {f.mime_type?.startsWith('image/') ? (
+                                      <ImageIcon size={18} />
+                                    ) : (
+                                      <FileText size={18} />
+                                    )}
+                                  </div>
+                                  <div className="LeaVerifDocInfo">
+                                    <p className="LeaVerifDocName">{f.file_name}</p>
+                                    <span className="LeaVerifDocMeta">{f.file_size_display}</span>
+                                  </div>
+                                  {/* CHANGED — eye button now opens the doc preview modal instead of doing nothing */}
+                                  <div className="LeaVerifDocActions">
+                                    <button
+                                      className="LeaVerifDocActionBtn"
+                                      title="Inspect Attachment"
+                                      onClick={() => setDocPreviewModal(f)}
+                                    >
+                                      <Eye size={13} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="LeaVerifNoDocsText">No evidence documents attached to this request.</p>
+                            )}
+                          </div>
                         </div>
 
                         <div className="VerificationActions">
@@ -772,11 +991,38 @@ function LeaVerificationRequest() {
 
                   {/* CHANGED — real data from awaitingList/selectedAwaitingFda, was hardcoded */}
                   {/* LEFT PANEL */}
-                  <div className="AwaitingFDAQueue">
+                  <div className="AwaitingLEAQueue">
+                    {/* MERGED-ADD — search bar + category filter dropdown */}
+                    <div className="LeaVerifQueueFilterHeader">
+                      <div className="LeaSearchWrapper">
+                        <Search size={16} className="LeaSearchIcon" />
+                        <input
+                          type="text"
+                          placeholder="Search Case ID, Product, or Manufacturer..."
+                          className="LeaCategoriesSearchInput"
+                          value={awaitingSearch}
+                          onChange={(e) => setAwaitingSearch(e.target.value)}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
+                        <Filter size={14} className="LeaVerifFilterIcon" />
+                        <select
+                          style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
+                          value={awaitingCategory}
+                          onChange={(e) => setAwaitingCategory(e.target.value)}
+                        >
+                          <option value="">All Categories</option>
+                          <option value="Cosmetics">Cosmetics</option>
+                          <option value="Food">Foods</option>
+                          <option value="Medical Devices">Medical Devices</option>
+                          <option value="Drugs">Drugs</option>
+                        </select>
+                      </div>
+                    </div>
                     <div className="AwaitingHeader">
                       <p>Request Pending FDA Review</p>
-                      {/* Real count from backend */}
-                      <span>{awaitingList.length}</span>
+                      {/* MERGED-CHANGED — count now reflects filtered results */}
+                      <span>{filteredAwaitingList.length}</span>
                     </div>
 
                     {awaitingLoading && (
@@ -787,22 +1033,37 @@ function LeaVerificationRequest() {
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>No pending verification requests.</p>
                     )}
 
-                    {!awaitingLoading && awaitingList.map((item) => (
+                    {/* MERGED-ADD — empty state for when filters exclude everything */}
+                    {!awaitingLoading && awaitingList.length > 0 && filteredAwaitingList.length === 0 && (
+                      <div className="LeaVerifEmptyList">
+                        <Search size={32} />
+                        <p className="LeaVerifEmptyText">No cases match your current filters.</p>
+                      </div>
+                    )}
+
+                    {!awaitingLoading && filteredAwaitingList.map((item) => (
                       <div
                         key={item.request_id}
                         className={`QueueCard ${selectedAwaitingFda?.request_id === item.request_id ? 'ActiveQueueCard' : ''}`}
                         onClick={() => setSelectedAwaitingFda(item)}
                       >
-                        <div>
-                          <h4>{item.product_name}</h4>
-                          <p>{item.manufacturer || '—'}</p>
-                          <small>
-                            CASE ID: {item.case_reference}
-                          </small>
+                        {/* MERGED-CHANGED — restructured to match the reference UI: CASE ID + source tag on top row */}
+                        <div className="QueueCardTopRow">
+                          <small style={{ margin: 0 }}>CASE ID: {item.case_reference}</small>
+                          <span className="QueueTagInline">{GetSourceLabel(item.source)}</span>
                         </div>
+                        <h4>{item.product_name}</h4>
+                        <p>{item.manufacturer || '—'}</p>
 
-                        <div className="QueueTag">
-                          <span>{GetSourceLabel(item.source)}</span>
+                        {/* MERGED-ADD — category + date, matching old version's QueueCardFooterRow.
+                            FLAGGED: same field-name caveat as the Ready to Send list — using
+                            item.requested_at (confirmed elsewhere in this tab's detail panel) as the date. */}
+                        <div className="QueueCardFooterRow">
+                          <span className="QueueCategoryTag">{item.product_category || '—'}</span>
+                          <span className="QueueDateTag">
+                            <Calendar size={12} />
+                            {item.requested_at ? formatDateTime(item.requested_at) : '—'}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -900,38 +1161,74 @@ function LeaVerificationRequest() {
               {activeTab === 'FDA Response' &&
                 <div className='VerificationContent FDAResponseButtonContent'>
                   {/* LEFT PANEL */}
-                  <div className="FDAResponseQueue">
-                    <div className="FDAResponseHeader">
+                  <div className="LEAResponseQueue">
+                    {/* MERGED-ADD — search bar + category filter dropdown */}
+                    <div className="LeaVerifQueueFilterHeader">
+                      <div className="LeaSearchWrapper">
+                        <Search size={16} className="LeaSearchIcon" />
+                        <input
+                          type="text"
+                          placeholder="Search Case ID, Product, or Manufacturer..."
+                          className="LeaCategoriesSearchInput"
+                          value={responseSearch}
+                          onChange={(e) => setResponseSearch(e.target.value)}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
+                        <Filter size={14} className="LeaVerifFilterIcon" />
+                        <select
+                          style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
+                          value={responseCategory}
+                          onChange={(e) => setResponseCategory(e.target.value)}
+                        >
+                          <option value="">All Categories</option>
+                          <option value="Cosmetics">Cosmetics</option>
+                          <option value="Food">Foods</option>
+                          <option value="Medical Devices">Medical Devices</option>
+                          <option value="Drugs">Drugs</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="LEAResponseHeader">
                       <p>FDA confirmations received</p>
                       {/* REMOVE THIS */}
                       {/* BACKEND: count of responseCases */}
-                      <span>{responseCases.length}</span>
+                      {/* MERGED-CHANGED — count now reflects filtered results */}
+                      <span>{filteredResponseCases.length}</span>
                     </div>
 
-                    {responseCases.map((item) => (
+                    {/* MERGED-ADD — empty state for when filters exclude everything */}
+                    {filteredResponseCases.length === 0 && (
+                      <div className="LeaVerifEmptyList">
+                        <Search size={32} />
+                        <p className="LeaVerifEmptyText">No cases match your current filters.</p>
+                      </div>
+                    )}
+
+                    {filteredResponseCases.map((item) => (
                       <div
                         key={item.id}
                         className={`QueueCard ${selectedResponse.id === item.id ? 'ActiveQueueCard' : ''}`}
                         id=''
                         onClick={() => setSelectedResponse(item)}
                       >
-                        <div>
-                          <h4>{item.product}</h4>
-                          <p>{item.manufacturer}</p>
-                          <small>
-                            {/*  BACKEND: status badge reflects verification_request_status ('confirmed_registered' | 'confirmed_unregistered' | 'rejected') */}
-                            CASE ID: {item.caseNumber}
-                          </small>
-                        </div>
-                        <div className="ResponseQueueTag">
-                          <span className={
-                            item.status === 'Registered'
-                              ? 'registered'
-                              : item.status === 'Rejected'
-                                ? 'RejectedBadge'
-                                : ''
-                          }>
+                        {/* MERGED-CHANGED — restructured to match the reference UI: CASE ID + status badge on top row, category + date in footer */}
+                        <div className="QueueCardTopRow">
+                          <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
+                          {/*  BACKEND: status badge reflects verification_request_status ('confirmed_registered' | 'confirmed_unregistered' | 'rejected') */}
+                          <span className={`QueueStatusBadge ${item.status === 'Registered' ? 'registered' :
+                            item.status === 'Rejected' ? 'rejected' : 'unregistered'
+                            }`}>
                             {item.status}
+                          </span>
+                        </div>
+                        <h4>{item.product}</h4>
+                        <p>{item.manufacturer}</p>
+                        <div className="QueueCardFooterRow">
+                          <span className="QueueCategoryTag">{item.category}</span>
+                          <span className="QueueDateTag">
+                            <Calendar size={12} />
+                            {item.returnedDate}
                           </span>
                         </div>
                       </div>
@@ -1083,30 +1380,68 @@ function LeaVerificationRequest() {
               {activeTab === 'Initiated Cases' &&
                 <div className='VerificationContent FDAResponseButtonContent'>
                   {/* LEFT PANEL */}
-                  <div className="FDAResponseQueue">
-                    <div className="FDAResponseHeader">
+                  <div className="LEAResponseQueue">
+                    {/* MERGED-ADD — search bar + category filter dropdown */}
+                    <div className="LeaVerifQueueFilterHeader">
+                      <div className="LeaSearchWrapper">
+                        <Search size={16} className="LeaSearchIcon" />
+                        <input
+                          type="text"
+                          placeholder="Search Case ID, Product, or Manufacturer..."
+                          className="LeaCategoriesSearchInput"
+                          value={initiatedSearch}
+                          onChange={(e) => setInitiatedSearch(e.target.value)}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
+                        <Filter size={14} className="LeaVerifFilterIcon" />
+                        <select
+                          style={{ flex: 1, background: 'transparent', border: 'none', fontSize: '12px', fontWeight: '600', color: '#030303', outline: 'none', cursor: 'pointer' }}
+                          value={initiatedCategory}
+                          onChange={(e) => setInitiatedCategory(e.target.value)}
+                        >
+                          <option value="">All Categories</option>
+                          <option value="Cosmetics">Cosmetics</option>
+                          <option value="Food">Foods</option>
+                          <option value="Medical Devices">Medical Devices</option>
+                          <option value="Drugs">Drugs</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="LEAResponseHeader">
                       <p>Cases with active takedown operations</p>
                       {/* REMOVE THIS */}
                       {/* BACKEND: count of cases where complaint_status = 'takedown_initiated' */}
-                      <span>{initiatedCases.length}</span>
+                      {/* MERGED-CHANGED — count now reflects filtered results */}
+                      <span>{filteredInitiatedCases.length}</span>
                     </div>
 
-                    {initiatedCases.map((item) => (
+                    {/* MERGED-ADD — empty state for when filters exclude everything */}
+                    {filteredInitiatedCases.length === 0 && (
+                      <div className="LeaVerifEmptyList">
+                        <Search size={32} />
+                        <p className="LeaVerifEmptyText">No cases match your current filters.</p>
+                      </div>
+                    )}
+
+                    {filteredInitiatedCases.map((item) => (
                       <div
                         key={item.id}
                         className={`QueueCard ${selectedInitiatedCase.id === item.id ? 'ActiveQueueCard' : ''}`}
                         onClick={() => setSelectedInitiatedCase(item)}
                       >
-                        <div>
-                          <h4>{item.product}</h4>
-                          <p>{item.manufacturer}</p>
-                          <small>
-                            CASE ID: {item.caseNumber}
-                          </small>
+                        {/* MERGED-CHANGED — restructured to match the reference UI: CASE ID + status badge on top row, category + date in footer */}
+                        <div className="QueueCardTopRow">
+                          <small style={{ margin: 0 }}>CASE ID: {item.caseNumber}</small>
+                          <span className="OperationInProgressBadge">{item.status}</span>
                         </div>
-                        <div className="ResponseQueueTag">
-                          <span className="OperationInProgressBadge">
-                            {item.status}
+                        <h4>{item.product}</h4>
+                        <p>{item.manufacturer}</p>
+                        <div className="QueueCardFooterRow">
+                          <span className="QueueCategoryTag">{item.category}</span>
+                          <span className="QueueDateTag">
+                            <Calendar size={12} />
+                            {item.returnedDate}
                           </span>
                         </div>
                       </div>
@@ -1187,53 +1522,63 @@ function LeaVerificationRequest() {
               {activeTab === 'Dismissed Cases' &&
                 <div className="DismissedTableContainer">
 
-                  {/* Filters Bar — matches Saved Drafts filter style */}
-                  <div className="DraftsFilterSection">
-                    <div className="DraftsFilterControls">
-                      {/* BACKEND: pass filterDateFrom as from_date query param */}
-                      <input
-                        type="date"
-                        className="DraftsFilterDropdown"
-                        value={filterDateFrom}
-                        onChange={(e) => setFilterDateFrom(e.target.value)}
-                        title="Closed From"
-                      />
-                      {/* BACKEND: pass filterDateTo as to_date query param */}
-                      <input
-                        type="date"
-                        className="DraftsFilterDropdown"
-                        value={filterDateTo}
-                        onChange={(e) => setFilterDateTo(e.target.value)}
-                        title="Closed To"
-                      />
-                      {/* BACKEND: pass filterCategory as category query param */}
-                      <select
-                        className="DraftsFilterDropdown"
-                        value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value)}
-                      >
-                        <option value="">All Categories</option>
-                        <option value="Supplement">Supplement</option>
-                        <option value="Cosmetic">Cosmetic</option>
-                        <option value="Food">Food</option>
-                        <option value="Drug">Drug</option>
-                        <option value="Medical Device">Medical Device</option>
-                      </select>
-                      <button
-                        className="BtnClearFilters"
-                        onClick={() => {
-                          setFilterDateFrom('');
-                          setFilterDateTo('');
-                          setFilterCategory('');
-                        }}
-                      >
-                        Clear Filters
-                      </button>
+                  {/* MERGED-CHANGED — Filters Bar rebuilt: search leftmost, FROM/TO + category filters rightmost, matching old version's LeaFilterPanel pattern */}
+                  <div className="LeaFilterPanel LeaVerifFilterPanel">
+                    <div className="LeaVerifFilterControlsLeft">
+                      <div className="LeaSearchWrapper">
+                        <Search size={16} className="LeaSearchIcon" />
+                        <input
+                          type="text"
+                          placeholder="Search Case ID, Product or Manufacturer..."
+                          className="LeaSearchInput"
+                          value={dismissedSearch}
+                          onChange={(e) => setDismissedSearch(e.target.value)}
+                        />
+                      </div>
                     </div>
-                    {/* BACKEND: GET /api/complaints?status=dismissed&from_date=${filterDateFrom}&to_date=${filterDateTo}&category=${filterCategory} */}
-                    <div className="DraftsTotalCount">
-                      Total Cases: {filteredDismissed.length}
+                    <div className="LeaVerifFilterControlsRight">
+                      <div className="LeaFilterGroup">
+                        {/* BACKEND: pass filterDateFrom as from_date query param */}
+                        <label>From</label>
+                        <input
+                          type="date"
+                          className="LeaVerifDateInput"
+                          value={filterDateFrom}
+                          onChange={(e) => setFilterDateFrom(e.target.value)}
+                          title="Closed From"
+                        />
+                      </div>
+                      <div className="LeaFilterGroup">
+                        {/* BACKEND: pass filterDateTo as to_date query param */}
+                        <label>To</label>
+                        <input
+                          type="date"
+                          className="LeaVerifDateInput"
+                          value={filterDateTo}
+                          onChange={(e) => setFilterDateTo(e.target.value)}
+                          title="Closed To"
+                        />
+                      </div>
+                      <div className="LeaFilterGroup">
+                        {/* BACKEND: pass filterCategory as category query param */}
+                        <label>Category</label>
+                        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                          <option value="">All Categories</option>
+                          <option value="Cosmetics">Cosmetics</option>
+                          <option value="Food">Foods</option>
+                          <option value="Drugs">Drugs</option>
+                          <option value="Medical Devices">Medical Devices</option>
+                        </select>
+                      </div>
                     </div>
+                  </div>
+                  {/* MERGED-CHANGED — Total Cases moved out of the filter-row flexbox onto its own line below,
+                      matching the already-working Saved Drafts pattern. It was previously a third child inside
+                      .LeaFilterPanel's flex row, so it got squeezed onto the same line as the Category dropdown
+                      instead of wrapping cleanly underneath. */}
+                  {/* BACKEND: GET /api/complaints?status=dismissed&from_date=${filterDateFrom}&to_date=${filterDateTo}&category=${filterCategory} */}
+                  <div className="DraftsTotalCount" style={{ margin: '4px 2px 16px 20px' }}>
+                    Total Cases: {filteredDismissed.length}
                   </div>
 
                   {/* Full-width table */}
@@ -1373,6 +1718,97 @@ function LeaVerificationRequest() {
 
             <div className="ModalActions">
               <button className="BtnCancelModal" onClick={() => setViewCaseModalData(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADDED — attachment preview modal, mirrors the FDA-side implementation.
+    Fetches inline preview from GET /shared-files/{file_id}/preview (images + PDF only);
+    other mime types fall back to a download-only placeholder. */}
+      {docPreviewModal && (
+        <div className="ModalOverlay">
+          <div className="LeaVerifDocModalContainer">
+            <div className="LeaVerifDocModalHeader">
+              <div className="LeaVerifDocModalTitleGroup">
+                <Paperclip size={16} className="LeaVerifBlueIcon" />
+                <div>
+                  <h3>{docPreviewModal.file_name}</h3>
+                  <p className="LeaVerifDocModalMeta">
+                    {docPreviewModal.mime_type} &bull; {docPreviewModal.file_size_display}
+                  </p>
+                </div>
+              </div>
+              <button className="LeaVerifIconButton" onClick={() => setDocPreviewModal(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="LeaVerifDocModalBody">
+              {(docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.mime_type === 'application/pdf') ? (
+                docPreviewLoading ? (
+                  <div className="LeaVerifDocPlaceholderPreview">
+                    <p className="LeaVerifPreviewText">Loading preview&hellip;</p>
+                  </div>
+                ) : docPreviewError ? (
+                  <div className="LeaVerifDocPlaceholderPreview">
+                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                    <p className="LeaVerifPreviewTitle">Preview unavailable</p>
+                    <p className="LeaVerifPreviewText">Try downloading the file instead.</p>
+                  </div>
+                ) : docPreviewModal.mime_type.startsWith('image/') ? (
+                  <img
+                    src={docPreviewUrl}
+                    alt={docPreviewModal.file_name}
+                    className="LeaVerifDocImagePreview"
+                  />
+                ) : (
+                  <iframe
+                    src={docPreviewUrl}
+                    title={docPreviewModal.file_name}
+                    className="LeaVerifDocPdfPreview"
+                  />
+                )
+              ) : (
+                <div className="LeaVerifDocPlaceholderPreview">
+                  <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                  <p className="LeaVerifPreviewTitle">Preview not supported</p>
+                  <p className="LeaVerifPreviewText">
+                    <strong>{docPreviewModal.file_name}</strong> can't be previewed inline &mdash; use download instead.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="LeaVerifModalFooter">
+              <button className="LeaVerifBtnOutline" onClick={() => setDocPreviewModal(null)}>
+                Close Preview
+              </button>
+              <button
+                className="LeaVerifBtnPrimary"
+                onClick={() => {
+                  const token = localStorage.getItem('access_token');
+                  fetch(`${API_BASE}/shared-files/${docPreviewModal.file_id}/download`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                  })
+                    .then((res) => {
+                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                      return res.blob();
+                    })
+                    .then((blob) => {
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = docPreviewModal.file_name;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    })
+                    .catch(() => setErrorMessage('Could not download the file. Please try again.'));
+                }}
+              >
+                <Download size={14} />
+                <span>Download Attachment</span>
+              </button>
             </div>
           </div>
         </div>
