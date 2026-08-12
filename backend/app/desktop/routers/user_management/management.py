@@ -15,6 +15,8 @@ from app.core.constants import UserStatus
 from app.core.dependencies import get_current_superadmin
 from app.core.security import hash_password
 from app.desktop.services.auth.email import send_activation_email
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/admin/users", tags=["user-management"])
 
@@ -159,6 +161,14 @@ async def activate_user(
     fullname = " ".join(p for p in [user.first_name, user.middle_name, user.last_name] if p)
     await send_activation_email(user.email, fullname or user.email, temp_password)
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_ACTIVATED,
+        title="Account activated",
+        message=f"{user.email} has been activated and is now an active user.",
+        related_user_id=user.user_id,
+    )
+
     return {"message": "User account activated successfully"}
 
 
@@ -174,6 +184,15 @@ def suspend_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = False
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_SUSPENDED,
+        title="Account suspended",
+        message=f"{user.email}'s account has been suspended.",
+        related_user_id=user.user_id,
+    )
+
     return {"message": "User account suspended successfully"}
 
 
@@ -189,6 +208,15 @@ def reactivate_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = True
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_REACTIVATED,
+        title="Account reactivated",
+        message=f"{user.email}'s account has been reactivated.",
+        related_user_id=user.user_id,
+    )
+
     return {"message": "User account reactivated successfully"}
 
 
@@ -224,6 +252,14 @@ async def resend_invitation(
 
     from app.desktop.services.auth.email import send_invite_email
     await send_invite_email(user.email, friendly_role, token)
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Invitation resent",
+        message=f"Invitation resent to {user.email}.",
+        related_user_id=user.user_id,
+    )
 
     return {"message": "Invitation resent successfully"}
 
