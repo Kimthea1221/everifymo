@@ -15,6 +15,7 @@ class UserListItem(BaseModel):
     contact_number: Optional[str]
     display_status: str
     is_active: bool
+    is_locked: bool
 
     class Config:
         from_attributes = True

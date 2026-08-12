@@ -38,7 +38,12 @@ async def get_complaints_status(db: db_dependency, current_user: user_dependency
             new_status = status.new_status if status else complaint.status,
             change_note = status.change_note if status else None,
             product_title = complaint.product_title, 
-            changed_at = status.changed_at if status else complaint.updated_at
+            changed_at = status.changed_at if status else complaint.updated_at,
+            platform = complaint.platform,
+            product_url = complaint.product_url,
+            store_name = complaint.store_name,
+            consumer_description = complaint.consumer_description,
+            created_at = complaint.created_at,
         )
         for complaint, status in results
     ]

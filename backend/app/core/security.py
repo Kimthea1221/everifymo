@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
+import re
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -25,7 +26,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(data: dict, expires_minutes: int = 60) -> str:
+def create_desktop_access_token(data: dict, expires_minutes: int | None = None) -> str:
+    if expires_minutes is None:
+        expires_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
     to_encode.update({"exp": expire})
@@ -52,7 +55,7 @@ def authenticate_consumer(email:str, password:str, db:Session):
         return False
     return user
 
-def create_access_token(username:str, consumer_id, expires_delta:timedelta):
+def create_consumer_access_token(username:str, consumer_id, expires_delta:timedelta):
     encode = {
         "sub": username,
         "id": str(consumer_id)
@@ -80,4 +83,16 @@ def get_current_user(token: Annotated[str | None, Depends(oauth2_bearer)]):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized access"
         )
+
+
+def validate_password_strength(v: str) -> str:
+    if len(v) < 8:
+        raise ValueError("Password must be at least 8 characters.")
+    if not re.search(r"[A-Z]", v):
+        raise ValueError("Password must include at least one uppercase letter.")
+    if not re.search(r"[0-9]", v):
+        raise ValueError("Password must include at least one number.")
+    if not re.search(r"[^A-Za-z0-9]", v):
+        raise ValueError("Password must include at least one special character.")
+    return v
     

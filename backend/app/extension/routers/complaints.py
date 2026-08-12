@@ -53,6 +53,7 @@ async def get_complaints_history(db: db_dependency, current_user: user_dependenc
             product_title = complaint.product_title, 
             store_name = complaint.store_name,
             platform = complaint.platform,
+            product_url = complaint.product_url,
             consumer_description = complaint.consumer_description,
             verification_result = complaint.verification_result,
             status = status.new_status if status else complaint.status,

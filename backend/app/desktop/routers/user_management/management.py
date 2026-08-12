@@ -19,10 +19,19 @@ from app.desktop.services.auth.email import send_activation_email
 router = APIRouter(prefix="/admin/users", tags=["user-management"])
 
 
-def compute_display_status(user: User, latest_resend_requested_at) -> str:
+def compute_display_status(user: User, latest_token) -> str:
+    if user.is_locked:
+        return "Locked Account"
     if user.status == UserStatus.INVITED:
-        if latest_resend_requested_at is not None:
-            return "Invite Requested"
+        if latest_token:
+            if latest_token.resend_requested_at is not None:
+                return "Resend Requested"
+            expires_at = latest_token.expires_at
+            if expires_at:
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(tzinfo=timezone.utc)
+                if expires_at < datetime.now(timezone.utc):
+                    return "Link Expired"
         return "Invited"
     if user.status == UserStatus.PENDING_APPROVAL:
         return "Pending Approval"
@@ -41,16 +50,21 @@ def list_users(
     db.execute(text("SET app.bypass_rls = 'true'"))
 
     users = db.query(User).filter(User.role != "superadmin").all()
+    if not users:
+        return []
+
+    user_ids = [user.user_id for user in users]
+    tokens = (
+        db.query(AccountInvitationToken)
+        .filter(AccountInvitationToken.user_id.in_(user_ids))
+        .order_by(AccountInvitationToken.created_at.asc())
+        .all()
+    )
+    tokens_map = {token.user_id: token for token in tokens}
 
     result = []
     for user in users:
-        latest_token = (
-            db.query(AccountInvitationToken)
-            .filter(AccountInvitationToken.user_id == user.user_id)
-            .order_by(AccountInvitationToken.created_at.desc())
-            .first()
-        )
-        latest_resend = latest_token.resend_requested_at if latest_token else None
+        latest_token = tokens_map.get(user.user_id)
 
         parts = [p for p in [user.first_name, user.middle_name, user.last_name] if p]
         fullname = " ".join(parts) if parts else None
@@ -66,8 +80,9 @@ def list_users(
                 department=user.department,
                 position=user.position,
                 contact_number=user.contact_number,
-                display_status=compute_display_status(user, latest_resend),
+                display_status=compute_display_status(user, latest_token),
                 is_active=user.is_active,
+                is_locked=user.is_locked,
             )
         )
 
@@ -91,17 +106,22 @@ def user_summary(
     invited_users = base_query.filter(User.status == UserStatus.INVITED).all()
     invited_count = 0
     invite_requested_count = 0
-    for u in invited_users:
-        latest_token = (
+
+    if invited_users:
+        invited_ids = [u.user_id for u in invited_users]
+        tokens = (
             db.query(AccountInvitationToken)
-            .filter(AccountInvitationToken.user_id == u.user_id)
-            .order_by(AccountInvitationToken.created_at.desc())
-            .first()
+            .filter(AccountInvitationToken.user_id.in_(invited_ids))
+            .order_by(AccountInvitationToken.created_at.asc())
+            .all()
         )
-        if latest_token and latest_token.resend_requested_at is not None:
-            invite_requested_count += 1
-        else:
-            invited_count += 1
+        tokens_map = {token.user_id: token for token in tokens}
+        for u in invited_users:
+            latest_token = tokens_map.get(u.user_id)
+            if latest_token and latest_token.resend_requested_at is not None:
+                invite_requested_count += 1
+            else:
+                invited_count += 1
 
     return UserSummary(
         total_users=total,
@@ -226,3 +246,19 @@ def delete_user(
     db.delete(user)
     db.commit()
     return {"message": "User deleted successfully"}
+
+
+@router.post("/{user_id}/unlock")
+def unlock_user(
+    user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin),
+):
+    db.execute(text("SET app.bypass_rls = 'true'"))
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_locked = False
+    user.failed_login_attempts = 0
+    db.commit()
+    return {"message": "User account unlocked successfully"}
