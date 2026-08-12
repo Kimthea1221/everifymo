@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, AlertCircle  } from 'lucide-react'
 import '../App.css'
 import FDALogo from '../images/FDA.png'
 import PNPLogo from '../images/pnp-cidg.jpg'
@@ -9,13 +9,14 @@ function Login(){
     const navigate = useNavigate();
 
     // tracks which agency button the user selected (fda or cidg)
-    const [agency, setAgency] = useState('fda')
+    const [agency, setAgency] = useState('')
     // form input states
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loginError, setLoginError] = useState('')
     const [rememberMe, setRememberMe] = useState(false)
+    const [errors, setErrors] = useState({})
 
     // Load remembered email on mount
     useEffect(() => {
@@ -125,34 +126,55 @@ function Login(){
       setLoginError('');
     }
 
-    // frontend password format validation (need din validate sa backend)
-    function validatePassword(pwd) {
-      if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter.';
-      if (!/[0-9]/.test(pwd)) return 'Password must contain at least one number.';
-      if (!/[!@#$%^&*(),.?":{}|<>_\-+=/\\\[\]~`';]/.test(pwd)) return 'Password must contain at least one special character.';
-      return null;
+    // Format seconds as M:SS to match the superadmin login OTP timer
+    const formatTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+    // Field change handlers — clear that field's error the moment the user edits it
+
+    // Field change handlers — clear that field's error the moment the user edits it
+    function handleEmailChange(e) {
+      setEmail(e.target.value);
+      if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+    }
+
+    function handlePasswordChange(e) {
+      setPassword(e.target.value);
+      if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
+    }
+
+    function handleAgencyChange(value) {
+      setAgency(value);
+      if (errors.agency) setErrors((prev) => ({ ...prev, agency: '' }));
     }
 
     // handles both credential check and OTP verification
     async function handleLogin() {
       if (!isOtpSent) {
-        // check if fields are empty
-        if (!email || !password) {
-          setLoginError('Please input your credentials to continue.')
-          return
+        // per-field validation
+        const newErrors = {};
+
+        if (!agency) {
+          newErrors.agency = 'Please select an agency.';
         }
-        // validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          setLoginError('Please enter a valid email address.');
+
+        if (!email.trim()) {
+          newErrors.email = 'Email is required.';
+        } else {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            newErrors.email = 'Please enter a valid email address.';
+          }
+        }
+
+        if (!password.trim()) {
+          newErrors.password = 'Password is required.';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+          setErrors(newErrors);
           return;
         }
-        //validate password format
-        const pwdError = validatePassword(password);
-        if (pwdError) {
-          setLoginError(pwdError);
-          return;
-        }
+        setErrors({});
 
         try {
           const response = await fetch('http://127.0.0.1:8000/auth/login', {
@@ -265,18 +287,21 @@ function Login(){
               <>
                 <label htmlFor="agency">Agency <span>*</span></label>
                 <div className="AgencyButtons">
-                  <input type="radio" id="fda" name="agency" value="fda" onChange={() => setAgency('fda')} checked={agency === 'fda'} />
+                  <input type="radio" id="fda" name="agency" value="fda" onChange={() => handleAgencyChange('fda')} checked={agency === 'fda'} />
                   <label htmlFor="fda" className="InterButtons AgencyButtonFDA">FDA</label>
 
-                  <input type="radio" id="cidg" name="agency" value="lea" onChange={() => setAgency('lea')} checked={agency === 'lea'} />
+                  <input type="radio" id="cidg" name="agency" value="lea" onChange={() => handleAgencyChange('lea')} checked={agency === 'lea'} />
                   <label htmlFor="cidg" className="InterButtons AgencyButtonCIDG">LEA-CIDG</label>
                 </div>
+                {errors.agency && <span className="LoginFieldError"><AlertCircle size={12} /> {errors.agency}</span>}
 
                 <label htmlFor="email">Email <span>*</span></label>
                 <div className="LoginInputWrapper">
                   <Mail className="LoginInputIcon" size={16} />
-                  <input type="email" id="email" placeholder="youremail@gmail.com" value={email} onChange={(e)=> setEmail(e.target.value)} required/>
+                  <input type="email" id="email" placeholder="youremail@gmail.com" value={email} onChange={handleEmailChange} required/>
                 </div>
+                 {errors.email && <span className="LoginFieldError"><AlertCircle size={12} /> {errors.email}</span>}
+
 
                 <label htmlFor="password">Password <span>*</span></label>
                 <div className="PasswordInputWrapper">
@@ -286,7 +311,7 @@ function Login(){
                     id="password"
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={handlePasswordChange}
                     required
                   />
                   <button
@@ -298,6 +323,7 @@ function Login(){
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                 {errors.password && <span className="LoginFieldError"><AlertCircle size={12} /> {errors.password}</span>}
 
                 <div className="RememberMe">
                   <label htmlFor="remember-me"> 
@@ -338,7 +364,7 @@ function Login(){
 
                 <div className="LoginOtpTimerContainer">
                   {timer > 0 ? (
-                    <p>Resend code in <strong>{timer}s</strong></p>
+                    <p>Resend code in <strong>{formatTimer(timer)}</strong></p>
                   ) : (
                     <p>
                       Didn't receive the code?{' '}
