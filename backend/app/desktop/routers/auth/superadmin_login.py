@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.constants import UserStatus
 from app.database.sessions import get_db
 from app.desktop.schemas.auth.superadmin_login import SuperAdminLoginRequest, SuperAdminOTPVerifyRequest
 from app.desktop.services.auth.superadmin_auth import authenticate_superadmin
@@ -21,6 +22,17 @@ async def superadmin_login(request: SuperAdminLoginRequest, db: Session = Depend
         user = authenticate_superadmin(db, request.email, request.password)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+    if user.status == UserStatus.PENDING_APPROVAL:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account is awaiting activation from a fellow Superadmin. You'll receive an email once it's activated.",
+        )
+    if user.status == UserStatus.INVITED:
+        raise HTTPException(
+            status_code=403,
+            detail="Please complete your registration using the invitation link sent to your email.",
+        )
 
     otp = create_otp_for_user(db, user)
 

@@ -317,7 +317,7 @@ function LeaNewIntake() {
                       <option value="Food">Food</option>
                       <option value="Cosmetics">Cosmetics</option>
                       <option value="Drugs">Drugs</option>
-                      <option value=" Devices">Radiation and Health Devices</option>
+                      <option value="Devices">Medical Devices</option>
                     </select>
                   </div>
                   <div>
