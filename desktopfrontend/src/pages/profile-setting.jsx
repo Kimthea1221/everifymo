@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, 
@@ -21,6 +21,7 @@ import {
 
 import Sidebar from './component/sidebar';
 import TopBar from './component/top-bar';
+import { apiFetch } from '../utils/apiFetch';
 
 // Load layouts for the respective workspaces
 import './fdafolder/fda-css.css';
@@ -29,10 +30,6 @@ import './superadminfolder/superadmin-css.css';
 
 /**
  * Helper function to determine the authenticated user's role/agency consistently across the component.
- * Evaluates storage values ('agency' or 'role') and normalizes them into one of three standardized roles:
- * - 'SUPERADMIN': Super Admin Personnel
- * - 'LEA': Law Enforcement Agency (CIDG / LEA) Personnel
- * - 'FDA': Food and Drug Administration Officer (Default Fallback)
  */
 const getAuthenticatedUserRole = () => {
   const rawAgency = (localStorage.getItem('agency') || localStorage.getItem('role') || 'FDA').toString().trim().toUpperCase();
@@ -45,111 +42,53 @@ const getAuthenticatedUserRole = () => {
   return 'FDA';
 };
 
-/**
- * Helper function that returns standard default profile details according to the authenticated user's role.
- * Used for initial form state and resetting form values on cancel.
- */
-const getDefaultProfileData = (role) => {
-  if (role === 'SUPERADMIN') {
-    return {
-      firstName: 'Super',
-      middleName: '',
-      lastName: 'Admin',
-      employeeId: 'SA-2026-0001',
-      email: 'admin@icmda.gov.ph',
-      agency: 'SUPERADMIN',
-      region: 'Headquarters (NCR)',
-      contactNumber: '09170000000',
-      department: 'System Administration',
-      position: 'System Administrator',
-    };
-  }
-  if (role === 'LEA') {
-    return {
-      firstName: 'Jun',
-      middleName: '',
-      lastName: 'Cat',
-      employeeId: 'CIDG-2026-0391',
-      email: 'jun.cat@gmail.com',
-      agency: 'LEA-CIDG',
-      region: 'NCR - National Capital Region',
-      contactNumber: '09228765432',
-      department: 'Anti-Fraud and Commercial Crimes Unit',
-      position: 'Chief Investigator',
-    };
-  }
-  // Default FDA profile details
+// Maps backend ProfileResponse (snake_case) -> frontend form shape (camelCase)
+function mapProfileToForm(data) {
   return {
-    firstName: 'Kristine',
-    middleName: '',
-    lastName: 'Fajardo',
-    employeeId: 'EMP-2026-0892',
-    email: 'kristine.fajardo@gmail.com',
-    agency: 'FDA',
-    region: 'Region IV-A (CALABARZON)',
-    contactNumber: '09171234567',
-    department: 'Regulation and Enforcement Division',
-    position: 'Senior Food and Drug Officer',
+    firstName: data.first_name || '',
+    middleName: data.middle_name || '',
+    lastName: data.last_name || '',
+    employeeId: data.employee_id || '',
+    email: data.email || '',
+    agency: data.agency || '',
+    region: data.region || '',
+    contactNumber: data.contact_number || '',
+    department: data.department || '',
+    position: data.position || '',
   };
+}
+
+const EMPTY_FORM = {
+  firstName: '', middleName: '', lastName: '', employeeId: '',
+  email: '', agency: '', region: '', contactNumber: '', department: '', position: '',
 };
 
 /**
  * PROFILE & SETTINGS COMPONENT FOR ICMDA
  * Used by FDA, LEA-CIDG, and Super Admin personnel.
- * Styled with neutral colors (#13213C Navy, #1F2937 Slate, #FCA311 Gold Accent).
- * Wraps itself in the corresponding dashboard layout (Sidebar + TopBar) depending on logged-in agency.
  */
 function ProfileSetting() {
   const navigate = useNavigate();
-
-  // Centralized source of truth for the authenticated user's role
   const currentRole = getAuthenticatedUserRole();
 
-  // Primary user profile state pre-filled based on authenticated user's role
-  const [form, setForm] = useState(() => getDefaultProfileData(currentRole));
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [loading, setLoading] = useState(true);
 
-  // Password / Security state
+  // Shared password state — used by both the FDA/LEA form and the Superadmin password card
   const [security, setSecurity] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
 
-  // Password visibility states
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Superadmin profile state (placeholder for backend integration)
-  const [superAdminProfile, setSuperAdminProfile] = useState({
-    name: 'Kristine',
-    email: 'admin@icmda.gov.ph',
-    role: 'Super Administrator',
-  });
-
-  // Superadmin password state (placeholder for backend integration)
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-
-  // Superadmin password visibility states
-  const [showSuperCurrent, setShowSuperCurrent] = useState(false);
-  const [showSuperNew, setShowSuperNew] = useState(false);
-  const [showSuperConfirm, setShowSuperConfirm] = useState(false);
-
-  const handlePasswordDataChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Form interaction/validation states
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // { type: 'success' | 'error', message: string }
 
-  // Fields that cannot be left empty
   const REQUIRED_FIELDS = [
     'firstName',
     'lastName',
@@ -159,27 +98,27 @@ function ProfileSetting() {
     'position'
   ];
 
-  /* 
-    BACKEND INTEGRATION NOTE (Fetch Profile):
-    Use a useEffect hook to retrieve the current user's profile details on component mount:
-    
-    useEffect(() => {
-      async function fetchProfile() {
-        try {
-          const response = await fetch('/api/user/profile');
-          if (response.ok) {
-            const data = await response.json();
-            setForm(data);
-          }
-        } catch (err) {
-          console.error("Failed to load user profile:", err);
-        }
-      }
-      fetchProfile();
-    }, []);
-  */
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
-  // Form field inputs handler
+  async function fetchProfile() {
+    try {
+      setLoading(true);
+      const response = await apiFetch('/profile');
+      if (!response.ok) {
+        console.error('Failed to fetch profile');
+        return;
+      }
+      const data = await response.json();
+      setForm(mapProfileToForm(data));
+    } catch (err) {
+      console.error('Failed to load user profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -188,7 +127,6 @@ function ProfileSetting() {
     }
   };
 
-  // Password fields input handler
   const handleSecurityChange = (e) => {
     const { name, value } = e.target;
     setSecurity((prev) => ({ ...prev, [name]: value }));
@@ -197,11 +135,9 @@ function ProfileSetting() {
     }
   };
 
-  // Form validation before submitting
-  const validate = () => {
+  // Validates FDA/LEA editable profile fields
+  const validateProfileFields = () => {
     const newErrors = {};
-
-    // Validate Profile Required Fields
     REQUIRED_FIELDS.forEach((field) => {
       if (!form[field] || !form[field].trim()) {
         const label = {
@@ -216,35 +152,67 @@ function ProfileSetting() {
       }
     });
 
-    // Validate Contact Number Format
     const phoneRegex = /^[0-9+\s-]{7,15}$/;
     if (form.contactNumber && !phoneRegex.test(form.contactNumber.trim())) {
       newErrors.contactNumber = 'Please enter a valid contact number format.';
     }
+    return newErrors;
+  };
 
-    // Validate Password changes if user starts typing a password
+  // Validates password fields — only enforced if the person started typing a password change
+  const validatePasswordFields = ({ required } = { required: false }) => {
+    const newErrors = {};
     const { currentPassword, newPassword, confirmPassword } = security;
-    if (currentPassword || newPassword || confirmPassword) {
+
+    if (required || currentPassword || newPassword || confirmPassword) {
       if (!currentPassword) {
         newErrors.currentPassword = 'Current password is required to update security credentials.';
       }
       if (!newPassword) {
         newErrors.newPassword = 'New password is required.';
-      } else if (newPassword.length < 8) {
-        newErrors.newPassword = 'New password must be at least 8 characters long.';
+      } else {
+        if (newPassword.length < 8) {
+          newErrors.newPassword = 'New password must be at least 8 characters long.';
+        } else if (!/[A-Z]/.test(newPassword)) {
+          newErrors.newPassword = 'Password must include at least one uppercase letter.';
+        } else if (!/[0-9]/.test(newPassword)) {
+          newErrors.newPassword = 'Password must include at least one number.';
+        } else if (!/[^A-Za-z0-9]/.test(newPassword)) {
+          newErrors.newPassword = 'Password must include at least one special character.';
+        }
       }
       if (newPassword !== confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match.';
       }
     }
-
     return newErrors;
   };
 
-  // Submit / Save form changes
-  const handleSubmit = (e) => {
+  async function savePasswordIfProvided() {
+    if (!security.newPassword) return true; // nothing to change, not an error
+
+    const response = await apiFetch('/profile/change-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        current_password: security.currentPassword,
+        new_password: security.newPassword,
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Failed to update password.');
+    }
+    return true;
+  }
+
+  // FDA/LEA submit — updates profile fields, and password if provided
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationErrors = validate();
+
+    const profileErrors = validateProfileFields();
+    const passwordErrors = validatePasswordFields({ required: false });
+    const validationErrors = { ...profileErrors, ...passwordErrors };
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -258,72 +226,74 @@ function ProfileSetting() {
     setIsSaving(true);
     setSaveStatus(null);
 
-    /* 
-      BACKEND INTEGRATION NOTE (Save Changes & Update Password):
-      Perform PUT or POST calls to update details:
-      
-      try {
-        const profileRes = await fetch('/api/user/profile/update', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form)
-        });
-        
-        if (security.newPassword) {
-          await fetch('/api/user/profile/change-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              currentPassword: security.currentPassword,
-              newPassword: security.newPassword
-            })
-          });
-        }
-        setSaveStatus({ type: 'success', message: 'Changes saved successfully.' });
-      } catch (err) {
-        setSaveStatus({ type: 'error', message: 'API error. Failed to save changes.' });
-      }
-    */
+    try {
+      const response = await apiFetch('/profile/update', {
+        method: 'PUT',
+        body: JSON.stringify({
+          first_name: form.firstName,
+          middle_name: form.middleName,
+          last_name: form.lastName,
+          contact_number: form.contactNumber,
+          department: form.department,
+          position: form.position,
+        }),
+      });
 
-    // Simulate saving process
-    setTimeout(() => {
-      setIsSaving(false);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to save profile.');
+      }
+
+      await savePasswordIfProvided();
+
       setSaveStatus({
         type: 'success',
         message: 'Your profile settings have been successfully updated.',
       });
-      
-      // Clear security inputs on successful submit
-      setSecurity({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-    }, 1200);
+      setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      await fetchProfile(); // refresh with server truth
+    } catch (err) {
+      setSaveStatus({ type: 'error', message: err.message || 'Failed to save changes.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // Revert updates back to role defaults
-  const handleCancel = () => {
-    setForm(getDefaultProfileData(currentRole));
+  // Superadmin submit — password only, no editable profile fields in this view
+  const handleSuperAdminPasswordSubmit = async (e) => {
+    e.preventDefault();
 
-    setSecurity({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
+    const passwordErrors = validatePasswordFields({ required: true });
+    if (Object.keys(passwordErrors).length > 0) {
+      setErrors(passwordErrors);
+      setSaveStatus({
+        type: 'error',
+        message: 'Kindly address the validation errors before saving your changes.',
+      });
+      return;
+    }
 
-    setErrors({});
+    setIsSaving(true);
     setSaveStatus(null);
 
-    /* 
-      BACKEND INTEGRATION:
-      Optionally reload fresh database records or redirect the user.
-      navigate(-1);
-    */
-    console.log('Profile edit cancelled. Reverted to default settings.');
+    try {
+      await savePasswordIfProvided();
+      setSaveStatus({ type: 'success', message: 'Your password has been successfully updated.' });
+      setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      setSaveStatus({ type: 'error', message: err.message || 'Failed to update password.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // Dynamic layout configuration and theme colors mapped directly from currentRole
+  const handleCancel = () => {
+    setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setErrors({});
+    setSaveStatus(null);
+    fetchProfile(); // discard unsaved profile edits, reload from server
+  };
+
   const layoutConfig = {
     SUPERADMIN: {
       sidebarType: 'SUPER_ADMIN',
@@ -348,6 +318,25 @@ function ProfileSetting() {
     },
   }[currentRole];
 
+  if (loading) {
+    return (
+      <>
+        <style>{styles}</style>
+        <div className={layoutConfig.mainContainerClass}>
+          <Sidebar sidebarType={layoutConfig.sidebarType} />
+          <div className={layoutConfig.contentContainerClass}>
+            <TopBar topbarType={layoutConfig.sidebarType} />
+            <div className={layoutConfig.mainFeedClass}>
+              <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+                Loading profile…
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <style>{styles}</style>
@@ -361,7 +350,20 @@ function ProfileSetting() {
           <div className={layoutConfig.mainFeedClass}>
             {currentRole === 'SUPERADMIN' ? (
               <div className="SuperAdminProfileContainer">
-                
+
+                {saveStatus && (
+                  <div className={`ProfileStatusBanner ${
+                    saveStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
+                  }`}>
+                    {saveStatus.type === 'success' ? (
+                      <CheckCircle2 size={18} />
+                    ) : (
+                      <AlertCircle size={18} />
+                    )}
+                    <span>{saveStatus.message}</span>
+                  </div>
+                )}
+
                 {/* 1. Profile Information Card */}
                 <div className="SuperAdminProfileCard">
                   <div className="SuperAdminProfileHeader">
@@ -377,118 +379,156 @@ function ProfileSetting() {
                   <div className="SuperAdminProfileInfo">
                     <div className="SuperAdminProfileInfoRow">
                       <span className="SuperAdminProfileLabel">Full Name</span>
-                      <span className="SuperAdminProfileValue">{superAdminProfile.name}</span>
+                      <span className="SuperAdminProfileValue">
+                        {`${form.firstName} ${form.lastName}`.trim() || '—'}
+                      </span>
                     </div>
                     <div className="SuperAdminProfileInfoRow">
                       <span className="SuperAdminProfileLabel">Email Address</span>
-                      <span className="SuperAdminProfileValue">{superAdminProfile.email}</span>
+                      <span className="SuperAdminProfileValue">{form.email || '—'}</span>
                     </div>
                     <div className="SuperAdminProfileInfoRow">
                       <span className="SuperAdminProfileLabel">Role</span>
-                      <span className="SuperAdminProfileValueBadge">{superAdminProfile.role}</span>
+                      <span className="SuperAdminProfileValueBadge">Super Administrator</span>
                     </div>
                   </div>
                 </div>
 
                 {/* 2. Security Credentials Card */}
-                <div className="SuperAdminSecurityCard">
-                  <div className="SuperAdminProfileHeader">
-                    <div className="SuperAdminSecurityIconBadge">
-                      <Lock size={20} />
+                <form onSubmit={handleSuperAdminPasswordSubmit} noValidate>
+                  <div className="SuperAdminSecurityCard">
+                    <div className="SuperAdminProfileHeader">
+                      <div className="SuperAdminSecurityIconBadge">
+                        <Lock size={20} />
+                      </div>
+                      <div>
+                        <h2 className="SuperAdminProfileTitle">Security Credentials</h2>
+                        <p className="SuperAdminProfileSubtitle">Manage and update your account password</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="SuperAdminProfileTitle">Security Credentials</h2>
-                      <p className="SuperAdminProfileSubtitle">Manage and update your account password</p>
+
+                    <div className="SuperAdminPasswordSection">
+                      <div className="SuperAdminFormGroup">
+                        <label className="SuperAdminProfileLabel">Current Password</label>
+                        <div className="SuperAdminInputWrapper">
+                          <Key className="SuperAdminInputIcon" size={16} />
+                          <input
+                            className="SuperAdminInput"
+                            type={showCurrent ? 'text' : 'password'}
+                            name="currentPassword"
+                            value={security.currentPassword}
+                            onChange={handleSecurityChange}
+                            placeholder="••••••••"
+                          />
+                          <button
+                            type="button"
+                            className="SuperAdminPasswordToggle"
+                            onClick={() => setShowCurrent(!showCurrent)}
+                            aria-label="Toggle Password Visibility"
+                          >
+                            {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        {errors.currentPassword && (
+                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.currentPassword}</span>
+                        )}
+                      </div>
+
+                      <div className="SuperAdminFormGroup">
+                        <label className="SuperAdminProfileLabel">New Password</label>
+                        <div className="SuperAdminInputWrapper">
+                          <Lock className="SuperAdminInputIcon" size={16} />
+                          <input
+                            className="SuperAdminInput"
+                            type={showNew ? 'text' : 'password'}
+                            name="newPassword"
+                            value={security.newPassword}
+                            onChange={handleSecurityChange}
+                            placeholder="••••••••"
+                          />
+                          <button
+                            type="button"
+                            className="SuperAdminPasswordToggle"
+                            onClick={() => setShowNew(!showNew)}
+                            aria-label="Toggle Password Visibility"
+                          >
+                            {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        {errors.newPassword && (
+                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.newPassword}</span>
+                        )}
+                      </div>
+
+                      <div className="SuperAdminFormGroup">
+                        <label className="SuperAdminProfileLabel">Confirm New Password</label>
+                        <div className="SuperAdminInputWrapper">
+                          <Lock className="SuperAdminInputIcon" size={16} />
+                          <input
+                            className="SuperAdminInput"
+                            type={showConfirm ? 'text' : 'password'}
+                            name="confirmPassword"
+                            value={security.confirmPassword}
+                            onChange={handleSecurityChange}
+                            placeholder="••••••••"
+                          />
+                          <button
+                            type="button"
+                            className="SuperAdminPasswordToggle"
+                            onClick={() => setShowConfirm(!showConfirm)}
+                            aria-label="Toggle Password Visibility"
+                          >
+                            {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        {errors.confirmPassword && (
+                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.confirmPassword}</span>
+                        )}
+                      </div>
+
+                      <div className="SuperAdminPasswordRequirementCard">
+                        <div className="SuperAdminRequirementTitle">
+                          <Shield size={15} />
+                          Password Requirements
+                        </div>
+                        <ul className="SuperAdminRequirementList">
+                          <li>Minimum length of 8 characters</li>
+                          <li>Include upper &amp; lowercase letters</li>
+                          <li>Include numbers &amp; special characters</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="SuperAdminPasswordSection">
-                    {/* Current Password */}
-                    <div className="SuperAdminFormGroup">
-                      <label className="SuperAdminProfileLabel">Current Password</label>
-                      <div className="SuperAdminInputWrapper">
-                        <Key className="SuperAdminInputIcon" size={16} />
-                        <input
-                          className="SuperAdminInput"
-                          type={showSuperCurrent ? 'text' : 'password'}
-                          name="currentPassword"
-                          value={passwordData.currentPassword}
-                          onChange={handlePasswordDataChange}
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          className="SuperAdminPasswordToggle"
-                          onClick={() => setShowSuperCurrent(!showSuperCurrent)}
-                          aria-label="Toggle Password Visibility"
-                        >
-                          {showSuperCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* New Password */}
-                    <div className="SuperAdminFormGroup">
-                      <label className="SuperAdminProfileLabel">New Password</label>
-                      <div className="SuperAdminInputWrapper">
-                        <Lock className="SuperAdminInputIcon" size={16} />
-                        <input
-                          className="SuperAdminInput"
-                          type={showSuperNew ? 'text' : 'password'}
-                          name="newPassword"
-                          value={passwordData.newPassword}
-                          onChange={handlePasswordDataChange}
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          className="SuperAdminPasswordToggle"
-                          onClick={() => setShowSuperNew(!showSuperNew)}
-                          aria-label="Toggle Password Visibility"
-                        >
-                          {showSuperNew ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Confirm New Password */}
-                    <div className="SuperAdminFormGroup">
-                      <label className="SuperAdminProfileLabel">Confirm New Password</label>
-                      <div className="SuperAdminInputWrapper">
-                        <Lock className="SuperAdminInputIcon" size={16} />
-                        <input
-                          className="SuperAdminInput"
-                          type={showSuperConfirm ? 'text' : 'password'}
-                          name="confirmPassword"
-                          value={passwordData.confirmPassword}
-                          onChange={handlePasswordDataChange}
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          className="SuperAdminPasswordToggle"
-                          onClick={() => setShowSuperConfirm(!showSuperConfirm)}
-                          aria-label="Toggle Password Visibility"
-                        >
-                          {showSuperConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Password Requirements Box */}
-                    <div className="SuperAdminPasswordRequirementCard">
-                      <div className="SuperAdminRequirementTitle">
-                        <Shield size={15} />
-                        Password Requirements
-                      </div>
-                      <ul className="SuperAdminRequirementList">
-                        <li>Minimum length of 8 characters</li>
-                        <li>Include upper &amp; lowercase letters</li>
-                        <li>Include numbers &amp; special characters</li>
-                      </ul>
-                    </div>
+                  <div className="ProfileActionsContainer" style={{ gridColumn: 'unset', marginTop: 20 }}>
+                    <button
+                      type="button"
+                      className="ProfileBtn ProfileBtnSecondary"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                    >
+                      <X size={16} />
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="ProfileBtn ProfileBtnPrimary"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <span className="ProfileSpinner"></span>
+                          Saving…
+                        </>
+                      ) : (
+                        <>
+                          <Save size={16} />
+                          Update Password
+                        </>
+                      )}
+                    </button>
                   </div>
-                </div>
+                </form>
 
               </div>
             ) : (
@@ -522,7 +562,6 @@ function ProfileSetting() {
                   </div>
                 </div>
 
-                {/* Status notification banner */}
                 {saveStatus && (
                   <div className={`ProfileStatusBanner ${
                     saveStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
@@ -536,7 +575,6 @@ function ProfileSetting() {
                   </div>
                 )}
 
-                {/* Form sections */}
                 <form onSubmit={handleSubmit} noValidate>
                   <div className="ProfileGrid">
                     
@@ -552,7 +590,6 @@ function ProfileSetting() {
                         </p>
                       </div>
 
-                      {/* Read Only Fields Container */}
                       <div className="ProfileReadonlySection">
                         <div className="ProfileReadonlyTitle">
                           <Shield size={13} />
@@ -610,7 +647,6 @@ function ProfileSetting() {
                         </div>
                       </div>
 
-                      {/* Editable Fields Section */}
                       <div className="ProfileFormRow">
                         <div className="ProfileFormGroup">
                           <label className="ProfileLabel">
@@ -680,7 +716,8 @@ function ProfileSetting() {
                               type="text"
                               name="employeeId"
                               value={form.employeeId}
-                              onChange={handleProfileChange}
+                              readOnly
+                              disabled
                               placeholder="EMP-XXXXX"
                             />
                           </div>
@@ -843,7 +880,6 @@ function ProfileSetting() {
                         )}
                       </div>
 
-                      {/* Password Policy Card */}
                       <div className="ProfileSecurityTips">
                         <div className="ProfileSecurityTipsTitle">
                           <Shield size={14} style={{ color: '#D97706' }} />
@@ -932,7 +968,6 @@ const styles = `
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Header Banner */
   .ProfileHeaderCard {
     border-radius: 16px;
     padding: 32px;
@@ -980,7 +1015,6 @@ const styles = `
     pointer-events: none;
   }
 
-  /* Static Circle Avatar */
   .ProfileAvatarCircle {
     width: 100px;
     height: 100px;
@@ -1059,7 +1093,6 @@ const styles = `
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* Status notifications */
   .ProfileStatusBanner {
     padding: 14px 18px;
     border-radius: 10px;
@@ -1089,7 +1122,6 @@ const styles = `
     color: var(--p-error);
   }
 
-  /* Two Column Grid */
   .ProfileGrid {
     display: grid;
     grid-template-columns: 1.8fr 1fr;
@@ -1102,7 +1134,6 @@ const styles = `
     }
   }
 
-  /* Custom Card layout */
   .ProfileCard {
     background: var(--p-white);
     border-radius: 14px;
@@ -1143,7 +1174,6 @@ const styles = `
     line-height: 1.4;
   }
 
-  /* Read-Only Credentials Section */
   .ProfileReadonlySection {
     background: #f8fafc;
     border-radius: 10px;
@@ -1164,7 +1194,6 @@ const styles = `
     gap: 8px;
   }
 
-  /* Form Elements */
   .ProfileFormRow {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1253,7 +1282,6 @@ const styles = `
     letter-spacing: 0.3px;
   }
 
-  /* Password eye-toggle button */
   .ProfilePasswordToggle {
     position: absolute;
     right: 12px;
@@ -1271,7 +1299,6 @@ const styles = `
     color: var(--p-navy);
   }
 
-  /* Input Error Messages */
   .ProfileFieldError {
     font-size: 11.5px;
     color: var(--p-error);
@@ -1281,7 +1308,6 @@ const styles = `
     gap: 4px;
   }
 
-  /* Global Actions Bottom bar */
   .ProfileActionsContainer {
     grid-column: span 2;
     display: flex;
@@ -1351,7 +1377,6 @@ const styles = `
     background: #e2e8f0;
   }
 
-  /* Loader spinner */
   .ProfileSpinner {
     width: 16px;
     height: 16px;
@@ -1365,7 +1390,6 @@ const styles = `
     to { transform: rotate(360deg); }
   }
 
-  /* Security instructions block */
   .ProfileSecurityTips {
     background: #fdfdfd;
     border: 1.5px solid var(--p-light-gray);
@@ -1393,10 +1417,6 @@ const styles = `
     gap: 6px;
     line-height: 1.4;
   }
-
-  /* ========================================== */
-  /* SUPERADMIN PROFILE SETTINGS STYLING         */
-  /* ========================================== */
 
   .SuperAdminProfileContainer {
     max-width: 760px;
@@ -1612,6 +1632,51 @@ const styles = `
     color: #475569;
     line-height: 1.5;
   }
+    @media (max-width: 640px) {
+  .ProfileContainer {
+    padding: 16px;
+  }
+
+  .ProfileCard {
+    padding: 20px;
+  }
+
+  .ProfileActionsContainer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .ProfileBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .SuperAdminProfileContainer {
+    padding: 20px 16px;
+  }
+
+  .SuperAdminProfileCard,
+  .SuperAdminSecurityCard {
+    padding: 20px;
+  }
+
+  .SuperAdminProfileInfoRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 400px) {
+  .ProfileAvatarCircle {
+    width: 76px;
+    height: 76px;
+  }
+
+  .ProfileHeaderTitle {
+    font-size: 20px;
+  }
+}
 `;
 
 export default ProfileSetting;

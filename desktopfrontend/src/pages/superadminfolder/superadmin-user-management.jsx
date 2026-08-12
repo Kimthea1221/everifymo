@@ -1,23 +1,20 @@
 import './superadmin-css.css';
-import { useState, useEffect } from 'react';
-import { Send, UserCheck, UserX, RefreshCw, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Send, UserCheck, UserX, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
+import { apiFetch } from '../../utils/apiFetch';
+import { createPortal } from 'react-dom';
 
-// helper to provide auth token for API calls
-function getAuthToken() {
-  return localStorage.getItem('access_token') || localStorage.getItem('authToken') || localStorage.getItem('token') || '';
-}
 
 const STATUS_META = {
-  Pending: { label: 'Pending', className: 'badge-pending' },
-  Invited: { label: 'Pending', className: 'badge-pending' },
-  'Invite Requested': { label: 'Pending', className: 'badge-pending' },
-  'For Activation': { label: 'For Activation', className: 'badge-for-activation' },
-  'Pending Approval': { label: 'For Activation', className: 'badge-for-activation' },
+  Invited: { label: 'Invited', className: 'badge-pending' },
+  'Pending Approval': { label: 'Pending Approval', className: 'badge-for-activation' },
   Active: { label: 'Active', className: 'badge-active' },
   Suspended: { label: 'Suspended', className: 'badge-suspended' },
+  'Resend Requested': { label: 'Resend Requested', className: 'badge-pending' },
   'Link Expired': { label: 'Link Expired', className: 'badge-expired' },
+  'Locked Account': { label: 'Locked Account', className: 'badge-suspended' },
 };
 
 function StatusBadge({ status }) {
@@ -25,91 +22,100 @@ function StatusBadge({ status }) {
   return <span className={`UMStatusBadge ${meta.className}`}>{meta.label}</span>;
 }
 
-function UserMgmtActionDropdown({ user, isOpen, toggleDropdown, onAction, onView }) {
+
+
+function UserMgmtActionDropdown({ user, onAction, onView }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const displayStatus = user.display_status || user.status;
+
+  function openMenu() {
+    const rect = triggerRef.current.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + 6,
+      left: rect.right - 190,
+    });
+    setIsOpen(true);
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleOutsideClick(event) {
+      if (
+        menuRef.current && !menuRef.current.contains(event.target) &&
+        triggerRef.current && !triggerRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [isOpen]);
+
   return (
-    <div className="UserMgmtDropdownWrapper">
+    <div className={`UserMgmtDropdownWrapper ${isOpen ? 'active-open' : ''}`}>
       <button
+        ref={triggerRef}
         className="UserMgmtDropdownTrigger"
         data-tooltip="Actions"
+        title="More Actions"
         onClick={(e) => {
           e.stopPropagation();
-          toggleDropdown();
+          isOpen ? setIsOpen(false) : openMenu();
         }}
       >
         <MoreVertical size={16} />
       </button>
-      {isOpen && (
-        <div className="UserMgmtDropdownMenu">
-          <button
-            className="UserMgmtDropdownItem"
-            onClick={() => {
-              onView();
-              toggleDropdown();
-            }}
-          >
+
+      {isOpen && createPortal(
+        <div
+          className="UserMgmtDropdownMenu"
+          ref={menuRef}
+          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left }}
+        >
+          <button className="UserMgmtDropdownItem" onClick={() => { onView(); setIsOpen(false); }}>
             <Eye size={14} /> View Details
           </button>
 
-          {['Invited', 'Pending', 'Invite Requested', 'Link Expired'].includes(user.display_status || user.status) && (
-            <button
-              className="UserMgmtDropdownItem"
-              onClick={() => {
-                onAction('resend');
-                toggleDropdown();
-              }}
-            >
-              <Send size={14} /> Resend Link
-            </button>
-          )}
-
-          {user.status === 'Pending Approval' && (
-            <button
-              className="UserMgmtDropdownItem"
-              onClick={() => {
-                onAction('activate');
-                toggleDropdown();
-              }}
-            >
+          {displayStatus === 'Pending Approval' && (
+            <button className="UserMgmtDropdownItem" onClick={() => { onAction('activate'); setIsOpen(false); }}>
               <UserCheck size={14} /> Activate Account
             </button>
           )}
 
-          {user.status === 'Active' && (
-            <button
-              className="UserMgmtDropdownItem"
-              onClick={() => {
-                onAction('suspend');
-                toggleDropdown();
-              }}
-            >
+          {displayStatus === 'Active' && (
+            <button className="UserMgmtDropdownItem" onClick={() => { onAction('suspend'); setIsOpen(false); }}>
               <UserX size={14} /> Suspend Account
             </button>
           )}
 
-          {user.status === 'Suspended' && (
+          {displayStatus === 'Suspended' && (
             <>
-              <button
-                className="UserMgmtDropdownItem"
-                onClick={() => {
-                  onAction('reactivate');
-                  toggleDropdown();
-                }}
-              >
+              <button className="UserMgmtDropdownItem" onClick={() => { onAction('reactivate'); setIsOpen(false); }}>
                 <RotateCcw size={14} /> Reactivate Account
               </button>
               <div className="UserMgmtDropdownDivider" />
-              <button
-                className="UserMgmtDropdownItem danger"
-                onClick={() => {
-                  onAction('delete');
-                  toggleDropdown();
-                }}
-              >
+              <button className="UserMgmtDropdownItem danger" onClick={() => { onAction('delete'); setIsOpen(false); }}>
                 <Trash2 size={14} /> Delete Account
               </button>
             </>
           )}
-        </div>
+
+          {['Resend Requested', 'Link Expired'].includes(displayStatus) && (
+            <button className="UserMgmtDropdownItem" onClick={() => { onAction('resend'); setIsOpen(false); }}>
+              <Send size={14} /> Resend Link
+            </button>
+          )}
+
+          {displayStatus === 'Locked Account' && (
+            <button className="UserMgmtDropdownItem" onClick={() => { onAction('unlock'); setIsOpen(false); }}>
+              <UserCheck size={14} /> Unlock Account
+            </button>
+          )}
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -141,6 +147,11 @@ const CONFIRM_MESSAGES = {
     message: 'Are you sure you want to delete this account? The suspended account will be permanently deleted and this action cannot be undone.',
     confirmLabel: 'Delete',
   },
+  unlock: {
+    title: 'Unlock Account',
+    message: 'Are you sure you want to unlock this account? The user will regain access to the system.',
+    confirmLabel: 'Unlock',
+  },
 };
 
 function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
@@ -152,7 +163,7 @@ function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
         <div className="UMConfirmIcon">
           {actionType === 'suspend' || actionType === 'delete' ? (
             <TriangleAlert size={40} color="#D97706" strokeWidth={3} />
-          ) : actionType === 'activate' || actionType === 'reactivate' ? (
+          ) : actionType === 'activate' || actionType === 'reactivate' || actionType === 'unlock' ? (
             <CircleCheckBig size={40} color="#149660ff" strokeWidth={3} />
           ) : (
             <Mail size={40} color="#07338dff" strokeWidth={3} />
@@ -243,13 +254,9 @@ function AddPersonnelModal({ open, onClose }) {
     setSending(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/admin/users/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-        body: JSON.stringify({ email, region_id: region, role: agency }),
+      const response = await apiFetch('/admin/users/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email, region_id: region, role: agency }),
       });
 
       if (!response.ok) {
@@ -487,7 +494,6 @@ function SuperAdminUserManagement() {
   const [users, setUsers] = useState([]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewUser, setViewUser] = useState(null);
-  const [activeDropdownId, setActiveDropdownId] = useState(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({
     open: false,
@@ -495,39 +501,26 @@ function SuperAdminUserManagement() {
     targetId: null,
   });
 
-  useEffect(() => {
-    function handleOutsideClick(event) {
-      if (!event.target.closest('.UserMgmtDropdownWrapper')) {
-        setActiveDropdownId(null);
-      }
-    }
-    document.addEventListener('click', handleOutsideClick);
-    return () => {
-      document.removeEventListener('click', handleOutsideClick);
-    };
-  }, []);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit] = useState(10);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   async function fetchUsers() {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/admin/users', {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
-        console.error('Failed to fetch users');
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
+  try {
+    const response = await apiFetch('/admin/users');
+    if (response.ok) {
+      const data = await response.json();
+      setUsers(data);
+    } else {
+      console.error('Failed to fetch users');
     }
+  } catch (error) {
+    console.error('Error fetching users:', error);
   }
+}
 
   function handleAddModalClose(data) {
     setAddModalOpen(false);
@@ -541,38 +534,39 @@ function SuperAdminUserManagement() {
   }
 
   async function handleConfirm() {
-    const { actionType, targetId } = confirmModal;
-    let url = '';
-    if (actionType === 'resend') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}/resend`;
-    } else if (actionType === 'activate') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}/activate`;
-    } else if (actionType === 'suspend') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}/suspend`;
-    } else if (actionType === 'reactivate') {
-      url = `http://127.0.0.1:8000/admin/users/${targetId}/reactivate`;
-    }
-
-    if (url) {
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${getAuthToken()}`,
-          },
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          alert(errData.detail || `Failed to perform action: ${actionType}`);
-        } else {
-          fetchUsers();
-        }
-      } catch (error) {
-        console.error(`Error performing action ${actionType}:`, error);
-      }
-    }
-    setConfirmModal({ open: false, actionType: '', targetId: null });
+  const { actionType, targetId } = confirmModal;
+  let path = '';
+  if (actionType === 'resend') {
+    path = `/admin/users/${targetId}/resend`;
+  } else if (actionType === 'activate') {
+    path = `/admin/users/${targetId}/activate`;
+  } else if (actionType === 'suspend') {
+    path = `/admin/users/${targetId}/suspend`;
+  } else if (actionType === 'reactivate') {
+    path = `/admin/users/${targetId}/reactivate`;
+  } else if (actionType === 'delete') {
+    path = `/admin/users/${targetId}`;
+  } else if (actionType === 'unlock') {
+    path = `/admin/users/${targetId}/unlock`;
   }
+
+  if (path) {
+    try {
+      const response = await apiFetch(path, {
+        method: actionType === 'delete' ? 'DELETE' : 'POST',
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        alert(errData.detail || `Failed to perform action: ${actionType}`);
+      } else {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error(`Error performing action ${actionType}:`, error);
+    }
+  }
+  setConfirmModal({ open: false, actionType: '', targetId: null });
+}
 
   function handleCancelConfirm() {
     setConfirmModal({ open: false, actionType: '', targetId: null });
@@ -582,6 +576,13 @@ function SuperAdminUserManagement() {
     if (statusFilter === 'All') return true;
     return (u.display_status || u.status) === statusFilter;
   });
+
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / limit) || 1;
+  const activePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (activePage - 1) * limit;
+  const endIndex = Math.min(startIndex + limit, totalItems);
+  const displayedUsers = filteredUsers.slice(startIndex, startIndex + limit);
 
   return (
     <div className="SuperadminMainContainer">
@@ -614,18 +615,23 @@ function SuperAdminUserManagement() {
                   className: 'stat-active',
                 },
                 {
-                  label: 'Pending',
-                  value: users.filter((u) => ['Pending', 'Invited', 'Invite Requested', 'Link Expired'].includes(u.display_status || u.status)).length,
-                  className: 'stat-pending',
+                  label: 'Pending Approval',
+                  value: users.filter((u) => (u.display_status || u.status) === 'Pending Approval').length,
+                  className: 'stat-activation',
                 },
                 {
-                  label: 'For Activation',
-                  value: users.filter((u) => ['For Activation', 'Pending Approval'].includes(u.display_status || u.status)).length,
-                  className: 'stat-activation',
+                  label: 'Invited',
+                  value: users.filter((u) => ['Invited', 'Resend Requested', 'Link Expired'].includes(u.display_status || u.status)).length,
+                  className: 'stat-pending',
                 },
                 {
                   label: 'Suspended',
                   value: users.filter((u) => (u.display_status || u.status) === 'Suspended').length,
+                  className: 'stat-suspended',
+                },
+                {
+                  label: 'Locked',
+                  value: users.filter((u) => (u.display_status || u.status) === 'Locked Account').length,
                   className: 'stat-suspended',
                 },
               ].map((s) => (
@@ -642,14 +648,19 @@ function SuperAdminUserManagement() {
               <select
                 className="UserMgmtSelectFilter"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
               >
                 <option value="All">All</option>
                 <option value="Invited">Invited</option>
+                <option value="Resend Requested">Resend Requested</option>
+                <option value="Link Expired">Link Expired</option>
                 <option value="Pending Approval">Pending Approval</option>
                 <option value="Active">Active</option>
                 <option value="Suspended">Suspended</option>
-                <option value="Link Expired">Link Expired</option>
+                <option value="Locked Account">Locked Account</option>
               </select>
             </div>
 
@@ -670,11 +681,11 @@ function SuperAdminUserManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((user, idx) => {
+                  {displayedUsers.map((user, idx) => {
                     const userId = user.user_id || user.id;
                     return (
                       <tr key={userId}>
-                        <td className="UMTdCenter">{idx + 1}</td>
+                        <td className="UMTdCenter">{startIndex + idx + 1}</td>
                         <td>{user.fullname || <span className="UMEmpty">—</span>}</td>
                         <td>{user.employee_id || user.employeeid || <span className="UMEmpty">—</span>}</td>
                         <td className="UMEmailCell">{user.email}</td>
@@ -687,12 +698,6 @@ function SuperAdminUserManagement() {
                         <td>
                           <UserMgmtActionDropdown
                             user={user}
-                            isOpen={activeDropdownId === (user.user_id || user.id)}
-                            toggleDropdown={() =>
-                              setActiveDropdownId(
-                                activeDropdownId === (user.user_id || user.id) ? null : (user.user_id || user.id)
-                              )
-                            }
                             onAction={(type) => openConfirm(type, user.user_id || user.id)}
                             onView={() => setViewUser(user)}
                           />
@@ -702,6 +707,41 @@ function SuperAdminUserManagement() {
                   })}
                 </tbody>
               </table>
+
+              {filteredUsers.length > 0 && (
+                <div className="AuditPaginationWrapper">
+                  <span className="AuditPaginationInfo">
+                    Showing {totalItems === 0 ? 0 : startIndex + 1}–{endIndex} of {totalItems} entries
+                  </span>
+                  <div className="AuditPaginationControls">
+                    <button
+                      className="AuditPageBtn"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={14} /> Prev
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        className={`AuditPageNumber ${currentPage === page ? 'active' : ''}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    <button
+                      className="AuditPageBtn"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    >
+                      Next <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

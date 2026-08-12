@@ -48,4 +48,8 @@ class ConsumerAccount(Base):
             postgresql_where=text("is_verified = true"),
         ),
     )
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/dev
 

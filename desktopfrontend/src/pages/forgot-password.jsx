@@ -76,6 +76,22 @@ function ForgotPassword(){
 
     const handleResetPassword = async (e) => {
         e.preventDefault();
+        if (newPassword.length < 8) {
+            setForgotError("Password must be at least 8 characters.");
+            return;
+        }
+        if (!/[A-Z]/.test(newPassword)) {
+            setForgotError("Password must include at least one uppercase letter.");
+            return;
+        }
+        if (!/[0-9]/.test(newPassword)) {
+            setForgotError("Password must include at least one number.");
+            return;
+        }
+        if (!/[^A-Za-z0-9]/.test(newPassword)) {
+            setForgotError("Password must include at least one special character.");
+            return;
+        }
         if (newPassword !== confirmPassword) {
             setForgotError("Passwords do not match.");
             return;
