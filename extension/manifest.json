@@ -29,7 +29,8 @@
     "https://www.lazada.com.ph/*",
     "https://www.tiktok.com/*",
     "https://www.facebook.com/marketplace/*",
-    "http://localhost:8000/*"
+    "http://localhost:8001/*",
+    "https://localhost:8001/verify"
   ],
 
   "content_scripts": [

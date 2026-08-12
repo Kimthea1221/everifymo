@@ -384,3 +384,17 @@ function getVerificationHistory() {
 //   ];
 // }
 
+<<<<<<< HEAD
+function verifyOtp(inputCode, callback) {
+  chrome.storage.local.get(['pendingOtp'], (data) => {
+    const pending = data.pendingOtp;
+    if (!pending || inputCode !== pending.code) {
+      callback(false);
+      return;
+    }
+    chrome.storage.local.remove('pendingOtp', () => callback(true));
+  });
+}
+}
+=======
+>>>>>>> origin/dev
