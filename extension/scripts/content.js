@@ -66,11 +66,22 @@ verifyBtn.addEventListener("click", () => {
 
     document.getElementById('fda-close-btn').addEventListener('click', () => {
         modal.remove();
-    });
+    }); 
 
     setTimeout(() => {
         if (modal.parentElement) modal.remove();
-    }, 8000);
+    }, 8001);
 
     verifyBtn.style.display = "none";
+
+    
+    // Send the selected text to the background script
+    chrome.runtime.sendMessage({
+        action: "extractedTitle",
+        title: selectedText,
+        platform: null,
+        url: location.href
+    }, (response) => {
+        console.log("Response from background:", response);
+    });
 });
