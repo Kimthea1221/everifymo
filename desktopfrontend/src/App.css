@@ -524,8 +524,4 @@ input[type="radio"]#cidg:checked + label {
   display: flex;
   align-items: center;
   gap: 4px;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> origin/dev
