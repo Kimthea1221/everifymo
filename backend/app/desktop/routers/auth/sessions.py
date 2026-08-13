@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 
 from app.database.sessions import get_db
 from app.models.user_sessions import UserSession
-from app.core.security import hash_refresh_token, create_access_token, generate_refresh_token
+from app.core.security import hash_refresh_token, create_desktop_access_token, generate_refresh_token
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth/token", tags=["auth-token"])
@@ -37,7 +37,7 @@ def refresh_token(payload: dict, db: Session = Depends(get_db), request: Request
     session.expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     db.commit()
 
-    access_token = create_access_token({"sub": str(session.user_id)})
+    access_token = create_desktop_access_token({"sub": str(session.user_id)})
 
     return {"access_token": access_token, "token_type": "bearer", "refresh_token": new_refresh}
 

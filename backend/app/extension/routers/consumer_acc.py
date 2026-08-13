@@ -1,11 +1,17 @@
 from typing import Annotated
+from datetime import datetime, timezone
 
+from fastapi import BackgroundTasks
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
-from app.extension.schemas.consumer_acc import CreateConsumerAcc
+from app.extension.schemas import consumer_acc #CreateConsumerAcc, UpdateUsername, VerifyOTP, RequestOTP
 from app.extension.services import consumer_acc_service
+from app.core.security import get_current_user
+
+from app.extension.services.send_email import send_otp_email
+from app.extension.services import consumer_otp_service
 
 router = APIRouter(
     prefix="/accounts",
@@ -13,8 +19,67 @@ router = APIRouter(
 )
 
 db_dependency = Annotated[Session, Depends(get_db)]
+user_dependency = Annotated[dict, Depends(get_current_user)]
 
 @router .post("/", status_code=status.HTTP_201_CREATED)
-async def create_user(db: db_dependency, create_user_request: CreateConsumerAcc):
-    consumer_acc_service.create_user(db, create_user_request)
+async def create_user(db: db_dependency, create_user_request: consumer_acc.CreateConsumerAcc, background_tasks: BackgroundTasks):
+    consumer, code = consumer_acc_service.create_user(db, create_user_request)
+    background_tasks.add_task(send_otp_email, consumer.email, code)    
+
     return {"detail": "Account created successfully"}
+
+@router .put("/username", status_code=status.HTTP_200_OK)
+async def update_username(db: db_dependency, current_user: user_dependency, update_request: consumer_acc.UpdateUsername):
+    updated_user = consumer_acc_service.update_username(
+        db, current_user["id"], update_request.username)
+
+    return {
+        "detail": "Username updated succesfully",
+        "username": updated_user.username
+    }
+
+@router .put("/change-pending-username", status_code=status.HTTP_200_OK)
+async def change_pending_username(db: db_dependency, update_request: consumer_acc.ChangePendingUsername):
+    updated_user = consumer_acc_service.change_pending_username(
+        db, update_request.email, update_request.username)
+
+    return {
+        "detail": "Username updated succesfully",
+        "username": updated_user.username
+    }
+
+@router .delete("/delete-account", status_code=status.HTTP_204_NO_CONTENT)
+def soft_delete_account(db: db_dependency, current_user: user_dependency, delete_request: consumer_acc.DeleteAccountRequest):
+    consumer_acc_service.delete_account(db, current_user["id"], delete_request)
+
+@router.post("/verify-otp", status_code=status.HTTP_200_OK)
+async def verify_otp(db: db_dependency, verify_request: consumer_acc.VerifyOTP):
+    consumer_acc_service.verify_signup_otp(db, verify_request.email, verify_request.otp_code)
+    return {"detail": "Account verified successfully"}
+
+@router.post("/resend-otp", status_code=status.HTTP_200_OK)
+async def resend_otp(db: db_dependency, request: consumer_acc.RequestOTP, background_tasks: BackgroundTasks):
+    code = consumer_acc_service.resend_signup_otp(db, request.email)
+    background_tasks.add_task(send_otp_email, request.email, code)
+    
+    return {"detail": "OTP resent"}
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(db: db_dependency, request: consumer_acc.ForgotPasswordRequest, background_tasks: BackgroundTasks):
+    result = consumer_acc_service.request_password_reset(db, request.email)
+
+    if result:
+        email, otp_code = result
+        background_tasks.add_task(send_otp_email, email, otp_code)
+
+    return { "detail": "A reset code has been sent to your email." }
+
+@router.post("/verify-reset-otp", status_code=status.HTTP_200_OK)
+async def verify_reset_otp(db: db_dependency, request: consumer_acc.VerifyResetOtp):
+    reset_token = consumer_otp_service.verify_reset_otp(db, request.email, request.otp_code)
+    return { "reset_token": reset_token }
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(db: db_dependency, request: consumer_acc.ResetPassword):
+    consumer_acc_service.reset_password(db, request.email, request.reset_token, request.new_password)
+    return { "detail": "Password reset successfully" }

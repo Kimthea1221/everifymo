@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from 'react-router-dom';
 import Sidebar from "../component/sidebar";
@@ -8,20 +7,55 @@ import {
   Globe, 
   Footprints, 
   Search, 
-  Filter, 
   Download, 
   Eye, 
   ChevronLeft, 
   ChevronRight, 
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { allConsumerReports } from './reportData';
 
 const ITEMS_PER_PAGE = 5;
 
+// Display-label mapping for categories.
+// Underlying data values stay unchanged (Supplement / Pharmaceutical) so
+// filtering logic and reportData.js don't need to change — only what's shown.
+const CATEGORY_LABELS = {
+  Supplement: 'Foods',
+  Pharmaceutical: 'Drugs',
+};
+
+function getCategoryLabel(category) {
+  return CATEGORY_LABELS[category] || category;
+}
+
+// Maps the legacy status values still stored in reportData.js to the new
+// consolidated complaint-workflow statuses used on this page. This keeps
+// the change scoped to fda-view-reports.jsx only, without touching
+// reportData.js or any other module.
+//   New Report              -> complaint received, not yet reviewed (no legacy equivalent)
+//   Under Review            -> FDA currently reviewing
+//   Verification Completed  -> FDA finished verifying and submitted its response
+//   Forwarded to LEA        -> FDA done, handed back to LEA
+//   Closed                  -> fully processed / archived
+const STATUS_WORKFLOW_MAP = {
+  "Under Review": "Under Review",
+  "Pending Verification": "Under Review",
+  "Verified": "Verification Completed",
+  "Takedown Requested": "Verification Completed",
+  "Forwarded to LEA": "Forwarded to LEA",
+  "Takedown Completed": "Closed",
+  "Dismissed": "Closed",
+};
+
+function getWorkflowStatus(status) {
+  return STATUS_WORKFLOW_MAP[status] || status;
+}
+
 function FDAViewReports() {
   // REPORTS DATABASE STATE
-  const [reports, setReports] = useState(allConsumerReports);
+  const [reports] = useState(allConsumerReports);
 
   // SEARCH AND TABS STATE
   const [activeTab, setActiveTab] = useState('All');
@@ -38,7 +72,6 @@ function FDAViewReports() {
   }, [location.state?.selectedTab]);
 
   // EXPANDABLE FILTERS STATE
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
 
@@ -81,7 +114,7 @@ function FDAViewReports() {
 
     // 3. Dropdown Filters
     const matchesCategory = filterCategory === 'All' || report.category === filterCategory;
-    const matchesStatus = report.status === filterStatus || filterStatus === 'All';
+    const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status) === filterStatus;
 
     return matchesTab && matchesSearch && matchesCategory && matchesStatus;
   });
@@ -95,7 +128,7 @@ function FDAViewReports() {
                             report.caseId.toLowerCase().includes(query);
 
       const matchesCategory = filterCategory === 'All' || report.category === filterCategory;
-      const matchesStatus = report.status === filterStatus || filterStatus === 'All';
+      const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status) === filterStatus;
 
       if (!matchesSearch || !matchesCategory || !matchesStatus) return false;
 
@@ -135,27 +168,6 @@ function FDAViewReports() {
     }
   };
 
-  // INDIVIDUAL STATUS UPDATE
-  const handleUpdateStatus = (id, newStatus) => {
-    setReports(prev => prev.map(report => {
-      if (report.id === id) {
-        return { ...report, status: newStatus };
-      }
-      return report;
-    }));
-  };
-
-  // BULK ACTIONS
-  const handleBulkAction = (actionType) => {
-    setReports(prev => prev.map(report => {
-      if (selectedIds.includes(report.id)) {
-        return { ...report, status: actionType };
-      }
-      return report;
-    }));
-    setSelectedIds([]);
-  };
-
   // EXPORT CSV HANDLER
   const handleExportCSV = () => {
     const rowsToExport = selectedIds.length > 0 
@@ -177,7 +189,7 @@ function FDAViewReports() {
         `"${report.manufacturer.replace(/"/g, '""')}"`,
         `"${report.category.replace(/"/g, '""')}"`,
         report.source,
-        report.status,
+        getWorkflowStatus(report.status),
         report.region,
         report.dateReceived
       ];
@@ -196,31 +208,31 @@ function FDAViewReports() {
   };
 
   // STATUS COLORS STYLING HELPER
+  // Reflects the complaint lifecycle only (not verification results or
+  // enforcement actions, which live in the Verification Queue module).
   const getStatusStyle = (status) => {
     switch (status) {
-      case "Verified":
-      case "Takedown Completed":
+      case "New Report":
         return {
-          backgroundColor: "rgba(27, 67, 50, 0.1)", // 10% opacity of #1B4332
-          color: "#1B4332"
+          backgroundColor: "rgba(31, 41, 55, 0.08)", // 8% opacity of #1F2937
+          color: "rgba(31, 41, 55, 0.6)"
         };
-      case "Pending Verification":
+      case "Under Review":
         return {
           backgroundColor: "rgba(217, 119, 6, 0.1)", // 10% opacity of #D97706
           color: "#D97706"
         };
-      case "Takedown Requested":
+      case "Verification Completed":
         return {
-          backgroundColor: "rgba(185, 28, 28, 0.1)", // 10% opacity of #B91C1C
-          color: "#B91C1C"
+          backgroundColor: "rgba(27, 67, 50, 0.1)", // 10% opacity of #1B4332
+          color: "#1B4332"
         };
-      case "Under Review":
       case "Forwarded to LEA":
         return {
           backgroundColor: "rgba(19, 33, 60, 0.1)", // 10% opacity of #13213c
           color: "#13213c"
         };
-      case "Dismissed":
+      case "Closed":
         return {
           backgroundColor: "rgba(31, 41, 55, 0.08)", // 8% opacity of #1F2937
           color: "rgba(31, 41, 55, 0.6)"
@@ -236,21 +248,19 @@ function FDAViewReports() {
   // UNIQUE FILTER OPTIONS COMPUTATION
   const categoriesList = ["All", ...Array.from(new Set(reports.map(r => r.category)))];
   const statusesList = [
-    "All", 
-    "Under Review", 
-    "Pending Verification", 
-    "Takedown Requested", 
-    "Verified", 
-    "Forwarded to LEA", 
-    "Takedown Completed", 
-    "Dismissed"
+    "All",
+    "New Report",
+    "Under Review",
+    "Verification Completed",
+    "Forwarded to LEA",
+    "Closed"
   ];
 
   return (
     <div className="FdaDashboardMain">
       <Sidebar sidebarType="FDA" />
       <div className="FdaContentContainer">
-        <TopBar />
+        <TopBar topbarType="FDA" />
         <div className="FdaMainFeed">
           
           {/* HEADER BLOCK */}
@@ -262,13 +272,9 @@ function FDAViewReports() {
                 Centralized record of every submission. Browser-extension and walk-in complaints are classified separately.
               </p>
             </div>
-            <button className="BtnExportCSV" onClick={handleExportCSV}>
-              <Download size={16} />
-              Export CSV
-            </button>
           </div>
 
-          {/* FILTER / SEGMENT ROW */}
+          {/* FILTER / SEGMENT ROW — tabs left, Export CSV level with tabs on the right */}
           <div className="FdaFilterRow">
             <div className="FdaPillContainer">
               {tabs.map(tab => (
@@ -283,34 +289,29 @@ function FDAViewReports() {
               ))}
             </div>
 
-            <div className="FdaControlsRight">
-              <div className="FdaSearchWrapper">
-                <Search size={16} className="FdaSearchIcon" />
-                <input
-                  type="text"
-                  placeholder="Search product, manufacturer, ID..."
-                  className="FdaSearchInput"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-
-              <button 
-                className={`BtnFilters ${isFilterOpen ? 'active' : ''}`}
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-              >
-                <Filter size={16} />
-                Filters
-              </button>
-            </div>
+            <button className="BtnExportCSV" onClick={handleExportCSV}>
+              <Download size={16} />
+              Export CSV
+            </button>
           </div>
 
-          {/* EXPANDABLE DROP DOWN FILTER PANEL */}
-          {isFilterOpen && (
-            <div className="FdaFilterPanel">
+          {/* FILTER PANEL — search fixed-width left, filters grouped right */}
+          <div className="FdaReportsFilterPanel">
+            <div className="FdaSearchWrapper FdaSearchFixed">
+              <Search size={16} className="FdaSearchIcon" />
+              <input
+                type="text"
+                placeholder="Search product, manufacturer, ID..."
+                className="FdaSearchInput"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+
+            <div className="FdaFilterGroupsRight">
               <div className="FdaFilterGroup">
                 <label>Category</label>
                 <select
@@ -321,7 +322,9 @@ function FDAViewReports() {
                   }}
                 >
                   {categoriesList.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat}>
+                      {cat === 'All' ? 'All' : getCategoryLabel(cat)}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -341,12 +344,13 @@ function FDAViewReports() {
                 </select>
               </div>
 
-              {(filterCategory !== 'All' || filterStatus !== 'All') && (
+              {(filterCategory !== 'All' || filterStatus !== 'All' || searchQuery !== '') && (
                 <button
                   className="BtnClearFilters"
                   onClick={() => {
                     setFilterCategory('All');
                     setFilterStatus('All');
+                    setSearchQuery('');
                     setCurrentPage(1);
                   }}
                 >
@@ -354,7 +358,7 @@ function FDAViewReports() {
                 </button>
               )}
             </div>
-          )}
+          </div>
 
           {/* BULK ACTIONS BAR */}
           {selectedIds.length > 0 && (
@@ -365,12 +369,6 @@ function FDAViewReports() {
               <div className="FdaBulkActions">
                 <button className="BtnBulkExport" onClick={handleExportCSV}>
                   Bulk Export CSV
-                </button>
-                <button className="BtnBulkForward" onClick={() => handleBulkAction("Forwarded to LEA")}>
-                  Forward to LEA
-                </button>
-                <button className="BtnBulkDismiss" onClick={() => handleBulkAction("Dismissed")}>
-                  Dismiss Cases
                 </button>
                 <button className="BtnClearSelection" onClick={() => setSelectedIds([])}>
                   Clear
@@ -396,20 +394,21 @@ function FDAViewReports() {
                           onChange={handleHeaderCheckboxChange}
                         />
                       </th>
-                      <th>Case ID</th>
-                      <th>Product / Manufacturer</th>
-                      <th>Category</th>
-                      <th>Source</th>
-                      <th>Status</th>
-                      <th>Region</th>
-                      <th>Submitted</th>
-                      <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
+                      <th>CASE ID</th>
+                      <th>PRODUCT</th>
+                      <th>MANUFACTURER</th>
+                      <th>CATEGORY</th>
+                      <th>SOURCE</th>
+                      <th>STATUS</th>
+                      <th>REGION</th>
+                      <th>DATE RECEIVED</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>ACTION</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedReports.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="FdaEmptyState">
+                        <td colSpan="10" className="FdaEmptyState">
                           <Search size={32} />
                           <p>No complaints match your search query or active filter settings.</p>
                         </td>
@@ -429,13 +428,9 @@ function FDAViewReports() {
                             />
                           </td>
                           <td className="CaseIdCell">{report.caseId}</td>
-                          <td>
-                            <div className="ProductCell">
-                              <span className="ProductCellTitle">{report.product}</span>
-                              <span className="ProductCellSub">{report.manufacturer}</span>
-                            </div>
-                          </td>
-                          <td>{report.category}</td>
+                          <td className="ProductNameCell">{report.product}</td>
+                          <td className="ManufacturerCell">{report.manufacturer}</td>
+                          <td>{getCategoryLabel(report.category)}</td>
                           <td>
                             <span className="FdaSourceBadge">
                               {report.source === "Browser Extension" ? (
@@ -447,8 +442,8 @@ function FDAViewReports() {
                             </span>
                           </td>
                           <td>
-                            <span className="FdaBadge" style={getStatusStyle(report.status)}>
-                              {report.status}
+                            <span className="FdaBadge" style={getStatusStyle(getWorkflowStatus(report.status))}>
+                              {getWorkflowStatus(report.status)}
                             </span>
                           </td>
                           <td>{report.region}</td>
@@ -530,7 +525,7 @@ function FDAViewReports() {
                 <div className="FdaDetailGrid">
                   <div className="FdaDetailItem">
                     <label>Category</label>
-                    <span>{selectedReport.category}</span>
+                    <span>{getCategoryLabel(selectedReport.category)}</span>
                   </div>
                   <div className="FdaDetailItem">
                     <label>Region</label>
@@ -548,9 +543,10 @@ function FDAViewReports() {
                     </span>
                   </div>
                   <div className="FdaDetailItem">
+                    {/* Read-only — reflects the complaint lifecycle only, not editable here */}
                     <label>Current Status</label>
-                    <span className="FdaBadge" style={{ ...getStatusStyle(selectedReport.status), width: 'fit-content' }}>
-                      {selectedReport.status}
+                    <span className="FdaBadge" style={{ ...getStatusStyle(getWorkflowStatus(selectedReport.status)), width: 'fit-content' }}>
+                      {getWorkflowStatus(selectedReport.status)}
                     </span>
                   </div>
                   <div className="FdaDetailItem" style={{ gridColumn: 'span 2' }}>
@@ -564,19 +560,37 @@ function FDAViewReports() {
                   <p>{selectedReport.description}</p>
                 </div>
 
-                <div className="FdaDetailActions">
-                  <label>Update Case Status</label>
-                  <div className="FdaDetailActionControls">
-                    <select
-                      className="FdaStatusSelect"
-                      value={selectedReport.status}
-                      onChange={(e) => handleUpdateStatus(selectedReport.id, e.target.value)}
-                    >
-                      {statusesList.filter(s => s !== "All").map(status => (
-                        <option key={status} value={status}>{status}</option>
+                {/* Replaces the old "Update Case Status" control — shows files
+                    submitted by the reporter (Browser Extension user) or LEA
+                    personnel (Walk-in complaints), viewable by FDA. */}
+                <div className="FdaDetailAttachments">
+                  <label>Attached Files / Evidence</label>
+                  {selectedReport.documents && selectedReport.documents.length > 0 ? (
+                    <div className="FdaVerifDocsGrid">
+                      {selectedReport.documents.map(doc => (
+                        <div className="FdaVerifDocCard" key={doc.id}>
+                          <FileText size={20} className="FdaVerifDocIcon" />
+                          <div className="FdaVerifDocInfo">
+                            <p className="FdaVerifDocName" title={doc.name}>{doc.name}</p>
+                            <span className="FdaVerifDocMeta">
+                              {doc.uploadedBy}{doc.size ? ` · ${doc.size}` : ''}
+                            </span>
+                          </div>
+                          <div className="FdaVerifDocActions">
+                            <button
+                              className="FdaVerifDocActionBtn"
+                              title="View file"
+                              onClick={() => doc.url && window.open(doc.url, '_blank', 'noopener,noreferrer')}
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </div>
+                        </div>
                       ))}
-                    </select>
-                  </div>
+                    </div>
+                  ) : (
+                    <p className="FdaVerifNoDocsText">No files or evidence were attached to this complaint.</p>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,21 +1,56 @@
-﻿chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+﻿console.log("Background service worker started");
 
-  if (message.action === 'titleExtracted') {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+console.log('Background received message:', message);
+  if (message.action === 'extractedTitle') {
+    //
+    (async () => {
+      try {
+        const response = await fetch('http://localhost:8001/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title: message.title, top_k: 5 })
+        });
 
-    // For now status is always 'registered' until backend is connected
-    const status = 'unregistered';
+        const data = await response.json().catch(() => null);
+        console.log('Backend response:', data);
+        
+        const status = data?.status || 'unregistered';
 
-    // Store the extracted product info in chrome.storage
-    chrome.storage.local.set({
-      productTitle: message.title,
-      productPlatform: message.platform,
-      productUrl: message.url,
-      productStatus: status
-    }, () => {
-      console.log('Product info stored:', message.title);
-    });
+        // Store the extracted product info in chrome.storage
+        chrome.storage.local.set({
+          productTitle: message.title,
+          productPlatform: message.platform,
+          productUrl: message.url,
+          productStatus: status
+        }, () => {
+          console.log('Product info stored:', message.title);
+        });
 
-    updateBadge(status, sender.tab.id);
+
+        updateBadge(status, sender.tab.id);
+        sendResponse({ status: 'success', data: data });
+      } catch (error) {
+        //
+        console.error('Error sending title to backend:', error);
+        const status = 'unregistered';
+        chrome.storage.local.set({
+          productTitle: message.title,
+          productPlatform: message.platform,
+          productUrl: message.url,
+          productStatus: status
+        }, () => {
+          console.log('Product info stored with error fallback:', message.title);
+        });
+
+        updateBadge(status, sender.tab.id);
+        sendResponse({ status: 'error', data: null });
+      }
+    })();
+
+    return true;
   }
 
 });

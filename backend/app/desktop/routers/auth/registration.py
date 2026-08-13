@@ -20,6 +20,9 @@ import secrets
 
 from app.desktop.schemas.auth.registration import RequestResendRequest, RequestResendResponse
 
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+
 
 # All registration-related endpoints will start with /registration
 router = APIRouter(prefix="/registration", tags=["Registration"])
@@ -33,41 +36,39 @@ router = APIRouter(prefix="/registration", tags=["Registration"])
     # GET /registration/validate/{invite_token}
 @router.get("/validate/{invite_token}", response_model=ValidateTokenResponse)
 def validate_token(invite_token: str, db: Session = Depends(get_db)):
-    # invite_token comes straight from the URL, e.g. /registration/validate/abc123
-
-    # Registration happens before login, so there's no logged-in region yet.
-    # This tells our RLS policy on "users" to allow this lookup anyway,
-    # only for this one request.
     db.execute(text("SET app.bypass_rls = 'true'"))
 
-    # Look up the invitation by the token value sent in the URL
     token_row = db.query(AccountInvitationToken).filter(
         AccountInvitationToken.invite_token == invite_token
     ).first()
 
-    # No matching row at all — token is fake/mistyped/never existed
     if not token_row:
-        return ValidateTokenResponse(status=TokenStatus.invalid, message="This invitation link is not valid.",)
+        return ValidateTokenResponse(status=TokenStatus.invalid, message="This invitation link is not valid.")
 
-    # used_at gets set once someone already completed registration with this token
-    if token_row.used_at is not None:
-        return ValidateTokenResponse(status=TokenStatus.used, message="This invitation has already been used to complete registration.",)
-
-    # Token existed and hasn't been used, but the 48-hour window has passed
-    if token_row.expires_at < datetime.now(timezone.utc):
-        return ValidateTokenResponse(status=TokenStatus.expired, message="This invitation link has expired. Please request a new one.",)
-
-    # Token is genuinely good — fetch the stub account and its region
-    # so we can show the officer their pre-filled info
     user_row = db.query(User).filter(User.user_id == token_row.user_id).first()
+    role = user_row.role if user_row else None
+
+    if token_row.used_at is not None:
+        return ValidateTokenResponse(
+            status=TokenStatus.used,
+            message="This invitation has already been used to complete registration.",
+            role=role,
+        )
+
+    if token_row.expires_at < datetime.now(timezone.utc):
+        return ValidateTokenResponse(
+            status=TokenStatus.expired,
+            message="This invitation link has expired. Please request a new one.",
+            role=role,
+        )
+
     region_row = db.query(Region).filter(Region.region_id == user_row.region_id).first()
 
     return ValidateTokenResponse(
         status=TokenStatus.valid,
         email=user_row.email,
-        role=user_row.role,
+        role=role,
         region_id=user_row.region_id,
-        # SuperAdmin stub accounts have no region, so region_row could be None
         region_name=region_row.region_name if region_row else None,
     )
 
@@ -126,6 +127,14 @@ def complete_registration(data: RegistrationCompleteRequest, db: Session = Depen
     # Save both changes together — either both go through, or neither does
     db.commit()   
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.REGISTRATION_ACCOMPLISHED,
+        title="Registration completed",
+        message=f"{user_row.email} completed registration and is now awaiting approval.",
+        related_user_id=user_row.user_id,
+    )
+
     return RegistrationCompleteResponse(
         message="Registration submitted successfully.",
         status=UserStatus.PENDING_APPROVAL,   
@@ -177,6 +186,15 @@ def resend_invite(data: ResendInviteRequest, db: Session = Depends(get_db)):
     db.add(new_token)   
     db.commit()
 
+    user_row = db.query(User).filter(User.user_id == old_token_row.user_id).first()
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Invitation link resent",
+        message=f"{user_row.email if user_row else 'A user'} generated a new invitation link after theirs expired.",
+        related_user_id=old_token_row.user_id,
+    )
+
     return ResendInviteResponse(
         message="A new invitation has been generated.",
     )
@@ -215,6 +233,15 @@ def request_resend(data: RequestResendRequest, db: Session = Depends(get_db)):
     # Just flag the request — SuperAdmin decides whether to actually resend
     token_row.resend_requested_at = datetime.now(timezone.utc)
     db.commit()
+
+    user_row = db.query(User).filter(User.user_id == token_row.user_id).first()
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Resend requested",
+        message=f"{user_row.email if user_row else 'A user'} requested a new invitation link.",
+        related_user_id=token_row.user_id,
+    )
 
     return RequestResendResponse(
         message="Your request has been sent to the administrator.",

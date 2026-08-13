@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.database.sessions import get_db
 from app.models.users import User
@@ -9,26 +10,33 @@ from app.desktop.schemas.auth.password_reset import (
     VerifyResetOtpRequest,
 )
 from app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
-from app.desktop.services.auth.email import send_superadmin_otp_email
+from app.desktop.services.auth.email import send_superadmin_otp_email, send_personnel_otp_email
 from app.core.security import hash_password
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/auth/password", tags=["auth-password"])
 
 
 @router.post("/forgot")
 async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    db.execute(text("SET app.bypass_rls = 'true'"))
     user = db.query(User).filter(User.email == payload.email).first()
     if not user:
         return {"message": "If an account exists for this email, an OTP was sent."}
 
     otp = create_otp_for_user(db, user)
-    await send_superadmin_otp_email(user.email, otp)
+    if user.role == "superadmin":
+        await send_superadmin_otp_email(user.email, otp)
+    else:
+        await send_personnel_otp_email(user.email, otp)
 
     return {"message": "If an account exists for this email, an OTP was sent."}
 
 
 @router.post("/verify-otp")
 def verify_reset_otp(payload: VerifyResetOtpRequest, db: Session = Depends(get_db)):
+    db.execute(text("SET app.bypass_rls = 'true'"))
     user = db.query(User).filter(User.email == payload.email).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
@@ -43,6 +51,7 @@ def verify_reset_otp(payload: VerifyResetOtpRequest, db: Session = Depends(get_d
 
 @router.post("/reset")
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    db.execute(text("SET app.bypass_rls = 'true'"))
     user = db.query(User).filter(User.email == payload.email).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid request")
@@ -56,5 +65,13 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     user.force_password_change = False
     otp_token.is_used = True
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.PASSWORD_CHANGED,
+        title="Password reset completed",
+        message=f"{user.email} reset their password via forgot-password flow.",
+        related_user_id=user.user_id,
+    )
 
     return {"message": "Password updated"}
