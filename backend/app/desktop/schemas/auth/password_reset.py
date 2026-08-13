@@ -18,4 +18,3 @@ class ResetPasswordRequest(BaseModel):
     @classmethod
     def validate_new_password_strength(cls, v: str) -> str:
         return validate_password_strength(v)
-

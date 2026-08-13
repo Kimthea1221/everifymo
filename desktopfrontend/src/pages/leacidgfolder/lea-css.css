@@ -3251,3 +3251,175 @@
   background: #EDEDED;
   color: #13213C;
 }
+
+/* ADDED — LEA-side doc preview modal, same layout as the FDA version.
+   height: 85vh (not just max-height) is required for the flex:1 preview
+   elements below to actually get a real height to grow into. */
+.LeaVerifDocModalContainer {
+  background: #FDFDFD;
+  border-radius: 12px;
+  max-width: 1100px;
+  width: 92vw;
+  height: 90vh;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+}
+
+/* ADDED — body grows to fill space between header and footer */
+.LeaVerifDocModalBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.LeaVerifDocModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #EDEDED;
+}
+
+.LeaVerifDocModalTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.LeaVerifDocModalTitleGroup h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0 0 2px 0;
+}
+
+.LeaVerifDocModalMeta {
+  font-size: 11.5px;
+  color: #1F2937;
+  opacity: 0.6;
+  margin: 0;
+}
+
+.LeaVerifDocPlaceholderPreview {
+  background: #EDEDED;
+  border: 1.5px dashed #1B4332;
+  border-radius: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.LeaVerifDocPreviewIcon {
+  color: #1B4332;
+  margin-bottom: 10px;
+}
+
+/* ADDED — flex:1 so image/PDF fills whatever height LeaVerifDocModalBody gives them */
+.LeaVerifDocImagePreview {
+  max-width: 100%;
+  max-height: 100%;
+  flex: 1;
+  min-height: 0;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.LeaVerifDocPdfPreview {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  border: none;
+  border-radius: 8px;
+}
+
+.LeaVerifPreviewTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #030303;
+  margin: 0 0 4px 0;
+}
+
+.LeaVerifPreviewText {
+  font-size: 12.5px;
+  color: #1F2937;
+  opacity: 0.8;
+  margin: 0 0 10px 0;
+}
+
+/* ADDED — close (X) button on the doc preview modal header, matches
+   LeaVerifDocActionBtn's icon-button pattern but transparent/borderless
+   since it sits in the header, not a card */
+.LeaVerifIconButton {
+  background: transparent;
+  border: none;
+  color: #1F2937;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.LeaVerifIconButton:hover {
+  opacity: 1;
+  background: #EDEDED;
+}
+
+/* ADDED — footer bar for the doc preview modal (Close / Download buttons) */
+.LeaVerifModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #EDEDED;
+}
+
+/* ADDED — "Close Preview" button, same shape/weight as BtnCancelModal
+   used elsewhere in this file, kept separate since it lives in a
+   different footer layout (flex-end, not space-between) */
+.LeaVerifBtnOutline {
+  padding: 10px 20px;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 8px;
+  background: #FDFDFD;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #030303;
+  transition: background 0.2s;
+}
+
+.LeaVerifBtnOutline:hover {
+  background: #EDEDED;
+}
+
+/* ADDED — "Download Attachment" button, reuses the same navy/amber
+   pattern as SendReqBtn/LogButton elsewhere in this file, for LEA
+   theme consistency (FDA side uses green — LEA uses navy) */
+.LeaVerifBtnPrimary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #13213C;
+  color: #FDFDFD;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.LeaVerifBtnPrimary:hover {
+  background: #FCA311;
+  color: #030303;
+}
