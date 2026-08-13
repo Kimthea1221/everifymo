@@ -14,10 +14,14 @@ from app.desktop.schemas.superadmin_notifications.superadmin_notifications impor
     NotificationOut,
 )
 
-# How many days an invited user can stay un-activated before superadmin
-# gets nagged about it. Confirm this threshold with your team/adviser -
-# 5 is a placeholder.
-INVITE_STALE_AFTER_DAYS = 5
+# How long an invited user can stay un-activated before superadmin gets
+# nagged about it, WHILE the invite token is still valid. This must be
+# shorter than the actual token expiry window (2 days, see
+# create_invited_superadmin / create_invited_user), otherwise the token
+# expires and moves into the invite_expired bucket before this ever fires.
+# Set to 1 day: gives superadmin a heads-up with still ~1 day of runway
+# left to nudge the user or resend, before it actually expires.
+INVITE_STALE_AFTER_DAYS = 1
 
 # Namespace used to generate a stable, deterministic UUID for computed
 # (non-persisted) notifications, so the frontend still has a unique React
