@@ -1,3 +1,4 @@
+# backend/app/desktop/routers/Product_database/registered_product.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 

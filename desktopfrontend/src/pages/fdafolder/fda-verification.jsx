@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/fdafolder/fda-verification.jsx
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from "../component/sidebar";

@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/component/top-bar.jsx
 import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'

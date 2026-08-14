@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/fdafolder/fda-product-db.jsx
 import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';

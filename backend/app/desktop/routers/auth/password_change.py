@@ -3,6 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
+
 from app.database.sessions import get_db
 from app.core.dependencies import get_current_user
 from app.core.security import verify_password, hash_password
@@ -17,6 +21,7 @@ router = APIRouter(prefix="/auth/password", tags=["auth-password"])
 @router.post("/change")
 def change_password(
     payload: ChangePasswordRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -34,6 +39,17 @@ def change_password(
         title="Password changed",
         message=f"{current_user.email} changed their password.",
         related_user_id=current_user.user_id,
+    )
+
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.UPDATE_USER_PASSWORD,
+        target_table="users",
+        target_id=current_user.user_id,
+        target_reference=current_user.email,
+        request=http_request,
+        region_code=get_user_region_code(db, current_user),
     )
 
     return {"message": "Password changed successfully."}
