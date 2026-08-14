@@ -781,7 +781,7 @@ function LeaVerificationRequest() {
                         >
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Medical Devices">Medical Devices</option>
                           <option value="Drugs">Drugs</option>
                         </select>
@@ -1013,7 +1013,7 @@ function LeaVerificationRequest() {
                         >
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Medical Devices">Medical Devices</option>
                           <option value="Drugs">Drugs</option>
                         </select>
@@ -1183,7 +1183,7 @@ function LeaVerificationRequest() {
                         >
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Medical Devices">Medical Devices</option>
                           <option value="Drugs">Drugs</option>
                         </select>
@@ -1402,7 +1402,7 @@ function LeaVerificationRequest() {
                         >
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Medical Devices">Medical Devices</option>
                           <option value="Drugs">Drugs</option>
                         </select>
@@ -1565,7 +1565,7 @@ function LeaVerificationRequest() {
                         <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Drugs">Drugs</option>
                           <option value="Medical Devices">Medical Devices</option>
                         </select>
