@@ -1,6 +1,26 @@
 import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { apiFetch } from '../../utils/apiFetch'  
+
+// Event types that are computed at read-time on the backend (not real
+// stored rows) - clicking these can't call the mark-as-read endpoint,
+// since there's no real notification_id to update.
+const COMPUTED_EVENT_TYPES = ['invite_not_activated', 'invite_expired'];
+
+function timeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffSec = Math.floor((now - date) / 1000);
+
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour} hour${diffHour !== 1 ? 's' : ''} ago`;
+    const diffDay = Math.floor(diffHour / 24);
+    return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
+}
 
 const allNotifications = [
     // CIDG notifications
@@ -43,23 +63,6 @@ const allNotifications = [
         title: 'Product Database Updated', 
         message: 'Product database has been updated with 12 new entries.', 
         time: '3 hours ago', 
-        isRead: true 
-    },
-    // Superadmin notifications
-    { 
-        id: 6,
-        agency: 'superadmin',
-        title: 'New User Registered', 
-        message: 'A new personnel completed registration and is awaiting activation.', 
-        time: 'Just now', 
-        isRead: false 
-    },
-    { 
-        id: 7,
-        agency: 'superadmin',
-        title: 'Account Activated', 
-        message: 'Personnel account for juan@cidg.gov.ph has been activated.', 
-        time: '1 hour ago', 
         isRead: true 
     },
 ]
@@ -105,6 +108,7 @@ function TopBar({ topbarType, role, agency }) {
     };
 
     const normalizedAgency = getNormalizedAgency();
+    const isSuperadmin = normalizedAgency === 'superadmin';
 
     // dropdown open/close states
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -114,12 +118,69 @@ function TopBar({ topbarType, role, agency }) {
     const notifRef = useRef(null);
     const profileRef = useRef(null);
 
-    // notifications filtered by agency
+    // notifications filtered by agency (FDA/LEA - mock data, unchanged)
     const [notifications, setNotifications] = useState([]);
 
+    // Superadmin - real backend state
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [notifLoading, setNotifLoading] = useState(false);
+
     useEffect(() => {
-        setNotifications(allNotifications.filter(n => n.agency === normalizedAgency));
-    }, [normalizedAgency]);
+        if (!isSuperadmin) {
+            setNotifications(allNotifications.filter(n => n.agency === normalizedAgency));
+        }
+    }, [normalizedAgency, isSuperadmin]);
+
+    // ---- Superadmin: fetch unread count on mount + poll every 30s ----
+    useEffect(() => {
+        if (!isSuperadmin) return;
+
+        const fetchUnreadCount = async () => {
+            try {
+                const res = await apiFetch('/notifications/unread-count');
+                if (!res.ok) return;
+                const data = await res.json();
+                setUnreadCount(data.unread_count);
+            } catch (err) {
+                console.error('Failed to fetch unread count:', err);
+            }
+        };
+
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [isSuperadmin]);
+
+    // ---- Superadmin: fetch full list when dropdown opens ----
+    useEffect(() => {
+        if (!isSuperadmin || !isNotifOpen) return;
+
+        const fetchNotifications = async () => {
+            setNotifLoading(true);
+            try {
+                const res = await apiFetch('/notifications?limit=20&offset=0');
+                if (!res.ok) return;
+                const data = await res.json();
+                setNotifications(
+                    data.notifications.map(n => ({
+                        id: n.notification_id,
+                        title: n.title,
+                        message: n.message,
+                        time: timeAgo(n.created_at),
+                        isRead: n.is_read,
+                        eventType: n.event_type,
+                    }))
+                );
+                setUnreadCount(data.unread_count);
+            } catch (err) {
+                console.error('Failed to fetch notifications:', err);
+            } finally {
+                setNotifLoading(false);
+            }
+        };
+
+        fetchNotifications();
+    }, [isSuperadmin, isNotifOpen]);
 
     // close dropdowns when clicking outside
     useEffect(() => {
@@ -135,14 +196,46 @@ function TopBar({ topbarType, role, agency }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    // FDA/LEA still compute unread count from local mock state, same as before
+    const displayUnreadCount = isSuperadmin ? unreadCount : notifications.filter(n => !n.isRead).length;
 
-    const handleMarkAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    const handleMarkAllAsRead = async () => {
+        if (!isSuperadmin) {
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+            return;
+        }
+
+        try {
+            const res = await apiFetch('/notifications/read-all', { method: 'PATCH' });
+            if (!res.ok) return;
+            const data = await res.json();
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+            setUnreadCount(data.unread_count);
+        } catch (err) {
+            console.error('Failed to mark all as read:', err);
+        }
     };
 
-    const handleNotificationClick = (id) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    const handleNotificationClick = async (notif) => {
+        if (!isSuperadmin) {
+            setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+            return;
+        }
+
+        // Computed entries (invite_not_activated / invite_expired) have no
+        // real DB row - nothing to mark read, they resolve on their own.
+        if (COMPUTED_EVENT_TYPES.includes(notif.eventType)) return;
+        if (notif.isRead) return;
+
+        try {
+            const res = await apiFetch(`/notifications/${notif.id}/read`, { method: 'PATCH' });
+            if (!res.ok) return;
+            const data = await res.json();
+            setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+            setUnreadCount(data.unread_count);
+        } catch (err) {
+            console.error('Failed to mark notification as read:', err);
+        }
     };
 
     // Profile Settings — only for FDA and LEA, NOT superadmin
@@ -629,8 +722,8 @@ function TopBar({ topbarType, role, agency }) {
                             onClick={() => setIsNotifOpen(!isNotifOpen)}
                         >
                             <Bell />
-                            {unreadCount > 0 && (
-                                <span className='BellBadge'>{unreadCount}</span>
+                            {displayUnreadCount > 0 && (
+                                <span className='BellBadge'>{displayUnreadCount}</span>
                             )}
                         </div>
 
@@ -638,7 +731,7 @@ function TopBar({ topbarType, role, agency }) {
                             <div className='TopbarDropdown'>
                                 <div className='TopNotifTitle'>
                                     <h5>Notifications</h5>
-                                    {unreadCount > 0 && (
+                                    {displayUnreadCount > 0 && (
                                         <button
                                             className='MarkAllReadBtn'
                                             onClick={handleMarkAllAsRead}
@@ -648,14 +741,16 @@ function TopBar({ topbarType, role, agency }) {
                                     )}
                                 </div>
                                 <div className='NotifList'>
-                                    {notifications.length === 0 ? (
+                                    {notifLoading ? (
+                                        <div className='EmptyNotif'>Loading...</div>
+                                    ) : notifications.length === 0 ? (
                                         <div className='EmptyNotif'>No notifications</div>
                                     ) : (
                                         notifications.map((notif) => (
                                             <div
                                                 key={notif.id}
                                                 className={`NotifItem ${notif.isRead ? '' : 'unread'}`}
-                                                onClick={() => handleNotificationClick(notif.id)}
+                                                onClick={() => handleNotificationClick(notif)}
                                             >
                                                 <div className='NotifContent'>
                                                     <div className='NotifItemTitle'>{notif.title}</div>

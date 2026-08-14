@@ -22,7 +22,8 @@ const ITEMS_PER_PAGE = 25;
 // Underlying data values stay unchanged (Supplement / Pharmaceutical) so
 // filtering logic and reportData.js don't need to change — only what's shown.
 const CATEGORY_LABELS = {
-  Supplement: 'Food',
+  Supplement: 'Foods',
+  Food: 'Food',
   Pharmaceutical: 'Drugs',
 };
 

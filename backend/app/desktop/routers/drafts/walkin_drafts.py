@@ -414,4 +414,3 @@ def list_walkin_drafts(
 
     return query.all()
 
-

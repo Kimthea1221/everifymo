@@ -389,9 +389,7 @@ function FDASavedDraft() {
               <div className="FdaFilterGroup">
                 <label>Category</label>
                 {/* FIXED — option values now match real backend category strings
-                                    exactly: "Food" (not "Foods"), and "Supplements" added.
-                                    Same correction applied to Completed/Rejected tabs in
-                                    fda-verification.jsx. Default value "" omits the param when
+                                    exactly: "Food" (not "Foods"). Default value "" omits the param when
                                     "All Categories" is selected, matching the backend contract. */}
                 <select
                   value={categoryFilter}

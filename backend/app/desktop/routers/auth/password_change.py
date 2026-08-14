@@ -8,6 +8,8 @@ from app.core.dependencies import get_current_user
 from app.core.security import verify_password, hash_password
 from app.models.users import User
 from app.desktop.schemas.auth.password_change import ChangePasswordRequest
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/auth/password", tags=["auth-password"])
 
@@ -25,5 +27,13 @@ def change_password(
     current_user.password_hash = hash_password(payload.new_password)
     current_user.force_password_change = False
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.PASSWORD_CHANGED,
+        title="First-login password change completed",
+        message=f"{current_user.email} completed the required first-login password change.",
+        related_user_id=current_user.user_id,
+    )
 
     return {"message": "Password changed successfully."}
