@@ -9,6 +9,9 @@ from app.database.sessions import get_db
 from app.core.security import authenticate_consumer, create_consumer_access_token
 from app.extension.schemas.auth import Token
 
+from app.extension.services.consumer_acc_service import login_with_google
+from app.extension.schemas.consumer_acc import GoogleLoginRequest
+
 router = APIRouter(
     prefix="/auth",
     tags=["auth"]
@@ -42,4 +45,16 @@ async def login_for_access_token(
         "access_token": token,
         "token_type": "bearer",
         "username": consumer.username
+    }
+
+@router .post("/google")
+def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
+    consumer = login_with_google(db, payload.token)
+    access_token = create_consumer_access_token(consumer.username, consumer.consumer_id, timedelta(minutes=20))
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "username": consumer.username,
+        "email": consumer.email
     }

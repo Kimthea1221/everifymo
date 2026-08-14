@@ -13,6 +13,8 @@ import {
   Search,
   ShieldCheck,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
@@ -38,6 +40,7 @@ function mapAdmin(item) {
     invitation_date: item.invitation_date ? item.invitation_date.split('T')[0] : null,
     expiration_date: item.expiration_date ? item.expiration_date.split('T')[0] : null,
     status: item.status,
+    is_locked: item.is_locked,
   };
 }
 
@@ -46,6 +49,8 @@ const STATUS_META = {
   'Invitation Expired': { label: 'Invitation Expired', className: 'sam-badge-expired' },
   Active: { label: 'Active', className: 'sam-badge-active' },
   Suspended: { label: 'Suspended', className: 'sam-badge-suspended' },
+  'Pending Approval': { label: 'Pending Approval', className: 'sam-badge-pending' },
+  'Locked Account': { label: 'Locked Account', className: 'sam-badge-locked' },
 };
 
 function SAMStatusBadge({ status }) {
@@ -53,10 +58,6 @@ function SAMStatusBadge({ status }) {
   return <span className={`SAMStatusBadge ${meta.className}`}>{meta.label}</span>;
 }
 
-// Determines whether a status has any dropdown actions at all
-function hasDropdownActions(status) {
-  return status !== 'Invited';
-}
 
 function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, onView }) {
   const status = admin.status;
@@ -97,8 +98,8 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
             <Eye size={14} /> View Details
           </button>
 
-          {/* Invitation Expired — only Resend, no delete in DB */}
-          {status === 'Invitation Expired' && (
+          {/* Invitation Expired/Invited — Resend Invitation */}
+          {['Invited', 'Invitation Expired'].includes(status) && (
             <button
               className="SAMDropdownItem"
               onClick={() => {
@@ -107,6 +108,32 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
               }}
             >
               <Send size={14} /> Resend Invitation
+            </button>
+          )}
+
+          {/* Pending Approval — Activate */}
+          {status === 'Pending Approval' && (
+            <button
+              className="SAMDropdownItem"
+              onClick={() => {
+                onAction('activate');
+                toggleDropdown();
+              }}
+            >
+              <ShieldCheck size={14} /> Activate Account
+            </button>
+          )}
+
+          {/* Locked Account — Unlock */}
+          {status === 'Locked Account' && (
+            <button
+              className="SAMDropdownItem"
+              onClick={() => {
+                onAction('unlock');
+                toggleDropdown();
+              }}
+            >
+              <RotateCcw size={14} /> Unlock Account
             </button>
           )}
 
@@ -188,6 +215,16 @@ const CONFIRM_MESSAGES = {
     message: 'Are you sure you want to delete this Superadmin account entry? This action cannot be undone.',
     confirmLabel: 'Delete Account',
   },
+  activate: {
+    title: 'Activate Superadmin Account',
+    message: 'Are you sure you want to activate this Superadmin account? The user will be notified and can now log in.',
+    confirmLabel: 'Activate Account',
+  },
+  unlock: {
+    title: 'Unlock Superadmin Account',
+    message: 'Are you sure you want to unlock this Superadmin account? Access will be restored immediately.',
+    confirmLabel: 'Unlock Account',
+  },
 };
 
 function SAMConfirmModal({ open, actionType, onConfirm, onCancel }) {
@@ -195,7 +232,7 @@ function SAMConfirmModal({ open, actionType, onConfirm, onCancel }) {
   const meta = CONFIRM_MESSAGES[actionType] || {};
 
   const isDestructive = actionType === 'suspend' || actionType === 'delete';
-  const isReactivate = actionType === 'reactivate';
+  const isReactivate = actionType === 'reactivate' || actionType === 'unlock' || actionType === 'activate';
 
   return (
     <div className="SAMModalOverlay">
@@ -415,6 +452,9 @@ export default function SuperAdminAdminManagement() {
     targetId: null,
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit] = useState(10);
+
   const currentAdminId = getCurrentAdminId();
 
   useEffect(() => {
@@ -470,6 +510,8 @@ export default function SuperAdminAdminManagement() {
       suspend: { method: 'POST', path: `/admin/superadmins/${targetId}/suspend` },
       reactivate: { method: 'POST', path: `/admin/superadmins/${targetId}/reactivate` },
       delete: { method: 'DELETE', path: `/admin/superadmins/${targetId}` },
+      activate: { method: 'POST', path: `/admin/superadmins/${targetId}/activate` },
+      unlock: { method: 'POST', path: `/admin/superadmins/${targetId}/unlock` },
     };
 
     const route = routes[actionType];
@@ -506,6 +548,13 @@ export default function SuperAdminAdminManagement() {
     return matchesStatus && matchesSearch;
   });
 
+  const totalItems = filteredAdmins.length;
+  const totalPages = Math.ceil(totalItems / limit) || 1;
+  const activePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (activePage - 1) * limit;
+  const endIndex = Math.min(startIndex + limit, totalItems);
+  const displayedAdmins = filteredAdmins.slice(startIndex, startIndex + limit);
+
   return (
     <div className="SuperadminMainContainer">
       <Sidebar sidebarType="SUPER_ADMIN" />
@@ -535,6 +584,11 @@ export default function SuperAdminAdminManagement() {
                   className: 'sam-stat-active',
                 },
                 {
+                  label: 'Pending Approval',
+                  value: admins.filter((a) => a.status === 'Pending Approval').length,
+                  className: 'sam-stat-pending',
+                },
+                {
                   label: 'Invited',
                   value: admins.filter((a) => a.status === 'Invited').length,
                   className: 'sam-stat-invited',
@@ -548,6 +602,11 @@ export default function SuperAdminAdminManagement() {
                   label: 'Suspended',
                   value: admins.filter((a) => a.status === 'Suspended').length,
                   className: 'sam-stat-suspended',
+                },
+                {
+                  label: 'Locked',
+                  value: admins.filter((a) => a.status === 'Locked Account').length,
+                  className: 'sam-stat-locked',
                 },
               ].map((s) => (
                 <div key={s.label} className={`SAMStatCard ${s.className}`}>
@@ -565,10 +624,19 @@ export default function SuperAdminAdminManagement() {
                   className="SAMSearchInput"
                   placeholder="Search by email..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
                 {searchQuery && (
-                  <button className="SAMClearSearch" onClick={() => setSearchQuery('')}>
+                  <button
+                    className="SAMClearSearch"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setCurrentPage(1);
+                    }}
+                  >
                     ×
                   </button>
                 )}
@@ -579,13 +647,18 @@ export default function SuperAdminAdminManagement() {
                 <select
                   className="SAMSelectFilter"
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
                 >
                   <option value="All">All</option>
                   <option value="Invited">Invited</option>
                   <option value="Invitation Expired">Invitation Expired</option>
+                  <option value="Pending Approval">Pending Approval</option>
                   <option value="Active">Active</option>
                   <option value="Suspended">Suspended</option>
+                  <option value="Locked Account">Locked Account</option>
                 </select>
               </div>
             </div>
@@ -609,10 +682,10 @@ export default function SuperAdminAdminManagement() {
                         Loading superadmin records…
                       </td>
                     </tr>
-                  ) : filteredAdmins.length > 0 ? (
-                    filteredAdmins.map((admin, idx) => (
+                  ) : displayedAdmins.length > 0 ? (
+                    displayedAdmins.map((admin, idx) => (
                       <tr key={admin.id}>
-                        <td className="SAMTdCenter">{idx + 1}</td>
+                        <td className="SAMTdCenter">{startIndex + idx + 1}</td>
                         <td className="SAMEmailCell">{admin.email}</td>
                         <td>{admin.invitation_date || <span className="SAMEmpty">—</span>}</td>
                         <td>{admin.expiration_date || <span className="SAMEmpty">—</span>}</td>
@@ -644,6 +717,41 @@ export default function SuperAdminAdminManagement() {
                   )}
                 </tbody>
               </table>
+
+              {!loading && filteredAdmins.length > 0 && (
+                <div className="AuditPaginationWrapper">
+                  <span className="AuditPaginationInfo">
+                    Showing {totalItems === 0 ? 0 : startIndex + 1}–{endIndex} of {totalItems} entries
+                  </span>
+                  <div className="AuditPaginationControls">
+                    <button
+                      className="AuditPageBtn"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={14} /> Prev
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        className={`AuditPageNumber ${currentPage === page ? 'active' : ''}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    <button
+                      className="AuditPageBtn"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    >
+                      Next <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

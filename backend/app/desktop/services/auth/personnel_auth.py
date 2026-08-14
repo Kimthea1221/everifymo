@@ -40,10 +40,12 @@ def authenticate_personnel(
         raise ValueError("Account is suspended.")
 
     if user.is_locked:
-        raise ValueError("Account is locked.")
+        raise ValueError("Account is locked. Please contact your administrator.")
 
     if not verify_password(password, user.password_hash):
         user.failed_login_attempts += 1
+        if user.failed_login_attempts >= 5:
+            user.is_locked = True
         db.commit()
         raise ValueError("Invalid credentials")
 

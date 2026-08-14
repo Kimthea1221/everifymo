@@ -14,6 +14,12 @@ def generate_otp_code(length: int = 6) -> str:
     return "".join(str(secrets.randbelow(10)) for _ in range(length))
 
 def create_otp(db: Session, consumer_id, purpose: str) -> str:
+    db.query(ConsumerOTPToken).filter(
+        ConsumerOTPToken.consumer_id == consumer_id,
+        ConsumerOTPToken.purpose == purpose,
+        ConsumerOTPToken.is_used == False,
+    ).update({ "is_used": True })
+        
     code = generate_otp_code()
     otp = ConsumerOTPToken(
         consumer_id = consumer_id,
@@ -21,6 +27,7 @@ def create_otp(db: Session, consumer_id, purpose: str) -> str:
         expires_at = datetime.now(timezone.utc) + timedelta(minutes = OTP_EXPIRATION_MINS),
         purpose = purpose
     )
+
     db.add(otp)
     db.commit()
     return code
@@ -48,29 +55,23 @@ def verify_otp(db: Session, consumer_id, submitted_code: str, purpose: str) -> N
     otp.is_used = True
     db.commit()
 
-# def verify_signup_otp(db: Session, email: str, otp_code: str) -> ConsumerAccount:
-#     consumer = db.query(ConsumerAccount).filter(
-#         ConsumerAccount.email == email).first()
+def create_reset_token(db: Session, consumer_id) -> str:
+    token = secrets.token_urlsafe(32)
+    reset_row = ConsumerOTPToken(
+        consumer_id=consumer_id,
+        otp_hash=pwd_context.hash(token),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        purpose="password_reset_token",
+    )
+    db.add(reset_row)
+    db.commit()
+    return token
 
-#     if not consumer:
-#         raise HTTPException(status_code=404, detail="Account not found")
+def verify_reset_otp(db: Session, email: str, otp_code: str) -> str:
+    consumer = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()
 
-#     verify_otp(db, consumer.consumer_id, otp_code, purpose="signup_verification")
+    if not consumer:
+        raise HTTPException(status_code=400, detail="Invalid request")
 
-#     consumer.is_verified = True
-#     db.commit()
-#     db.refresh(consumer)
-#     return consumer
-
-# def resend_signup_otp(db: Session, email: str) -> None:
-#     consumer = db.query(ConsumerAccount).filter(
-#         ConsumerAccount.email == email).first()
-
-#     if not consumer:
-#         raise HTTPException(status_code=404, detail="Account not found")
-#     if consumer.is_verified:
-#         raise HTTPException(status_code=400, detail="Account already verified")
-
-#     code = create_otp(db, consumer.consumer_id, purpose="signup_verification")
-
-#     return code
+    verify_otp(db, consumer.consumer_id, otp_code, purpose="password_reset")
+    return create_reset_token(db, consumer.consumer_id)

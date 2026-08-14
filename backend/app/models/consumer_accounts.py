@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Text, DateTime, Integer, Boolean, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+from sqlalchemy import Index
 
 from app.database.base import Base
 
@@ -15,8 +16,8 @@ class ConsumerAccount(Base):
 
     consumer_type = Column(String(50), nullable=False)
 
-    username = Column(String(50), unique=True, nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
+    username = Column(String(50), nullable=False)
+    email = Column(String(255), nullable=False)
    
     password_hash = Column(Text, nullable=False)
     google_id = Column(String(255), unique=True, nullable=True)
@@ -33,4 +34,18 @@ class ConsumerAccount(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
+    __table_args__ = (
+        Index(
+            "consumer_account_username_verified_uidx",
+            "username",
+            unique=True,
+            postgresql_where=text("is_verified = true"),
+        ),
+        Index(
+            "consumer_account_email_verified_uidx",
+            "email",
+            unique=True,
+            postgresql_where=text("is_verified = true"),
+        ),
+    )
 

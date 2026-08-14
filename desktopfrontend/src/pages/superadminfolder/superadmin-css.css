@@ -2294,6 +2294,12 @@
 .sam-stat-suspended { border-top: 3.5px solid #475569; }
 .sam-stat-suspended .SAMStatValue { color: #475569; }
 
+.sam-stat-invited { border-top: 3.5px solid #0284c7; }
+.sam-stat-invited .SAMStatValue { color: #0284c7; }
+
+.sam-stat-locked { border-top: 3.5px solid #b91c1c; }
+.sam-stat-locked .SAMStatValue { color: #b91c1c; }
+
 .sam-stat-expired { border-top: 3.5px solid #dc2626; }
 .sam-stat-expired .SAMStatValue { color: #dc2626; }
 
@@ -2518,6 +2524,18 @@
   background: #dcfce7;
   color: #166534;
   border: 1px solid #bbf7d0;
+}
+
+.sam-badge-invited {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.sam-badge-locked {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 /* ── Actions Column Buttons ── */
@@ -2901,6 +2919,9 @@
   color: #0D9488 !important;
 }
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/dev
 
 
