@@ -1,10 +1,31 @@
 // api.js
-class UnauthorizedError extends Error {}
-
 //login/signup to backend
-const API_BASE = 'http://localhost:8000'; // will be changed to real url during development (same with in the manifest)
+const API_BASE = 'http://localhost:8001'; // will be changed to real url during development (same with in the manifest)
 
-async function apiSignUp({ email, username, password }){
+export class UnauthorizedError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+async function handleResponse(response) {
+    if (response.status === 401) {
+        throw new UnauthorizedError('Session expired. Please login once again');
+    }
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const message = data?.detail 
+            ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail)
+            : `Server responded ${response.status}`;
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
+export async function apiSignUp({ email, username, password }){
     const res = await fetch(`${API_BASE}/accounts/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -22,7 +43,7 @@ async function apiSignUp({ email, username, password }){
     return data;
 }
 
-async function apiLogin(email, password) {
+export async function apiLogin(email, password) {
     const formBody = new URLSearchParams();
     formBody.append('username', email);
     formBody.append('password', password);
@@ -42,7 +63,7 @@ async function apiLogin(email, password) {
     return data;
 }
 
-async function apiGoogleLogin(token) {
+export async function apiGoogleLogin(token) {
     const res = await fetch(`${API_BASE}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,7 +84,7 @@ async function apiGoogleLogin(token) {
     return data;
 }
 
-async function apiChangeUsername(email, newUsername) {
+export async function apiChangeUsername(email, newUsername) {
 
     const res = await fetch(`${API_BASE}/accounts/change-pending-username`, {
             method: 'PUT',
@@ -76,23 +97,7 @@ async function apiChangeUsername(email, newUsername) {
     return handleResponse(res);
 }
 
-async function handleResponse(response) {
-    if (response.status === 401) {
-        throw new UnauthorizedError('Session expired. Please login once again');
-    }
-
-    if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        const message = data?.detail 
-            ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail)
-            : `Server responded ${response.status}`;
-        throw new Error(message);
-    }
-
-    return response.json();
-}
-
-async function apiVerifyOtp(email, inputCode, callback) {
+export async function apiVerifyOtp(email, inputCode, callback) {
   const res = await fetch(`${API_BASE}/accounts/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -102,7 +107,7 @@ async function apiVerifyOtp(email, inputCode, callback) {
   return handleResponse(res);
 }
 
-async function apiResendOtp(email, callback) {
+export async function apiResendOtp(email, callback) {
     const res = await fetch(`${API_BASE}/accounts/resend-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -112,7 +117,7 @@ async function apiResendOtp(email, callback) {
     return handleResponse(res);
 }
 
-async function apiPasswordReset(email, callback) {
+export async function apiPasswordReset(email, callback) {
     const res = await fetch(`${API_BASE}/accounts/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +127,7 @@ async function apiPasswordReset(email, callback) {
     return handleResponse(res);
 }
 
-async function apiVerifyResetOtp(email, otpCode){
+export async function apiVerifyResetOtp(email, otpCode){
     const res = await fetch(`${API_BASE}/accounts/verify-reset-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,7 +137,7 @@ async function apiVerifyResetOtp(email, otpCode){
     return handleResponse(res);
 }
 
-async function apiConfirmPassReset(email, resetToken, newPassword) {
+export async function apiConfirmPassReset(email, resetToken, newPassword) {
     const res = await fetch(`${API_BASE}/accounts/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +147,7 @@ async function apiConfirmPassReset(email, resetToken, newPassword) {
     return handleResponse(res);
 }
 
-async function apiSubmitComplaint(complaintData, token){
+export async function apiSubmitComplaint(complaintData, token){
     let headers = { 'Content-Type': 'application/json'};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -155,7 +160,7 @@ async function apiSubmitComplaint(complaintData, token){
     return handleResponse(res);
 }
 
-async function apiGetComplaints(token){
+export async function apiGetComplaints(token){
     const res = await fetch(`${API_BASE}/ComplaintsHistory`, {
         method: 'GET',
         headers: { 
@@ -166,7 +171,7 @@ async function apiGetComplaints(token){
     return handleResponse(res);
 }
 
-async function apiGetStatus(token){  
+export async function apiGetStatus(token){  
     const res = await fetch(`${API_BASE}/ComplaintStatus`, {
         method: 'GET',
         headers: {
@@ -177,7 +182,7 @@ async function apiGetStatus(token){
     return handleResponse(res);
 }
 
-async function apiUpdateUsername(newUsername, token) {
+export async function apiUpdateUsername(newUsername, token) {
     
     const res = await fetch(`${API_BASE}/accounts/username`, {
         method: 'PUT',
@@ -191,7 +196,7 @@ async function apiUpdateUsername(newUsername, token) {
     return handleResponse(res);
 }
 
-async function apiDeleteAccount(password, token, permanent = false) {
+export async function apiDeleteAccount(password, token, permanent = false) {
 
     const res = await fetch(`${API_BASE}/accounts/delete-account`, {
         method: 'DELETE',
@@ -206,14 +211,36 @@ async function apiDeleteAccount(password, token, permanent = false) {
     return handleResponse(res);
 }
 
-function getVerificationHistory() {
-  return [
-    { id: 1, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
-    { id: 2, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'suspicious' },
-    { id: 3, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Tiktok Shop', time: '2 hrs ago', status: 'unregistered' },
-    { id: 4, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
-    { id: 5, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'registered' }
-  ];
+export async function apiVerificationHistory(product, token) {
+    let headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/submitVerification`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(product)
+    });
+
+    return handleResponse(res);
+}
+
+export async function getVerificationHistory(token) {
+    const res = await fetch(`${API_BASE}/VerificationHistory`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+
+    return handleResponse(res);
+
+//   return [
+//     { id: 1, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
+//     { id: 2, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'suspicious' },
+//     { id: 3, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Tiktok Shop', time: '2 hrs ago', status: 'unregistered' },
+//     { id: 4, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
+//     { id: 5, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'registered' }
+//   ];
 }
 
 // ================================
@@ -384,17 +411,14 @@ function getVerificationHistory() {
 //   ];
 // }
 
-<<<<<<< HEAD
-function verifyOtp(inputCode, callback) {
-  chrome.storage.local.get(['pendingOtp'], (data) => {
-    const pending = data.pendingOtp;
-    if (!pending || inputCode !== pending.code) {
-      callback(false);
-      return;
-    }
-    chrome.storage.local.remove('pendingOtp', () => callback(true));
-  });
-}
-}
-=======
->>>>>>> origin/dev
+// function verifyOtp(inputCode, callback) {
+//   chrome.storage.local.get(['pendingOtp'], (data) => {
+//     const pending = data.pendingOtp;
+//     if (!pending || inputCode !== pending.code) {
+//       callback(false);
+//       return;
+//     }
+//     chrome.storage.local.remove('pendingOtp', () => callback(true));
+//   });
+// }
+// }

@@ -1,4 +1,20 @@
 //Auth.js
+import {
+  whenSessionReady,
+  isUserLoggedIn,
+  getCurrentUser,
+  logoutUser,
+  resendOtpSession,
+  requestPasswordReset,
+  verifyResetOtp,
+  confirmPasswordReset,
+  verifyOtp,
+  changePendingUsername,
+  registerUser,
+  loginUser,
+  googleLogin
+} from "../scripts/session.js";
+
 document.addEventListener('DOMContentLoaded', () => {
   const emailField = document.getElementById('email-field');
   const otpField = document.getElementById('otp-field');

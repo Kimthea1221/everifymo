@@ -2,10 +2,12 @@
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 console.log('Background received message:', message);
-  if (message.action === 'titleExtracted') {
+  if (message.action === 'extractedTitle') {
     //
     (async () => {
       try {
+        const { access_token } = await chrome.storage.local.get(['access_token']);
+
         const response = await fetch('http://localhost:8001/verify', {
           method: 'POST',
           headers: {
@@ -30,6 +32,26 @@ console.log('Background received message:', message);
         });
 
         updateBadge(status, sender.tab.id);
+        sendResponse({ status: 'success', data: data });
+
+        const res = await fetch('http://localhost:8001/submitVerification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(access_token ? { 'Authorization': `Bearer ${access_token}` } : {})
+          },
+          body: JSON.stringify({
+            product_title: message.title,
+            platform: message.platform,
+            verification_result: status
+          })
+        });
+
+        const resData = await res.json().catch(() => null);
+        if (!res.ok) {
+          console.error('submitVerification failed:', resData);
+        }
+
       } catch (error) {
         //
         console.error('Error sending title to backend:', error);
@@ -44,8 +66,10 @@ console.log('Background received message:', message);
         });
 
         updateBadge(status, sender.tab.id);
+        sendResponse({ status: 'error', data: null });
       }
     })();
+    return true;
   }
 
 });

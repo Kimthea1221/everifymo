@@ -1,9 +1,6 @@
-<<<<<<< HEAD
 //content.js
 console.log('FDA Checker content script loaded');
-=======
 console.log("Hello World from content.js")
->>>>>>> origin/dev
 
 const verifyBtn = document.createElement("button");
 verifyBtn.textContent = "Verify";
@@ -69,35 +66,32 @@ verifyBtn.addEventListener("click", () => {
     
     document.body.appendChild(modal);
 
-<<<<<<< HEAD
-    const cleanedTitle = cleanTitle(rawTitle);
-    if (!cleanedTitle) return;
-
-    console.log('Clean title:', cleanedTitle);
-
-    console.log('Sending extracted title to background:', cleanedTitle, platform, location.href);
-
-    try {
-        chrome.runtime.sendMessage({
-            action: 'titleExtracted',
-            title: rawTitle,
-            platform: platform,
-            url: location.href
-        });
-        console.log('Message sent to backend');
-    } catch (error) {
-        console.error('Error sending message to backend:', error);
-    }
-}
-=======
     document.getElementById('fda-close-btn').addEventListener('click', () => {
         modal.remove();
     });
->>>>>>> origin/dev
-
+        
     setTimeout(() => {
         if (modal.parentElement) modal.remove();
-    }, 8000);
+    }, 8001);
 
     verifyBtn.style.display = "none";
+  
+    
+   // Send the selected text to the background script
+    chrome.runtime.sendMessage({
+        action: "extractedTitle",
+        title: selectedText,
+        platform: platform(location.href),
+        url: location.href
+    }, (response) => {
+        console.log("Response from background:", response);
+    });
 });
+
+function platform(url) {
+  if (url.includes("shopee")) return "shopee";
+  if (url.includes("lazada")) return "lazada";
+  if (url.includes("facebook")) return "facebook";
+  if (url.includes("tiktok")) return "tiktok";
+  return "unknown";
+}
