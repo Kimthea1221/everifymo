@@ -78,9 +78,6 @@ def change_password(
     ):
         raise HTTPException(status_code=400, detail="Current password is incorrect.")
 
-    if len(payload.new_password) < 8:
-        raise HTTPException(status_code=400, detail="New password must be at least 8 characters long.")
-
     current_user.password_hash = hash_password(payload.new_password)
     current_user.force_password_change = False
     db.commit()

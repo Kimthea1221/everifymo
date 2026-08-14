@@ -1,15 +1,17 @@
 
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
+import { apiFetch } from '../../utils/apiFetch';
 import './fda-css.css';
 import {
   AlertTriangle,
   Footprints,
   Globe,
-  CheckCircle
+  CheckCircle,
+  Package
 } from 'lucide-react';
 import { allConsumerReports, getTrendData, getReportStats } from './reportData';
 
@@ -23,6 +25,36 @@ function FDADashboard() {
         return [...allConsumerReports]
             .sort((a, b) => new Date(b.dateReceived.replace(/-/g, '/')) - new Date(a.dateReceived.replace(/-/g, '/')))
             .slice(0, 6);
+    }, []);
+
+    const [registeredCount, setRegisteredCount] = useState(0);
+    const [unregisteredCount, setUnregisteredCount] = useState(0);
+    const [convertedToRegCount, setConvertedToRegCount] = useState(0);
+    const [convertedToUnregCount, setConvertedToUnregCount] = useState(0);
+
+    useEffect(() => {
+        const fetchProductCounts = async () => {
+            try {
+                const regRes = await apiFetch('/registered-products/');
+                if (regRes.ok) {
+                    const regData = await regRes.json();
+                    setRegisteredCount(regData.length);
+                    const convertedReg = regData.filter(item => item.converted_from_advisory_id).length;
+                    setConvertedToRegCount(convertedReg);
+                    
+                    const unregRes = await apiFetch('/unregistered-advisories/');
+                    if (unregRes.ok) {
+                        const unregData = await unregRes.json();
+                        setUnregisteredCount(unregData.length);
+                        const convertedUnreg = unregData.filter(item => item.converted_from_product_id).length;
+                        setConvertedToUnregCount(convertedUnreg);
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching product counts:", err);
+            }
+        };
+        fetchProductCounts();
     }, []);
 
     const takedownData = {
@@ -102,6 +134,24 @@ function FDADashboard() {
 
     return (
         <div className="FdaDashboardMain">
+            <style>{`
+                .FdaMetricGridFour {
+                    display: grid !important;
+                    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                    gap: 16px !important;
+                    margin-bottom: 28px !important;
+                }
+                @media (max-width: 1200px) {
+                    .FdaMetricGridFour {
+                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                    }
+                }
+                @media (max-width: 576px) {
+                    .FdaMetricGridFour {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
+            `}</style>
             <Sidebar sidebarType="FDA" />
             <div className="FdaContentContainer">
                 <TopBar topbarType="FDA" />
@@ -139,6 +189,42 @@ function FDADashboard() {
                             <span className="FdaMetricLabel">Takedowns completed</span>
                             <span className="FdaMetricNumber">{reportStats.takedownsCompleted}</span>
 
+                        </div>
+                    </div>
+
+                    {/* Database Metrics Section */}
+                    <div className="FdaHeader" style={{ marginTop: '24px', marginBottom: '16px' }}>
+                        <div className="FdaHeaderLeft">
+                            <p className="FdaEyebrow">Database Summary</p>
+                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#030303', margin: '4px 0 0 0' }}>FDA Product Directory</h2>
+                        </div>
+                    </div>
+                    <div className="FdaMetricGridFour">
+                        <div
+                            className="FdaMetricCard FdaMetricCardLink"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => navigate('/fdafolder/fda-product-db', { state: { selectedTab: 'registered' } })}
+                        >
+                            <span className="FdaMetricLabel">Registered Products</span>
+                            <span className="FdaMetricNumber">{registeredCount}</span>
+                        </div>
+                        <div
+                            className="FdaMetricCard FdaMetricCardLink"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => navigate('/fdafolder/fda-product-db', { state: { selectedTab: 'advisories' } })}
+                        >
+                            <span className="FdaMetricLabel">Unregistered Advisories</span>
+                            <span className="FdaMetricNumber">{unregisteredCount}</span>
+                        </div>
+                        <div className="FdaMetricCard">
+                            <span className="FdaMetricLabel">Converted to Registered</span>
+                            <span className="FdaMetricNumber">{convertedToRegCount}</span>
+                        </div>
+                        <div className="FdaMetricCard">
+                            <span className="FdaMetricLabel">Converted to Unregistered</span>
+                            <span className="FdaMetricNumber">{convertedToUnregCount}</span>
                         </div>
                     </div>
 
