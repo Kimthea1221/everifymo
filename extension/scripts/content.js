@@ -73,6 +73,7 @@ verifyBtn.addEventListener("click", () => {
     setTimeout(() => {
         if (modal.parentElement) modal.remove();
     }, 8001);
+    }, 8001);
 
     verifyBtn.style.display = "none";
   
