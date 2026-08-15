@@ -1,6 +1,7 @@
+// desktopfrontend/src/pages/superadminfolder/superadmin-user-management.jsx
 import './superadmin-css.css';
 import { useState, useEffect, useRef } from 'react';
-import { Send, UserCheck, UserX, RefreshCw, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw } from 'lucide-react';
+import { Send, UserCheck, UserX, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 import { apiFetch } from '../../utils/apiFetch';
@@ -14,6 +15,7 @@ const STATUS_META = {
   Suspended: { label: 'Suspended', className: 'badge-suspended' },
   'Resend Requested': { label: 'Resend Requested', className: 'badge-pending' },
   'Link Expired': { label: 'Link Expired', className: 'badge-expired' },
+  'Locked Account': { label: 'Locked Account', className: 'badge-suspended' },
 };
 
 function StatusBadge({ status }) {
@@ -107,6 +109,12 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
               <Send size={14} /> Resend Link
             </button>
           )}
+
+          {displayStatus === 'Locked Account' && (
+            <button className="UserMgmtDropdownItem" onClick={() => { onAction('unlock'); setIsOpen(false); }}>
+              <UserCheck size={14} /> Unlock Account
+            </button>
+          )}
         </div>,
         document.body
       )}
@@ -140,6 +148,11 @@ const CONFIRM_MESSAGES = {
     message: 'Are you sure you want to delete this account? The suspended account will be permanently deleted and this action cannot be undone.',
     confirmLabel: 'Delete',
   },
+  unlock: {
+    title: 'Unlock Account',
+    message: 'Are you sure you want to unlock this account? The user will regain access to the system.',
+    confirmLabel: 'Unlock',
+  },
 };
 
 function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
@@ -151,7 +164,7 @@ function ConfirmModal({ open, actionType, onConfirm, onCancel }) {
         <div className="UMConfirmIcon">
           {actionType === 'suspend' || actionType === 'delete' ? (
             <TriangleAlert size={40} color="#D97706" strokeWidth={3} />
-          ) : actionType === 'activate' || actionType === 'reactivate' ? (
+          ) : actionType === 'activate' || actionType === 'reactivate' || actionType === 'unlock' ? (
             <CircleCheckBig size={40} color="#149660ff" strokeWidth={3} />
           ) : (
             <Mail size={40} color="#07338dff" strokeWidth={3} />
@@ -489,6 +502,9 @@ function SuperAdminUserManagement() {
     targetId: null,
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit] = useState(10);
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -531,6 +547,8 @@ function SuperAdminUserManagement() {
     path = `/admin/users/${targetId}/reactivate`;
   } else if (actionType === 'delete') {
     path = `/admin/users/${targetId}`;
+  } else if (actionType === 'unlock') {
+    path = `/admin/users/${targetId}/unlock`;
   }
 
   if (path) {
@@ -559,6 +577,13 @@ function SuperAdminUserManagement() {
     if (statusFilter === 'All') return true;
     return (u.display_status || u.status) === statusFilter;
   });
+
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / limit) || 1;
+  const activePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (activePage - 1) * limit;
+  const endIndex = Math.min(startIndex + limit, totalItems);
+  const displayedUsers = filteredUsers.slice(startIndex, startIndex + limit);
 
   return (
     <div className="SuperadminMainContainer">
@@ -605,6 +630,11 @@ function SuperAdminUserManagement() {
                   value: users.filter((u) => (u.display_status || u.status) === 'Suspended').length,
                   className: 'stat-suspended',
                 },
+                {
+                  label: 'Locked',
+                  value: users.filter((u) => (u.display_status || u.status) === 'Locked Account').length,
+                  className: 'stat-suspended',
+                },
               ].map((s) => (
                 <div key={s.label} className={`UMStatCard ${s.className}`}>
                   <span className="UMStatValue">{s.value}</span>
@@ -619,7 +649,10 @@ function SuperAdminUserManagement() {
               <select
                 className="UserMgmtSelectFilter"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
               >
                 <option value="All">All</option>
                 <option value="Invited">Invited</option>
@@ -628,6 +661,7 @@ function SuperAdminUserManagement() {
                 <option value="Pending Approval">Pending Approval</option>
                 <option value="Active">Active</option>
                 <option value="Suspended">Suspended</option>
+                <option value="Locked Account">Locked Account</option>
               </select>
             </div>
 
@@ -648,11 +682,11 @@ function SuperAdminUserManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((user, idx) => {
+                  {displayedUsers.map((user, idx) => {
                     const userId = user.user_id || user.id;
                     return (
                       <tr key={userId}>
-                        <td className="UMTdCenter">{idx + 1}</td>
+                        <td className="UMTdCenter">{startIndex + idx + 1}</td>
                         <td>{user.fullname || <span className="UMEmpty">—</span>}</td>
                         <td>{user.employee_id || user.employeeid || <span className="UMEmpty">—</span>}</td>
                         <td className="UMEmailCell">{user.email}</td>
@@ -674,6 +708,41 @@ function SuperAdminUserManagement() {
                   })}
                 </tbody>
               </table>
+
+              {filteredUsers.length > 0 && (
+                <div className="AuditPaginationWrapper">
+                  <span className="AuditPaginationInfo">
+                    Showing {totalItems === 0 ? 0 : startIndex + 1}–{endIndex} of {totalItems} entries
+                  </span>
+                  <div className="AuditPaginationControls">
+                    <button
+                      className="AuditPageBtn"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={14} /> Prev
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        className={`AuditPageNumber ${currentPage === page ? 'active' : ''}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    <button
+                      className="AuditPageBtn"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    >
+                      Next <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

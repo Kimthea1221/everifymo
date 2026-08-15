@@ -4,7 +4,9 @@ from decimal import Decimal
 
 from app.desktop.schemas.drafts.drafts import DraftStatus, Priority
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
+
+from app.core.formatting import format_file_size
 
 
 class ComplaintResponse(BaseModel):
@@ -32,6 +34,7 @@ class ComplaintAwaitingRequestResponse(BaseModel):
     case_reference: str
     product_title: str
     manufacturer: str | None
+    product_category: str | None
     source: str
     created_at: datetime
 
@@ -48,6 +51,11 @@ class SharedFileResponse(BaseModel):
     file_size_bytes: int
     mime_type: str
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def file_size_display(self) -> str:
+        return format_file_size(self.file_size_bytes)
 
 
 # The joined, read-only display data for the "Compose verification

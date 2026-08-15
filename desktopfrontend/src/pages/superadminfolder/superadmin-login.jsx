@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/superadminfolder/superadmin-login.jsx
 import { useState, useEffect, useRef } from "react";
 import './superadmin-css.css';
 import { useNavigate } from "react-router-dom";
@@ -115,12 +116,7 @@ function SuperAdminLogin() {
         setAdminLoginError('');
     }
 
-    function validatePassword(pwd) {
-        if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter.';
-        if (!/[0-9]/.test(pwd)) return 'Password must contain at least one number.';
-        if (!/[!@#$%^&*(),.?":{}|<>_\-+=/\\[\]~`';]/.test(pwd)) return 'Password must contain at least one special character.';
-        return null;
-    }
+
 
     async function handleLogin() {
     if (!isOtpSent) {
@@ -138,12 +134,7 @@ function SuperAdminLogin() {
             return;
         }
 
-        // Validate password format
-        const pwdError = validatePassword(password);
-        if (pwdError) {
-            setAdminLoginError(pwdError);
-            return;
-        }
+
 
         try {
             const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
@@ -287,9 +278,6 @@ function SuperAdminLogin() {
                                 <div className="OtpContainer">
                                     <div className="OtpInstructions">
                                         Enter the code sent to <span>{email}</span>.
-                                        <span className="OtpTestHint">
-                                            (For testing, use verification code: <strong>123456</strong>)
-                                        </span>
                                     </div>
 
                                     <div className="OtpInputGrid">

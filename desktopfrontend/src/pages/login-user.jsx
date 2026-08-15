@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/login-user.jsx
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, AlertCircle  } from 'lucide-react'
@@ -126,13 +127,10 @@ function Login(){
       setLoginError('');
     }
 
-    // frontend password format validation (need din validate sa backend)
-    function validatePassword(pwd) {
-      if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter.';
-      if (!/[0-9]/.test(pwd)) return 'Password must contain at least one number.';
-      if (!/[!@#$%^&*(),.?":{}|<>_\-+=/\\\[\]~`';]/.test(pwd)) return 'Password must contain at least one special character.';
-      return null;
-    }
+    // Format seconds as M:SS to match the superadmin login OTP timer
+    const formatTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+    // Field change handlers — clear that field's error the moment the user edits it
 
     // Field change handlers — clear that field's error the moment the user edits it
     function handleEmailChange(e) {
@@ -171,11 +169,6 @@ function Login(){
 
         if (!password.trim()) {
           newErrors.password = 'Password is required.';
-        } else {
-          const pwdError = validatePassword(password);
-          if (pwdError) {
-            newErrors.password = pwdError;
-          }
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -372,7 +365,7 @@ function Login(){
 
                 <div className="LoginOtpTimerContainer">
                   {timer > 0 ? (
-                    <p>Resend code in <strong>{timer}s</strong></p>
+                    <p>Resend code in <strong>{formatTimer(timer)}</strong></p>
                   ) : (
                     <p>
                       Didn't receive the code?{' '}

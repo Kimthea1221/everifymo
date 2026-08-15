@@ -15,11 +15,15 @@ from app.core.constants import UserStatus
 from app.core.dependencies import get_current_superadmin
 from app.core.security import hash_password
 from app.desktop.services.auth.email import send_activation_email
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/admin/users", tags=["user-management"])
 
 
 def compute_display_status(user: User, latest_token) -> str:
+    if user.is_locked:
+        return "Locked Account"
     if user.status == UserStatus.INVITED:
         if latest_token:
             if latest_token.resend_requested_at is not None:
@@ -80,6 +84,7 @@ def list_users(
                 contact_number=user.contact_number,
                 display_status=compute_display_status(user, latest_token),
                 is_active=user.is_active,
+                is_locked=user.is_locked,
             )
         )
 
@@ -156,6 +161,14 @@ async def activate_user(
     fullname = " ".join(p for p in [user.first_name, user.middle_name, user.last_name] if p)
     await send_activation_email(user.email, fullname or user.email, temp_password)
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_ACTIVATED,
+        title="Account activated",
+        message=f"{user.email} has been activated and is now an active user.",
+        related_user_id=user.user_id,
+    )
+
     return {"message": "User account activated successfully"}
 
 
@@ -171,6 +184,15 @@ def suspend_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = False
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_SUSPENDED,
+        title="Account suspended",
+        message=f"{user.email}'s account has been suspended.",
+        related_user_id=user.user_id,
+    )
+
     return {"message": "User account suspended successfully"}
 
 
@@ -186,6 +208,15 @@ def reactivate_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = True
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_REACTIVATED,
+        title="Account reactivated",
+        message=f"{user.email}'s account has been reactivated.",
+        related_user_id=user.user_id,
+    )
+
     return {"message": "User account reactivated successfully"}
 
 
@@ -222,6 +253,14 @@ async def resend_invitation(
     from app.desktop.services.auth.email import send_invite_email
     await send_invite_email(user.email, friendly_role, token)
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Invitation resent",
+        message=f"Invitation resent to {user.email}.",
+        related_user_id=user.user_id,
+    )
+
     return {"message": "Invitation resent successfully"}
 
 
@@ -243,3 +282,19 @@ def delete_user(
     db.delete(user)
     db.commit()
     return {"message": "User deleted successfully"}
+
+
+@router.post("/{user_id}/unlock")
+def unlock_user(
+    user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin),
+):
+    db.execute(text("SET app.bypass_rls = 'true'"))
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_locked = False
+    user.failed_login_attempts = 0
+    db.commit()
+    return {"message": "User account unlocked successfully"}
