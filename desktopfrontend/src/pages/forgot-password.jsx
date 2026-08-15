@@ -27,6 +27,21 @@ function ForgotPassword(){
         }
     };
 
+    const handleEmailChange = (e) => {
+        const val = e.target.value;
+        setEmail(val);
+        if (!val.trim()) {
+            setForgotError('');
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(val.trim())) {
+                setForgotError('Please enter a valid email address.');
+            } else {
+                setForgotError('');
+            }
+        }
+    };
+
     //For simulating code send
     const handleSendCode = async (e) => {
         e.preventDefault();
@@ -396,7 +411,7 @@ function ForgotPassword(){
                 type="email" 
                 placeholder="Email Address" 
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 required
               />
             </div>

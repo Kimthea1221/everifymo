@@ -150,7 +150,12 @@ function LeaDashboard() {
       <div className='LeaContentContainer'>
         <TopBar topbarType="LEA" />
         <div className='LeaMainfeed'>
-
+          <div className='LeaHeader'>
+            <div>
+              <p>LEA-CIDG: DASHBOARD</p>
+              <p>OVERVIEW OF VERIFICATION REQUESTS & COMPLAINTS</p>
+            </div>
+          </div>
           {/* Top 4 Stats Cards */}
           <div className='LeaStatsGrid'>
             <div className='LeaStatCard'>
