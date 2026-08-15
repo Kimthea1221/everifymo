@@ -245,33 +245,35 @@ function TopBar({ topbarType, role, agency }) {
     };
 
     // Logout — redirects to correct login page based on agency
-    const handleLogoutClick = () => {
-        setIsProfileOpen(false);
+    const handleLogoutClick = async () => {
+    setIsProfileOpen(false);
 
-        /*
-          🔌 BACKEND: clear session token and call logout endpoint:
-          try {
-            await fetch('/api/auth/logout', { method: 'POST' });
-          } catch(err) {
-            console.error("Logout failed:", err);
-          }
-          localStorage.removeItem('token');
-          sessionStorage.clear();
-        */
+    const refreshToken = localStorage.getItem('refresh_token');
 
-        // clear agency from localStorage
-        localStorage.removeItem('agency');
-        localStorage.removeItem('role');
-
-        // redirect to correct login page based on agency
-        // superadmin goes to superadmin login
-        // fda and lea go to interagency login
-        if (normalizedAgency === 'superadmin') {
-            navigate('/superadmin-login');
-        } else {
-            navigate('/login');
+    try {
+        if (refreshToken) {
+            await apiFetch('/auth/token/revoke', {
+                method: 'POST',
+                body: JSON.stringify({ refresh_token: refreshToken }),
+            });
         }
-    };
+    } catch (err) {
+        console.error('Logout failed:', err);
+        // proceed with local cleanup regardless — don't trap the user in a logged-in UI
+        // just because the network call failed
+    }
+
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('agency');
+    localStorage.removeItem('role');
+
+    if (normalizedAgency === 'superadmin') {
+        navigate('/superadmin-login');
+    } else {
+        navigate('/login');
+    }
+};
 
     return (
         <>

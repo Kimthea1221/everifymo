@@ -6,6 +6,8 @@ from app.database.sessions import get_db
 from app.models.user_sessions import UserSession
 from app.core.security import hash_refresh_token, create_desktop_access_token, generate_refresh_token
 from app.core.config import settings
+from app.core.dependencies import get_current_user
+from app.models.users import User
 
 router = APIRouter(prefix="/auth/token", tags=["auth-token"])
 
@@ -42,18 +44,28 @@ def refresh_token(payload: dict, db: Session = Depends(get_db), request: Request
     return {"access_token": access_token, "token_type": "bearer", "refresh_token": new_refresh}
 
 
+from app.core.dependencies import get_current_user
+from app.models.users import User
+
 @router.post("/revoke")
-def revoke_token(payload: dict, db: Session = Depends(get_db)):
+def revoke_token(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     token = payload.get("refresh_token")
     if not token:
         raise HTTPException(status_code=400, detail="refresh_token required")
 
     token_hash = hash_refresh_token(token)
     session = db.query(UserSession).filter(UserSession.refresh_token_hash == token_hash).first()
+
     if not session:
         return {"message": "ok"}
 
+    if session.user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Cannot revoke another user's session")
+
     session.is_revoked = True
     db.commit()
-
     return {"message": "ok"}
