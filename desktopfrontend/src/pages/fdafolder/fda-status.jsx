@@ -151,8 +151,8 @@ const DISMISS_PRESETS = [
   "Insufficient evidence to proceed.",
 ];
 
-const CASES_PER_PAGE = 5;
-const HISTORY_PER_PAGE = 5;
+const CASES_PER_PAGE = 25;
+const HISTORY_PER_PAGE = 25;
 
 function getStatusBadgeStyle(status) {
   switch (status) {

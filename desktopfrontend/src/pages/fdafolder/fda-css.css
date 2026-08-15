@@ -208,7 +208,7 @@ h6 {
 }
 
 .BtnFilters {
-  height: 40px;
+  height: 30px;
   background: #FDFDFD;
   color: #1F2937;
   border: 1.5px solid rgba(0, 0, 0, 0.1);
@@ -230,6 +230,53 @@ h6 {
 .BtnFilters.active {
   border-color: #1B4332;
   background: rgba(27, 67, 50, 0.05);
+}
+
+/* Change 1 — icon-only variant of BtnFilters.
+   Same colors/border as .BtnFilters; overrides only size to a compact square icon shape. */
+.BtnFiltersIcon {
+  height: 30px;
+  width: 30px;
+  box-sizing: border-box;
+  background: #FDFDFD;
+  color: #1F2937;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  padding: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.BtnFiltersIcon:hover {
+  background: #EDEDED;
+}
+
+/* Change 1 — icon-only variant of BtnClearFilters (used by fda-verification + fda-product-db).
+   Same colors/border as lea-css.css .BtnClearFilters; scoped here for FDA pages. */
+.BtnClearFiltersIcon {
+  background: #FDFDFD;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.BtnClearFiltersIcon:hover {
+  background: #EDEDED;
+  color: #13213C;
 }
 
 
@@ -283,8 +330,10 @@ h6 {
 }
 
 .FdaSearchFixed {
-  width: 340px;
-  flex-shrink: 0;
+  /* Change 2 — responsive: was width:340px fixed; now flex+clamp so it shrinks on narrow viewports */
+  flex: 1;
+  min-width: clamp(180px, 25%, 340px);
+  max-width: 340px;
 }
 
 .FdaSearchFixed .FdaSearchInput {
@@ -295,6 +344,7 @@ h6 {
 .FdaFilterGroupsRight {
   display: flex;
   align-items: flex-end;
+  justify-content: flex-end;
   gap: 16px;
   flex-wrap: wrap;
   margin-left: auto;
@@ -314,9 +364,13 @@ h6 {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+.FdaFilterGroup {
+  height: 50px;
 
+}
 .FdaFilterGroup select {
-  height: 40px;
+
+  box-sizing: border-box;
   border: 1px solid #EDEDED;
   border-radius: 8px;
   padding: 0 12px;
@@ -324,7 +378,10 @@ h6 {
   background: #FDFDFD;
   outline: none;
   cursor: pointer;
-  width: 160px;
+  /* Change 2 — responsive: was width:160px fixed; now flex+clamp */
+  flex: 1;
+  min-width: clamp(90px, 15%, 160px);
+  max-width: 160px;
   transition: 0.2s;
 }
 
@@ -335,6 +392,7 @@ h6 {
 
 .FdaFilterGroup input[type="date"] {
   height: 40px;
+  box-sizing: border-box;
   border: 1px solid #EDEDED;
   border-radius: 8px;
   padding: 0 12px;
@@ -342,7 +400,10 @@ h6 {
   background: #FDFDFD;
   outline: none;
   cursor: pointer;
-  width: 150px;
+  /* Change 2 — responsive: was width:150px fixed; now flex+clamp */
+  flex: 1;
+  min-width: clamp(90px, 12%, 150px);
+  max-width: 150px;
   transition: 0.2s;
 }
 
@@ -351,9 +412,9 @@ h6 {
   box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
 }
 
-/* ============================================================================ */
+
 /* ROW ACTION DROPDOWN (View + More Actions) — used in fda-product-db.jsx table */
-/* ============================================================================ */
+
 
 .FdaDropdownWrapper {
   position: relative;
@@ -437,6 +498,29 @@ h6 {
   background: #EDEDED;
   color: #1B4332;
 }
+
+.BtnClearFilters{
+  background: #FDFDFD;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.BtnClearFilters:hover {
+  background: #EDEDED;
+}
+
+
 
 
 /* LAYOUT GRID */
@@ -555,7 +639,6 @@ h6 {
 
 .FdaTableWrapper {
   overflow-x: auto;
-  max-height: 520px;
 }
 
 .FdaTable {
@@ -4389,6 +4472,18 @@ h6 {
   border-color: rgba(185, 28, 28, 0.2);
 }
 
+/* Unregistered result section — same red theme as FdaRecordRejectedSection,
+   applied to completed records where verification_result === 'unregistered'. */
+.FdaRecordUnregisteredResultSection {
+  background: #FEF2F2;
+  border-color: rgba(185, 28, 28, 0.2);
+}
+
+.FdaRecordUnregisteredResultSection .FdaRecordSectionTitle {
+  color: #B91C1C;
+}
+
+
 .FdaRecordSectionTitle {
   display: flex;
   align-items: center;
@@ -5099,8 +5194,7 @@ h6 {
   }
 
   .FdaCaseList {
-    max-height: 320px;
-    overflow-y: auto;
+    overflow-y: visible;
   }
 }
 
