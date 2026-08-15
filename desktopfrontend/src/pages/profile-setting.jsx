@@ -187,6 +187,7 @@ function ProfileSetting() {
     }
     return newErrors;
   };
+  
 
   async function savePasswordIfProvided() {
     if (!security.newPassword) return true; // nothing to change, not an error

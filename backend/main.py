@@ -70,9 +70,12 @@ from app.desktop.routers.verification.verification_response import fda_response_
 # Title Extaction Retrieved from the Chrome Extension to NLP
 from app.extension.routers.retrieval import router as retrieval_router
 
+<<<<<<< HEAD
 #for verification history in extension
 from app.extension.routers import verification
 
+=======
+>>>>>>> 12ea3d36ceede4106955b1cf8a8206025f05c8c9
 app = FastAPI()
 # Base.metadata.create_all(bind=engine) wag na iuuncomment this line, since we are using alembic for migrations
 
@@ -146,6 +149,10 @@ async def user(consumer: consumer_dependency):
     }
 
 
+<<<<<<< HEAD
 app.include_router(retrieval_router)
 
 app.include_router(verification.router)
+=======
+app.include_router(retrieval_router)
+>>>>>>> 12ea3d36ceede4106955b1cf8a8206025f05c8c9

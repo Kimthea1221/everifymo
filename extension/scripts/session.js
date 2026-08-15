@@ -29,11 +29,11 @@ export function whenSessionReady(callback) {
   });
 }
 
-export  function isUserLoggedIn() {
+export function isUserLoggedIn() {
   return _session !== null;
 }
 
-export  function getCurrentUser() {
+export function getCurrentUser() {
   return _session || { username: '', email: '' };
 }
 
