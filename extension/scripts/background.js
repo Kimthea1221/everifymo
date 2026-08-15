@@ -2,7 +2,7 @@
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 console.log('Background received message:', message);
-  if (message.action === 'titleExtracted') {
+  if (message.action === 'extractedTitle') {
     //
     (async () => {
       try {
@@ -29,7 +29,9 @@ console.log('Background received message:', message);
           console.log('Product info stored:', message.title);
         });
 
+
         updateBadge(status, sender.tab.id);
+        sendResponse({ status: 'success', data: data });
       } catch (error) {
         //
         console.error('Error sending title to backend:', error);
@@ -44,8 +46,11 @@ console.log('Background received message:', message);
         });
 
         updateBadge(status, sender.tab.id);
+        sendResponse({ status: 'error', data: null });
       }
     })();
+
+    return true;
   }
 
 });

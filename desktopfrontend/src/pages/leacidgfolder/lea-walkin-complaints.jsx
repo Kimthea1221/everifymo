@@ -4,28 +4,34 @@ import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Eye, MoreVertical, Pencil, Trash2, X, Paperclip, FileText, Image as ImageIcon, Download } from 'lucide-react'
+
+const API_BASE = 'http://127.0.0.1:8000';
 
 // BACKEND: Status values must match the backend complaint workflow states exactly.
 function WcGetStatusClass(status) {
     switch (status) {
         case 'queued':
+        case 'Ready to Send':
             return 'WcStatus-queued';
 
         case 'pending':
+        case 'Pending FDA Verification':
             return 'WcStatus-pending';
 
         case 'confirmed_registered':
+        case 'Confirmed Registered':
             return 'WcStatus-confirmed-registered';
 
         case 'confirmed_unregistered':
+        case 'Confirmed Unregistered':
             return 'WcStatus-confirmed-unregistered';
 
         case 'rejected':
-            return 'WcStatus-rejected';
-
         case 'recalled':
-            return 'WcStatus-recalled';
+        case 'Verification Rejected':
+        case 'Request Recalled':
+            return 'WcStatus-rejected';
 
         default:
             return '';
@@ -34,22 +40,26 @@ function WcGetStatusClass(status) {
 function WcGetStatusLabel(status) {
     switch (status) {
         case 'queued':
+        case 'Ready to Send':
             return 'Ready to Send';
 
         case 'pending':
+        case 'Pending FDA Verification':
             return 'Pending FDA Verification';
 
         case 'confirmed_registered':
+        case 'Confirmed Registered':
             return 'Confirmed Registered';
 
         case 'confirmed_unregistered':
+        case 'Confirmed Unregistered':
             return 'Confirmed Unregistered';
 
         case 'rejected':
-            return 'Verification Rejected';
-
         case 'recalled':
-            return 'Request Recalled';
+        case 'Verification Rejected':
+        case 'Request Recalled':
+            return 'Verification Rejected';
 
         default:
             return status;
@@ -118,15 +128,66 @@ function LeaWalkinComplaints() {
     const [search, setSearch] = useState('')
     const [selectedStatus, setSelectedStatus] = useState('All')
     const [selectedCategory, setSelectedCategory] = useState('All')
-    const [selected, setSelected] = useState([])
-    const [selectAll, setSelectAll] = useState(false)
-    const [showModal, setShowModal] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
+    const WALKIN_PAGE_SIZE = 25
+    useEffect(() => { setCurrentPage(1); }, [search, selectedStatus, selectedCategory]);
     const [viewModal, setViewModal] = useState(false)
     const [selectedComplaint, setSelectedComplaint] = useState(null)
     const [openMenuId, setOpenMenuId] = useState(null)
     const [singleDeleteTarget, setSingleDeleteTarget] = useState(null)
     const [showSingleDeleteModal, setShowSingleDeleteModal] = useState(false)
     const menuRef = useRef(null)
+
+    // Document preview modal state
+    const [docPreviewModal, setDocPreviewModal] = useState(null)
+    const [docPreviewUrl, setDocPreviewUrl] = useState(null)
+    const [docPreviewLoading, setDocPreviewLoading] = useState(false)
+    const [docPreviewError, setDocPreviewError] = useState(false)
+
+    // Fetches inline preview when docPreviewModal is set
+    useEffect(() => {
+        if (!docPreviewModal) {
+            setDocPreviewUrl(null)
+            setDocPreviewError(false)
+            return
+        }
+
+        const mime = docPreviewModal.mime_type || docPreviewModal.type || ''
+        const isImage = mime.startsWith('image/')
+        const isPdf = mime === 'application/pdf'
+        if (!isImage && !isPdf) return
+
+        if (docPreviewModal.url) {
+            setDocPreviewUrl(docPreviewModal.url)
+            return
+        }
+
+        const fileId = docPreviewModal.file_id || docPreviewModal.id
+        if (!fileId) return
+
+        let objectUrl = null
+        setDocPreviewLoading(true)
+        setDocPreviewError(false)
+
+        const token = localStorage.getItem('access_token')
+        fetch(`${API_BASE}/shared-files/${fileId}/preview`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.blob()
+            })
+            .then((blob) => {
+                objectUrl = URL.createObjectURL(blob)
+                setDocPreviewUrl(objectUrl)
+            })
+            .catch(() => setDocPreviewError(true))
+            .finally(() => setDocPreviewLoading(false))
+
+        return () => {
+            if (objectUrl) URL.revokeObjectURL(objectUrl)
+        }
+    }, [docPreviewModal])
 
     // BACKEND:
     // Filter using API query parameters if server-side filtering is implemented.
@@ -135,44 +196,13 @@ function LeaWalkinComplaints() {
             c.product.toLowerCase().includes(search.toLowerCase()) ||
             c.complainant.toLowerCase().includes(search.toLowerCase());
 
-        const matchesStatus = selectedStatus === 'All' || c.status === selectedStatus;
+        const matchesStatus = selectedStatus === 'All' || 
+            c.status === selectedStatus || 
+            (selectedStatus === 'rejected' && c.status === 'recalled');
         const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;
 
         return matchesSearch && matchesStatus && matchesCategory;
     })
-
-    const handleSelectAll = () => {
-        if (selectAll) {
-            setSelected([])
-        } else {
-            setSelected(filtered.map(c => c.id))
-        }
-        setSelectAll(!selectAll)
-    }
-
-    const handleSelect = (id) => {
-        if (selected.includes(id)) {
-            setSelected(selected.filter((s) => s !== id))
-        } else {
-            setSelected([...selected, id])
-        }
-    }
-
-    const handleDeleteClick = () => {
-        if (selected.length === 0) return
-        setShowModal(true)
-    }
-
-    const handleConfirmDelete = () => {
-        setComplaints(complaints.filter((c) => !selected.includes(c.id)))
-        setSelected([])
-        setSelectAll(false)
-        setShowModal(false)
-    }
-
-    const handleCancelDelete = () => {
-        setShowModal(false)
-    }
 
     const handleViewButton = (complaint) => {
         setSelectedComplaint(complaint)
@@ -198,7 +228,6 @@ function LeaWalkinComplaints() {
     const handleConfirmSingleDelete = () => {
         // BACKEND: call delete API for singleDeleteTarget.id
         setComplaints(complaints.filter((c) => c.id !== singleDeleteTarget.id))
-        setSelected(selected.filter((id) => id !== singleDeleteTarget.id))
         setSingleDeleteTarget(null)
         setShowSingleDeleteModal(false)
     }
@@ -248,21 +277,18 @@ function LeaWalkinComplaints() {
             <div className='LeaContentContainer'>
                 <TopBar topbarType="LEA" />
                 <div className='LeaMainfeed LeaWalkinComplaintsFeed'>
-                    <div className='LeaHeader'>
-                        <div>
-                            <p>LEA-CIDG: Walk-in Complaints</p>
-                            <p>CITIZEN-REPORTED COMPLAINTS</p>
+                      <div className='LeaHeader'>
+                            <div>
+                                <p>LEA-CIDG: Walk-in Complaints</p>
+                                <p>CITIZEN-REPORTED COMPLAINTS</p>
+                            </div>
                         </div>
-                        <div className='WalkinButtonActions'>
-                            {selected.length > 0 && (
-                                <button className='BtnDelete' onClick={handleDeleteClick}>
-                                    🗑 Delete ({selected.length})
-                                </button>
-                            )}
+
+                        {/* Buttons now on their own row below the title, right-aligned */}
+                        <div className='WalkinButtonActionsRow'>
                             <button className='BtnExportCSV'>Export CSV</button>
                             <button className='BtnNewComplaint' onClick={OpenNewIntakePageButton}>New Complaint</button>
                         </div>
-                    </div>
 
                     {/* Filter & Search Section */}
                     <div className="DraftsFilterSection">
@@ -288,7 +314,6 @@ function LeaWalkinComplaints() {
                                     <option value="confirmed_registered">Confirmed Registered</option>
                                     <option value="confirmed_unregistered">Confirmed Unregistered</option>
                                     <option value="rejected">Verification Rejected</option>
-                                    <option value="recalled">Request Recalled</option>
                                 </select>
 
                                 <select
@@ -302,6 +327,27 @@ function LeaWalkinComplaints() {
                                     <option value="Medical Devices">Medical Devices</option>
                                     <option value="Drugs">Drugs</option>
                                 </select>
+
+                                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
+                                {(() => {
+                                    const hasWalkinFilters = Boolean(search || selectedStatus !== 'All' || selectedCategory !== 'All');
+                                    return (
+                                        <button
+                                            className="BtnClearFiltersIcon"
+                                            aria-label="Clear Filters"
+                                            title="Clear Filters"
+                                            disabled={!hasWalkinFilters}
+                                            style={{ display: hasWalkinFilters ? 'inline-flex' : 'none' }}
+                                            onClick={() => {
+                                                setSearch('');
+                                                setSelectedStatus('All');
+                                                setSelectedCategory('All');
+                                            }}
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -310,11 +356,6 @@ function LeaWalkinComplaints() {
                         <table className='ComplaintsTable WcComplaintsTable'>
                             <thead>
                                 <tr>
-                                    <th>
-                                        <input type='checkbox'
-                                            checked={selectAll}
-                                            onChange={handleSelectAll} />
-                                    </th>
                                     <th>CASE ID</th>
                                     <th>PRODUCT</th>
                                     <th>MANUFACTURER</th>
@@ -326,20 +367,20 @@ function LeaWalkinComplaints() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map((complaint) => (
-                                    <tr key={complaint.id} className={selected.includes(complaint.id) ? 'row-selected' : ''}>
-                                        <td>
-                                            <input type='checkbox'
-                                                checked={selected.includes(complaint.id)}
-                                                onChange={() => handleSelect(complaint.id)} />
-                                        </td>
+                                {(() => {
+                                    const totalPages = Math.ceil(filtered.length / WALKIN_PAGE_SIZE) || 1;
+                                    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+                                    const startIndex = (safePage - 1) * WALKIN_PAGE_SIZE;
+                                    const endIndex = Math.min(startIndex + WALKIN_PAGE_SIZE, filtered.length);
+                                    const paginatedComplaints = filtered.slice(startIndex, endIndex);
+
+                                    return paginatedComplaints.map((complaint) => (
+                                    <tr key={complaint.id}>
                                         <td className='ClassId'>{complaint.id}</td>
                                         <td>
-                                            {/* BACKEND: maps to complaint.product field */}
                                             <p className='WcProductName'>{complaint.product}</p>
                                         </td>
                                         <td>
-                                            {/* BACKEND: maps to complaint.manufacturer field */}
                                             <p className='WcManufacturerName'>{complaint.manufacturer}</p>
                                         </td>
                                         <td>{complaint.complainant}</td>
@@ -352,7 +393,6 @@ function LeaWalkinComplaints() {
                                         <td>{complaint.logged}</td>
                                         <td>
                                             <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
-                                                {/* View button — always visible */}
                                                 <span className='WcActionTooltipWrap'>
                                                     <button
                                                         className='WcBtnIconView'
@@ -364,7 +404,6 @@ function LeaWalkinComplaints() {
                                                     <span className='WcTooltip'>View</span>
                                                 </span>
 
-                                                {/* Three-dot dropdown — only for queued (Ready to Send) */}
                                                 {complaint.status === 'queued' && (
                                                     <div className='WcMenuWrapper'>
                                                         <button
@@ -400,17 +439,47 @@ function LeaWalkinComplaints() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                ));
+                                })()}
                             </tbody>
                         </table>
 
-                        <div className='Pagination'>
-                            <p>Showing {filtered.length} of {complaints.length}</p>
-                            <div className='PaginationBtn'>
-                                <button className='BtnPage'>Previous</button>
-                                <button className='BtnPage'>Next</button>
-                            </div>
-                        </div>
+                        {(() => {
+                            const totalPages = Math.ceil(filtered.length / WALKIN_PAGE_SIZE) || 1;
+                            const safePage = Math.min(Math.max(1, currentPage), totalPages);
+                            const startIndex = (safePage - 1) * WALKIN_PAGE_SIZE;
+                            const endIndex = Math.min(startIndex + WALKIN_PAGE_SIZE, filtered.length);
+                            return (
+                                <div className='Pagination'>
+                                    <p>Showing {filtered.length === 0 ? 0 : startIndex + 1}–{endIndex} of {filtered.length}</p>
+                                    <div className='PaginationBtn'>
+                                        <button
+                                            className='BtnPage'
+                                            disabled={safePage === 1}
+                                            onClick={() => setCurrentPage(safePage - 1)}
+                                        >
+                                            Previous
+                                        </button>
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                className={`BtnPage ${safePage === p ? 'active' : ''}`}
+                                                onClick={() => setCurrentPage(p)}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                        <button
+                                            className='BtnPage'
+                                            disabled={safePage === totalPages}
+                                            onClick={() => setCurrentPage(safePage + 1)}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         {viewModal && selectedComplaint && (
                             <div className='ModalOverlay'>
                                 <div className='ModalViewButton'>
@@ -433,8 +502,52 @@ function LeaWalkinComplaints() {
                                     </div>
                                     <h6 className='Statementcomp'>COMPLAINANT STATEMENT</h6>
                                     <div className='StatementBox'>
-                                        <p>Example statement....</p>
+                                        <p>{selectedComplaint.statement || selectedComplaint.complainant_statement || selectedComplaint.description || 'Example statement....'}</p>
                                     </div>
+
+                                    {/* Auto-Attached Evidence & Request Documents */}
+                                    <div className="LeaVerifSectionCard" style={{ marginTop: '16px', marginBottom: '16px' }}>
+                                        <div className="LeaVerifSectionHeader">
+                                            <Paperclip size={16} className="LeaVerifBlueIcon" />
+                                            <h3>Auto-Attached Evidence &amp; Request Documents</h3>
+                                        </div>
+                                        <div className="LeaVerifDocsGrid">
+                                            {(() => {
+                                                const attachedFiles = selectedComplaint?.attached_files || selectedComplaint?.attachedFiles || selectedComplaint?.evidence || selectedComplaint?.files || selectedComplaint?.attachments || [];
+                                                if (attachedFiles.length > 0) {
+                                                    return attachedFiles.map((f, idx) => (
+                                                        <div key={f.file_id || f.id || idx} className="LeaVerifDocCard">
+                                                            <div className="LeaVerifDocIcon">
+                                                                {(f.mime_type?.startsWith('image/') || f.type?.startsWith('image/')) ? (
+                                                                    <ImageIcon size={18} />
+                                                                ) : (
+                                                                    <FileText size={18} />
+                                                                )}
+                                                            </div>
+                                                            <div className="LeaVerifDocInfo">
+                                                                <p className="LeaVerifDocName">{f.file_name || f.name}</p>
+                                                                <span className="LeaVerifDocMeta">{f.file_size_display || f.size}</span>
+                                                            </div>
+                                                            <div className="LeaVerifDocActions">
+                                                                <button
+                                                                    type="button"
+                                                                    className="LeaVerifDocActionBtn"
+                                                                    title="Inspect Attachment"
+                                                                    onClick={() => setDocPreviewModal(f)}
+                                                                >
+                                                                    <Eye size={13} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ));
+                                                }
+                                                return (
+                                                    <p className="LeaVerifNoDocsText">No evidence documents attached to this complaint.</p>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+
                                     <div className='ModalActions'>
                                         <button className='BtnCancelModal' onClick={handleCloseViewbutton}>Close</button>
                                     </div>
@@ -442,14 +555,102 @@ function LeaWalkinComplaints() {
                             </div>
                         )}
 
-                        {showModal && (
-                            <div className='ModalOverlay'>
-                                <div className='ModalBox'>
-                                    <h3>Confirm Delete</h3>
-                                    <p>Are you sure you want to delete <strong>{selected.length}</strong> selected complaint{selected.length > 1 ? 's' : ''}? This action cannot be undone.</p>
-                                    <div className='ModalActions'>
-                                        <button className='BtnCancelModal' onClick={handleCancelDelete}>Cancel</button>
-                                        <button className='BtnConfirmDelete' onClick={handleConfirmDelete}>Yes, Delete</button>
+                        {/* Attachment Preview Modal */}
+                        {docPreviewModal && (
+                            <div className="ModalOverlay" style={{ zIndex: 1000 }}>
+                                <div className="LeaVerifDocModalContainer">
+                                    <div className="LeaVerifDocModalHeader">
+                                        <div className="LeaVerifDocModalTitleGroup">
+                                            <Paperclip size={16} className="LeaVerifBlueIcon" />
+                                            <div>
+                                                <h3>{docPreviewModal.file_name || docPreviewModal.name}</h3>
+                                                <p className="LeaVerifDocModalMeta">
+                                                    {docPreviewModal.mime_type || docPreviewModal.type || 'Document'} &bull; {docPreviewModal.file_size_display || docPreviewModal.size || ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button className="LeaVerifIconButton" onClick={() => setDocPreviewModal(null)}>
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+
+                                    <div className="LeaVerifDocModalBody">
+                                        {((docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) || 
+                                          (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf')) ? (
+                                            docPreviewLoading ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <p className="LeaVerifPreviewText">Loading preview&hellip;</p>
+                                                </div>
+                                            ) : docPreviewError ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                                                    <p className="LeaVerifPreviewTitle">Preview unavailable</p>
+                                                    <p className="LeaVerifPreviewText">Try downloading the file instead.</p>
+                                                </div>
+                                            ) : (docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) ? (
+                                                <img
+                                                    src={docPreviewUrl}
+                                                    alt={docPreviewModal.file_name || docPreviewModal.name}
+                                                    className="LeaVerifDocImagePreview"
+                                                />
+                                            ) : (
+                                                <iframe
+                                                    src={docPreviewUrl}
+                                                    title={docPreviewModal.file_name || docPreviewModal.name}
+                                                    className="LeaVerifDocPdfPreview"
+                                                />
+                                            )
+                                        ) : (
+                                            <div className="LeaVerifDocPlaceholderPreview">
+                                                <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                                                <p className="LeaVerifPreviewTitle">Preview not supported</p>
+                                                <p className="LeaVerifPreviewText">
+                                                    <strong>{docPreviewModal.file_name || docPreviewModal.name}</strong> can't be previewed inline &mdash; use download instead.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="LeaVerifModalFooter">
+                                        <button className="LeaVerifBtnOutline" onClick={() => setDocPreviewModal(null)}>
+                                            Close Preview
+                                        </button>
+                                        <button
+                                            className="LeaVerifBtnPrimary"
+                                            onClick={() => {
+                                                const fileId = docPreviewModal.file_id || docPreviewModal.id;
+                                                if (!fileId && docPreviewModal.url) {
+                                                    const a = document.createElement('a');
+                                                    a.href = docPreviewModal.url;
+                                                    a.download = docPreviewModal.file_name || docPreviewModal.name || 'download';
+                                                    a.click();
+                                                    return;
+                                                }
+                                                if (!fileId) return;
+                                                const token = localStorage.getItem('access_token');
+                                                fetch(`${API_BASE}/shared-files/${fileId}/download`, {
+                                                    headers: { Authorization: `Bearer ${token}` },
+                                                })
+                                                    .then((res) => {
+                                                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                                        return res.blob();
+                                                    })
+                                                    .then((blob) => {
+                                                        const url = URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = docPreviewModal.file_name || docPreviewModal.name;
+                                                        a.click();
+                                                        URL.revokeObjectURL(url);
+                                                    })
+                                                    .catch((err) => {
+                                                        console.error('Download failed:', err);
+                                                    });
+                                            }}
+                                        >
+                                            <Download size={14} />
+                                            <span>Download Attachment</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>

@@ -346,8 +346,18 @@ function AddSuperadminModal({ open, onClose }) {
                 placeholder="e.g. admin.personnel@icmda.gov.ph"
                 value={email}
                 onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError('');
+                  const val = e.target.value;
+                  setEmail(val);
+                  if (!val.trim()) {
+                    setEmailError('');
+                  } else {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(val.trim())) {
+                      setEmailError('Please enter a valid email address.');
+                    } else {
+                      setEmailError('');
+                    }
+                  }
                 }}
                 disabled={sending}
                 autoFocus
