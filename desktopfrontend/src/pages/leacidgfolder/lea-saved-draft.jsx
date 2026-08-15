@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import './lea-css.css';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
-import { PenLine, Trash2, Info, Eye, MoreVertical, X } from 'lucide-react';
+import { PenLine, Trash2, Info, Eye, MoreVertical, X, Inbox } from 'lucide-react';
 
 const API_BASE = 'http://127.0.0.1:8000'
 
@@ -36,6 +36,9 @@ function LeaSavedDraft() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('All'); // 'All', 'Draft', 'Incomplete'
     const [sortOption, setSortOption] = useState('Recently Edited'); // 'Recently Edited', 'Oldest First', 'Product Name'
+    const [currentPage, setCurrentPage] = useState(1);
+    const DRAFT_PAGE_SIZE = 25;
+    useEffect(() => { setCurrentPage(1); }, [activeTab, searchQuery, statusFilter, sortOption]);
     
     // States for Modals and Toast notifications
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -62,13 +65,17 @@ function LeaSavedDraft() {
 
     const handleTabClick = (tabName) => {
         setActiveTab(tabName);
+        setSearchQuery('');
+        setStatusFilter('All');
+        setSortOption('recently_edited');
+        setCurrentPage(1);
     };
 
     const handleClearFilters = () => {
-        setActiveTab('All');
         setSearchQuery('');
         setStatusFilter('All');
-        setSortOption('Recently Edited');
+        setSortOption('recently_edited');
+        setCurrentPage(1);
     };
 
     const handleDeleteClick = (draft) => {
@@ -185,8 +192,8 @@ function LeaSavedDraft() {
                         </div>
                     </div>
 
-                    <div className="VerificationTabs" style={{ marginBottom: '20px', width: '100%', maxWidth: '1100px', justifySelf: 'center' }}>
-                        <div className='VerificationTabsButton'>
+                    <div className="VerificationTabs" style={{ marginBottom: '20px', marginLeft: '40px' }}>
+                        <div className="VerificationTabsButton">
                             <button
                                 className={`ButtonTab ${activeTab === 'All' ? 'active' : ''}`}
                                 onClick={() => handleTabClick('All')}
@@ -227,15 +234,7 @@ function LeaSavedDraft() {
                             </div>
 
                             <div className="DraftsFilterRight">
-                                <select
-                                    className="DraftsFilterDropdown"
-                                    value={activeTab}
-                                    onChange={(e) => handleTabClick(e.target.value)}
-                                >
-                                    <option value="All">All Types</option>
-                                    <option value="walkin">Walk-in Intake</option>
-                                    <option value="verification">Verification Request</option>
-                                </select>
+
 
                                 <select
                                     className="DraftsFilterDropdown"
@@ -257,9 +256,22 @@ function LeaSavedDraft() {
                                     <option value="product_name_az">Product Name (A–Z)</option>
                                 </select>
 
-                                <button className="BtnClearFilters" onClick={handleClearFilters}>
-                                    Clear Filters
-                                </button>
+                                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
+                                {(() => {
+                                    const hasActiveFilters = Boolean(searchQuery.trim() !== '' || statusFilter !== 'All' || (sortOption !== 'Recently Edited' && sortOption !== 'recently_edited'));
+                                    return (
+                                        <button
+                                            className="BtnClearFiltersIcon"
+                                            onClick={handleClearFilters}
+                                            disabled={!hasActiveFilters}
+                                            aria-label="Clear Filters"
+                                            title="Clear Filters"
+                                            style={{ display: hasActiveFilters ? 'inline-flex' : 'none' }}
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -267,7 +279,7 @@ function LeaSavedDraft() {
                     {/* MERGED-CHANGED — Total Drafts moved outside the DraftsFilterSection box, to match the
                         Dismissed Cases "Total Cases" placement for uniformity across both pages: its own line,
                         outside the filter panel's bordered/padded container, not nested inside it. */}
-                    <div className="DraftsTotalCount" style={{ margin: '4px 2px 16px 20px' }}>
+                    <div className="DraftsTotalCount">
                         Total Drafts: {filteredDrafts.length}
                     </div>
 
@@ -291,69 +303,114 @@ function LeaSavedDraft() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredDrafts.map((draft) => (
-                                        <tr key={draft.draft_id}>
-                                            <td style={{ fontWeight: '600', color: '#13213C' }}>
-                                                {GetDraftTypeLabel(draft.draft_type)}
-                                            </td>
-                                            <td>{draft.product_category}</td>
-                                            <td className='ProductName'>{draft.product_name}</td>
-                                            <td>{draft.complainant_name}</td>
-                                            <td>{new Date(draft.updated_at).toLocaleString()}</td>
-                                            <td>{draft.saved_by_name || 'You'}</td>
-                                            <td>
-                                                <span className={`StatusBadge ${GetDraftStatusClass(draft.draft_status)}`}>
-                                                    {draft.draft_status === 'draft' ? 'Draft' : 'Incomplete'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="LeaDropdownWrapper">
-                                                    <button
-                                                        className="LeaViewBtn"
-                                                        title="View Draft"
-                                                        onClick={() => setViewModalData(draft)}
-                                                    >
-                                                        <Eye size={15} />
-                                                    </button>
-                                                    <button
-                                                        className="LeaDropdownTrigger"
-                                                        onClick={() => toggleDropdown(draft.draft_id)}
-                                                    >
-                                                        <MoreVertical size={15} />
-                                                    </button>
+                                    {(() => {
+                                        const totalPages = Math.ceil(filteredDrafts.length / DRAFT_PAGE_SIZE) || 1;
+                                        const safePage = Math.min(Math.max(1, currentPage), totalPages);
+                                        const startIndex = (safePage - 1) * DRAFT_PAGE_SIZE;
+                                        const endIndex = Math.min(startIndex + DRAFT_PAGE_SIZE, filteredDrafts.length);
+                                        const paginatedDrafts = filteredDrafts.slice(startIndex, endIndex);
 
-                                                    {openDropdownId === draft.draft_id && (
-                                                        <div className="LeaDropdownMenu">
-                                                            <button
-                                                                className="LeaDropdownItem"
-                                                                onClick={() => {
-                                                                    setOpenDropdownId(null);
-                                                                    handleEditDraft(draft);
-                                                                }}
-                                                            >
-                                                                <PenLine size={14} /> Continue Editing
-                                                            </button>
-                                                            <button
-                                                                className="LeaDropdownItem"
-                                                                onClick={() => {
-                                                                    setOpenDropdownId(null);
-                                                                    handleDeleteClick(draft);
-                                                                }}
-                                                            >
-                                                                <Trash2 size={14} /> Delete Draft
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                        return paginatedDrafts.map((draft) => (
+                                            <tr key={draft.draft_id}>
+                                                <td style={{ fontWeight: '600', color: '#13213C' }}>
+                                                    {GetDraftTypeLabel(draft.draft_type)}
+                                                </td>
+                                                <td>{draft.product_category}</td>
+                                                <td className='ProductName'>{draft.product_name}</td>
+                                                <td>{draft.complainant_name}</td>
+                                                <td>{new Date(draft.updated_at).toLocaleString()}</td>
+                                                <td>{draft.saved_by_name || 'You'}</td>
+                                                <td>
+                                                    <span className={`StatusBadge ${GetDraftStatusClass(draft.draft_status)}`}>
+                                                        {draft.draft_status === 'draft' ? 'Draft' : 'Incomplete'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="LeaDropdownWrapper">
+                                                        <button
+                                                            className="LeaViewBtn"
+                                                            title="View Draft"
+                                                            onClick={() => setViewModalData(draft)}
+                                                        >
+                                                            <Eye size={15} />
+                                                        </button>
+                                                        <button
+                                                            className="LeaDropdownTrigger"
+                                                            onClick={() => toggleDropdown(draft.draft_id)}
+                                                        >
+                                                            <MoreVertical size={15} />
+                                                        </button>
+
+                                                        {openDropdownId === draft.draft_id && (
+                                                            <div className="LeaDropdownMenu">
+                                                                <button
+                                                                    className="LeaDropdownItem"
+                                                                    onClick={() => {
+                                                                        setOpenDropdownId(null);
+                                                                        handleEditDraft(draft);
+                                                                    }}
+                                                                >
+                                                                    <PenLine size={14} /> Continue Editing
+                                                                </button>
+                                                                <button
+                                                                    className="LeaDropdownItem"
+                                                                    onClick={() => {
+                                                                        setOpenDropdownId(null);
+                                                                        handleDeleteClick(draft);
+                                                                    }}
+                                                                >
+                                                                    <Trash2 size={14} /> Delete Draft
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ));
+                                    })()}
                                 </tbody>
                             </table>
+
+                            {(() => {
+                                const totalPages = Math.ceil(filteredDrafts.length / DRAFT_PAGE_SIZE) || 1;
+                                const safePage = Math.min(Math.max(1, currentPage), totalPages);
+                                const startIndex = (safePage - 1) * DRAFT_PAGE_SIZE;
+                                const endIndex = Math.min(startIndex + DRAFT_PAGE_SIZE, filteredDrafts.length);
+                                return (
+                                    <div className='Pagination'>
+                                        <p>Showing {filteredDrafts.length === 0 ? 0 : startIndex + 1}–{endIndex} of {filteredDrafts.length}</p>
+                                        <div className='PaginationBtn'>
+                                            <button
+                                                className='BtnPage'
+                                                disabled={safePage === 1}
+                                                onClick={() => setCurrentPage(safePage - 1)}
+                                            >
+                                                Previous
+                                            </button>
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                                <button
+                                                    key={p}
+                                                    className={`BtnPage ${safePage === p ? 'active' : ''}`}
+                                                    onClick={() => setCurrentPage(p)}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                            <button
+                                                className='BtnPage'
+                                                disabled={safePage === totalPages}
+                                                onClick={() => setCurrentPage(safePage + 1)}
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     ) : (
                         <div className="EmptyStateContainer">
-                            <div className="EmptyStateIcon">📂</div>
+                            <div className="EmptyStateIcon"> <Inbox size={40} /></div>
                             <h3 className="EmptyStateTitle">No saved drafts yet</h3>
                             <p className="EmptyStateMessage">
                                 You haven't saved any drafts.<br />
@@ -406,24 +463,22 @@ function LeaSavedDraft() {
                 </div>
             )}
 
-            {/* Notification Toast */}
+            {/* FDA-STYLE FLOATING TOAST NOTIFICATION ALERT */}
             {toastMessage && (
-                <div style={{
-                    position: 'fixed',
-                    bottom: '30px',
-                    right: '30px',
-                    background: '#1B2746',
-                    color: '#FDFDFD',
-                    padding: '14px 24px',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    zIndex: 1000,
-                    fontWeight: '500',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                }}>
-                    <span><Info className="BtnInfoIcon" size={18} /></span> {toastMessage}
+                <div className="LeaToastAlert LeaToast_info" role="alert">
+                    <div className="LeaToastIconWrap">
+                        <Info size={18} />
+                    </div>
+                    <div className="LeaToastBody">
+                        <p className="LeaToastMessage">{toastMessage}</p>
+                    </div>
+                    <button
+                        className="LeaToastCloseBtn"
+                        onClick={() => setToastMessage(null)}
+                        aria-label="Close notification"
+                    >
+                        <X size={14} />
+                    </button>
                 </div>
             )}
         </div>

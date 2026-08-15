@@ -26,7 +26,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 30px !important;
 }
 
 .LeaHeader div p:first-child {
@@ -40,12 +40,22 @@
   font-weight: 700;
   color: #13213C;
 }
+/* Header stacked variant — title row only, no inline buttons */
+.LeaHeaderStacked {
+  margin-bottom: 16px !important;
+}
 
-.WalkinButtonActions {
+/* Button row now sits below the header, right-aligned on its own line */
+.WalkinButtonActionsRow {
   display: flex;
+  justify-content: flex-end;
   gap: 10px;
   align-items: center;
+  margin-bottom: 20px;
+  margin-right: 52px;
 }
+
+
 
 .BtnExportCSV {
   background: #FDFDFD;
@@ -338,16 +348,16 @@
 
 /* rejected → Verification Rejected */
 .WcStatus-rejected {
-  background: #f3e8ff;
-  color: #6b21a8;
-  border: 1px solid #c084fc;
+  background: #fff0f0;
+  color: #cc0000;
+  border: 1px solid #f5a0a0;
 }
 
-/* recalled → Request Recalled */
+/* recalled → Verification Rejected fallback */
 .WcStatus-recalled {
-  background: #f5f5f5;
-  color: #555;
-  border: 1px solid #ccc;
+  background: #fff0f0;
+  color: #cc0000;
+  border: 1px solid #f5a0a0;
 }
 
 /* Product name cell — walk-in complaints table */
@@ -547,9 +557,8 @@
   border: 1.5px solid #d8d8d8;
   padding: 6px 12px;
   border-radius: 6px;
-  font-size: 12px;
   cursor: pointer;
-  color: #030303;
+  color: #6b6969;
 }
 
 .BtnView:hover {
@@ -692,6 +701,8 @@
   border-radius: 12px;
   padding: 32px;
   width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 .ModalViewButton h4{
@@ -699,10 +710,14 @@
   font-weight: 900;
 }
 .ModalSummary{
-  display: flex;
+  display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 100px;
+  gap: 24px;
   margin: 10px 0 15px 0;
+}
+
+.ModalSummary > div {
+  min-width: 0;
 }
 .StatementBox{
   width: 100%;
@@ -853,6 +868,45 @@
     box-shadow: 0 0 0 3px rgba(19, 33, 60, .12);
 }
 
+/* Frontend Validation Message Styling */
+.LoginErrorMsgContainer {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-top: 4px;
+    margin-bottom: 0;
+    min-height: unset;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.LoginErrorMsg {
+    color: #ef4444 !important;
+    font-size: 12px;
+    font-weight: 400;
+    margin: 0 !important;
+    text-align: left;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.FormSection input.InputErrorBorder,
+.FormSection select.InputErrorBorder,
+.FormSection textarea.InputErrorBorder {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+}
+
+
 
 
 .FormSection textarea {
@@ -939,6 +993,10 @@
 
 .UploadedFiles {
     margin-top: 12px;
+}
+.UploadBoxDragActive {
+  border-color: #13213C;
+  background: rgba(19, 33, 60, 0.04);
 }
 
 .FileItem {
@@ -1057,19 +1115,25 @@
 
 
 /*VERIFICATION REQUEST PAGE */
+.VerificationTabContent{
+  width: 100%;
+  justify-content: center;
+}
 
 .VerificationContainer {
-    margin: 0 30px 50px 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1150px;
+  margin: 0 30px;
 }
 
 
 
 .VerificationTabs {
-    display: flex;
+   display: flex;
     gap: 8px;
+    margin-bottom: 20px;
 }
 .VerificationTabsButton{
     display: flex; 
@@ -1109,8 +1173,10 @@
 .VerificationTabs button:hover {
     background: #d8d8d8;
 }
-
-
+.VerificationTabContent{
+  width: 100%;
+  max-width: 1150px;
+}
 
 
 .VerificationContent {
@@ -1155,28 +1221,28 @@
 
 .QueueCard {
   width: 100%;
-  padding: 16px;
+  padding: 9px 14px;
   border-bottom: 1px solid #EDEDED;
   cursor: pointer;
   transition: .2s;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .QueueCardTopRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .QueueCardFooterRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 5px;
+  padding-top: 5px;
   border-top: 1px solid #EDEDED;
 }
 
@@ -1252,37 +1318,117 @@
 
 .QueueCard h4 {
     margin: 0;
-    font-size: 15px;
+    font-size: 13.5px;
     color: #13213C;
+    line-height: 1.3;
 }
 
 .QueueCard p {
-    margin: 4px 0;
-    font-size: 13px;
+    margin: 1px 0;
+    font-size: 12px;
     color: #6b7280;
 }
 
 .QueueCard small {
     color: #8895a7;
-    font-size: 11px;
+    font-size: 10.5px;
 }
 
 .QueueTag {
-    margin: 10px 0;
+    margin: 4px 0 2px 0;
 }
 
 .QueueTag span {
     background: rgba(252, 163, 17, 0.12);
     color: #13213C;
-    padding: 3px 8px;
+    padding: 2px 7px;
     border-radius: 5px;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
+}
+
+/* Left-panel queue pagination — matches existing .Pagination / .BtnPage style */
+.LeaVerifQueuePagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-top: 1px solid #EDEDED;
+    background: #FAFAFA;
+}
+
+.LeaVerifQueuePagination .LeaVerifQueuePageInfo {
+    font-size: 12px;
+    color: #888;
+    white-space: nowrap;
+}
+
+.LeaVerifQueuePaginationControls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.LeaVerifQueuePageBtn {
+    padding: 5px 10px;
+    border: 1.5px solid #d8d8d8;
+    border-radius: 8px;
+    background: #FDFDFD;
+    font-size: 12px;
+    font-weight: 600;
+    color: #13213C;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.LeaVerifQueuePageBtn:hover:not(:disabled) {
+    background: #EDEDED;
+}
+
+.LeaVerifQueuePageBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.LeaVerifQueuePageNum {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #d8d8d8;
+    border-radius: 8px;
+    background: #FDFDFD;
+    color: #13213C;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.LeaVerifQueuePageNum:hover:not(.active) {
+    background: #EDEDED;
+}
+
+.LeaVerifQueuePageNum.active {
+    background: #13213C;
+    color: #FDFDFD;
+    border-color: #13213C;
+}
+
+@media (max-width: 768px) {
+    .LeaVerifQueuePagination {
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 10px;
+    }
 }
 
 /*  RIGHT PANEL*/
 
 .VerificationDetails {
+  
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -1442,9 +1588,41 @@
 
 .VerificationActions {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
     margin-top: 20px;
+}
+
+.VerificationRightActions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.DeleteBtn {
+    background-color: #ef4444;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    height: 42px;
+    padding: 0 18px;
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.DeleteBtn:hover {
+    background-color: #dc2626;
+}
+
+.DeleteBtn:focus-visible {
+    outline: 2px solid #b91c1c;
+    outline-offset: 2px;
 }
 
 .VerificationActions button {
@@ -1585,8 +1763,10 @@
   transform: scale(1.08);
 }
 
-.ConfirmationHeader h3{
-  margin: 0 0 8px 0;
+.StatementReturn h3{
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
   color: #13213C;
 }
 .StatementReturn p{
@@ -1597,7 +1777,8 @@
 
 .ResponseBox{
   width: 100%;
-  height: 100px;
+  height: auto;
+  min-height: 0;
   border: 2px solid #ff0000a8;
   background-color: rgba(224, 21, 21, 0.1);
   border-radius: 10px;
@@ -1677,9 +1858,15 @@
     border:2px solid #059669;
 }
 
+
 .ResponseUnregistered{
     background:#fef2f2;
     border:2px solid #ef4444;
+}
+
+.ResponseRejected{
+    background:#fff7ed;
+    border:2px solid #f97316;
 }
 @media (max-width: 1024px) {
 
@@ -1704,6 +1891,15 @@
 
     .VerificationActions {
         flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .VerificationRightActions {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
     }
 
     .VerificationActions button {
@@ -1731,6 +1927,7 @@
     .LeaVerifFilterControlsLeft,
     .LeaVerifFilterControlsRight {
         width: 100%;
+        
         justify-content: flex-start;
         margin-left: 0;
     }
@@ -1766,14 +1963,11 @@
     gap: 16px;
     flex-wrap: wrap;
     width: 100%;
-    max-width: 1150px;
+    max-width: 1150px !important;
     justify-self: center;
 }
 
-.DraftsFilterSection {
-    max-width: none !important;
-    justify-self: unset !important;
-}
+
 
 .DraftsFilterControls {
     display: flex;
@@ -1804,7 +1998,11 @@
 
 .DraftsSearchInput {
     height: 40px;
-    min-width: 280px;
+    box-sizing: border-box;
+    /* Change 2 — responsive: was min-width:280px fixed; now flex+clamp so it shrinks on narrow viewports */
+    flex: 1;
+    min-width: clamp(180px, 30%, 340px);
+    max-width: 340px;
     border: 1px solid #d1d9e0;
     border-radius: 8px;
     padding: 0 12px;
@@ -1821,6 +2019,7 @@
 
 .DraftsFilterDropdown {
     height: 40px;
+    box-sizing: border-box;
     border: 1px solid #d1d9e0;
     border-radius: 8px;
     padding: 0 12px;
@@ -1828,7 +2027,10 @@
     background: #FDFDFD;
     outline: none;
     cursor: pointer;
-    min-width: 160px;
+    /* Change 2 — responsive: was min-width:160px fixed; now flex+clamp so it shrinks on narrow viewports */
+    flex: 1;
+    min-width: clamp(100px, 20%, 160px);
+    max-width: 160px;
     transition: 0.2s;
 }
 
@@ -1851,6 +2053,30 @@
 
 .BtnClearFilters:hover {
     background: #EDEDED;
+}
+
+/* Change 1 — icon-only variant of BtnClearFilters.
+   Inherits all color/border from .BtnClearFilters; overrides only size/layout to a square icon shape.
+   Matches the 32×32px icon-button sizing already used by .WcBtnIconView / .WcBtnIconMore. */
+.BtnClearFiltersIcon {
+    background: #FDFDFD;
+    color: #4b5563;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.BtnClearFiltersIcon:hover {
+    background: #EDEDED;
     color: #13213C;
 }
 
@@ -1858,6 +2084,10 @@
     font-size: 14px;
     font-weight: 600;
     color: #13213C;
+    margin-top: 4px;
+    margin-bottom: 16px;
+    margin-left: 59px;
+    margin-right: 20px;
 }
 
 /* FDA verification queue filter/search pattern reused for LEA verification parity */
@@ -1928,7 +2158,11 @@
 
 .LeaSearchInput {
   height: 40px;
-  min-width: 260px;
+  box-sizing: border-box;
+  /* Change 2 — responsive: was min-width:260px fixed; now flex+clamp so it shrinks on narrow viewports */
+  flex: 1;
+  min-width: clamp(180px, 30%, 340px);
+  max-width: 340px;
   border: 1px solid #EDEDED;
   border-radius: 8px;
   padding: 0 16px 0 38px;
@@ -1976,6 +2210,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  height: 40px !important;
 }
 
 .LeaFilterGroup label {
@@ -1988,6 +2223,7 @@
 
 .LeaFilterGroup select {
   height: 40px;
+  box-sizing: border-box;
   border: 1px solid #EDEDED;
   border-radius: 8px;
   padding: 0 12px;
@@ -1995,7 +2231,10 @@
   background: #FDFDFD;
   outline: none;
   cursor: pointer;
-  min-width: 160px;
+  /* Change 2 — responsive: was min-width:160px fixed; now flex+clamp */
+  flex: 1;
+  min-width: clamp(100px, 20%, 150px);
+  max-width: 150px;
   transition: 0.2s;
 }
 
@@ -2006,6 +2245,7 @@
 
 .LeaVerifDateInput {
   height: 40px;
+  box-sizing: border-box;
   border: 1px solid #EDEDED;
   border-radius: 8px;
   padding: 0 12px;
@@ -2014,7 +2254,10 @@
   outline: none;
   cursor: pointer;
   transition: 0.2s;
-  min-width: 140px;
+  /* Change 2 — responsive: was min-width:140px fixed; now flex+clamp */
+  flex: 1;
+  min-width: clamp(100px, 15%, 140px);
+  max-width: 140px;
   color: #1F2937;
   font-family: var(--font-body);
 }
@@ -2044,6 +2287,7 @@
   margin: 0;
 }
 
+.LeaVerifSectionCard,
 .leaVerifSectionCard {
   background: #FDFDFD;
   border: 1.5px solid #EDEDED;
@@ -2226,14 +2470,20 @@
     margin-top: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     width: 100%;
-    max-width: 1100px;
+    max-width: 1150px;
     justify-self: center;
 }
 
 .EmptyStateIcon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    color: #9ca3af;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(27, 67, 50, 0.08);
+  color: #1B2746;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
 }
 
 .EmptyStateTitle {
@@ -2393,35 +2643,112 @@
   gap: 10px;
 }
 
-/* success alert shown after action completes */
+/* FDA-STYLE UNIFIED FLOATING TOAST NOTIFICATION SYSTEM FOR LEA-CIDG */
+.LeaToastAlert,
 .SuccessAlert {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background-color: #10B981;
-  color: #FDFDFD;
-  padding: 16px 24px;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  animation: slideIn 0.3s ease-out;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #030303 !important;
+  color: #FDFDFD !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  animation: slideInRight 0.3s ease-out forwards;
+  width: max-content;
+  max-width: min(420px, calc(100vw - 32px));
+  box-sizing: border-box;
   font-family: 'Inter', sans-serif;
-  font-weight: 600;
 }
 
-.SuccessAlert p {
-  margin: 0;
-}
-
-@keyframes slideIn {
+@keyframes slideInRight {
   from {
-    transform: translateY(100%);
     opacity: 0;
+    transform: translateX(30px);
   }
   to {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateX(0);
   }
+}
+
+.LeaToast_success,
+.SuccessAlert:not([style*="background-color"]) {
+  border-left: 4px solid #1B4332;
+}
+
+.LeaToast_info {
+  border-left: 4px solid #13213C;
+}
+
+.LeaToast_warning {
+  border-left: 4px solid #D97706;
+}
+
+.LeaToast_danger,
+.LeaToast_error,
+.SuccessAlert[style*="background-color"] {
+  border-left: 4px solid #B91C1C !important;
+}
+
+.LeaToastIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.LeaToast_success .LeaToastIconWrap {
+  color: #2D6A4F;
+}
+
+.LeaToast_info .LeaToastIconWrap {
+  color: #60A5FA;
+}
+
+.LeaToast_warning .LeaToastIconWrap {
+  color: #F59E0B;
+}
+
+.LeaToast_danger .LeaToastIconWrap,
+.LeaToast_error .LeaToastIconWrap {
+  color: #EF4444;
+}
+
+.LeaToastBody {
+  flex: 1;
+}
+
+.LeaToastMessage,
+.SuccessAlert p {
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  color: #FDFDFD !important;
+}
+
+.LeaToastCloseBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.LeaToastCloseBtn:hover {
+  color: #FDFDFD;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* styles the text showing which FDA officer verified the request */
@@ -3422,4 +3749,168 @@
 .LeaVerifBtnPrimary:hover {
   background: #FCA311;
   color: #030303;
+}
+
+/* LEA Verification Request — FDA Response Details Styling */
+.LeaVerifResponseStatusHeader {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.LeaVerifResponseStatusHeader svg {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.LeaVerifRegisteredHeader svg {
+  background-color: #D1FAE5 !important;
+  color: #10B981 !important;
+}
+
+.LeaVerifUnregisteredHeader svg {
+  background-color: #FEE2E2 !important;
+  color: #EF4444 !important;
+}
+
+.LeaVerifRejectedHeader svg {
+  background-color: #FEE2E2 !important;
+  color: #EF4444 !important;
+}
+
+.ResponseBox.ResponseRegistered {
+  height: auto;
+  min-height: 110px;
+  border: 1.5px solid #10B981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.ResponseBox.ResponseUnregistered {
+  height: auto;
+  min-height: 110px;
+  border: 1.5px solid #EF4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.ResponseBox.ResponseRejected {
+  height: auto;
+  min-height: 110px;
+  border: 1.5px solid #f97316;
+  background-color: rgba(249, 115, 22, 0.05);
+}
+
+.LeaVerifResultFieldsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* Each individual FDA response detail — its own clean bordered box */
+.LeaVerifResultField {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+}
+
+/* Registered variant — very subtle green tint on the box border */
+.ResponseRegistered .LeaVerifResultField {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: #ffffff;
+}
+
+/* Unregistered variant — very subtle red tint on the box border */
+.ResponseUnregistered .LeaVerifResultField {
+  border-color: rgba(239, 68, 68, 0.2);
+  background: #ffffff;
+}
+
+/* Rejected variant — very subtle orange tint on the box border */
+.ResponseRejected .LeaVerifResultField {
+  border-color: rgba(249, 115, 22, 0.2);
+  background: #ffffff;
+}
+
+.LeaVerifFullWidthField {
+  grid-column: 1 / -1;
+}
+
+.LeaVerifFieldLabel {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a8796;
+  margin-bottom: 6px;
+}
+
+/* Label tint for registered boxes */
+.ResponseRegistered .LeaVerifFieldLabel {
+  color: #059669;
+}
+
+/* Label tint for unregistered boxes */
+.ResponseUnregistered .LeaVerifFieldLabel {
+  color: #dc2626;
+}
+
+/* Label tint for rejection-related field grid */
+.ResponseRejected .LeaVerifFieldLabel {
+  color: #ea580c;
+}
+
+.LeaVerifFieldValue {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #13213C;
+  margin: 0;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* Rejection detail grid — reuses the same grid pattern for the Rejected state */
+.LeaVerifRejectionFieldsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+  .LeaVerifResultFieldsGrid,
+  .LeaVerifRejectionFieldsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Highlighted Acknowledgement Notice */
+.LeaVerifAckNotice {
+  background: #f0f4f9;
+  border: 1px solid #d8e2ed;
+  border-left: 4px solid #13213C;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 18px 0 12px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.LeaVerifAckNotice p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1e293b;
+  font-weight: 500;
 }

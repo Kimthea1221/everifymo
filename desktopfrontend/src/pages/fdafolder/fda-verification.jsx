@@ -313,10 +313,11 @@ function FDAVerification() {
   const [rejectedDateTo, setRejectedDateTo] = useState('');
   const [rejectedCategory, setRejectedCategory] = useState('');
 
-  // Pagination for Completed & Rejected tables (5 rows per page, matching fda-view-reports)
-  const FDA_VERIF_TABLE_PAGE_SIZE = 5;
+  // Pagination for Completed & Rejected tables (25 rows per page)
+  const FDA_VERIF_TABLE_PAGE_SIZE = 25;
   const [completedPage, setCompletedPage] = useState(1);
   const [rejectedPage, setRejectedPage] = useState(1);
+  const [queuePage, setQueuePage] = useState(1);
 
 
   // BACKEND: Form inputs for FDA Verification Result section
@@ -1254,11 +1255,11 @@ function FDAVerification() {
                       className="FdaVerifSearchInput"
                       placeholder="Search Case ID, Product, or Manufacturer..."
                       value={fdaSearchQuery}
-                      onChange={(e) => setFdaSearchQuery(e.target.value)}
+                      onChange={(e) => { setFdaSearchQuery(e.target.value); setQueuePage(1); }}
                       id="fda-verification-search-input"
                     />
                     {fdaSearchQuery && (
-                      <button className="FdaVerifClearSearchBtn" onClick={() => setFdaSearchQuery('')}>
+                      <button className="FdaVerifClearSearchBtn" onClick={() => { setFdaSearchQuery(''); setQueuePage(1); }}>
                         <X size={14} />
                       </button>
                     )}
@@ -1269,7 +1270,7 @@ function FDAVerification() {
                     <select
                       className="FdaVerifPrioritySelect"
                       value={fdaPriorityFilter}
-                      onChange={(e) => setFdaPriorityFilter(e.target.value)}
+                      onChange={(e) => { setFdaPriorityFilter(e.target.value); setQueuePage(1); }}
                       id="fda-verification-priority-filter"
                     >
                       <option value="all">All Priorities</option>
@@ -1298,64 +1299,97 @@ function FDAVerification() {
                       <p className="FdaVerifEmptyTitle">No Queue Requests</p>
                       <p className="FdaVerifEmptyText">There are currently no new verification requests matching your filter.</p>
                     </div>
-                  ) : (
-                    // CHANGED — card fields updated to match real API response field names.
-                    // item.id → item.request_id (primary key for API calls)
-                    // item.caseId → item.case_reference (display identifier)
-                    // item.productName → item.product_name
-                    // item.category → item.product_category
-                    // item.dateReceived → item.requested_at (ISO 8601, formatted for display)
-                    // item.priority — still used as-is (now lowercase from backend)
-                    filteredQueue.map((item) => {
-                      const isSelected = selectedQueueItem?.request_id === item.request_id;
-                      return (
-                        <div
-                          key={item.request_id}
-                          className={`FdaVerifCard ${isSelected ? 'FdaVerifCardSelected' : ''}`}
-                          onClick={() => handleSelectItem(item)}
-                          role="button"
-                          tabIndex={0}
-                        >
-                          <div className="FdaVerifCardTop">
-                            <span className="FdaVerifCaseId">{item.case_reference}</span>
-                            {/* CHANGED — priority is lowercase from the backend; capitalise
-                              it for display only so the label still reads 'Urgent' etc. */}
-                            <span className={`FdaVerifPriorityBadge ${getPriorityBadgeClass(item.priority)}`}>
-                              {item.priority
-                                ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1)
-                                : ''}
+                  ) : (() => {
+                    const QUEUE_PAGE_SIZE = 25;
+                    const totalQueuePages = Math.ceil(filteredQueue.length / QUEUE_PAGE_SIZE) || 1;
+                    const safeQueuePage = Math.min(Math.max(1, queuePage), totalQueuePages);
+                    const queueStartIdx = (safeQueuePage - 1) * QUEUE_PAGE_SIZE;
+                    const queueEndIdx = Math.min(queueStartIdx + QUEUE_PAGE_SIZE, filteredQueue.length);
+                    const paginatedQueue = filteredQueue.slice(queueStartIdx, queueEndIdx);
+                    return (
+                      <>
+                        {paginatedQueue.map((item) => {
+                          const isSelected = selectedQueueItem?.request_id === item.request_id;
+                          return (
+                            <div
+                              key={item.request_id}
+                              className={`FdaVerifCard ${isSelected ? 'FdaVerifCardSelected' : ''}`}
+                              onClick={() => handleSelectItem(item)}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="FdaVerifCardTop">
+                                <span className="FdaVerifCaseId">{item.case_reference}</span>
+                                <span className={`FdaVerifPriorityBadge ${getPriorityBadgeClass(item.priority)}`}>
+                                  {item.priority
+                                    ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1)
+                                    : ''}
+                                </span>
+                              </div>
+
+                              <h3 className="FdaVerifProductName">{item.product_name}</h3>
+
+                              <div className="FdaVerifCardMetaRow">
+                                <span>{item.manufacturer}</span>
+                              </div>
+
+                              <div className="FdaVerifCardFooter">
+                                <span className="FdaVerifCategoryTag">{item.product_category}</span>
+                                <span className="FdaVerifDateReceived">
+                                  <Calendar size={12} />
+                                  {item.requested_at
+                                    ? new Date(item.requested_at).toLocaleString('en-US', {
+                                      year: 'numeric',
+                                      month: '2-digit',
+                                      day: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: true,
+                                    })
+                                    : '—'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {filteredQueue.length > 0 && (
+                          <div className="FdaCaseListFooter" style={{ marginTop: '12px' }}>
+                            <span className="FdaFooterInfo">
+                              Showing {queueStartIdx + 1}–{queueEndIdx} of {filteredQueue.length}
                             </span>
+                            <div className="FdaPagination">
+                              <button
+                                className="BtnPageNav"
+                                disabled={safeQueuePage === 1}
+                                onClick={() => setQueuePage(safeQueuePage - 1)}
+                              >
+                                <ChevronLeft size={14} />
+                                Prev
+                              </button>
+                              {Array.from({ length: totalQueuePages }, (_, i) => i + 1).map(page => (
+                                <button
+                                  key={page}
+                                  className={`FdaPageNumber ${safeQueuePage === page ? 'active' : ''}`}
+                                  onClick={() => setQueuePage(page)}
+                                >
+                                  {page}
+                                </button>
+                              ))}
+                              <button
+                                className="BtnPageNav"
+                                disabled={safeQueuePage === totalQueuePages}
+                                onClick={() => setQueuePage(safeQueuePage + 1)}
+                              >
+                                Next
+                                <ChevronRight size={14} />
+                              </button>
+                            </div>
                           </div>
-
-                          <h3 className="FdaVerifProductName">{item.product_name}</h3>
-
-                          <div className="FdaVerifCardMetaRow">
-                            <span>{item.manufacturer}</span>
-                          </div>
-
-                          <div className="FdaVerifCardFooter">
-                            <span className="FdaVerifCategoryTag">{item.product_category}</span>
-                            <span className="FdaVerifDateReceived">
-                              <Calendar size={12} />
-                              {/* CHANGED — formats the ISO 8601 requested_at timestamp using
-                                the same toLocaleString pattern already used in this file
-                                for the submit/reject timestamp (en-US, 12-hour clock). */}
-                              {item.requested_at
-                                ? new Date(item.requested_at).toLocaleString('en-US', {
-                                  year: 'numeric',
-                                  month: '2-digit',
-                                  day: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hour12: true,
-                                })
-                                : '—'}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1858,7 +1892,7 @@ function FDAVerification() {
               instead of client-side slice calculations. */}
           {fdaActiveTab === 'completed' && (() => {
             // CHANGED — server-side pagination: total comes from the API response.
-            const COMPLETED_PAGE_SIZE = 10;
+            const COMPLETED_PAGE_SIZE = 25;
             const totalCompletedPages = Math.ceil(completedTotal / COMPLETED_PAGE_SIZE) || 1;
             const safeCompletedPage = Math.min(Math.max(1, completedPage), totalCompletedPages);
             const cStartIdx = (safeCompletedPage - 1) * COMPLETED_PAGE_SIZE;
@@ -1940,15 +1974,18 @@ function FDAVerification() {
                     {/* FIX 2 — always mounted (visibility:hidden vs conditional render) so
                         the flex row never shifts when the button appears/disappears.
                         disabled prevents clicks when hidden. */}
+                    {/* Fix 2 — display:none when inactive so button takes 0px width and controls sit flush right */}
                     <button
-                      className="BtnClearFilters"
+                      className="BtnClearFiltersIcon"
                       onClick={() => { setCompletedSearch(''); setCompletedDateFrom(''); setCompletedDateTo(''); setCompletedCategory(''); setCompletedResultFilter(''); setCompletedPage(1); }}
                       disabled={!(completedSearch || completedDateFrom || completedDateTo || completedCategory || completedResultFilter)}
+                      aria-label="Clear Filters"
+                      title="Clear Filters"
                       style={{
-                        visibility: (completedSearch || completedDateFrom || completedDateTo || completedCategory || completedResultFilter) ? 'visible' : 'hidden'
+                        display: (completedSearch || completedDateFrom || completedDateTo || completedCategory || completedResultFilter) ? 'inline-flex' : 'none'
                       }}
                     >
-                      Clear Filters
+                      <X size={16} />
                     </button>
                   </div>
                 </div>
@@ -2099,7 +2136,7 @@ function FDAVerification() {
               instead of client-side slice calculations. */}
           {fdaActiveTab === 'rejected' && (() => {
             // CHANGED — server-side pagination: total comes from the API response.
-            const REJECTED_PAGE_SIZE = 10;
+            const REJECTED_PAGE_SIZE = 25;
             const totalRejectedPages = Math.ceil(rejectedTotal / REJECTED_PAGE_SIZE) || 1;
             const safeRejectedPage = Math.min(Math.max(1, rejectedPage), totalRejectedPages);
             const rStartIdx = (safeRejectedPage - 1) * REJECTED_PAGE_SIZE;
@@ -2167,15 +2204,18 @@ function FDAVerification() {
                     {/* FIX 2 — always mounted (visibility:hidden vs conditional render) so
                         the flex row never shifts when the button appears/disappears.
                         disabled prevents clicks when hidden. */}
+                    {/* Fix 2 — display:none when inactive so button takes 0px width and controls sit flush right */}
                     <button
-                      className="BtnClearFilters"
-                      onClick={() => { setRejectedSearch(''); setRejectedDateFrom(''); setRejectedDateTo(''); setRejectedCategory(''); setRejectedPage(1); }}
+                      className="BtnClearFiltersIcon"
+                      onClick={() => { setRejectedSearch(''); setRejectedDateFrom(''); setRejectedDateTo(''); setRejectedCategory(''); setFdaActiveTab(fdaActiveTab); setQueuePage(1); setCompletedPage(1); setRejectedPage(1); }}
                       disabled={!(rejectedSearch || rejectedDateFrom || rejectedDateTo || rejectedCategory)}
+                      aria-label="Clear Filters"
+                      title="Clear Filters"
                       style={{
-                        visibility: (rejectedSearch || rejectedDateFrom || rejectedDateTo || rejectedCategory) ? 'visible' : 'hidden'
+                        display: (rejectedSearch || rejectedDateFrom || rejectedDateTo || rejectedCategory) ? 'inline-flex' : 'none'
                       }}
                     >
-                      Clear Filters
+                      <X size={16} />
                     </button>
                   </div>
                 </div>
@@ -2449,7 +2489,7 @@ function FDAVerification() {
 
                   {/* COMPLETED RECORD DETAILS */}
                   {fdaRecordModalData._type === 'completed' && (
-                    <div className="FdaRecordResultSection">
+                    <div className={`FdaRecordResultSection${fdaRecordModalData.verification_result === 'unregistered' ? ' FdaRecordUnregisteredResultSection' : ''}`}>
                       <div className="FdaRecordSectionTitle">
                         <ShieldCheck size={15} className="FdaVerifGreenIcon" />
                         <span>Official FDA Verification Result</span>

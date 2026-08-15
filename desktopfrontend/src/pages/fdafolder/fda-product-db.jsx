@@ -23,7 +23,7 @@ import './fda-css.css';
 import { apiFetch } from '../../utils/apiFetch';
 
 // NOTE: Items per page for table pagination
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 25;
 
 // NOTE: Categories list options. 
 // 🔌 BACKEND: GET /api/categories for dynamic category list
@@ -1237,9 +1237,12 @@ function FDAProductDB() {
                   />
                 </div>
 
+                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
                 {(searchRegistered !== '' || filterCategory !== '' || filterStatus !== '' || filterExpiry !== '' || filterDateFromReg !== '' || filterDateToReg !== '') && (
                   <button
-                    className="BtnClearFilters"
+                    className="BtnClearFiltersIcon"
+                    aria-label="Clear Filters"
+                    title="Clear Filters"
                     onClick={() => {
                       setSearchRegistered('');
                       setFilterCategory('');
@@ -1250,7 +1253,7 @@ function FDAProductDB() {
                       setCurrentPage(1);
                     }}
                   >
-                    Clear Filters
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -1314,9 +1317,12 @@ function FDAProductDB() {
                   />
                 </div>
 
+                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
                 {(searchAdvisory !== '' || filterDateFrom !== '' || filterDateTo !== '' || filterSource !== '') && (
                   <button
-                    className="BtnClearFilters"
+                    className="BtnClearFiltersIcon"
+                    aria-label="Clear Filters"
+                    title="Clear Filters"
                     onClick={() => {
                       setSearchAdvisory('');
                       setFilterDateFrom('');
@@ -1325,7 +1331,7 @@ function FDAProductDB() {
                       setCurrentPage(1);
                     }}
                   >
-                    Clear Filters
+                    <X size={16} />
                   </button>
                 )}
               </div>
