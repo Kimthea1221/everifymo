@@ -38,7 +38,9 @@ def write_audit_log(
     request: Optional[Request] = None,
     user_role_override: Optional[str] = None,
     region_code: Optional[str] = None,
+    user_id_override: Optional[UUID] = None,
 ) -> AuditLog:
+    
     ip_address = None
     user_agent = None
     if request is not None:
@@ -46,7 +48,7 @@ def write_audit_log(
         user_agent = request.headers.get("user-agent")
 
     entry = AuditLog(
-        user_id=user.user_id if user else None,
+        user_id=user_id_override if user_id_override is not None else (user.user_id if user else None),
         user_role=user_role_override or (user.role if user else "system"),
         region_code=region_code,
         action=action,
