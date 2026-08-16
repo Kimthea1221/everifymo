@@ -55,6 +55,10 @@ function FDADashboard() {
             }
         };
         fetchProductCounts();
+
+        // Auto-fetch counts every 3 seconds to keep dashboard updated in real-time
+        const interval = setInterval(fetchProductCounts, 3000);
+        return () => clearInterval(interval);
     }, []);
 
     const takedownData = {
