@@ -36,8 +36,8 @@ def change_password(
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.PASSWORD_CHANGED,
-        title="Password changed",
-        message=f"{current_user.email} changed their password.",
+        title="First-login password change completed",
+        message=f"{current_user.email} completed the required first-login password change.",
         related_user_id=current_user.user_id,
     )
 

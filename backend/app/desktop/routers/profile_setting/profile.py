@@ -17,6 +17,8 @@ from app.desktop.schemas.profile_setting.profile import (
 )
 from app.core.dependencies import get_current_user
 from app.core.security import hash_password, verify_password
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
@@ -104,6 +106,14 @@ def change_password(
     current_user.force_password_change = False
     db.commit()
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.PASSWORD_CHANGED,
+        title="Password changed",
+        message=f"{current_user.email} changed their password.",
+        related_user_id=current_user.user_id,
+    )
+
     write_audit_log(
         db,
         user=current_user,
@@ -116,3 +126,4 @@ def change_password(
     )
 
     return {"message": "Password updated successfully"}
+

@@ -1,5 +1,6 @@
 // desktopfrontend/src/pages/fdafolder/fda-product-db.jsx
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 import {
@@ -23,11 +24,11 @@ import './fda-css.css';
 import { apiFetch } from '../../utils/apiFetch';
 
 // NOTE: Items per page for table pagination
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 25;
 
 // NOTE: Categories list options. 
 // 🔌 BACKEND: GET /api/categories for dynamic category list
-const defaultCategories = ['Cosmetics', 'Supplements', 'Drugs', 'Medical Devices'];
+const defaultCategories = ['Cosmetics', 'Food', 'Drugs', 'Medical Devices'];
 
 // Reusable View + Dropdown action control (Superadmin-style pattern)
 function FdaActionDropdown({ id, activeDropdownId, setActiveDropdownId, onView, children }) {
@@ -82,60 +83,12 @@ function FDAProductDB() {
   // =========================================================================
 
   // Tab state
-  const [activeTab, setActiveTab] = useState('registered');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.selectedTab || 'registered');
 
-  // ⚠️ REMOVE THIS when backend is connected
-  // DUMMY DATA for Registered Products
-  const [registeredProducts, setRegisteredProducts] = useState([
-    {
-      id: 1,
-      registrationNumber: 'FDA-COS-2024-10231',
-      productName: 'GlowSkin Whitening Cream',
-      manufacturer: 'GlowSkin PH',
-      category: 'Cosmetics',
-      dateRegistered: '2024-01-15',
-      expiryDate: '2026-01-15',
-      status: 'registered',
-      addedBy: 'K. Fajardo',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-15',
-      updatedBy: 'K. Fajardo',
-      marketplaceDetectionCount: 3,
-      convertedFromAdvisoryId: null,
-    },
-    {
-      id: 2,
-      registrationNumber: 'FDA-COS-2023-08812',
-      productName: 'FreshBreath Mouthwash',
-      manufacturer: 'OralCare PH',
-      category: 'Cosmetics',
-      dateRegistered: '2023-06-10',
-      expiryDate: '2025-06-10',
-      status: 'registered',
-      addedBy: 'J. Santos',
-      createdAt: '2023-06-10',
-      updatedAt: '2023-06-10',
-      updatedBy: 'J. Santos',
-      marketplaceDetectionCount: 0,
-      convertedFromAdvisoryId: null,
-    },
-    {
-      id: 3,
-      registrationNumber: 'FDA-COS-2022-04451',
-      productName: 'AcneClear Facial Wash',
-      manufacturer: 'DermaPure',
-      category: 'Cosmetics',
-      dateRegistered: '2022-03-20',
-      expiryDate: '2024-03-20',
-      status: 'registered',
-      addedBy: 'M. Reyes',
-      createdAt: '2022-03-20',
-      updatedAt: '2022-03-20',
-      updatedBy: 'M. Reyes',
-      marketplaceDetectionCount: 8,
-      convertedFromAdvisoryId: null,
-    },
-  ]);
+  // Dynamic lists fetched from PostgreSQL backend
+  const [registeredProducts, setRegisteredProducts] = useState([]);
+  const [unregisteredAdvisories, setUnregisteredAdvisories] = useState([]);
 
   // Registered Products filters state
   const [searchRegistered, setSearchRegistered] = useState('');
@@ -144,39 +97,6 @@ function FDAProductDB() {
   const [filterExpiry, setFilterExpiry] = useState('');
   const [filterDateFromReg, setFilterDateFromReg] = useState('');
   const [filterDateToReg, setFilterDateToReg] = useState('');
-
-  // ⚠️ REMOVE THIS when backend is connected
-  // DUMMY DATA for Unregistered Products (Advisories)
-  const [unregisteredAdvisories, setUnregisteredAdvisories] = useState([
-    {
-      id: 1,
-      productName: 'HerbalSlim Capsules',
-      advisoryDetails: 'Product found to be unregistered and potentially harmful. No CPR or LTO found for manufacturer NatureFit Labs.',
-      advisoryDate: '2026-05-10',
-      sourceUrl: 'https://www.fda.gov.ph/advisory/herbalslim',
-      marketplaceDetectionCount: 14,
-      addedBy: 'K. Fajardo',
-      createdAt: '2026-05-11',
-      convertedFromProductId: null,
-      source: 'Manually Added',
-      updatedAt: '2026-05-11',
-      updatedBy: 'K. Fajardo',
-    },
-    {
-      id: 2,
-      productName: 'AcneClear Facial Wash',
-      advisoryDetails: 'Registration expired and not renewed. Product continues to circulate in marketplaces without valid FDA registration.',
-      advisoryDate: '2026-03-15',
-      sourceUrl: null,
-      marketplaceDetectionCount: 7,
-      addedBy: 'J. Santos',
-      createdAt: '2026-03-16',
-      convertedFromProductId: 3,
-      source: 'Converted from Registered',
-      updatedAt: '2026-03-16',
-      updatedBy: 'J. Santos',
-    },
-  ]);
 
   // Unregistered Advisories filters state
   const [searchAdvisory, setSearchAdvisory] = useState('');
@@ -189,6 +109,65 @@ function FDAProductDB() {
 
   // Row-level action dropdown state (shared between both tables)
   const [activeDropdownId, setActiveDropdownId] = useState(null);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await apiFetch('/registered-products/');
+      if (response.ok) {
+        const data = await response.json();
+        const mapped = data.map(item => ({
+          id: item.product_id,
+          registrationNumber: item.registration_number,
+          productName: item.product_name,
+          manufacturer: item.brand_name,
+          category: item.product_category,
+          dateRegistered: item.date_registered,
+          expiryDate: item.expiry_date,
+          status: item.registration_status,
+          addedBy: item.added_by,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          updatedBy: item.updated_by,
+          marketplaceDetectionCount: item.marketplace_detection_count,
+          convertedFromAdvisoryId: item.converted_from_advisory_id,
+        }));
+        setRegisteredProducts(mapped);
+      }
+    } catch (err) {
+      console.error("Error fetching registered products:", err);
+    }
+  };
+
+  const fetchAdvisories = async () => {
+    try {
+      const response = await apiFetch('/unregistered-advisories/');
+      if (response.ok) {
+        const data = await response.json();
+        const mapped = data.map(item => ({
+          id: item.advisory_id,
+          productName: item.product_name,
+          advisoryDetails: item.advisory_details,
+          advisoryDate: item.advisory_date,
+          sourceUrl: item.source_url,
+          marketplaceDetectionCount: item.marketplace_detection_count,
+          addedBy: item.added_by,
+          createdAt: item.created_at,
+          convertedFromProductId: item.converted_from_product_id,
+          source: item.converted_from_product_id ? 'Converted from Registered' : 'Manually Added',
+          updatedAt: item.updated_at,
+          updatedBy: item.updated_by,
+        }));
+        setUnregisteredAdvisories(mapped);
+      }
+    } catch (err) {
+      console.error("Error fetching unregistered advisories:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+    fetchAdvisories();
+  }, []);
 
   useEffect(() => {
     function handleOutsideClick(event) {
@@ -249,6 +228,16 @@ function FDAProductDB() {
   // Form errors state
   const [formErrors, setFormErrors] = useState({});
 
+  // Styled notification modal state
+  const [notification, setNotification] = useState({
+    isOpen: false,
+    type: 'confirm', // 'confirm' or 'success'
+    title: '',
+    message: '',
+    onConfirm: null,
+    onCancel: null
+  });
+
 
   // UTILITIES & HELPER FUNCTIONS
 
@@ -282,6 +271,23 @@ function FDAProductDB() {
     }
   };
 
+
+  const extractErrorMessage = (errorData, defaultMsg) => {
+    if (!errorData) return defaultMsg;
+    if (errorData.detail) {
+      if (Array.isArray(errorData.detail)) {
+        return errorData.detail.map(err => {
+          const field = err.loc ? err.loc[err.loc.length - 1] : "";
+          return `${field}: ${err.msg}`;
+        }).join(', ');
+      } else if (typeof errorData.detail === 'string') {
+        return errorData.detail;
+      } else if (typeof errorData.detail === 'object') {
+        return JSON.stringify(errorData.detail);
+      }
+    }
+    return defaultMsg;
+  };
 
   // RESET FORMS
 
@@ -477,56 +483,51 @@ function FDAProductDB() {
       return;
     }
 
-    try {
-      const response = await apiFetch('/registered-products/', {
-        method: 'POST',
-        body: JSON.stringify({
-          product_name: productForm.productName.trim(),
-          brand_name: productForm.manufacturer.trim() || null,
-          registration_number: productForm.registrationNumber.trim(),
-          product_category: productForm.category,
-          date_registered: productForm.dateRegistered || null,
-          expiry_date: productForm.expiryDate || null,
-        }),
-      });
+    setNotification({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Confirm Save Product',
+      message: 'Please check details before saving. Are you sure you want to save this product?',
+      onConfirm: async () => {
+        try {
+          const response = await apiFetch('/registered-products/', {
+            method: 'POST',
+            body: JSON.stringify({
+              product_name: productForm.productName.trim(),
+              brand_name: productForm.manufacturer.trim() || null,
+              registration_number: productForm.registrationNumber.trim(),
+              product_category: productForm.category,
+              date_registered: productForm.dateRegistered || null,
+              expiry_date: productForm.expiryDate || null,
+            }),
+          });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        setFormErrors({ registrationNumber: errorData.detail || "Failed to save product." });
-        return;
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMsg = extractErrorMessage(errorData, "Failed to save product.");
+            setFormErrors({ registrationNumber: errorMsg });
+            return;
+          }
+
+          await fetchProducts();
+          setShowAddProductModal(false);
+          resetProductForm();
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'Product saved successfully!',
+          });
+        } catch (err) {
+          setFormErrors({ productName: "Network error. Please try again." });
+        }
       }
-
-      const newProduct = await response.json();
-
-      // I-map yung response galing backend (snake_case) papunta sa frontend shape (camelCase)
-      const mappedProduct = {
-        id: newProduct.product_id,
-        registrationNumber: newProduct.registration_number,
-        productName: newProduct.product_name,
-        manufacturer: newProduct.brand_name,
-        category: newProduct.product_category,
-        dateRegistered: newProduct.date_registered,
-        expiryDate: newProduct.expiry_date,
-        status: newProduct.registration_status,
-        addedBy: newProduct.added_by,
-        createdAt: newProduct.created_at,
-        updatedAt: newProduct.created_at,
-        updatedBy: newProduct.added_by,
-        marketplaceDetectionCount: newProduct.marketplace_detection_count,
-        convertedFromAdvisoryId: null,
-      };
-
-      setRegisteredProducts([mappedProduct, ...registeredProducts]);
-      setShowAddProductModal(false);
-      resetProductForm();
-    } catch (err) {
-      setFormErrors({ productName: "Network error. Please try again." });
-    }
+    });
   };
 
   // NOTE: Handles editing a registered product.
   // 🔌 BACKEND: PUT /api/products/:id
-  const handleEditProduct = (e) => {
+  const handleEditProduct = async (e) => {
     e.preventDefault();
     const errors = {};
 
@@ -559,36 +560,62 @@ function FDAProductDB() {
       return;
     }
 
-    // ⚠️ REMOVE THIS local update
-    setRegisteredProducts(prev => prev.map(p => {
-      if (p.id === selectedProduct.id) {
-        return {
-          ...p,
-          productName: productForm.productName.trim(),
-          manufacturer: productForm.manufacturer.trim() || null,
-          registrationNumber: productForm.registrationNumber.trim(),
-          category: productForm.category,
-          dateRegistered: productForm.dateRegistered || null,
-          expiryDate: productForm.expiryDate || null,
-          updatedAt: new Date().toISOString().split('T')[0],
-          updatedBy: 'K. Fajardo'
-        };
-      }
-      return p;
-    }));
+    setNotification({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Confirm Edit Product',
+      message: 'Are you sure you want to change this?',
+      onConfirm: async () => {
+        try {
+          const response = await apiFetch(`/registered-products/${selectedProduct.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              product_name: productForm.productName.trim(),
+              brand_name: productForm.manufacturer.trim() || null,
+              registration_number: productForm.registrationNumber.trim(),
+              product_category: productForm.category,
+              date_registered: productForm.dateRegistered || null,
+              expiry_date: productForm.expiryDate || null,
+            }),
+          });
 
-    setShowEditProductModal(false);
-    setSelectedProduct(null);
-    resetProductForm();
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMsg = extractErrorMessage(errorData, "Failed to update product.");
+            setFormErrors({ registrationNumber: errorMsg });
+            return;
+          }
+
+          await fetchProducts();
+          setShowEditProductModal(false);
+          setSelectedProduct(null);
+          resetProductForm();
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'Product updated successfully!',
+          });
+        } catch (err) {
+          setFormErrors({ productName: "Network error. Please try again." });
+        }
+      }
+    });
   };
 
   // NOTE: Handles converting a registered product into an unregistered product advisory.
   // 🔌 BACKEND: POST /api/advisories/convert-from-product/:product_id
-  const handleConvertToUnregistered = (e) => {
+  const handleConvertToUnregistered = async (e) => {
     e.preventDefault();
     const errors = {};
 
-    if (conversionDetails.advisoryDate) {
+    if (!conversionDetails.advisoryDetails.trim()) {
+      errors.advisoryDetails = "Advisory details are required";
+    }
+
+    if (!conversionDetails.advisoryDate) {
+      errors.advisoryDate = "Advisory date is required";
+    } else {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (new Date(conversionDetails.advisoryDate) > today) {
@@ -607,30 +634,46 @@ function FDAProductDB() {
       return;
     }
 
-    // ⚠️ REMOVE THIS local state conversion logic
-    // Create new advisory
-    const newAdvisory = {
-      id: unregisteredAdvisories.length + 1,
-      productName: selectedProduct.productName,
-      advisoryDetails: conversionDetails.advisoryDetails.trim() || `Advisory generated from converted product record (Registration No: ${selectedProduct.registrationNumber})`,
-      advisoryDate: conversionDetails.advisoryDate || new Date().toISOString().split('T')[0],
-      sourceUrl: conversionDetails.sourceUrl.trim() || null,
-      marketplaceDetectionCount: selectedProduct.marketplaceDetectionCount || 0,
-      addedBy: 'K. Fajardo',
-      createdAt: new Date().toISOString().split('T')[0],
-      convertedFromProductId: selectedProduct.id,
-      source: 'Converted from Registered',
-      updatedAt: new Date().toISOString().split('T')[0],
-      updatedBy: 'K. Fajardo',
-    };
+    setNotification({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Confirm Conversion',
+      message: 'Are you sure you want to convert this to unregistered product?',
+      onConfirm: async () => {
+        try {
+          const response = await apiFetch(`/unregistered-advisories/convert-from-product/${selectedProduct.id}`, {
+            method: 'POST',
+            body: JSON.stringify({
+              product_name: selectedProduct.productName,
+              advisory_details: conversionDetails.advisoryDetails.trim() || `Advisory generated from converted product record (Registration No: ${selectedProduct.registrationNumber})`,
+              advisory_date: conversionDetails.advisoryDate || null,
+              source_url: conversionDetails.sourceUrl.trim() || null,
+            }),
+          });
 
-    setUnregisteredAdvisories([newAdvisory, ...unregisteredAdvisories]);
-    // Soft delete/remove product from current list
-    setRegisteredProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMsg = extractErrorMessage(errorData, "Failed to convert product.");
+            setFormErrors({ advisoryDate: errorMsg });
+            return;
+          }
 
-    setShowConvertToUnregisteredModal(false);
-    setSelectedProduct(null);
-    resetConversionDetails();
+          await fetchProducts();
+          await fetchAdvisories();
+          setShowConvertToUnregisteredModal(false);
+          setSelectedProduct(null);
+          resetConversionDetails();
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'Converted to unregistered product successfully!',
+          });
+        } catch (err) {
+          setFormErrors({ advisoryDetails: "Network error. Please try again." });
+        }
+      }
+    });
   };
 
 
@@ -665,63 +708,49 @@ function FDAProductDB() {
       return;
     }
 
-    try {
-      const response = await apiFetch('/unregistered-advisories/', {
-        method: 'POST',
-        body: JSON.stringify({
-          product_name: advisoryForm.productName.trim(),
-          advisory_details: advisoryForm.advisoryDetails.trim() || null,
-          advisory_date: (advisoryForm.advisoryDate && advisoryForm.advisoryDate.trim()) || null,
-          source_url: advisoryForm.sourceUrl.trim() || null,
-        }),
-      });
+    setNotification({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Confirm Save Advisory',
+      message: 'Please check details before saving. Are you sure you want to save this advisory?',
+      onConfirm: async () => {
+        try {
+          const response = await apiFetch('/unregistered-advisories/', {
+            method: 'POST',
+            body: JSON.stringify({
+              product_name: advisoryForm.productName.trim(),
+              advisory_details: advisoryForm.advisoryDetails.trim() || null,
+              advisory_date: (advisoryForm.advisoryDate && advisoryForm.advisoryDate.trim()) || null,
+              source_url: advisoryForm.sourceUrl.trim() || null,
+            }),
+          });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        let errorMsg = "Failed to save advisory.";
-        if (errorData && errorData.detail) {
-          if (Array.isArray(errorData.detail)) {
-            errorMsg = errorData.detail.map(err => {
-              const field = err.loc ? err.loc[err.loc.length - 1] : "";
-              return `${field}: ${err.msg}`;
-            }).join(', ');
-          } else if (typeof errorData.detail === 'string') {
-            errorMsg = errorData.detail;
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMsg = extractErrorMessage(errorData, "Failed to save advisory.");
+            setFormErrors({ productName: errorMsg });
+            return;
           }
+
+          await fetchAdvisories();
+          setShowAddAdvisoryModal(false);
+          resetAdvisoryForm();
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'Advisory saved successfully!',
+          });
+        } catch (err) {
+          setFormErrors({ productName: "Network error. Please try again." });
         }
-        setFormErrors({ productName: errorMsg });
-        return;
       }
-
-      const newAdvisory = await response.json();
-
-      // I-map yung response galing backend (snake_case) papunta sa frontend shape (camelCase)
-      const mappedAdvisory = {
-        id: newAdvisory.advisory_id,
-        productName: newAdvisory.product_name,
-        advisoryDetails: newAdvisory.advisory_details,
-        advisoryDate: newAdvisory.advisory_date,
-        sourceUrl: newAdvisory.source_url,
-        marketplaceDetectionCount: newAdvisory.marketplace_detection_count,
-        addedBy: newAdvisory.added_by,
-        createdAt: newAdvisory.created_at,
-        convertedFromProductId: null,
-        source: 'Manually Added',
-        updatedAt: newAdvisory.created_at,
-        updatedBy: newAdvisory.added_by,
-      };
-
-      setUnregisteredAdvisories([mappedAdvisory, ...unregisteredAdvisories]);
-      setShowAddAdvisoryModal(false);
-      resetAdvisoryForm();
-    } catch (err) {
-      setFormErrors({ productName: "Network error. Please try again." });
-    }
+    });
   };
 
   // NOTE: Handles editing an unregistered product (advisory).
   // 🔌 BACKEND: PUT /api/advisories/:id
-  const handleEditAdvisory = (e) => {
+  const handleEditAdvisory = async (e) => {
     e.preventDefault();
     const errors = {};
 
@@ -748,30 +777,50 @@ function FDAProductDB() {
       return;
     }
 
-    // ⚠️ REMOVE THIS local update
-    setUnregisteredAdvisories(prev => prev.map(a => {
-      if (a.id === selectedAdvisory.id) {
-        return {
-          ...a,
-          productName: advisoryForm.productName.trim(),
-          advisoryDetails: advisoryForm.advisoryDetails.trim() || null,
-          advisoryDate: advisoryForm.advisoryDate || null,
-          sourceUrl: advisoryForm.sourceUrl.trim() || null,
-          updatedAt: new Date().toISOString().split('T')[0],
-          updatedBy: 'Officer K. Fajardo'
-        };
-      }
-      return a;
-    }));
+    setNotification({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Confirm Edit Advisory',
+      message: 'Are you sure you want to change this?',
+      onConfirm: async () => {
+        try {
+          const response = await apiFetch(`/unregistered-advisories/${selectedAdvisory.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              product_name: advisoryForm.productName.trim(),
+              advisory_details: advisoryForm.advisoryDetails.trim() || null,
+              advisory_date: advisoryForm.advisoryDate || null,
+              source_url: advisoryForm.sourceUrl.trim() || null,
+            }),
+          });
 
-    setShowEditAdvisoryModal(false);
-    setSelectedAdvisory(null);
-    resetAdvisoryForm();
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMsg = extractErrorMessage(errorData, "Failed to update advisory.");
+            setFormErrors({ productName: errorMsg });
+            return;
+          }
+
+          await fetchAdvisories();
+          setShowEditAdvisoryModal(false);
+          setSelectedAdvisory(null);
+          resetAdvisoryForm();
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'Advisory updated successfully!',
+          });
+        } catch (err) {
+          setFormErrors({ productName: "Network error. Please try again." });
+        }
+      }
+    });
   };
 
   // NOTE: Handles converting an unregistered product advisory to a registered product record.
   // 🔌 BACKEND: POST /api/products/convert-from-advisory/:advisory_id
-  const handleConvertToRegistered = (e) => {
+  const handleConvertToRegistered = async (e) => {
     e.preventDefault();
     const errors = {};
 
@@ -788,7 +837,13 @@ function FDAProductDB() {
       errors.category = "Product Category is required";
     }
 
-    if (conversionDetails.dateRegistered && conversionDetails.expiryDate) {
+    if (!conversionDetails.dateRegistered) {
+      errors.dateRegistered = "Date Registered is required";
+    }
+
+    if (!conversionDetails.expiryDate) {
+      errors.expiryDate = "Expiry Date is required";
+    } else if (conversionDetails.dateRegistered) {
       if (new Date(conversionDetails.expiryDate) <= new Date(conversionDetails.dateRegistered)) {
         errors.expiryDate = "Expiry Date must be after Date Registered";
       }
@@ -799,32 +854,48 @@ function FDAProductDB() {
       return;
     }
 
-    // ⚠️ REMOVE THIS local state conversion logic
-    // Create registered product record
-    const newProduct = {
-      id: registeredProducts.length + 1,
-      registrationNumber: conversionDetails.registrationNumber.trim(),
-      productName: selectedAdvisory.productName,
-      manufacturer: conversionDetails.manufacturer.trim() || null,
-      category: conversionDetails.category,
-      dateRegistered: conversionDetails.dateRegistered || null,
-      expiryDate: conversionDetails.expiryDate || null,
-      status: 'registered',
-      addedBy: 'Officer K. Fajardo',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-      updatedBy: 'Officer K. Fajardo',
-      marketplaceDetectionCount: selectedAdvisory.marketplaceDetectionCount || 0,
-      convertedFromAdvisoryId: selectedAdvisory.id,
-    };
+    setNotification({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Confirm Conversion',
+      message: 'Are you sure you want to convert this to registered product?',
+      onConfirm: async () => {
+        try {
+          const response = await apiFetch(`/registered-products/convert-from-advisory/${selectedAdvisory.id}`, {
+            method: 'POST',
+            body: JSON.stringify({
+              product_name: selectedAdvisory.productName,
+              brand_name: conversionDetails.manufacturer.trim() || null,
+              registration_number: conversionDetails.registrationNumber.trim(),
+              product_category: conversionDetails.category,
+              date_registered: conversionDetails.dateRegistered || null,
+              expiry_date: conversionDetails.expiryDate || null,
+            }),
+          });
 
-    setRegisteredProducts([newProduct, ...registeredProducts]);
-    // Soft delete/remove advisory from current list
-    setUnregisteredAdvisories(prev => prev.filter(a => a.id !== selectedAdvisory.id));
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMsg = extractErrorMessage(errorData, "Failed to convert advisory.");
+            setFormErrors({ registrationNumber: errorMsg });
+            return;
+          }
 
-    setShowConvertToRegisteredModal(false);
-    setSelectedAdvisory(null);
-    resetConversionDetails();
+          await fetchProducts();
+          await fetchAdvisories();
+          setShowConvertToRegisteredModal(false);
+          setSelectedAdvisory(null);
+          resetConversionDetails();
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'Converted to registered product successfully!',
+          });
+        } catch (err) {
+          setFormErrors({ registrationNumber: "Network error. Please try again." });
+        }
+      }
+    });
   };
 
   // =========================================================================
@@ -880,6 +951,110 @@ function FDAProductDB() {
 
   return (
     <div className="FdaDashboardMain">
+      <style>{`
+        /* Wide & Responsive Layout Overrides */
+        .FdaStatsRow,
+        .FdaTableCard,
+        .FdaProductFilterPanel,
+        .FdaTabActionRow {
+          max-width: 100% !important;
+          width: 100% !important;
+        }
+
+        /* Responsive Overrides for FDA Product Database */
+        @media (max-width: 992px) {
+          .FdaProductFilterPanel {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 16px !important;
+          }
+          .FdaSearchFixed {
+            width: 100% !important;
+          }
+          .FdaFilterGroupsRight {
+            margin-left: 0 !important;
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+            gap: 12px !important;
+          }
+          .FdaFilterGroup select, 
+          .FdaFilterGroup input[type="date"] {
+            width: 100% !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .FdaHeader {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 16px !important;
+          }
+          .FdaHeaderLeft {
+            max-width: 100% !important;
+          }
+          .BtnExportCSV {
+            align-self: flex-start !important;
+          }
+          .FdaFilterRow {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 14px !important;
+          }
+          .FdaPillContainer {
+            width: 100% !important;
+            display: flex !important;
+            overflow-x: auto !important;
+          }
+          .FdaPill {
+            flex: 1 !important;
+            justify-content: center !important;
+            white-space: nowrap !important;
+          }
+          .FdaControlsRight {
+            width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .BtnAddProduct,
+          .BtnAddAdvisory {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .FdaStatsRow {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .FdaStatCard {
+            flex: 1 1 150px !important;
+          }
+        }
+        @media (max-width: 576px) {
+          .FdaModalContent {
+            padding: 20px !important;
+            width: 95% !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+          }
+          .FdaModalForm,
+          .FdaFormGrid,
+          .FdaDetailGrid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .FdaModalFooter {
+            flex-direction: column-reverse !important;
+            gap: 8px !important;
+            margin-top: 16px !important;
+          }
+          .FdaModalFooter button,
+          .BtnModalCancel,
+          .BtnModalSave {
+            width: 100% !important;
+            margin: 0 !important;
+          }
+        }
+      `}</style>
       {/* FDA Sidebar */}
       <Sidebar sidebarType="FDA" />
 
@@ -1063,9 +1238,12 @@ function FDAProductDB() {
                   />
                 </div>
 
+                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
                 {(searchRegistered !== '' || filterCategory !== '' || filterStatus !== '' || filterExpiry !== '' || filterDateFromReg !== '' || filterDateToReg !== '') && (
                   <button
-                    className="BtnClearFilters"
+                    className="BtnClearFiltersIcon"
+                    aria-label="Clear Filters"
+                    title="Clear Filters"
                     onClick={() => {
                       setSearchRegistered('');
                       setFilterCategory('');
@@ -1076,7 +1254,7 @@ function FDAProductDB() {
                       setCurrentPage(1);
                     }}
                   >
-                    Clear Filters
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -1140,9 +1318,12 @@ function FDAProductDB() {
                   />
                 </div>
 
+                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
                 {(searchAdvisory !== '' || filterDateFrom !== '' || filterDateTo !== '' || filterSource !== '') && (
                   <button
-                    className="BtnClearFilters"
+                    className="BtnClearFiltersIcon"
+                    aria-label="Clear Filters"
+                    title="Clear Filters"
                     onClick={() => {
                       setSearchAdvisory('');
                       setFilterDateFrom('');
@@ -1151,7 +1332,7 @@ function FDAProductDB() {
                       setCurrentPage(1);
                     }}
                   >
-                    Clear Filters
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -1443,7 +1624,7 @@ function FDAProductDB() {
                       onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
                     >
                       <option value="">Select Category</option>
-                      {/* ⚠️ REMOVE THIS — options: Cosmetics, Supplements, Drugs, Medical Devices */}
+                      {/* ⚠️ REMOVE THIS — options: Cosmetics, Food, Drugs, Medical Devices */}
                       {/* 🔌 BACKEND: GET /api/categories for dynamic categories */}
                       {defaultCategories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -1644,18 +1825,19 @@ function FDAProductDB() {
                   The registered product record will be archived, and a new advisory record will be created.
                 </p>
                 <form onSubmit={handleConvertToUnregistered} className="FdaFormGrid">
-                  <div className="FdaFormGroup span-two">
-                    <label>Advisory Details</label>
+                  <div className={`FdaFormGroup span-two ${formErrors.advisoryDetails ? 'has-error' : ''}`}>
+                    <label>Advisory Details *</label>
                     <textarea
                       rows={4}
                       placeholder="Enter details on why this product is flagged as unregistered/dangerous..."
                       value={conversionDetails.advisoryDetails}
                       onChange={(e) => setConversionDetails({ ...conversionDetails, advisoryDetails: e.target.value })}
                     />
+                    {formErrors.advisoryDetails && <span className="form-error-msg">{formErrors.advisoryDetails}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.advisoryDate ? 'has-error' : ''}`}>
-                    <label>Advisory Date</label>
+                    <label>Advisory Date *</label>
                     <input
                       type="date"
                       value={conversionDetails.advisoryDate}
@@ -1932,17 +2114,18 @@ function FDAProductDB() {
                     {formErrors.category && <span className="form-error-msg">{formErrors.category}</span>}
                   </div>
 
-                  <div className="FdaFormGroup">
-                    <label>Date Registered</label>
+                  <div className={`FdaFormGroup ${formErrors.dateRegistered ? 'has-error' : ''}`}>
+                    <label>Date Registered *</label>
                     <input
                       type="date"
                       value={conversionDetails.dateRegistered}
                       onChange={(e) => setConversionDetails({ ...conversionDetails, dateRegistered: e.target.value })}
                     />
+                    {formErrors.dateRegistered && <span className="form-error-msg">{formErrors.dateRegistered}</span>}
                   </div>
 
                   <div className={`FdaFormGroup span-two ${formErrors.expiryDate ? 'has-error' : ''}`}>
-                    <label>Expiry Date</label>
+                    <label>Expiry Date *</label>
                     <input
                       type="date"
                       value={conversionDetails.expiryDate}
@@ -1957,6 +2140,57 @@ function FDAProductDB() {
                     <button type="submit" className="BtnModalSave">Convert to Registered</button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Custom confirmation & success notifications styled like FDA modals */}
+          {notification.isOpen && (
+            <div className="FdaModalOverlay" onClick={() => setNotification({ ...notification, isOpen: false })}>
+              <div className="FdaModalContent" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+                <button className="FdaDetailClose" onClick={() => setNotification({ ...notification, isOpen: false })}>
+                  <X size={16} />
+                </button>
+                <div className="FdaDetailHeader">
+                  <h2>{notification.title}</h2>
+                  <p className="FdaConfirmationMessage" style={{ marginTop: '12px', fontSize: '14.5px', lineHeight: '1.6', color: '#1F2937', opacity: 1 }}>
+                    {notification.message}
+                  </p>
+                </div>
+                <div className="FdaModalFooter" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  {notification.type === 'confirm' ? (
+                    <>
+                      <button 
+                        type="button" 
+                        className="BtnModalCancel" 
+                        onClick={() => {
+                          setNotification({ ...notification, isOpen: false });
+                          if (notification.onCancel) notification.onCancel();
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="button" 
+                        className="BtnModalSave" 
+                        onClick={() => {
+                          setNotification({ ...notification, isOpen: false });
+                          if (notification.onConfirm) notification.onConfirm();
+                        }}
+                      >
+                        Confirm
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      type="button" 
+                      className="BtnModalSave" 
+                      onClick={() => setNotification({ ...notification, isOpen: false })}
+                    >
+                      OK
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
