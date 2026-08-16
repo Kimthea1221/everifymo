@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/create-new-password.jsx
 import { useState } from 'react';
 //import { useNavigate } from 'react-router-dom';
 import { useLocation, useNavigate } from 'react-router-dom';

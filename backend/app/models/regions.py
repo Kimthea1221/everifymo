@@ -1,3 +1,4 @@
+# backend/app/models/regions.py
 from sqlalchemy import Column, String, Boolean, DateTime, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func

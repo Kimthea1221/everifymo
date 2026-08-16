@@ -1,6 +1,11 @@
+# backend/app/desktop/routers/profile_setting/profile.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.database.sessions import get_db
 from app.models.user_sessions import UserSession
@@ -63,6 +68,7 @@ from app.desktop.schemas.superadmin_notifications.notification_enums import Noti
 @router.put("/update", response_model=ProfileResponse)
 def update_profile(
     payload: ProfileUpdateRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -101,6 +107,7 @@ def update_profile(
 @router.post("/change-password")
 def change_password(
     payload: ChangePasswordRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
