@@ -1,6 +1,11 @@
+# backend/app/desktop/routers/profile_setting/profile.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.database.sessions import get_db
 from app.models.users import User
@@ -57,21 +62,38 @@ def get_profile(
 @router.put("/update", response_model=ProfileResponse)
 def update_profile(
     payload: ProfileUpdateRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     update_data = payload.model_dump(exclude_unset=True)
+    old_value = {field: getattr(current_user, field) for field in update_data}
     for field, value in update_data.items():
         setattr(current_user, field, value)
 
     db.commit()
     db.refresh(current_user)
+
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.UPDATE_USER_PROFILE,
+        target_table="users",
+        target_id=current_user.user_id,
+        target_reference=f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email,
+        old_value=old_value,
+        new_value=update_data,
+        request=http_request,
+        region_code=get_user_region_code(db, current_user),
+    )
+
     return build_profile_response(db, current_user)
 
 
 @router.post("/change-password")
 def change_password(
     payload: ChangePasswordRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -92,4 +114,16 @@ def change_password(
         related_user_id=current_user.user_id,
     )
 
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.UPDATE_USER_PASSWORD,
+        target_table="users",
+        target_id=current_user.user_id,
+        target_reference=current_user.email,
+        request=http_request,
+        region_code=get_user_region_code(db, current_user),
+    )
+
     return {"message": "Password updated successfully"}
+

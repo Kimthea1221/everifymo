@@ -1,3 +1,4 @@
+# backend/app/models/user_sessions.py   
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
