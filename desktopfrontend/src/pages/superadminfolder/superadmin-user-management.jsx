@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/superadminfolder/superadmin-user-management.jsx
 import './superadmin-css.css';
 import { useState, useEffect, useRef } from 'react';
 import { Send, UserCheck, UserX, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -317,8 +318,18 @@ function AddPersonnelModal({ open, onClose }) {
                 placeholder="e.g. juan.delacruz@agency.gov.ph"
                 value={email}
                 onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError('');
+                  const val = e.target.value;
+                  setEmail(val);
+                  if (!val.trim()) {
+                    setEmailError('');
+                  } else {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(val.trim())) {
+                      setEmailError('Please enter a valid email address.');
+                    } else {
+                      setEmailError('');
+                    }
+                  }
                 }}
                 disabled={sending}
               />

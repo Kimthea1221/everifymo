@@ -8,9 +8,6 @@ import {
   Clock3,
   BellRing,
   SquarePen,
-  ShieldCheck,
-  ShieldX,
-  CircleCheckBig,
   XCircle,
   Inbox,
   Siren,
@@ -23,7 +20,10 @@ import {
   Eye,
   X,
   Download,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Trash2,
+  CheckCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ADDED — API_BASE, parseBackendError, formatDateTime helpers
@@ -155,6 +155,50 @@ const dismissedCases = [
   },
 ];
 
+// Frontend queue pagination helper — matches the existing project .Pagination / .BtnPage design
+function QueuePagination({ currentPage, totalPages, totalItems, onPageChange }) {
+  if (totalPages <= 1) return null;
+  // Build page number list (max 5 visible)
+  const pageStart = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+  const pageEnd = Math.min(totalPages, pageStart + 4);
+  const pages = Array.from({ length: pageEnd - pageStart + 1 }, (_, i) => pageStart + i);
+  return (
+    <div className="LeaVerifQueuePagination">
+      <span className="LeaVerifQueuePageInfo">
+        Page {currentPage} of {totalPages}
+      </span>
+      <div className="LeaVerifQueuePaginationControls">
+        <button
+          type="button"
+          className="LeaVerifQueuePageBtn"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+        >
+          &lsaquo; Prev
+        </button>
+        {pages.map((pg) => (
+          <button
+            key={pg}
+            type="button"
+            className={`LeaVerifQueuePageNum${currentPage === pg ? ' active' : ''}`}
+            onClick={() => onPageChange(pg)}
+          >
+            {pg}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="LeaVerifQueuePageBtn"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+        >
+          Next &rsaquo;
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LeaVerificationRequest() {
 
   const navigate = useNavigate();
@@ -163,7 +207,7 @@ function LeaVerificationRequest() {
   //FOR BUTTON TABS ON VERIFICATION REQUEST
   const [activeTab, setActiveTab] = useState('Ready to Send');
   const [selectedResponse, setSelectedResponse] = useState(responseCases[0]);
-  const tabs = ['Ready to Send', 'Awaiting FDA', 'FDA Response', 'Initiated Cases', 'Dismissed Cases'];
+  const tabs = ['Ready to Send', 'Awaiting FDA', 'FDA Response', 'Initiated Cases', 'Closed Cases'];
   const handleTabClick = (tabName) => {
     if (activeTab === tabName) return;
 
@@ -200,11 +244,26 @@ function LeaVerificationRequest() {
   const [initiatedSearch, setInitiatedSearch] = useState('');
   const [initiatedCategory, setInitiatedCategory] = useState('');
 
+  // Frontend-only queue pagination states (25 items per page)
+  const QUEUE_PAGE_SIZE = 25;
+  const [readyPage, setReadyPage] = useState(1);
+  const [awaitingPage, setAwaitingPage] = useState(1);
+  const [responsePage, setResponsePage] = useState(1);
+  const [initiatedPage, setInitiatedPage] = useState(1);
+  const [closedPage, setClosedPage] = useState(1);
+
+  // Reset to page 1 whenever search, category, or active tab changes
+  useEffect(() => { setReadyPage(1); }, [readySearch, readyCategory, activeTab]);
+  useEffect(() => { setAwaitingPage(1); }, [awaitingSearch, awaitingCategory, activeTab]);
+  useEffect(() => { setResponsePage(1); }, [responseSearch, responseCategory, activeTab]);
+  useEffect(() => { setInitiatedPage(1); }, [initiatedSearch, initiatedCategory, activeTab]);
+
   // NOTE: States for Dismissed Cases tab filters
   const [dismissedSearch, setDismissedSearch] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  useEffect(() => { setClosedPage(1); }, [dismissedSearch, filterCategory, filterDateFrom, filterDateTo, activeTab]);
 
   // NOTE: Modal overlay, success alert, and read-only details modal states
   const [modalConfig, setModalConfig] = useState(null);
@@ -547,6 +606,56 @@ function LeaVerificationRequest() {
     }
   };
 
+  // ADDED — Delete Draft / Verification Request handler for Ready to Send tab
+  const handleDeleteRequest = () => {
+    if (!selectedComplaint) {
+      showError('Please select a complaint first.');
+      return;
+    }
+
+    setModalConfig({
+      title: 'Delete Complaint?',
+      message: 'Are you sure you want to delete this complaint? This action cannot be undone.',
+      confirmText: 'Delete',
+      confirmBg: '#ef4444',
+      onConfirm: async () => {
+        setModalConfig(null);
+
+        if (currentDraftId) {
+          const token = localStorage.getItem('access_token');
+          try {
+            const res = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}`, {
+              method: 'DELETE',
+              headers: { authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+              const msg = await parseBackendError(res);
+              showError(msg);
+              return;
+            }
+            showSuccess('Draft deleted successfully.');
+          } catch {
+            showError('Failed to delete draft. Please try again.');
+            return;
+          }
+        } else {
+          showSuccess('Verification request draft cleared.');
+        }
+
+        // Reset compose form state and selection
+        setCurrentDraftId(null);
+        setSelectedComplaint(null);
+        setProductCode('');
+        setComplaintStatement('');
+        setPriority('standard');
+        fetchReadyList();
+      },
+      onCancel: () => {
+        setModalConfig(null);
+      },
+    });
+  };
+
   // MERGED-ADD — client-side search + category filtering for the four queue tabs
   const filteredReadyList = readyList.filter((item) => {
     const q = readySearch.toLowerCase().trim();
@@ -588,6 +697,19 @@ function LeaVerificationRequest() {
     return matchesSearch && matchesCategory;
   });
 
+  // Frontend pagination slices — 15 items per page, operating on the already-filtered lists
+  const readyTotalPages = Math.ceil(filteredReadyList.length / QUEUE_PAGE_SIZE) || 1;
+  const paginatedReadyList = filteredReadyList.slice((readyPage - 1) * QUEUE_PAGE_SIZE, readyPage * QUEUE_PAGE_SIZE);
+
+  const awaitingTotalPages = Math.ceil(filteredAwaitingList.length / QUEUE_PAGE_SIZE) || 1;
+  const paginatedAwaitingList = filteredAwaitingList.slice((awaitingPage - 1) * QUEUE_PAGE_SIZE, awaitingPage * QUEUE_PAGE_SIZE);
+
+  const responseTotalPages = Math.ceil(filteredResponseCases.length / QUEUE_PAGE_SIZE) || 1;
+  const paginatedResponseCases = filteredResponseCases.slice((responsePage - 1) * QUEUE_PAGE_SIZE, responsePage * QUEUE_PAGE_SIZE);
+
+  const initiatedTotalPages = Math.ceil(filteredInitiatedCases.length / QUEUE_PAGE_SIZE) || 1;
+  const paginatedInitiatedCases = filteredInitiatedCases.slice((initiatedPage - 1) * QUEUE_PAGE_SIZE, initiatedPage * QUEUE_PAGE_SIZE);
+
   // NOTE: Filter logic for closed/dismissed complaints table rows
   // MERGED-CHANGED — now also matches dismissedSearch against case ID / product / manufacturer
   const filteredDismissed = dismissedCases.filter((c) => {
@@ -628,9 +750,9 @@ function LeaVerificationRequest() {
       successText = "Takedown operation initiated.";
     } else if (actionType === 'Dismiss Case') {
       title = "Dismiss Case?";
-      message = `This will close CASE ID: ${caseNumber}. Product has been confirmed registered with FDA. This action cannot be undone. Do you want to proceed?`;
-      confirmText = "Dismiss Case";
-      successText = "Case dismissed successfully.";
+      message = `This will close CASE ID: ${caseNumber}. Product has been confirmed registered with FDA. The case will be moved to the Closed Cases tab. Do you want to proceed?`;
+      confirmText = "Acknowledge";
+      successText = "Case dismissed. Moved to Closed Cases.";
     } else if (actionType === 'Close Case') {
       title = "Close Takedown Case?";
       message = `This will mark the takedown operation for CASE ID: ${caseNumber} as complete and close the case. Make sure field operation notes are updated before closing. This action cannot be undone. Do you want to proceed?`;
@@ -638,9 +760,9 @@ function LeaVerificationRequest() {
       successText = "Case closed successfully.";
     } else if (actionType === 'Acknowledge') {
       title = "Acknowledge Rejection?";
-      message = `This will acknowledge the rejection of CASE ID: ${caseNumber} by FDA. The case will be moved to the Dismissed Cases tab. Do you want to proceed?`;
+      message = `This will acknowledge the rejection of CASE ID: ${caseNumber} by FDA. The case will be moved to the Closed Cases tab. Do you want to proceed?`;
       confirmText = "Acknowledge";
-      successText = "Rejection acknowledged. Case moved to Dismissed Cases.";
+      successText = "Rejection acknowledged. Case moved to Closed Cases.";
     }
 
     setModalConfig({
@@ -733,7 +855,7 @@ function LeaVerificationRequest() {
               </div>
               {/* CHANGED — was {dismissedCases.length}, now uses real backend count */}
               <p className="LeaVerifStatValue">{leaCounts.dismissed_count}</p>
-              <p className="LeaVerifStatLabel">Dismissed Cases</p>
+              <p className="LeaVerifStatLabel">Closed Cases</p>
             </div>
           </div>
 
@@ -761,6 +883,11 @@ function LeaVerificationRequest() {
                   {/* LEFT PANEL */}
                   <div className="ReadytoSendQueue">
                     {/* MERGED-ADD — search bar + category filter dropdown */}
+                     <div className="ReadytoSendHeader">
+                      <p>Walk-in cases awaiting your request</p>
+                      {/* MERGED-CHANGED — count now reflects filtered results */}
+                      <span>{filteredReadyList.length}</span>
+                    </div>
                     <div className="LeaVerifQueueFilterHeader">
                       <div className="LeaSearchWrapper">
                         <Search size={16} className="LeaSearchIcon" />
@@ -781,17 +908,13 @@ function LeaVerificationRequest() {
                         >
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Medical Devices">Medical Devices</option>
                           <option value="Drugs">Drugs</option>
                         </select>
                       </div>
                     </div>
-                    <div className="ReadytoSendHeader">
-                      <p>Walk-in cases awaiting your request</p>
-                      {/* MERGED-CHANGED — count now reflects filtered results */}
-                      <span>{filteredReadyList.length}</span>
-                    </div>
+                   
 
                     {readyLoading && (
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
@@ -809,7 +932,7 @@ function LeaVerificationRequest() {
                       </div>
                     )}
 
-                    {!readyLoading && filteredReadyList.map((item) => (
+                    {!readyLoading && paginatedReadyList.map((item) => (
                       <div
                         key={item.complaint_id}
                         className={`QueueCard ${selectedComplaint?.complaint_id === item.complaint_id ? 'ActiveQueueCard' : ''}`}
@@ -840,6 +963,11 @@ function LeaVerificationRequest() {
                         </div>
                       </div>
                     ))}
+                    <QueuePagination
+                      currentPage={readyPage}
+                      totalPages={readyTotalPages}
+                      onPageChange={setReadyPage}
+                    />
                   </div>
 
                   {/* CHANGED — real data from selectedComplaint, was hardcoded */}
@@ -853,26 +981,26 @@ function LeaVerificationRequest() {
                           <>
                             <small>CASE ID: {selectedComplaint.case_reference}</small>
                             <h2>{selectedComplaint.product_title}</h2>
-                            <p>{selectedComplaint.manufacturer || '—'}</p>
+                            <p>MANUFACTURER: {selectedComplaint.manufacturer || '—'}</p>
 
                             <div className="CaseInfoGrid">
                               <div>
-                                <label>Complainant</label>
+                                <label>COMPLAINANT</label>
                                 <p>{selectedComplaint.complainant_name || '—'}</p>
                               </div>
 
                               <div>
-                                <label>Cetegory</label>
+                                <label>CATEGORY</label>
                                 <p>{selectedComplaint.product_category || '—'}</p>
                               </div>
 
                               <div>
-                                <label>Logged</label>
+                                <label>LOGGED</label>
                                 <p>{formatDateTime(selectedComplaint.created_at)}</p>
                               </div>
 
                               <div>
-                                <label>Source</label>
+                                <label>SOURCE</label>
                                 <p>{GetSourceLabel(selectedComplaint.source)}</p>
                               </div>
                             </div>
@@ -969,14 +1097,20 @@ function LeaVerificationRequest() {
                         </div>
 
                         <div className="VerificationActions">
-                          {/* BACKEND: POST/PUT to /drafts/verification/ */}
-                          <button className="DraftButton" onClick={handleSaveDraft}>
-                            Save Draft
+                          <button type="button" className="DeleteBtn" onClick={handleDeleteRequest}>
+                            <Trash2 size={16} />
+                            <span>Delete</span>
                           </button>
-                          {/* BACKEND: POST to /verification-requests/ or /drafts/verification/:id/submit */}
-                          <button className="SendReqBtn" onClick={handleSendRequest}>
-                            Send Request to FDA
-                          </button>
+                          <div className="VerificationRightActions">
+                            {/* BACKEND: POST/PUT to /drafts/verification/ */}
+                            <button type="button" className="DraftButton" onClick={handleSaveDraft}>
+                              Save Draft
+                            </button>
+                            {/* BACKEND: POST to /verification-requests/ or /drafts/verification/:id/submit */}
+                            <button type="button" className="SendReqBtn" onClick={handleSendRequest}>
+                              Send Request to FDA
+                            </button>
+                          </div>
                         </div>
 
                       </div>
@@ -992,6 +1126,11 @@ function LeaVerificationRequest() {
                   {/* CHANGED — real data from awaitingList/selectedAwaitingFda, was hardcoded */}
                   {/* LEFT PANEL */}
                   <div className="AwaitingLEAQueue">
+                    <div className="AwaitingHeader">
+                      <p>Request Pending FDA Review</p>
+                      {/* MERGED-CHANGED — count now reflects filtered results */}
+                      <span>{filteredAwaitingList.length}</span>
+                    </div>
                     {/* MERGED-ADD — search bar + category filter dropdown */}
                     <div className="LeaVerifQueueFilterHeader">
                       <div className="LeaSearchWrapper">
@@ -1013,17 +1152,13 @@ function LeaVerificationRequest() {
                         >
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Medical Devices">Medical Devices</option>
                           <option value="Drugs">Drugs</option>
                         </select>
                       </div>
                     </div>
-                    <div className="AwaitingHeader">
-                      <p>Request Pending FDA Review</p>
-                      {/* MERGED-CHANGED — count now reflects filtered results */}
-                      <span>{filteredAwaitingList.length}</span>
-                    </div>
+                    
 
                     {awaitingLoading && (
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
@@ -1041,7 +1176,7 @@ function LeaVerificationRequest() {
                       </div>
                     )}
 
-                    {!awaitingLoading && filteredAwaitingList.map((item) => (
+                    {!awaitingLoading && paginatedAwaitingList.map((item) => (
                       <div
                         key={item.request_id}
                         className={`QueueCard ${selectedAwaitingFda?.request_id === item.request_id ? 'ActiveQueueCard' : ''}`}
@@ -1067,6 +1202,11 @@ function LeaVerificationRequest() {
                         </div>
                       </div>
                     ))}
+                    <QueuePagination
+                      currentPage={awaitingPage}
+                      totalPages={awaitingTotalPages}
+                      onPageChange={setAwaitingPage}
+                    />
 
                   </div>
 
@@ -1079,7 +1219,7 @@ function LeaVerificationRequest() {
                           <>
                             <small>CASE ID: {selectedAwaitingFda.case_reference}</small>
                             <h2>{selectedAwaitingFda.product_name}</h2>
-                            <p>{selectedAwaitingFda.manufacturer || '—'}</p>
+                            <p>MANUFACTURER: {selectedAwaitingFda.manufacturer || '—'}</p>
 
                             {/* BACKEND: complainant, category, source, and region are NOT stored
                                                         directly in verification_requests. They are fetched via complaint_id
@@ -1087,22 +1227,22 @@ function LeaVerificationRequest() {
                                                         verification_requests_full view */}
                             <div className="CaseInfoGrid">
                               <div>
-                                <label>Complainant</label>
+                                <label>COMPLAINANT</label>
                                 <p>{selectedAwaitingFda.complainant_name || '—'}</p>
                               </div>
 
                               <div>
-                                <label>Cetegory</label>
+                                <label>CATEGORY</label>
                                 <p>{selectedAwaitingFda.product_category || '—'}</p>
                               </div>
 
                               <div>
-                                <label>Logged</label>
+                                <label>LOGGED</label>
                                 <p>{formatDateTime(selectedAwaitingFda.requested_at)}</p>
                               </div>
 
                               <div>
-                                <label>Source</label>
+                                <label>SOURCE</label>
                                 <p>{GetSourceLabel(selectedAwaitingFda.source)}</p>
                               </div>
                             </div>
@@ -1163,7 +1303,15 @@ function LeaVerificationRequest() {
                   {/* LEFT PANEL */}
                   <div className="LEAResponseQueue">
                     {/* MERGED-ADD — search bar + category filter dropdown */}
+                     <div className="LEAResponseHeader">
+                      <p>FDA confirmations received</p>
+                      {/* REMOVE THIS */}
+                      {/* BACKEND: count of responseCases */}
+                      {/* MERGED-CHANGED — count now reflects filtered results */}
+                      <span>{filteredResponseCases.length}</span>
+                    </div>
                     <div className="LeaVerifQueueFilterHeader">
+                      
                       <div className="LeaSearchWrapper">
                         <Search size={16} className="LeaSearchIcon" />
                         <input
@@ -1183,19 +1331,13 @@ function LeaVerificationRequest() {
                         >
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Medical Devices">Medical Devices</option>
                           <option value="Drugs">Drugs</option>
                         </select>
                       </div>
                     </div>
-                    <div className="LEAResponseHeader">
-                      <p>FDA confirmations received</p>
-                      {/* REMOVE THIS */}
-                      {/* BACKEND: count of responseCases */}
-                      {/* MERGED-CHANGED — count now reflects filtered results */}
-                      <span>{filteredResponseCases.length}</span>
-                    </div>
+                   
 
                     {/* MERGED-ADD — empty state for when filters exclude everything */}
                     {filteredResponseCases.length === 0 && (
@@ -1205,7 +1347,7 @@ function LeaVerificationRequest() {
                       </div>
                     )}
 
-                    {filteredResponseCases.map((item) => (
+                    {paginatedResponseCases.map((item) => (
                       <div
                         key={item.id}
                         className={`QueueCard ${selectedResponse.id === item.id ? 'ActiveQueueCard' : ''}`}
@@ -1233,6 +1375,11 @@ function LeaVerificationRequest() {
                         </div>
                       </div>
                     ))}
+                    <QueuePagination
+                      currentPage={responsePage}
+                      totalPages={responseTotalPages}
+                      onPageChange={setResponsePage}
+                    />
 
                   </div>
 
@@ -1240,44 +1387,34 @@ function LeaVerificationRequest() {
                   <div className='VerificationDetails'>
                     <div className='VerificationCard'>
                       <div>
-                        {/* REMOVE THIS */}
-                        {/* BACKEND: caseNumber */}
                         <small>CASE ID: {selectedResponse.caseNumber}</small>
-                        {/* REMOVE THIS */}
-                        {/* BACKEND: product_name */}
                         <h2>{selectedResponse.product}</h2>
-                        {/* REMOVE THIS */}
-                        {/* BACKEND: manufacturer_name */}
-                        <p>{selectedResponse.manufacturer}</p>
+                        <p>MANUFACTURER: {selectedResponse.manufacturer || '—'}</p>
 
-                        {/* BACKEND: complainant, category, source, and region are NOT stored
-                                                directly in verification_requests. They are fetched via complaint_id
-                                                joining to the complaints and walkin_complainants tables through the
-                                                verification_requests_full view */}
                         <div className="CaseInfoGrid">
                           <div>
-                            <label>Complainant</label>
+                            <label>COMPLAINANT</label>
                             {/* REMOVE THIS */}
                             {/* BACKEND: complainant name */}
                             <p>{selectedResponse.complainant}</p>
                           </div>
 
                           <div>
-                            <label>Cetegory</label>
+                            <label>CATEGORY</label>
                             {/* REMOVE THIS */}
                             {/* BACKEND: category */}
                             <p>{selectedResponse.category}</p>
                           </div>
 
                           <div>
-                            <label>Logged</label>
+                            <label>LOGGED</label>
                             {/* REMOVE THIS */}
                             {/* BACKEND: created_at */}
                             <p>{selectedResponse.loggedDate}</p>
                           </div>
 
                           <div>
-                            <label>Source</label>
+                            <label>SOURCE</label>
                             {/* REMOVE THIS */}
                             {/* BACKEND: source */}
                             <p>{selectedResponse.source}</p>
@@ -1288,69 +1425,136 @@ function LeaVerificationRequest() {
                       <div className='ConfirmationReturned'>
                         {selectedResponse.status === 'Rejected' ? (
                           <>
-                            <div className='ConfirmationReturnedBox'>
-                              <XCircle style={{ color: '#EF4444' }} />
-                              <div className='StatementReturn'>
-                                <h3>Request Rejected by FDA</h3>
-                                {/* REMOVE THIS */}
-                                {/* BACKEND: rejectedBy maps to user who updated status, returnedDate maps to responded_at */}
-                                <p>Rejected by: {selectedResponse.rejectedBy} · {selectedResponse.returnedDate}</p>
+                            <div className="ResponseBox ResponseRejected">
+                              <div className='LeaVerifResponseStatusHeader LeaVerifRejectedHeader'>
+                                <XCircle style={{ color: '#EF4444' }} />
+                                <div className='StatementReturn'>
+                                  <h3>CONFIRMED REJECTED PRODUCT</h3>
+                                </div>
+                              </div>
+
+                              <div className="LeaVerifRejectionFieldsGrid">
+                                <div className="LeaVerifResultField">
+                                  <label className="LeaVerifFieldLabel">Rejected By</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.rejectedBy || selectedResponse.rejected_by_name || '—'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField">
+                                  <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.returnedDate || selectedResponse.responded_at || '—'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField LeaVerifFullWidthField">
+                                  <label className="LeaVerifFieldLabel">Reason for Rejection</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.rejectionReason || selectedResponse.rejection_reason || '—'}</p>
+                                </div>
                               </div>
                             </div>
 
-                            <div className="RejectionReasonBox">
-                              <label style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#ea580c', fontWeight: '600', marginBottom: '6px' }}>Reason for Rejection</label>
-                              {/* REMOVE THIS */}
-                              {/* BACKEND: rejectionReason maps to rejection_reason in verification_requests */}
-                              <p className="ReasonDetail">{selectedResponse.rejectionReason}</p>
+                            <div className="LeaVerifAckNotice">
+                              <p>
+                                Please review the rejection reason above and click Acknowledge to move this case to closed/dismissed records.
+                              </p>
                             </div>
 
-                            <p style={{ fontSize: '13px', color: '#6b7280', margin: '20px 0 10px 0' }}>
-                              Please review the rejection reason above and click Acknowledge to move this case to closed/dismissed records.
-                            </p>
-
                             <div className='ResponseBtn' style={{ marginTop: '20px' }}>
-                              {/*  BACKEND: PATCH /api/verification-requests/:id (status: acknowledged) AND PATCH /api/complaints/:id (complaint_status: dismissed) */}
                               <button
                                 style={{ width: '300', height: '40px' }}
-                                onClick={() => handleActionButtonClick('Acknowledge', selectedResponse.caseNumber, selectedResponse.id)}
+                                onClick={() => handleActionButtonClick('Acknowledge', selectedResponse.caseNumber || selectedResponse.case_reference || '', selectedResponse.id || selectedResponse.request_id || null)}
                               >
+                                Acknowledge
+                              </button>
+                            </div>
+                          </>
+                        ) : selectedResponse.status === 'Registered' ? (
+                          <>
+                            <div className="ResponseBox ResponseRegistered">
+                              <div className='LeaVerifResponseStatusHeader LeaVerifRegisteredHeader'>
+                                <CheckCircle style={{ color: '#10B981', backgroundColor: '#D1FAE5' }} />
+                                <div className='StatementReturn'>
+                                  <h3>CONFIRMED REGISTERED PRODUCT</h3>
+                                </div>
+                              </div>
+
+                              <div className="LeaVerifResultFieldsGrid">
+                                <div className="LeaVerifResultField">
+                                  <label className="LeaVerifFieldLabel">Verified By</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.verifiedBy || selectedResponse.verified_by_name || 'Dr. J. Santos · FDA Officer'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField">
+                                  <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.returnedDate || selectedResponse.responded_at || '—'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField">
+                                  <label className="LeaVerifFieldLabel">FDA CPR Registration Number</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.cprNumber || selectedResponse.cpr_number || selectedResponse.fda_cpr_number || '—'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField">
+                                  <label className="LeaVerifFieldLabel">CPR Validity / Expiry Date</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.cprExpiry || selectedResponse.cpr_expiry || selectedResponse.fda_cpr_expiry || '—'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField LeaVerifFullWidthField">
+                                  <label className="LeaVerifFieldLabel">Official FDA Verification Remarks</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.remarks || selectedResponse.response_notes || selectedResponse.description || '—'}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="LeaVerifAckNotice">
+                              <p>
+                                This case has been confirmed to be Registered. Status is now dismissed. Please click Acknowledge to move this case to closed/dismissed records.
+                              </p>
+                            </div>
+
+                            <div className='ResponseBtn'>
+                              <button onClick={() => handleActionButtonClick(
+                                'Dismiss Case',
+                                selectedResponse.caseNumber || selectedResponse.case_reference || '',
+                                selectedResponse.id || selectedResponse.request_id || null
+                              )}>
                                 Acknowledge
                               </button>
                             </div>
                           </>
                         ) : (
                           <>
-                            <div className='ConfirmationReturnedBox'>
-                              <ShieldCheck />
-                              <div className='StatementReturn'>
-                                <h3>FDA digital confirmation received</h3>
-                                {/* REMOVE THIS */}
-                                {/* BACKEND: responded_by -> users.user_id join */}
-                                <p className="VerifiedByText">Verified by: Dr. J. Santos · FDA Officer</p>
-                                {/* REMOVE THIS */}
-                                {/* BACKEND: returnedDate maps to responded_at, sentDate to requested_at */}
-                                <p>Returned {selectedResponse.returnedDate} · sent {selectedResponse.sentDate}</p>
+                            <div className="ResponseBox ResponseUnregistered">
+                              <div className='LeaVerifResponseStatusHeader LeaVerifUnregisteredHeader'>
+                                <AlertTriangle style={{ color: '#EF4444', backgroundColor: '#FEE2E2' }} />
+                                <div className='StatementReturn'>
+                                  <h3>CONFIRMED UNREGISTERED PRODUCT</h3>
+                                </div>
+                              </div>
+
+                              <div className="LeaVerifResultFieldsGrid">
+                                <div className="LeaVerifResultField">
+                                  <label className="LeaVerifFieldLabel">Verified By</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.verifiedBy || selectedResponse.verified_by_name || 'Inspector J. Bautista · FDA Officer'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField">
+                                  <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.returnedDate || selectedResponse.responded_at || '—'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField LeaVerifFullWidthField">
+                                  <label className="LeaVerifFieldLabel">Reason Product is Not Registered</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.unregisteredReason || selectedResponse.unregistered_reason || selectedResponse.description || '—'}</p>
+                                </div>
+
+                                <div className="LeaVerifResultField LeaVerifFullWidthField">
+                                  <label className="LeaVerifFieldLabel">Advisory &amp; Enforcement Recommendations for LEA</label>
+                                  <p className="LeaVerifFieldValue">{selectedResponse.advisoryRemarks || selectedResponse.remarks || selectedResponse.response_notes || '—'}</p>
+                                </div>
                               </div>
                             </div>
-                            <div className={`ResponseBox ${selectedResponse.status === 'Registered' ? 'ResponseRegistered' : 'ResponseUnregistered'}`}>
-                              <div className='ResponseStatus'>
-                                {selectedResponse.status === 'Registered' ? (
-                                  <CircleCheckBig />
-                                ) : (
-                                  <ShieldX />
-                                )}
-                                <h4>
-                                  {selectedResponse.status === 'Registered'
-                                    ? 'Registered with FDA'
-                                    : 'Unregistered — not in FDA registry'}
-                                </h4>
-                              </div>
-                              <p className='ReasonDetail'>{selectedResponse.description}</p>
-                            </div>
+
                             <div className='ResponseUpdateBox'>
                               <h6>Field operation status update</h6>
-                              {/*  BACKEND: fieldOperationNotes maps to field_operation_notes column in verification_requests — PATCH to /api/verification-requests/:id */}
                               <textarea
                                 name=""
                                 id=""
@@ -1359,13 +1563,14 @@ function LeaVerificationRequest() {
                                 onChange={(e) => setFieldOperationNotes(e.target.value)}
                               ></textarea>
                             </div>
+
                             <div className='ResponseBtn'>
                               <button onClick={() => handleActionButtonClick(
-                                selectedResponse.status === 'Registered' ? 'Dismiss Case' : 'Initiate Takedown',
-                                selectedResponse.caseNumber,
-                                selectedResponse.id
+                                'Initiate Takedown',
+                                selectedResponse.caseNumber || selectedResponse.case_reference || '',
+                                selectedResponse.id || selectedResponse.request_id || null
                               )}>
-                                {selectedResponse.status === 'Registered' ? 'Dismiss Case' : 'Initiate Takedown'}
+                                Initiate Takedown
                               </button>
                             </div>
                           </>
@@ -1382,6 +1587,13 @@ function LeaVerificationRequest() {
                   {/* LEFT PANEL */}
                   <div className="LEAResponseQueue">
                     {/* MERGED-ADD — search bar + category filter dropdown */}
+                    <div className="LEAResponseHeader">
+                      <p>Cases with active takedown operations</p>
+                      {/* REMOVE THIS */}
+                      {/* BACKEND: count of cases where complaint_status = 'takedown_initiated' */}
+                      {/* MERGED-CHANGED — count now reflects filtered results */}
+                      <span>{filteredInitiatedCases.length}</span>
+                    </div>
                     <div className="LeaVerifQueueFilterHeader">
                       <div className="LeaSearchWrapper">
                         <Search size={16} className="LeaSearchIcon" />
@@ -1402,19 +1614,13 @@ function LeaVerificationRequest() {
                         >
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Medical Devices">Medical Devices</option>
                           <option value="Drugs">Drugs</option>
                         </select>
                       </div>
                     </div>
-                    <div className="LEAResponseHeader">
-                      <p>Cases with active takedown operations</p>
-                      {/* REMOVE THIS */}
-                      {/* BACKEND: count of cases where complaint_status = 'takedown_initiated' */}
-                      {/* MERGED-CHANGED — count now reflects filtered results */}
-                      <span>{filteredInitiatedCases.length}</span>
-                    </div>
+                    
 
                     {/* MERGED-ADD — empty state for when filters exclude everything */}
                     {filteredInitiatedCases.length === 0 && (
@@ -1424,7 +1630,7 @@ function LeaVerificationRequest() {
                       </div>
                     )}
 
-                    {filteredInitiatedCases.map((item) => (
+                    {paginatedInitiatedCases.map((item) => (
                       <div
                         key={item.id}
                         className={`QueueCard ${selectedInitiatedCase.id === item.id ? 'ActiveQueueCard' : ''}`}
@@ -1446,6 +1652,11 @@ function LeaVerificationRequest() {
                         </div>
                       </div>
                     ))}
+                    <QueuePagination
+                      currentPage={initiatedPage}
+                      totalPages={initiatedTotalPages}
+                      onPageChange={setInitiatedPage}
+                    />
                   </div>
 
                   {/* RIGHT PANEL */}
@@ -1460,7 +1671,7 @@ function LeaVerificationRequest() {
                         <h2>{selectedInitiatedCase.product}</h2>
                         {/* REMOVE THIS */}
                         {/* BACKEND: manufacturer_name */}
-                        <p>{selectedInitiatedCase.manufacturer}</p>
+                        <p>MANUFACTURER: {selectedInitiatedCase.manufacturer || '—'}</p>
 
                         {/* BACKEND: complainant, category, source, and region are NOT stored
                                                 directly in verification_requests. They are fetched via complaint_id
@@ -1468,28 +1679,28 @@ function LeaVerificationRequest() {
                                                 verification_requests full view */}
                         <div className="CaseInfoGrid">
                           <div>
-                            <label>Complainant</label>
+                            <label>COMPLAINANT</label>
                             {/* REMOVE THIS */}
                             {/* BACKEND: complainant name */}
                             <p>{selectedInitiatedCase.complainant}</p>
                           </div>
 
                           <div>
-                            <label>Cetegory</label>
+                            <label>CATEGORY</label>
                             {/*  REMOVE THIS */}
                             {/* BACKEND: category */}
                             <p>{selectedInitiatedCase.category}</p>
                           </div>
 
                           <div>
-                            <label>Logged</label>
+                            <label>LOGGED</label>
                             {/*  REMOVE THIS */}
                             {/* BACKEND: created_at */}
                             <p>{selectedInitiatedCase.loggedDate}</p>
                           </div>
 
                           <div>
-                            <label>Source</label>
+                            <label>SOURCE</label>
                             {/*  REMOVE THIS */}
                             {/* BACKEND: source */}
                             <p>{selectedInitiatedCase.source}</p>
@@ -1518,8 +1729,8 @@ function LeaVerificationRequest() {
                   </div>
                 </div>}
 
-              {/* DISMISSED CASES TAB CONTENT */}
-              {activeTab === 'Dismissed Cases' &&
+              {/* CLOSED CASES TAB CONTENT */}
+              {activeTab === 'Closed Cases' &&
                 <div className="DismissedTableContainer">
 
                   {/* MERGED-CHANGED — Filters Bar rebuilt: search leftmost, FROM/TO + category filters rightmost, matching old version's LeaFilterPanel pattern */}
@@ -1565,11 +1776,32 @@ function LeaVerificationRequest() {
                         <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
                           <option value="">All Categories</option>
                           <option value="Cosmetics">Cosmetics</option>
-                          <option value="Food">Foods</option>
+                          <option value="Food">Food</option>
                           <option value="Drugs">Drugs</option>
                           <option value="Medical Devices">Medical Devices</option>
                         </select>
                       </div>
+                      {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
+                      {(() => {
+                        const hasDismissedFilters = Boolean(dismissedSearch || filterCategory || filterDateFrom || filterDateTo);
+                        return (
+                          <button
+                            className="BtnClearFiltersIcon"
+                            aria-label="Clear Filters"
+                            title="Clear Filters"
+                            disabled={!hasDismissedFilters}
+                            style={{ display: hasDismissedFilters ? 'inline-flex' : 'none' }}
+                            onClick={() => {
+                              setDismissedSearch('');
+                              setFilterCategory('');
+                              setFilterDateFrom('');
+                              setFilterDateTo('');
+                            }}
+                          >
+                            <X size={16} />
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                   {/* MERGED-CHANGED — Total Cases moved out of the filter-row flexbox onto its own line below,
@@ -1598,8 +1830,25 @@ function LeaVerificationRequest() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredDismissed.length > 0 ? (
-                          filteredDismissed.map((c) => (
+                        {(() => {
+                          const CLOSED_PAGE_SIZE = 25;
+                          const totalClosedPages = Math.ceil(filteredDismissed.length / CLOSED_PAGE_SIZE) || 1;
+                          const safeClosedPage = Math.min(Math.max(1, closedPage), totalClosedPages);
+                          const closedStartIdx = (safeClosedPage - 1) * CLOSED_PAGE_SIZE;
+                          const closedEndIdx = Math.min(closedStartIdx + CLOSED_PAGE_SIZE, filteredDismissed.length);
+                          const paginatedClosedCases = filteredDismissed.slice(closedStartIdx, closedEndIdx);
+
+                          if (paginatedClosedCases.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: '#7a8796' }}>
+                                  No closed cases match current filters.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return paginatedClosedCases.map((c) => (
                             <tr key={c.id}>
                               <td style={{ fontWeight: '700', color: '#13213C' }}>{c.caseId}</td>
                               <td style={{ fontWeight: '600' }}>{c.product}</td>
@@ -1618,20 +1867,53 @@ function LeaVerificationRequest() {
                                   className="BtnView"
                                   onClick={() => setViewCaseModalData(c)}
                                 >
-                                  View
+                                  <Eye size={16} />
                                 </button>
                               </td>
                             </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: '#7a8796' }}>
-                              No closed or dismissed cases match current filters.
-                            </td>
-                          </tr>
-                        )}
+                          ));
+                        })()}
                       </tbody>
                     </table>
+
+                    {(() => {
+                      const CLOSED_PAGE_SIZE = 25;
+                      const totalClosedPages = Math.ceil(filteredDismissed.length / CLOSED_PAGE_SIZE) || 1;
+                      const safeClosedPage = Math.min(Math.max(1, closedPage), totalClosedPages);
+                      const closedStartIdx = (safeClosedPage - 1) * CLOSED_PAGE_SIZE;
+                      const closedEndIdx = Math.min(closedStartIdx + CLOSED_PAGE_SIZE, filteredDismissed.length);
+
+                      return (
+                        <div className="Pagination">
+                          <p>Showing {filteredDismissed.length === 0 ? 0 : closedStartIdx + 1}–{closedEndIdx} of {filteredDismissed.length}</p>
+                          <div className="PaginationBtn">
+                            <button
+                              className="BtnPage"
+                              disabled={safeClosedPage === 1}
+                              onClick={() => setClosedPage(safeClosedPage - 1)}
+                            >
+                              Previous
+                            </button>
+                            {Array.from({ length: totalClosedPages }, (_, i) => i + 1).map((p) => (
+                              <button
+                                key={p}
+                                className={`BtnPage ${safeClosedPage === p ? 'active' : ''}`}
+                                onClick={() => setClosedPage(p)}
+                              >
+                                {p}
+                              </button>
+                            ))}
+                            <button
+                              className="BtnPage"
+                              disabled={safeClosedPage === totalClosedPages}
+                              onClick={() => setClosedPage(safeClosedPage + 1)}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>}
 
@@ -1814,18 +2096,41 @@ function LeaVerificationRequest() {
         </div>
       )}
 
-      {/* NOTE: Reusable Success Alert Notification */}
+      {/* FDA-STYLE FLOATING SUCCESS TOAST ALERT */}
       {successMessage && (
-        <div className="SuccessAlert">
-          <p>{successMessage}</p>
+        <div className="LeaToastAlert LeaToast_success" role="alert">
+          <div className="LeaToastIconWrap">
+            <CheckCircle size={18} />
+          </div>
+          <div className="LeaToastBody">
+            <p className="LeaToastMessage">{successMessage}</p>
+          </div>
+          <button
+            className="LeaToastCloseBtn"
+            onClick={() => setSuccessMessage('')}
+            aria-label="Close notification"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 
-      {/* ADDED — error toast, parallel to existing SuccessAlert */}
-      {/* Error Alert — parallel to SuccessAlert, red-tinted */}
+      {/* FDA-STYLE FLOATING ERROR TOAST ALERT */}
       {errorMessage && (
-        <div className="SuccessAlert" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444', color: '#b91c1c' }}>
-          <p>{errorMessage}</p>
+        <div className="LeaToastAlert LeaToast_danger" role="alert">
+          <div className="LeaToastIconWrap">
+            <XCircle size={18} />
+          </div>
+          <div className="LeaToastBody">
+            <p className="LeaToastMessage">{errorMessage}</p>
+          </div>
+          <button
+            className="LeaToastCloseBtn"
+            onClick={() => setErrorMessage('')}
+            aria-label="Close notification"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
     </div>

@@ -26,6 +26,7 @@ class ProfileUpdateRequest(BaseModel):
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
     last_name: Optional[str] = None
+    employee_id: Optional[str] = None
     contact_number: Optional[str] = None
     department: Optional[str] = None
     position: Optional[str] = None

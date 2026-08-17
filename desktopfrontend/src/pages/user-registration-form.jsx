@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/user-registration-form.jsx
 import { useState } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import ImgSuccess from '../images/success_img.png'

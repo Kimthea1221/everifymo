@@ -1,3 +1,4 @@
+# scripts/seed_test_officer.py
 """Seed script: create a test FDA or LEA officer account for endpoint
 testing, bypassing the invite/registration flow entirely (that flow
 is for real production accounts — this is just for local dev testing

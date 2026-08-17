@@ -1,47 +1,45 @@
-  import { useEffect } from 'react'
-  // added useEffect and useNavigate
-  import {BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-  import Login from './pages/login-user.jsx'
-  {/* LEA-CIDG PAGES */}
-  import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
-  import LeaWalkinComplaints from './pages/leacidgfolder/lea-walkin-complaints.jsx';
-  import LeaVerificationRequest from './pages/leacidgfolder/lea-verification-request.jsx';
-  import LeaNewIntake from './pages/leacidgfolder/lea-new-intake.jsx';
-  import LeaSavedDraft from './pages/leacidgfolder/lea-saved-draft.jsx';
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import Login from './pages/login-user.jsx'
 
-  {/* OTP EMAIL TEMPLATE */}
-  import OtpEmailTemplate from './pages/emailtemplates/otp-email-template.jsx';
-  import SuperadminOtpEmail from './pages/emailtemplates/superadmin-otp-email.jsx';
+{/* LEA-CIDG PAGES */ }
+import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
+import LeaWalkinComplaints from './pages/leacidgfolder/lea-walkin-complaints.jsx';
+import LeaVerificationRequest from './pages/leacidgfolder/lea-verification-request.jsx';
+import LeaNewIntake from './pages/leacidgfolder/lea-new-intake.jsx';
+import LeaSavedDraft from './pages/leacidgfolder/lea-saved-draft.jsx';
 
+{/* OTP EMAIL TEMPLATE */ }
+import OtpEmailTemplate from './pages/emailtemplates/otp-email-template.jsx';
+import SuperadminOtpEmail from './pages/emailtemplates/superadmin-otp-email.jsx';
 
-  import DeepLinkStatus from './pages/emailtemplates/invitation-status.jsx'
-  import ProfileSetting from './pages/profile-setting.jsx';
+import DeepLinkStatus from './pages/emailtemplates/invitation-status.jsx'
+import ProfileSetting from './pages/profile-setting.jsx';
 
+{/* SUPERADMIN PAGES */ }
+import SuperAdminLogin from './pages/superadminfolder/superadmin-login.jsx';
+import ForgotPassword from './pages/forgot-password.jsx';
+import SuperAdminUserManagement from './pages/superadminfolder/superadmin-user-management.jsx';
+import SuperAdminAdminManagement from './pages/superadminfolder/superadmin-admin-management.jsx';
+import SuperAdminAuditLog from './pages/superadminfolder/superadmin-audit-log.jsx';
+import UserRegistration from './pages/user-registration-form.jsx';
+import ChangePassword from './pages/change-password.jsx';
+import CreateNewPassword from './pages/create-new-password.jsx';
+import UserEmailRegistration from './pages/emailtemplates/user-email-registration.jsx';
+import UserEmailActivation from './pages/emailtemplates/user-email-activation.jsx';
+import SuperadminEmailAddAdmin from './pages/emailtemplates/superadmin-email-add-admin.jsx';
+import SuperadminInviteStatus from './pages/emailtemplates/superadmin-invite-status.jsx';
 
-  {/* SUPERADMIN PAGES */}
-  import SuperAdminLogin from './pages/superadminfolder/superadmin-login.jsx';
-  import ForgotPassword from './pages/forgot-password.jsx';
-  import SuperAdminUserManagement from './pages/superadminfolder/superadmin-user-management.jsx';
-  import SuperAdminAdminManagement from './pages/superadminfolder/superadmin-admin-management.jsx';
-  import SuperAdminAuditLog from './pages/superadminfolder/superadmin-audit-log.jsx';
-  import UserRegistration from './pages/user-registration-form.jsx';
-  import ChangePassword from './pages/change-password.jsx';
-  import CreateNewPassword from './pages/create-new-password.jsx';
-  import UserEmailRegistration from './pages/emailtemplates/user-email-registration.jsx';
-  import UserEmailActivation from './pages/emailtemplates/user-email-activation.jsx';
-  import SuperadminEmailAddAdmin from './pages/emailtemplates/superadmin-email-add-admin.jsx';
-  import SuperadminInviteStatus from './pages/emailtemplates/superadmin-invite-status.jsx';
-
-  {/* FDA PAGES */}
-  import FDADashboard from './pages/fdafolder/fda-dashboard.jsx';
-  import FDAViewReports from './pages/fdafolder/fda-view-reports.jsx';
-  import FDAVerification from './pages/fdafolder/fda-verification.jsx';
-  import FDAStatus from './pages/fdafolder/fda-status.jsx';
-  import FDAProductDB from './pages/fdafolder/fda-product-db.jsx';
-  import FDASavedDraft from './pages/fdafolder/fda-saved-draft.jsx';
+{/* FDA PAGES */ }
+import FDADashboard from './pages/fdafolder/fda-dashboard.jsx';
+import FDAViewReports from './pages/fdafolder/fda-view-reports.jsx';
+import FDAVerification from './pages/fdafolder/fda-verification.jsx';
+import FDAStatus from './pages/fdafolder/fda-status.jsx';
+import FDAProductDB from './pages/fdafolder/fda-product-db.jsx';
+import FDASavedDraft from './pages/fdafolder/fda-saved-draft.jsx';
 
 
-  function DeepLinkListener() {
+function DeepLinkListener() {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -74,7 +72,6 @@
   return null;
 }
 
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -103,9 +100,8 @@ export default function App() {
         <Route path='/superadminfolder/superadmin-audit-log' element={<SuperAdminAuditLog />} />
 
         {/* EMAIL PREVIEW ROUTES:
-
-          *makikita niyo din to sa localhost:15173/preview-email/
-          */}
+        *makikita niyo din to sa localhost:15173/preview-email/
+        */}
         <Route path='/preview-email/interagency-otp' element={<OtpEmailTemplate />} />
         <Route path='/preview-email/registration' element={<UserEmailRegistration />} />
         <Route path='/preview-email/activation' element={<UserEmailActivation />} />

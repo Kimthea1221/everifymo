@@ -1,0 +1,47 @@
+# backend/app/desktop/services/audit_logs/audit_logs_service.py
+from sqlalchemy.orm import Session
+from sqlalchemy import select, func
+
+from app.models.audit_logs import AuditLog
+from app.models.users import User
+
+
+def get_fda_audit_logs(
+    db: Session,
+    page: int,
+    limit: int,
+    action: str | None = None,
+    region_code: str | None = None,
+    date_from=None,
+    date_to=None,
+    search: str | None = None,
+):
+    query = (
+        select(AuditLog, User)
+        .outerjoin(User, AuditLog.user_id == User.user_id)
+        .where(AuditLog.user_role == "fda_personnel")
+    )
+
+    if action:
+        query = query.where(AuditLog.action == action)
+    if region_code:
+        query = query.where(AuditLog.region_code == region_code)
+    if date_from:
+        query = query.where(AuditLog.performed_at >= date_from)
+    if date_to:
+        query = query.where(AuditLog.performed_at <= date_to)
+    if search:
+        like = f"%{search}%"
+        query = query.where(
+            AuditLog.target_reference.ilike(like)
+            | AuditLog.target_table.ilike(like)
+        )
+
+    total = db.scalar(select(func.count()).select_from(query.subquery()))
+    rows = db.execute(
+        query.order_by(AuditLog.performed_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+    ).all()
+
+    return rows, total

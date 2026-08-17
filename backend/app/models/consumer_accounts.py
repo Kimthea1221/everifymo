@@ -49,4 +49,3 @@ class ConsumerAccount(Base):
         ),
     )
 
-
