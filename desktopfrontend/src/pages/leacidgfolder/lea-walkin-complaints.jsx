@@ -12,53 +12,40 @@ const API_BASE = 'http://127.0.0.1:8000';
 function WcGetStatusClass(status) {
     switch (status) {
         case 'queued':
-        case 'Ready to Send':
             return 'WcStatus-queued';
 
         case 'pending':
-        case 'Pending FDA Verification':
             return 'WcStatus-pending';
 
         case 'confirmed_registered':
-        case 'Confirmed Registered':
             return 'WcStatus-confirmed-registered';
 
         case 'confirmed_unregistered':
-        case 'Confirmed Unregistered':
             return 'WcStatus-confirmed-unregistered';
 
         case 'rejected':
-        case 'recalled':
-        case 'Verification Rejected':
-        case 'Request Recalled':
             return 'WcStatus-rejected';
 
         default:
             return '';
     }
 }
+
 function WcGetStatusLabel(status) {
     switch (status) {
         case 'queued':
-        case 'Ready to Send':
             return 'Ready to Send';
 
         case 'pending':
-        case 'Pending FDA Verification':
             return 'Pending FDA Verification';
 
         case 'confirmed_registered':
-        case 'Confirmed Registered':
             return 'Confirmed Registered';
 
         case 'confirmed_unregistered':
-        case 'Confirmed Unregistered':
             return 'Confirmed Unregistered';
 
         case 'rejected':
-        case 'recalled':
-        case 'Verification Rejected':
-        case 'Request Recalled':
             return 'Verification Rejected';
 
         default:
@@ -69,62 +56,30 @@ function WcGetStatusLabel(status) {
 function LeaWalkinComplaints() {
     // BACKEND:
     // Load complaints from API.
-    const [complaints, setComplaints] = useState([
-        {
-            id: 'ICM-2025-00185',
-            product: 'HerbalSlim Capsules',
-            manufacturer: 'NatureFit Labs',
-            complainant: 'M. Reyes',
-            status: 'queued',
-            category: 'Drugs',
-            logged: '2026-05-17 10:42',
-        },
-        {
-            id: 'ICM-2025-00186',
-            product: 'BioGlow Serum',
-            manufacturer: 'Aura Cosmetics',
-            complainant: 'L. Dela Cruz',
-            status: 'pending',
-            category: 'Cosmetics',
-            logged: '2026-05-17 11:15',
-        },
-        {
-            id: 'ICM-2025-00187',
-            product: 'ChocoMax Cereal',
-            manufacturer: 'GrainGood Foods',
-            complainant: 'J. Santos',
-            status: 'confirmed_registered',
-            category: 'Food',
-            logged: '2026-05-18 09:30',
-        },
-        {
-            id: 'ICM-2025-00188',
-            product: 'GlucoMeter Pro',
-            manufacturer: 'MedTech Solutions',
-            complainant: 'A. Ramos',
-            status: 'confirmed_unregistered',
-            category: 'Medical Devices',
-            logged: '2026-05-18 14:45',
-        },
-        {
-            id: 'ICM-2025-00189',
-            product: 'Vitamin C Plus',
-            manufacturer: 'NutriVital',
-            complainant: 'P. Alcantara',
-            status: 'rejected',
-            category: 'Drugs',
-            logged: '2026-05-19 10:00',
-        },
-        {
-            id: 'ICM-2025-00190',
-            product: 'YouthCream Anti-Aging',
-            manufacturer: 'GlowSkin Co.',
-            complainant: 'S. Lopez',
-            status: 'recalled',
-            category: 'Cosmetics',
-            logged: '2026-05-19 16:20',
-        }
-    ])
+    const [complaints, setComplaints] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const token = localStorage.getItem('access_token')
+        setLoading(true)
+        fetch(`${API_BASE}/complaints/walkin/`, {
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setComplaints(data.map((c) => ({
+                    id: c.case_reference,
+                    complaintId: c.complaint_id,
+                    product: c.product_title,
+                    manufacturer: c.manufacturer,
+                    complainant: c.complainant_name,
+                    status: c.status,
+                    category: c.product_category,
+                    logged: new Date(c.created_at).toLocaleString(),
+                })))
+            })
+            .finally(() => setLoading(false))
+    }, [])
     const [search, setSearch] = useState('')
     const [selectedStatus, setSelectedStatus] = useState('All')
     const [selectedCategory, setSelectedCategory] = useState('All')

@@ -770,13 +770,54 @@ function LeaVerificationRequest() {
       message,
       confirmText,
       confirmBg,
-      onConfirm: () => {
-        // Trigger success alert
+      onConfirm: async () => {
+        if (actionType === 'Send Reminder' || actionType === 'Recall Request') {
+          const token = localStorage.getItem('access_token');
+          const endpoint = actionType === 'Send Reminder' ? 'resend-reminder' : 'recall';
+
+          try {
+            const res = await fetch(`${API_BASE}/verification-requests/${id}/${endpoint}`, {
+              method: 'POST',
+              headers: { authorization: `Bearer ${token}` },
+            });
+
+            if (!res.ok) {
+              const msg = await parseBackendError(res);
+              showError(msg);
+              setModalConfig(null);
+              return;
+            }
+
+            const updated = await res.json();
+
+            if (actionType === 'Recall Request') {
+              // Recalled — this request no longer belongs in Awaiting FDA at all
+              setAwaitingList(awaitingList.filter((r) => r.request_id !== id));
+              setSelectedAwaitingFda(null);
+            } else {
+              // Reminder sent — request stays in the list, nothing to remove;
+              // this just confirms the call succeeded
+            }
+
+            setSuccessMessage(successText);
+            setModalConfig(null);
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } catch {
+            showError('Something went wrong. Please try again.');
+            setModalConfig(null);
+          }
+          return;
+        }
+
+        // Existing behavior for the other action types (Initiate Takedown,
+        // Dismiss Case, Close Case, Acknowledge) — untouched, still local-only
         setSuccessMessage(successText);
         setModalConfig(null);
         setTimeout(() => {
           setSuccessMessage('');
         }, 3000);
+
+
 
         /*
          BACKEND NOTIFICATION:

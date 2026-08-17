@@ -28,7 +28,7 @@ VALID_COMPLAINT_TRANSITIONS = {
     },
     "walk_in": {
         "open": ["under_review", "dismissed"],
-        "under_review": ["takedown_requested", "dismissed"],
+        "under_review": ["takedown_requested", "dismissed", "open"], #added "open", so recalling a verification request can send the complaint back to Ready to Send
         "takedown_requested": ["takedown_initiated", "dismissed"],
         "takedown_initiated": ["completed", "dismissed"],
         "completed": [],
