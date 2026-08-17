@@ -111,3 +111,16 @@ class WalkinComplaintListResponse(BaseModel):
 class WalkinComplaintDetailResponse(WalkinComplaintListResponse):
     nature_of_complaint: str | None
     attached_files: list[SharedFileResponse]
+
+
+class WalkinComplaintDetailResponse(WalkinComplaintListResponse):
+    nature_of_complaint: str | None
+    place_of_purchase: str | None
+    date_of_purchase: date | None
+    amount_paid: Decimal | None
+    full_name: str | None
+    contact_number: str | None
+    email: str | None
+    id_type: str | None
+    address: str | None
+    attached_files: list[SharedFileResponse]

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
@@ -12,8 +12,9 @@ from app.models.verification_requests import VerificationRequest
 from app.desktop.schemas.complaints.complaints import ComplaintAwaitingRequestResponse
 
 from app.models.complaints import Complaint
+from app.models.walkin_complainants import WalkinComplainant
 
-from app.desktop.schemas.complaints.complaints import WalkinComplaintDetailResponse
+from app.desktop.schemas.complaints.complaints import WalkinComplaintDetailResponse, SharedFileResponse
 from app.models.shared_files import SharedFile
 
 router = APIRouter(prefix="/complaints", tags=["Complaint Detail"])
@@ -87,12 +88,19 @@ def get_walkin_complaint_detail(
 
     files = db.query(SharedFile).filter(SharedFile.complaint_id == complaint_id).all()
 
-    # Same "status" derivation as the list endpoint — latest linked
-    # verification request, or "queued" if there isn't one.
-    latest_request = db.query(VerificationRequest).filter(
-        VerificationRequest.complaint_id == complaint_id
-    ).order_by(VerificationRequest.requested_at.desc()).first()
-    effective_status = latest_request.verification_request_status if latest_request else "queued"
+    # Same precedence as the list endpoint: complaint.status is the
+    # source of truth. "open" always means queued/Ready to Send,
+    # regardless of any recalled/rejected request sitting in history.
+    # Only fall back to the latest request's status when the complaint
+    # itself is not open (i.e. a request is genuinely active or FDA
+    # has responded).
+    if complaint.status == "open":
+        effective_status = "queued"
+    else:
+        latest_request = db.query(VerificationRequest).filter(
+            VerificationRequest.complaint_id == complaint_id
+        ).order_by(VerificationRequest.requested_at.desc()).first()
+        effective_status = latest_request.verification_request_status if latest_request else "queued"
 
     return WalkinComplaintDetailResponse(
         complaint_id=complaint.complaint_id,
@@ -104,5 +112,13 @@ def get_walkin_complaint_detail(
         status=effective_status,
         created_at=complaint.created_at,
         nature_of_complaint=complaint.nature_of_complaint,
+        place_of_purchase=complaint.place_of_purchase,
+        date_of_purchase=complaint.date_of_purchase,
+        amount_paid=complaint.amount_paid,
+        full_name=complainant.full_name if complainant else None,
+        contact_number=complainant.contact_number if complainant else None,
+        email=complainant.email if complainant else None,
+        id_type=complainant.id_type if complainant else None,
+        address=complainant.address if complainant else None,
         attached_files=[SharedFileResponse.model_validate(f) for f in files],
     )

@@ -159,9 +159,31 @@ function LeaWalkinComplaints() {
         return matchesSearch && matchesStatus && matchesCategory;
     })
 
+    const [detailLoading, setDetailLoading] = useState(false)
+
     const handleViewButton = (complaint) => {
         setSelectedComplaint(complaint)
         setViewModal(true)
+
+        const token = localStorage.getItem('access_token')
+        setDetailLoading(true)
+        fetch(`${API_BASE}/complaints/${complaint.complaintId}/walkin-detail`, {
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.json()
+            })
+            .then((data) => {
+                setSelectedComplaint((prev) => (prev && prev.id === complaint.id ? {
+                    ...prev,
+                    statement: data.nature_of_complaint,
+                    attached_files: data.attached_files,
+                    status: data.status,
+                } : prev))
+            })
+            .catch((err) => console.error('Failed to load complaint detail:', err))
+            .finally(() => setDetailLoading(false))
     }
     const handleCloseViewbutton = () => {
         setViewModal(false)
@@ -181,10 +203,20 @@ function LeaWalkinComplaints() {
     }
 
     const handleConfirmSingleDelete = () => {
-        // BACKEND: call delete API for singleDeleteTarget.id
-        setComplaints(complaints.filter((c) => c.id !== singleDeleteTarget.id))
-        setSingleDeleteTarget(null)
-        setShowSingleDeleteModal(false)
+        const token = localStorage.getItem('access_token')
+        fetch(`${API_BASE}/complaints/walkin/${singleDeleteTarget.complaintId}`, {
+            method: 'DELETE',
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                setComplaints((prev) => prev.filter((c) => c.id !== singleDeleteTarget.id))
+            })
+            .catch((err) => console.error('Failed to delete complaint:', err))
+            .finally(() => {
+                setSingleDeleteTarget(null)
+                setShowSingleDeleteModal(false)
+            })
     }
 
     const handleCancelSingleDelete = () => {
@@ -209,22 +241,35 @@ function LeaWalkinComplaints() {
     const OpenNewIntakePageButton = () => {
         navigate('/leacidgfolder/lea-new-intake');
     };
+    
     const handleEditComplaint = (complaint) => {
-        // BACKEND:
-        // The selected complaint data should be passed back from the API
-        // so the New Intake page opens in Edit Mode.
-        // All existing field values must automatically populate
-        // their corresponding inputs.
-
-        // BACKEND:
-        // When opening Edit mode,
-        // return all complaint fields so inputs are automatically pre-filled.
         navigate('/leacidgfolder/lea-new-intake', {
-            state: {
-                complaint
-            }
+            state: { complaintId: complaint.complaintId }
         });
     };
+
+    const handleExportCSV = () => {
+        const headers = ['Case ID', 'Product', 'Manufacturer', 'Complainant', 'Status', 'Category', 'Logged']
+        const rows = filtered.map((c) => [
+            c.id,
+            c.product,
+            c.manufacturer,
+            c.complainant,
+            WcGetStatusLabel(c.status),
+            c.category,
+            c.logged,
+        ])
+        const escapeCell = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`
+        const csvContent = [headers, ...rows].map((row) => row.map(escapeCell).join(',')).join('\r\n')
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `walkin-complaints-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
 
     return (
         <div className='LeaDashboardMain LeaWalkinComplaintsMain'>
@@ -241,7 +286,7 @@ function LeaWalkinComplaints() {
 
                         {/* Buttons now on their own row below the title, right-aligned */}
                         <div className='WalkinButtonActionsRow'>
-                            <button className='BtnExportCSV'>Export CSV</button>
+                            <button className='BtnExportCSV' onClick={handleExportCSV}>Export CSV</button>
                             <button className='BtnNewComplaint' onClick={OpenNewIntakePageButton}>New Complaint</button>
                         </div>
 
@@ -457,7 +502,7 @@ function LeaWalkinComplaints() {
                                     </div>
                                     <h6 className='Statementcomp'>COMPLAINANT STATEMENT</h6>
                                     <div className='StatementBox'>
-                                        <p>{selectedComplaint.statement || selectedComplaint.complainant_statement || selectedComplaint.description || 'Example statement....'}</p>
+                                        <p>{detailLoading ? 'Loading…' : (selectedComplaint.statement || selectedComplaint.complainant_statement || selectedComplaint.description || 'Example statement....')}</p>
                                     </div>
 
                                     {/* Auto-Attached Evidence & Request Documents */}
