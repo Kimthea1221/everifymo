@@ -1066,7 +1066,8 @@ function ProfileSetting() {
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 
-  .ProfileContainer {
+  .ProfileContainer,
+  .SuperAdminProfileContainer {
     --p-dark: #030303;
     --p-slate: #1F2937;
     --p-navy: #13213C;
@@ -1076,7 +1077,9 @@ const styles = `
     --p-light-gray: #EDEDED;
     --p-white: #FDFDFD;
     --p-error: #B91C1C;
-    
+  }
+
+  .ProfileContainer {
     width: 100%;
     padding: 24px;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
