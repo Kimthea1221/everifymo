@@ -9,6 +9,12 @@ class UnregisteredAdvisoryCreate(BaseModel):
     advisory_date: Optional[date] = None
     source_url: Optional[str] = None
 
+class UnregisteredAdvisoryUpdate(BaseModel):
+    product_name: str
+    advisory_details: Optional[str] = None
+    advisory_date: Optional[date] = None
+    source_url: Optional[str] = None
+
 class UnregisteredAdvisoryResponse(BaseModel):
     advisory_id: UUID
     product_name: str
@@ -16,8 +22,11 @@ class UnregisteredAdvisoryResponse(BaseModel):
     advisory_date: Optional[date]
     source_url: Optional[str]
     marketplace_detection_count: int
-    added_by: Optional[UUID]
+    added_by: Optional[str]
+    updated_by: Optional[str]
+    converted_from_product_id: Optional[UUID]
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

@@ -1,3 +1,4 @@
+# backend/app/desktop/services/auth/session_service.py
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Request

@@ -1,6 +1,6 @@
 
 //desktopfrontend/src/pages/fdafolder/fda-dashboard.jsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
@@ -55,6 +55,10 @@ function FDADashboard() {
             }
         };
         fetchProductCounts();
+
+        // Auto-fetch counts every 3 seconds to keep dashboard updated in real-time
+        const interval = setInterval(fetchProductCounts, 3000);
+        return () => clearInterval(interval);
     }, []);
 
     const takedownData = {

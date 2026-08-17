@@ -1,6 +1,10 @@
+# backend/app/desktop/routers/auth/sessions.py
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
+
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.database.sessions import get_db
 from app.models.user_sessions import UserSession
@@ -50,6 +54,7 @@ from app.models.users import User
 @router.post("/revoke")
 def revoke_token(
     payload: dict,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -68,4 +73,16 @@ def revoke_token(
 
     session.is_revoked = True
     db.commit()
+
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.LOGOUT,
+        target_table="user_sessions",
+        target_id=session.session_id,
+        target_reference=current_user.email,
+        request=request,
+        region_code=get_user_region_code(db, current_user),
+    )
+
     return {"message": "ok"}
