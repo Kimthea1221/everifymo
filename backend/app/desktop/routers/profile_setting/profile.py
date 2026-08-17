@@ -101,6 +101,18 @@ def update_profile(
             related_user_id=current_user.user_id,
         )
 
+        write_audit_log(
+            db,
+            user=current_user,
+            action=AuditAction.UPDATE_USER_PROFILE,
+            target_table="users",
+            target_id=current_user.user_id,
+            target_reference=f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email,
+            new_value=update_data,
+            request=http_request,
+            region_code=get_user_region_code(db, current_user),
+        )
+
     return build_profile_response(db, current_user)
 
 
