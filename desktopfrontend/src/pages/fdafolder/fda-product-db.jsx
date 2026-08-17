@@ -18,12 +18,13 @@ import {
   ExternalLink,
   Package,
   MoreVertical,
+  Trash2,
 } from 'lucide-react';
 import './fda-css.css';
 import { apiFetch } from '../../utils/apiFetch';
 
 // NOTE: Items per page for table pagination
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = 10;
 
 // NOTE: Categories list options. 
 // 🔌 BACKEND: GET /api/categories for dynamic category list
@@ -366,8 +367,6 @@ function FDAProductDB() {
     if (filterSource !== '') {
       if (filterSource === 'Manually Added') {
         matchesSource = advisory.source === 'Manually Added';
-      } else if (filterSource === 'Bulk Imported') {
-        matchesSource = advisory.source === 'Bulk Imported';
       } else if (filterSource === 'Converted from Registered') {
         matchesSource = !!advisory.convertedFromProductId;
       }
@@ -465,13 +464,21 @@ function FDAProductDB() {
     if (!productForm.productName.trim()) {
       errors.productName = "Product Name is required";
     }
+    if (!productForm.manufacturer.trim()) {
+      errors.manufacturer = "Manufacturer is required";
+    }
     if (!productForm.registrationNumber.trim()) {
       errors.registrationNumber = "Registration Number is required";
     }
     if (!productForm.category) {
       errors.category = "Product Category is required";
     }
-    if (productForm.dateRegistered && productForm.expiryDate) {
+    if (!productForm.dateRegistered) {
+      errors.dateRegistered = "Date Registered is required";
+    }
+    if (!productForm.expiryDate) {
+      errors.expiryDate = "Expiry Date is required";
+    } else if (productForm.dateRegistered) {
       if (new Date(productForm.expiryDate) <= new Date(productForm.dateRegistered)) {
         errors.expiryDate = "Expiry Date must be after Date Registered";
       }
@@ -533,6 +540,9 @@ function FDAProductDB() {
     if (!productForm.productName.trim()) {
       errors.productName = "Product Name is required";
     }
+    if (!productForm.manufacturer.trim()) {
+      errors.manufacturer = "Manufacturer is required";
+    }
     if (!productForm.registrationNumber.trim()) {
       errors.registrationNumber = "Registration Number is required";
     } else {
@@ -548,7 +558,12 @@ function FDAProductDB() {
     if (!productForm.category) {
       errors.category = "Product Category is required";
     }
-    if (productForm.dateRegistered && productForm.expiryDate) {
+    if (!productForm.dateRegistered) {
+      errors.dateRegistered = "Date Registered is required";
+    }
+    if (!productForm.expiryDate) {
+      errors.expiryDate = "Expiry Date is required";
+    } else if (productForm.dateRegistered) {
       if (new Date(productForm.expiryDate) <= new Date(productForm.dateRegistered)) {
         errors.expiryDate = "Expiry Date must be after Date Registered";
       }
@@ -622,10 +637,10 @@ function FDAProductDB() {
       }
     }
 
-    if (conversionDetails.sourceUrl) {
-      if (!conversionDetails.sourceUrl.startsWith('http://') && !conversionDetails.sourceUrl.startsWith('https://')) {
-        errors.sourceUrl = "Source URL must start with http:// or https://";
-      }
+    if (!conversionDetails.sourceUrl || !conversionDetails.sourceUrl.trim()) {
+      errors.sourceUrl = "Source URL is required";
+    } else if (!conversionDetails.sourceUrl.startsWith('http://') && !conversionDetails.sourceUrl.startsWith('https://')) {
+      errors.sourceUrl = "Source URL must start with http:// or https://";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -688,7 +703,9 @@ function FDAProductDB() {
       errors.productName = "Product Name is required";
     }
 
-    if (advisoryForm.advisoryDate) {
+    if (!advisoryForm.advisoryDate) {
+      errors.advisoryDate = "Advisory Date is required";
+    } else {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (new Date(advisoryForm.advisoryDate) > today) {
@@ -696,10 +713,10 @@ function FDAProductDB() {
       }
     }
 
-    if (advisoryForm.sourceUrl) {
-      if (!advisoryForm.sourceUrl.startsWith('http://') && !advisoryForm.sourceUrl.startsWith('https://')) {
-        errors.sourceUrl = "Source URL must start with http:// or https://";
-      }
+    if (!advisoryForm.sourceUrl || !advisoryForm.sourceUrl.trim()) {
+      errors.sourceUrl = "Source URL is required";
+    } else if (!advisoryForm.sourceUrl.startsWith('http://') && !advisoryForm.sourceUrl.startsWith('https://')) {
+      errors.sourceUrl = "Source URL must start with http:// or https://";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -757,7 +774,9 @@ function FDAProductDB() {
       errors.productName = "Product Name is required";
     }
 
-    if (advisoryForm.advisoryDate) {
+    if (!advisoryForm.advisoryDate) {
+      errors.advisoryDate = "Advisory Date is required";
+    } else {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (new Date(advisoryForm.advisoryDate) > today) {
@@ -765,10 +784,10 @@ function FDAProductDB() {
       }
     }
 
-    if (advisoryForm.sourceUrl) {
-      if (!advisoryForm.sourceUrl.startsWith('http://') && !advisoryForm.sourceUrl.startsWith('https://')) {
-        errors.sourceUrl = "Source URL must start with http:// or https://";
-      }
+    if (!advisoryForm.sourceUrl || !advisoryForm.sourceUrl.trim()) {
+      errors.sourceUrl = "Source URL is required";
+    } else if (!advisoryForm.sourceUrl.startsWith('http://') && !advisoryForm.sourceUrl.startsWith('https://')) {
+      errors.sourceUrl = "Source URL must start with http:// or https://";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -832,6 +851,10 @@ function FDAProductDB() {
       }
     }
 
+    if (!conversionDetails.manufacturer.trim()) {
+      errors.manufacturer = "Manufacturer is required";
+    }
+
     if (!conversionDetails.category) {
       errors.category = "Product Category is required";
     }
@@ -892,6 +915,90 @@ function FDAProductDB() {
           });
         } catch (err) {
           setFormErrors({ registrationNumber: "Network error. Please try again." });
+        }
+      }
+    });
+  };
+
+  const handleDeleteProduct = (product) => {
+    setNotification({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Confirm Delete Product',
+      message: `Are you sure you want to delete "${product.productName}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const response = await apiFetch(`/registered-products/${product.id}`, {
+            method: 'DELETE',
+          });
+          if (response.ok) {
+            await fetchProducts();
+            setNotification({
+              isOpen: true,
+              type: 'success',
+              title: 'Success',
+              message: 'Product deleted successfully!',
+            });
+          } else {
+            const errorData = await response.json();
+            const errorMsg = extractErrorMessage(errorData, "Failed to delete product.");
+            setNotification({
+              isOpen: true,
+              type: 'success',
+              title: 'Error',
+              message: errorMsg,
+            });
+          }
+        } catch (err) {
+          console.error("Error deleting product:", err);
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Error',
+            message: 'Network error. Failed to delete product.',
+          });
+        }
+      }
+    });
+  };
+
+  const handleDeleteAdvisory = (advisory) => {
+    setNotification({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Confirm Delete Advisory',
+      message: `Are you sure you want to delete advisory for "${advisory.productName}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const response = await apiFetch(`/unregistered-advisories/${advisory.id}`, {
+            method: 'DELETE',
+          });
+          if (response.ok) {
+            await fetchAdvisories();
+            setNotification({
+              isOpen: true,
+              type: 'success',
+              title: 'Success',
+              message: 'Advisory deleted successfully!',
+            });
+          } else {
+            const errorData = await response.json();
+            const errorMsg = extractErrorMessage(errorData, "Failed to delete advisory.");
+            setNotification({
+              isOpen: true,
+              type: 'success',
+              title: 'Error',
+              message: errorMsg,
+            });
+          }
+        } catch (err) {
+          console.error("Error deleting advisory:", err);
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Error',
+            message: 'Network error. Failed to delete advisory.',
+          });
         }
       }
     });
@@ -1289,7 +1396,6 @@ function FDAProductDB() {
                   >
                     <option value="">All Sources</option>
                     <option value="Manually Added">Manually Added</option>
-                    <option value="Bulk Imported">Bulk Imported</option>
                     <option value="Converted from Registered">Converted from Registered</option>
                   </select>
                 </div>
@@ -1425,6 +1531,16 @@ function FDAProductDB() {
                                           <ArrowRightLeft size={14} /> Convert to Unregistered
                                         </button>
                                       )}
+                                      <button
+                                        className="FdaDropdownItem delete-action"
+                                        style={{ color: '#DC2626' }}
+                                        onClick={() => {
+                                          handleDeleteProduct(product);
+                                          setActiveDropdownId(null);
+                                        }}
+                                      >
+                                        <Trash2 size={14} /> Delete Product
+                                      </button>
                                     </FdaActionDropdown>
                                   </div>
                                 </td>
@@ -1516,6 +1632,16 @@ function FDAProductDB() {
                                     >
                                       <ArrowRightLeft size={14} /> Convert to Registered
                                     </button>
+                                    <button
+                                      className="FdaDropdownItem delete-action"
+                                      style={{ color: '#DC2626' }}
+                                      onClick={() => {
+                                        handleDeleteAdvisory(advisory);
+                                        setActiveDropdownId(null);
+                                      }}
+                                    >
+                                      <Trash2 size={14} /> Delete Advisory
+                                    </button>
                                   </FdaActionDropdown>
                                 </div>
                               </td>
@@ -1574,7 +1700,7 @@ function FDAProductDB() {
 
           {/* Modal 1: Add Registered Product */}
           {showAddProductModal && (
-            <div className="FdaModalOverlay" onClick={() => setShowAddProductModal(false)}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setShowAddProductModal(false)}>
                   <X size={16} />
@@ -1595,14 +1721,15 @@ function FDAProductDB() {
                     {formErrors.productName && <span className="form-error-msg">{formErrors.productName}</span>}
                   </div>
 
-                  <div className="FdaFormGroup span-two">
-                    <label>Manufacturer</label>
+                  <div className={`FdaFormGroup span-two ${formErrors.manufacturer ? 'has-error' : ''}`}>
+                    <label>Manufacturer *</label>
                     <input
                       type="text"
                       placeholder="e.g. SkinCare Corp PH"
                       value={productForm.manufacturer}
                       onChange={(e) => setProductForm({ ...productForm, manufacturer: e.target.value })}
                     />
+                    {formErrors.manufacturer && <span className="form-error-msg">{formErrors.manufacturer}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.registrationNumber ? 'has-error' : ''}`}>
@@ -1632,17 +1759,18 @@ function FDAProductDB() {
                     {formErrors.category && <span className="form-error-msg">{formErrors.category}</span>}
                   </div>
 
-                  <div className="FdaFormGroup">
-                    <label>Date Registered</label>
+                  <div className={`FdaFormGroup ${formErrors.dateRegistered ? 'has-error' : ''}`}>
+                    <label>Date Registered *</label>
                     <input
                       type="date"
                       value={productForm.dateRegistered}
                       onChange={(e) => setProductForm({ ...productForm, dateRegistered: e.target.value })}
                     />
+                    {formErrors.dateRegistered && <span className="form-error-msg">{formErrors.dateRegistered}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.expiryDate ? 'has-error' : ''}`}>
-                    <label>Expiry Date</label>
+                    <label>Expiry Date *</label>
                     <input
                       type="date"
                       value={productForm.expiryDate}
@@ -1662,7 +1790,7 @@ function FDAProductDB() {
 
           {/* Modal 2: View Registered Product Detail */}
           {showViewProductModal && selectedProduct && (
-            <div className="FdaModalOverlay" onClick={() => setShowViewProductModal(false)}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setShowViewProductModal(false)}>
                   <X size={16} />
@@ -1727,7 +1855,7 @@ function FDAProductDB() {
 
           {/* Modal 3: Edit Registered Product */}
           {showEditProductModal && selectedProduct && (
-            <div className="FdaModalOverlay" onClick={() => setShowEditProductModal(false)}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setShowEditProductModal(false)}>
                   <X size={16} />
@@ -1747,13 +1875,14 @@ function FDAProductDB() {
                     {formErrors.productName && <span className="form-error-msg">{formErrors.productName}</span>}
                   </div>
 
-                  <div className="FdaFormGroup span-two">
-                    <label>Manufacturer</label>
+                  <div className={`FdaFormGroup span-two ${formErrors.manufacturer ? 'has-error' : ''}`}>
+                    <label>Manufacturer *</label>
                     <input
                       type="text"
                       value={productForm.manufacturer}
                       onChange={(e) => setProductForm({ ...productForm, manufacturer: e.target.value })}
                     />
+                    {formErrors.manufacturer && <span className="form-error-msg">{formErrors.manufacturer}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.registrationNumber ? 'has-error' : ''}`}>
@@ -1780,17 +1909,18 @@ function FDAProductDB() {
                     {formErrors.category && <span className="form-error-msg">{formErrors.category}</span>}
                   </div>
 
-                  <div className="FdaFormGroup">
-                    <label>Date Registered</label>
+                  <div className={`FdaFormGroup ${formErrors.dateRegistered ? 'has-error' : ''}`}>
+                    <label>Date Registered *</label>
                     <input
                       type="date"
                       value={productForm.dateRegistered}
                       onChange={(e) => setProductForm({ ...productForm, dateRegistered: e.target.value })}
                     />
+                    {formErrors.dateRegistered && <span className="form-error-msg">{formErrors.dateRegistered}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.expiryDate ? 'has-error' : ''}`}>
-                    <label>Expiry Date</label>
+                    <label>Expiry Date *</label>
                     <input
                       type="date"
                       value={productForm.expiryDate}
@@ -1811,7 +1941,7 @@ function FDAProductDB() {
 
           {/* Modal 4: Convert to Unregistered Product (Advisory) */}
           {showConvertToUnregisteredModal && selectedProduct && (
-            <div className="FdaModalOverlay" onClick={() => setShowConvertToUnregisteredModal(false)}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setShowConvertToUnregisteredModal(false)}>
                   <X size={16} />
@@ -1846,7 +1976,7 @@ function FDAProductDB() {
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.sourceUrl ? 'has-error' : ''}`}>
-                    <label>Source URL</label>
+                    <label>Source URL *</label>
                     <input
                       type="text"
                       placeholder="https://..."
@@ -1870,7 +2000,7 @@ function FDAProductDB() {
 
           {/* Modal 5: Add Advisory */}
           {showAddAdvisoryModal && (
-            <div className="FdaModalOverlay" onClick={() => setShowAddAdvisoryModal(false)}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setShowAddAdvisoryModal(false)}>
                   <X size={16} />
@@ -1902,7 +2032,7 @@ function FDAProductDB() {
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.advisoryDate ? 'has-error' : ''}`}>
-                    <label>Advisory Date</label>
+                    <label>Advisory Date *</label>
                     <input
                       type="date"
                       value={advisoryForm.advisoryDate}
@@ -1912,7 +2042,7 @@ function FDAProductDB() {
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.sourceUrl ? 'has-error' : ''}`}>
-                    <label>Source URL</label>
+                    <label>Source URL *</label>
                     <input
                       type="text"
                       placeholder="https://fda.gov.ph/advisories/..."
@@ -1934,7 +2064,7 @@ function FDAProductDB() {
 
           {/* Modal 6: View Advisory Detail */}
           {showViewAdvisoryModal && selectedAdvisory && (
-            <div className="FdaModalOverlay" onClick={() => setShowViewAdvisoryModal(false)}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setShowViewAdvisoryModal(false)}>
                   <X size={16} />
@@ -2004,7 +2134,7 @@ function FDAProductDB() {
 
           {/* Modal 7: Edit Advisory */}
           {showEditAdvisoryModal && selectedAdvisory && (
-            <div className="FdaModalOverlay" onClick={() => setShowEditAdvisoryModal(false)}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setShowEditAdvisoryModal(false)}>
                   <X size={16} />
@@ -2034,7 +2164,7 @@ function FDAProductDB() {
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.advisoryDate ? 'has-error' : ''}`}>
-                    <label>Advisory Date</label>
+                    <label>Advisory Date *</label>
                     <input
                       type="date"
                       value={advisoryForm.advisoryDate}
@@ -2044,7 +2174,7 @@ function FDAProductDB() {
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.sourceUrl ? 'has-error' : ''}`}>
-                    <label>Source URL</label>
+                    <label>Source URL *</label>
                     <input
                       type="text"
                       value={advisoryForm.sourceUrl}
@@ -2065,7 +2195,7 @@ function FDAProductDB() {
 
           {/* Modal 8: Convert Unregistered Product to Registered Product */}
           {showConvertToRegisteredModal && selectedAdvisory && (
-            <div className="FdaModalOverlay" onClick={() => setShowConvertToRegisteredModal(false)}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setShowConvertToRegisteredModal(false)}>
                   <X size={16} />
@@ -2089,14 +2219,15 @@ function FDAProductDB() {
                     {formErrors.registrationNumber && <span className="form-error-msg">{formErrors.registrationNumber}</span>}
                   </div>
 
-                  <div className="FdaFormGroup">
-                    <label>Manufacturer</label>
+                  <div className={`FdaFormGroup ${formErrors.manufacturer ? 'has-error' : ''}`}>
+                    <label>Manufacturer *</label>
                     <input
                       type="text"
                       placeholder="e.g. ActiveBrand Inc"
                       value={conversionDetails.manufacturer}
                       onChange={(e) => setConversionDetails({ ...conversionDetails, manufacturer: e.target.value })}
                     />
+                    {formErrors.manufacturer && <span className="form-error-msg">{formErrors.manufacturer}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.category ? 'has-error' : ''}`}>
@@ -2145,7 +2276,7 @@ function FDAProductDB() {
 
           {/* Custom confirmation & success notifications styled like FDA modals */}
           {notification.isOpen && (
-            <div className="FdaModalOverlay" onClick={() => setNotification({ ...notification, isOpen: false })}>
+            <div className="FdaModalOverlay">
               <div className="FdaModalContent" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
                 <button className="FdaDetailClose" onClick={() => setNotification({ ...notification, isOpen: false })}>
                   <X size={16} />

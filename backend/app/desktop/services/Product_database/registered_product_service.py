@@ -188,3 +188,22 @@ def convert_advisory_to_product(db: Session, advisory_id, data: RegisteredProduc
     db.refresh(new_product)
 
     return format_product_response(new_product, db)
+
+
+def delete_registered_product(db: Session, product_id, current_user_id):
+    product = db.query(RegisteredProduct).filter(
+        RegisteredProduct.product_id == product_id,
+        RegisteredProduct.deleted_at.is_(None)
+    ).first()
+
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Registered product not found."
+        )
+
+    product.deleted_at = func.now()
+    product.deleted_by = current_user_id
+
+    db.commit()
+    return {"message": "Product deleted successfully."}
