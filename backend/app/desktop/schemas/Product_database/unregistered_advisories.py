@@ -1,3 +1,4 @@
+# backend/app/desktop/schemas/Product_database/unregistered_advisories.py
 from uuid import UUID
 from datetime import date, datetime
 from typing import Optional
