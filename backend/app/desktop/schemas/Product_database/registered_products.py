@@ -1,3 +1,4 @@
+# backend/app/desktop/schemas/Product_database/registered_products.py
 from uuid import UUID
 from datetime import date, datetime
 from typing import Optional

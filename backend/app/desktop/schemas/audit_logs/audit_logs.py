@@ -8,6 +8,7 @@ from pydantic import BaseModel
 class AuditLogItem(BaseModel):
     log_id: UUID
     timestamp: datetime
+    user_id: Optional[UUID]
     user_name: Optional[str]
     user_role: str
     agency: str
