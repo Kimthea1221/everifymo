@@ -1,6 +1,11 @@
+# backend/app/desktop/services/Product_database/registered_product_service.py
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy import func
 from fastapi import HTTPException, status
+
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.models.registered_products import RegisteredProduct
 from app.models.unregistered_advisories import UnregisteredAdvisory
@@ -85,7 +90,7 @@ def get_all_registered_products(db: Session, current_user: User):
     return formatted
 
 
-def create_registered_product(db: Session, data: RegisteredProductCreate, current_user_id):
+def create_registered_product(db: Session, data: RegisteredProductCreate, current_user, request: Request = None):
     existing = db.query(RegisteredProduct).filter(
         RegisteredProduct.registration_number == data.registration_number,
         RegisteredProduct.deleted_at.is_(None)
@@ -96,6 +101,10 @@ def create_registered_product(db: Session, data: RegisteredProductCreate, curren
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Registration Number must be unique. This number already exists."
         )
+
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
 
     new_product = RegisteredProduct(
         product_name=data.product_name,
@@ -112,10 +121,28 @@ def create_registered_product(db: Session, data: RegisteredProductCreate, curren
     db.commit()
     db.refresh(new_product)
 
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.CREATE_REGISTERED_PRODUCT,
+        target_table="registered_products",
+        target_id=new_product.product_id,
+        target_reference=new_product.product_name,
+        new_value={
+            "product_name": new_product.product_name,
+            "registration_number": new_product.registration_number,
+            "product_category": new_product.product_category,
+        },
+        request=request,
+        region_code=region_code,
+    )
+
     return format_product_response(new_product, db)
 
 
-def update_registered_product(db: Session, product_id, data: RegisteredProductUpdate, current_user_id):
+def update_registered_product(db: Session, product_id, data: RegisteredProductUpdate, current_user, request: Request = None):
     product = db.query(RegisteredProduct).filter(
         RegisteredProduct.product_id == product_id,
         RegisteredProduct.deleted_at.is_(None)
@@ -140,6 +167,16 @@ def update_registered_product(db: Session, product_id, data: RegisteredProductUp
             detail="Registration Number must be unique. This number already exists."
         )
 
+    old_value = {
+        "product_name": product.product_name,
+        "brand_name": product.brand_name,
+        "registration_number": product.registration_number,
+        "product_category": product.product_category,
+    }
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
+
     product.product_name = data.product_name
     product.brand_name = data.brand_name
     product.registration_number = data.registration_number
@@ -151,10 +188,30 @@ def update_registered_product(db: Session, product_id, data: RegisteredProductUp
     db.commit()
     db.refresh(product)
 
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.UPDATE_REGISTERED_PRODUCT,
+        target_table="registered_products",
+        target_id=product.product_id,
+        target_reference=product.product_name,
+        old_value=old_value,
+        new_value={
+            "product_name": product.product_name,
+            "brand_name": product.brand_name,
+            "registration_number": product.registration_number,
+            "product_category": product.product_category,
+        },
+        request=request,
+        region_code=region_code,
+    )
+
     return format_product_response(product, db)
 
 
-def convert_advisory_to_product(db: Session, advisory_id, data: RegisteredProductCreate, current_user_id):
+def convert_advisory_to_product(db: Session, advisory_id, data: RegisteredProductCreate, current_user, request: Request = None):
     advisory = db.query(UnregisteredAdvisory).filter(
         UnregisteredAdvisory.advisory_id == advisory_id,
         UnregisteredAdvisory.deleted_at.is_(None)
@@ -165,6 +222,11 @@ def convert_advisory_to_product(db: Session, advisory_id, data: RegisteredProduc
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Unregistered advisory not found."
         )
+
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
+    source_advisory_name = advisory.product_name
 
     # Soft delete the advisory
     advisory.deleted_at = func.now()
@@ -187,10 +249,29 @@ def convert_advisory_to_product(db: Session, advisory_id, data: RegisteredProduc
     db.commit()
     db.refresh(new_product)
 
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.CONVERT_TO_REGISTERED_PRODUCT,
+        target_table="registered_products",
+        target_id=new_product.product_id,
+        target_reference=new_product.product_name,
+        old_value={"source_advisory_id": str(advisory_id), "source_advisory_name": source_advisory_name},
+        new_value={
+            "product_name": new_product.product_name,
+            "registration_number": new_product.registration_number,
+            "product_category": new_product.product_category,
+        },
+        request=request,
+        region_code=region_code,
+    )
+
     return format_product_response(new_product, db)
 
 
-def delete_registered_product(db: Session, product_id, current_user_id):
+def delete_registered_product(db: Session, product_id, current_user, request: Request = None):
     product = db.query(RegisteredProduct).filter(
         RegisteredProduct.product_id == product_id,
         RegisteredProduct.deleted_at.is_(None)
@@ -202,8 +283,31 @@ def delete_registered_product(db: Session, product_id, current_user_id):
             detail="Registered product not found."
         )
 
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
+    old_value = {
+        "product_name": product.product_name,
+        "registration_number": product.registration_number,
+    }
+
     product.deleted_at = func.now()
     product.deleted_by = current_user_id
 
     db.commit()
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.DELETE_REGISTERED_PRODUCT,
+        target_table="registered_products",
+        target_id=product.product_id,
+        target_reference=old_value["product_name"],
+        old_value=old_value,
+        request=request,
+        region_code=region_code,
+    )
+
     return {"message": "Product deleted successfully."}
