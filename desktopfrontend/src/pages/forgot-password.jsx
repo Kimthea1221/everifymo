@@ -19,6 +19,14 @@ function ForgotPassword() {
     const [showConfirm, setShowConfirm] = useState(false);
     const [forgotError, setForgotError] = useState('');
 
+    const checks = {
+        length:    newPassword.length >= 8,
+        uppercase: /[A-Z]/.test(newPassword),
+        number:    /[0-9]/.test(newPassword),
+        special:   /[^A-Za-z0-9]/.test(newPassword),
+    };
+    const allChecksPassed = Object.values(checks).every(Boolean);
+
     const otpRefs = useRef([]);
 
     // Countdown Timer for OTP Resending
@@ -136,24 +144,18 @@ function ForgotPassword() {
 
     const handleResetPassword = async (e) => {
         e.preventDefault();
-        if (newPassword.length < 8) {
-            setForgotError("Password must be at least 8 characters.");
+        if (!newPassword) {
+            setForgotError('New password is required.');
+            return;
+        } else if (!allChecksPassed) {
+            setForgotError('Password does not meet all requirements.');
             return;
         }
-        if (!/[A-Z]/.test(newPassword)) {
-            setForgotError("Password must include at least one uppercase letter.");
+        if (!confirmPassword) {
+            setForgotError('Please confirm your new password.');
             return;
-        }
-        if (!/[0-9]/.test(newPassword)) {
-            setForgotError("Password must include at least one number.");
-            return;
-        }
-        if (!/[^A-Za-z0-9]/.test(newPassword)) {
-            setForgotError("Password must include at least one special character.");
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            setForgotError("Passwords do not match.");
+        } else if (newPassword !== confirmPassword) {
+            setForgotError('Passwords do not match.');
             return;
         }
         setForgotError('');
@@ -739,6 +741,226 @@ function ForgotPassword() {
                     transform: translateY(0);
                   }
                 }
+
+                /* ── CP Form alignment matching change-password.jsx ── */
+                .CPForm {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 18px;
+                  box-sizing: border-box;
+                }
+                .ForgotPasswordWrapper.superadmin .CPForm {
+                  padding: 28px 48px 36px;
+                }
+                .ForgotPasswordWrapper.interagency .CPForm {
+                  padding: 20px 0 0;
+                }
+
+                .CPFormGroup {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 6px;
+                }
+
+                .CPLabel {
+                  font-size: 13px;
+                  font-weight: 600;
+                  box-sizing: border-box;
+                }
+                .ForgotPasswordWrapper.superadmin .CPLabel {
+                  color: #e2e2e2;
+                }
+                .ForgotPasswordWrapper.interagency .CPLabel {
+                  color: #374151;
+                }
+
+                .CPRequired {
+                  color: #ef4444;
+                }
+
+                .CPInputWrapper {
+                  position: relative;
+                  display: flex;
+                  align-items: center;
+                }
+
+                .CPInput {
+                  width: 100%;
+                  padding: 11px 54px 11px 14px;
+                  border-radius: 9px;
+                  font-size: 14px;
+                  outline: none;
+                  transition: all 0.2s ease;
+                  box-sizing: border-box;
+                  font-family: 'Inter', sans-serif;
+                }
+                .ForgotPasswordWrapper.superadmin .CPInput {
+                  background: rgba(255, 255, 255, 0.06);
+                  color: #f1f5f9;
+                  border: 1.5px solid rgba(255, 255, 255, 0.15);
+                }
+                .ForgotPasswordWrapper.superadmin .CPInput:focus {
+                  border-color: #0D9488;
+                  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+                  background: rgba(13, 148, 136, 0.1);
+                }
+                .ForgotPasswordWrapper.interagency .CPInput {
+                  background: #ffffff;
+                  color: #1a1a2e;
+                  border: 1.5px solid #ccc;
+                }
+                .ForgotPasswordWrapper.interagency .CPInput:focus {
+                  border-color: #f7931a;
+                  box-shadow: 0 0 0 3px rgba(247, 147, 26, 0.15);
+                }
+
+                .cp-input-error {
+                  border-color: #ef4444 !important;
+                  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+                }
+
+                .CPToggleBtn {
+                  position: absolute;
+                  right: 12px;
+                  background: transparent;
+                  border: none;
+                  cursor: pointer;
+                  font-size: 12px;
+                  font-weight: 600;
+                  line-height: 1;
+                  padding: 4px 6px;
+                  transition: color 0.15s ease;
+                  text-transform: uppercase;
+                  letter-spacing: 0.3px;
+                }
+                .ForgotPasswordWrapper.superadmin .CPToggleBtn {
+                  color: #0D9488;
+                }
+                .ForgotPasswordWrapper.superadmin .CPToggleBtn:hover {
+                  color: #5eead4;
+                }
+                .ForgotPasswordWrapper.interagency .CPToggleBtn {
+                  color: #64748b;
+                }
+                .ForgotPasswordWrapper.interagency .CPToggleBtn:hover {
+                  color: #f7931a;
+                }
+
+                .CPMatchIndicator {
+                  font-size: 12px;
+                  font-weight: 600;
+                  margin-top: 4px;
+                }
+                .match-ok { color: #16a34a; }
+                .match-fail { color: #ef4444; }
+
+                /* Password Requirements list */
+                .CPRequirements {
+                  border-radius: 10px;
+                  padding: 14px 16px;
+                  box-sizing: border-box;
+                }
+                .ForgotPasswordWrapper.superadmin .CPRequirements {
+                  background: rgba(255, 255, 255, 0.03);
+                  border: 1px solid rgba(255, 255, 255, 0.12);
+                }
+                .ForgotPasswordWrapper.interagency .CPRequirements {
+                  background: #f8fafc;
+                  border: 1px solid #e2e8f0;
+                }
+
+                .CPReqTitle {
+                  font-size: 12px;
+                  font-weight: 600;
+                  margin: 0 0 10px;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                }
+                .ForgotPasswordWrapper.superadmin .CPReqTitle {
+                  color: #94a3b8;
+                }
+                .ForgotPasswordWrapper.interagency .CPReqTitle {
+                  color: #475569;
+                }
+
+                .CPReqList {
+                  list-style: none;
+                  padding: 0;
+                  margin: 0;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 6px;
+                }
+
+                .CPReqItem {
+                  font-size: 13px;
+                  font-weight: 500;
+                  transition: color 0.2s ease;
+                }
+                .ForgotPasswordWrapper.superadmin .CPReqItem.req-met {
+                  color: #4ade80;
+                }
+                .ForgotPasswordWrapper.superadmin .CPReqItem.req-unmet {
+                  color: #64748b;
+                }
+                .ForgotPasswordWrapper.interagency .CPReqItem.req-met {
+                  color: #166534;
+                }
+                .ForgotPasswordWrapper.interagency .CPReqItem.req-unmet {
+                  color: #94a3b8;
+                }
+
+                .CPErrorMsgContainer {
+                  background-color: rgba(239, 68, 68, 0.15);
+                  border: 1px solid rgba(239, 68, 68, 0.5);
+                  padding: 10px 14px;
+                  border-radius: 8px;
+                  margin-top: 5px;
+                  text-align: center;
+                }
+
+                .CPErrorMsg {
+                  color: #ef4444 !important;
+                  margin: 0;
+                  font-size: 13px;
+                  text-align: center;
+                  line-height: 1.5;
+                }
+
+                .CPSubmitBtn {
+                  width: 100%;
+                  padding: 14px;
+                  color: #ffffff;
+                  font-size: 15px;
+                  font-weight: 700;
+                  border: none;
+                  border-radius: 10px;
+                  cursor: pointer;
+                  transition: all 0.22s ease;
+                  font-family: 'Poppins', sans-serif;
+                  letter-spacing: 0.3px;
+                }
+                .CPSubmitBtn.superadmin {
+                  background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
+                  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+                }
+                .CPSubmitBtn.superadmin:hover {
+                  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+                  transform: translateY(-2px);
+                  box-shadow: 0 8px 24px rgba(13, 148, 136, 0.5);
+                }
+                .CPSubmitBtn.interagency {
+                  background: #26262a;
+                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                }
+                .CPSubmitBtn.interagency:hover {
+                  background: #050b07;
+                  transform: translateY(-2px);
+                  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+                }
+                .CPSubmitBtn:active {
+                  transform: translateY(0);
+                }
                 `}
             </style>
             <div className={`ForgotPasswordContainer ${themeClass}`}>
@@ -755,7 +977,7 @@ function ForgotPassword() {
                         </p>
                     </div>
 
-                    {forgotError && (
+                    {forgotError && step !== 'reset' && (
                         <div className={`ErrorContainer ${themeClass}`} style={{ margin: isSuperAdmin ? '20px 48px 0' : '20px 40px 0' }}>
                             <p className={`ErrorMsg ${themeClass}`}>{forgotError}</p>
                         </div>
@@ -831,50 +1053,98 @@ function ForgotPassword() {
 
                     {/* FOR CREATE NEW PASSWORD */}
                     {step === 'reset' && (
-                        <form onSubmit={handleResetPassword} className={`ForgotForm ${themeClass}`}>
-                            <div>
-                                <label>New Password {isSuperAdmin && <span>*</span>}</label>
-                                <div className={`PasswordInputWrapper ${themeClass}`}>
-                                    <Lock className={`LoginInputIcon ${themeClass}`} size={16} />
-                                    <input 
-                                        type={showNew ? "text" : "password"} 
-                                        placeholder={isSuperAdmin ? "Enter your password" : "Minimum 8 characters"} 
+                        <form onSubmit={handleResetPassword} className="CPForm" noValidate>
+                            {/* New Password */}
+                            <div className="CPFormGroup">
+                                <label className="CPLabel">
+                                    New Password <span className="CPRequired">*</span>
+                                </label>
+                                <div className="CPInputWrapper">
+                                    <input
+                                        className={`CPInput ${forgotError && !newPassword ? 'cp-input-error' : ''}`}
+                                        type={showNew ? 'text' : 'password'}
+                                        placeholder="Enter new password"
                                         value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        required
+                                        onChange={(e) => {
+                                            setNewPassword(e.target.value);
+                                            setForgotError('');
+                                        }}
                                     />
                                     <button
                                         type="button"
-                                        className={`TogglePasswordBtn ${themeClass}`}
+                                        className={`CPToggleBtn ${themeClass}`}
                                         onClick={() => setShowNew((v) => !v)}
                                         aria-label={showNew ? 'Hide password' : 'Show password'}
                                     >
-                                        {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        {showNew ? 'Hide' : 'Show'}
                                     </button>
                                 </div>
                             </div>
-                            <div style={{ marginTop: '15px' }}>
-                                <label>Confirm Password {isSuperAdmin && <span>*</span>}</label>
-                                <div className={`PasswordInputWrapper ${themeClass}`}>
-                                    <Lock className={`LoginInputIcon ${themeClass}`} size={16} />
-                                    <input 
-                                        type={showConfirm ? "text" : "password"} 
-                                        placeholder={isSuperAdmin ? "Enter your password" : "Re-type new password"} 
+
+                            {/* Confirm Password */}
+                            <div className="CPFormGroup">
+                                <label className="CPLabel">
+                                    Confirm New Password <span className="CPRequired">*</span>
+                                </label>
+                                <div className="CPInputWrapper">
+                                    <input
+                                        className={`CPInput ${forgotError && (!confirmPassword || newPassword !== confirmPassword) ? 'cp-input-error' : ''}`}
+                                        type={showConfirm ? 'text' : 'password'}
+                                        placeholder="Confirm your password"
                                         value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        required
+                                        onChange={(e) => {
+                                            setConfirmPassword(e.target.value);
+                                            setForgotError('');
+                                        }}
                                     />
                                     <button
                                         type="button"
-                                        className={`TogglePasswordBtn ${themeClass}`}
+                                        className={`CPToggleBtn ${themeClass}`}
                                         onClick={() => setShowConfirm((v) => !v)}
                                         aria-label={showConfirm ? 'Hide password' : 'Show password'}
                                     >
-                                        {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        {showConfirm ? 'Hide' : 'Show'}
                                     </button>
                                 </div>
+
+                                {confirmPassword && (
+                                    <span
+                                        className={`CPMatchIndicator ${
+                                            newPassword === confirmPassword ? 'match-ok' : 'match-fail'
+                                        }`}
+                                    >
+                                        {newPassword === confirmPassword
+                                            ? '✅ Passwords match'
+                                            : '❌ Passwords do not match'}
+                                    </span>
+                                )}
                             </div>
-                            <button type="submit" className={`SubmitBtn ${themeClass}`} style={{ marginTop: '20px' }}>
+
+                            <div className="CPRequirements">
+                                <p className="CPReqTitle">Password requirements:</p>
+                                <ul className="CPReqList">
+                                    <li className={`CPReqItem ${checks.length ? 'req-met' : 'req-unmet'}`}>
+                                        {checks.length ? '✅' : '❌'} At least 8 characters
+                                    </li>
+                                    <li className={`CPReqItem ${checks.uppercase ? 'req-met' : 'req-unmet'}`}>
+                                        {checks.uppercase ? '✅' : '❌'} At least one uppercase letter
+                                    </li>
+                                    <li className={`CPReqItem ${checks.number ? 'req-met' : 'req-unmet'}`}>
+                                        {checks.number ? '✅' : '❌'} At least one number
+                                    </li>
+                                    <li className={`CPReqItem ${checks.special ? 'req-met' : 'req-unmet'}`}>
+                                        {checks.special ? '✅' : '❌'} At least one special character
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {forgotError && (
+                                <div className="CPErrorMsgContainer">
+                                    <p className="CPErrorMsg">{forgotError}</p>
+                                </div>
+                            )}
+
+                            <button type="submit" className={`CPSubmitBtn ${themeClass}`}>
                                 Update Password
                             </button>
                         </form>

@@ -55,9 +55,10 @@ def list_complaints_awaiting_request(
 
 
     complaints = db.query(Complaint).filter(
-        Complaint.complaint_id.notin_(complaint_ids_with_requests),
-        Complaint.status == "open",
-        Complaint.region_id == current_user.region_id,   # NEW — region scoping
+    Complaint.complaint_id.notin_(complaint_ids_with_requests),
+    Complaint.status == "open",
+    Complaint.region_id == current_user.region_id,
+    Complaint.deleted_at.is_(None),   # ADD — exclude soft-deleted complaints
     ).order_by(Complaint.created_at.desc()).all()
 
     return complaints
@@ -72,9 +73,10 @@ def get_walkin_complaint_detail(
     current_user=Depends(get_current_user),
 ):
     complaint = db.query(Complaint).filter(
-        Complaint.complaint_id == complaint_id,
-        Complaint.region_id == current_user.region_id,
-        Complaint.source == "walk_in",
+    Complaint.complaint_id == complaint_id,
+    Complaint.region_id == current_user.region_id,
+    Complaint.source == "walk_in",
+    Complaint.deleted_at.is_(None),
     ).first()
 
     if not complaint:

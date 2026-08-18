@@ -257,3 +257,40 @@ def update_complaint_direct(
         db, current_user, complaint_id, complainant_fields, complaint_fields, files, remove_attachment_ids
     )
     return updated_complaint
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # DELETE /complaints/walkin/{complaint_id}
+@direct_complaint_router.delete("/{complaint_id}")
+def delete_walkin_complaint(
+    complaint_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    complaint = db.query(Complaint).filter(
+        Complaint.complaint_id == complaint_id,
+        Complaint.region_id == current_user.region_id,
+        Complaint.source == "walk_in",
+        Complaint.deleted_at.is_(None),
+    ).first()
+
+    if not complaint:
+        raise HTTPException(status_code=404, detail="Complaint not found.")
+
+    if complaint.status != "open":
+        raise HTTPException(
+            status_code=400,
+            detail="Only complaints in Ready to Send can be deleted.",
+        )
+
+    complaint.deleted_at = datetime.now(timezone.utc)
+    complaint.deleted_by = current_user.user_id
+
+    db.commit()
+
+    return {"message": "Complaint deleted successfully."}

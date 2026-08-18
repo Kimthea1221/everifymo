@@ -108,10 +108,6 @@ class WalkinComplaintListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class WalkinComplaintDetailResponse(WalkinComplaintListResponse):
-    nature_of_complaint: str | None
-    attached_files: list[SharedFileResponse]
-
 
 class WalkinComplaintDetailResponse(WalkinComplaintListResponse):
     nature_of_complaint: str | None

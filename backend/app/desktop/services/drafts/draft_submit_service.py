@@ -216,10 +216,12 @@ def update_walkin_complaint_direct(
     # A complaint must always have at least one supporting attachment.
     # Existing files not being removed still count — only check that
     # after removals + no new uploads, we wouldn't end up at zero.
-    existing_count = db.query(SharedFile).filter(
-        SharedFile.complaint_id == complaint_id,
-        SharedFile.file_id.notin_(remove_attachment_ids) if remove_attachment_ids else True,
-    ).count()
+
+    existing_query = db.query(SharedFile).filter(SharedFile.complaint_id == complaint_id)
+    if remove_attachment_ids:
+        existing_query = existing_query.filter(SharedFile.file_id.notin_(remove_attachment_ids))
+    existing_count = existing_query.count()
+
     if existing_count == 0 and len(files) == 0:
         raise HTTPException(
             status_code=400,

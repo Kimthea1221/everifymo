@@ -620,29 +620,45 @@ function LeaVerificationRequest() {
       confirmBg: '#ef4444',
       onConfirm: async () => {
         setModalConfig(null);
+        const token = localStorage.getItem('access_token');
 
+        // If a draft exists for this complaint, clean it up first —
+        // separate record from the complaint itself
         if (currentDraftId) {
-          const token = localStorage.getItem('access_token');
           try {
-            const res = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}`, {
+            const draftRes = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}`, {
               method: 'DELETE',
               headers: { authorization: `Bearer ${token}` },
             });
-            if (!res.ok) {
-              const msg = await parseBackendError(res);
+            if (!draftRes.ok) {
+              const msg = await parseBackendError(draftRes);
               showError(msg);
               return;
             }
-            showSuccess('Draft deleted successfully.');
           } catch {
             showError('Failed to delete draft. Please try again.');
             return;
           }
-        } else {
-          showSuccess('Verification request draft cleared.');
         }
 
-        // Reset compose form state and selection
+        // Always delete the actual complaint — this is what the
+        // officer actually expects when clicking Delete here
+        try {
+          const res = await fetch(`${API_BASE}/complaints/walkin/${selectedComplaint.complaint_id}`, {
+            method: 'DELETE',
+            headers: { authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) {
+            const msg = await parseBackendError(res);
+            showError(msg);
+            return;
+          }
+          showSuccess('Complaint deleted successfully.');
+        } catch {
+          showError('Failed to delete complaint. Please try again.');
+          return;
+        }
+
         setCurrentDraftId(null);
         setSelectedComplaint(null);
         setProductCode('');
@@ -654,7 +670,7 @@ function LeaVerificationRequest() {
         setModalConfig(null);
       },
     });
-  };
+};
 
   // MERGED-ADD — client-side search + category filtering for the four queue tabs
   const filteredReadyList = readyList.filter((item) => {
