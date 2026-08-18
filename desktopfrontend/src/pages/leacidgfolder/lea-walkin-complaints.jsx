@@ -12,53 +12,40 @@ const API_BASE = 'http://127.0.0.1:8000';
 function WcGetStatusClass(status) {
     switch (status) {
         case 'queued':
-        case 'Ready to Send':
             return 'WcStatus-queued';
 
         case 'pending':
-        case 'Pending FDA Verification':
             return 'WcStatus-pending';
 
         case 'confirmed_registered':
-        case 'Confirmed Registered':
             return 'WcStatus-confirmed-registered';
 
         case 'confirmed_unregistered':
-        case 'Confirmed Unregistered':
             return 'WcStatus-confirmed-unregistered';
 
         case 'rejected':
-        case 'recalled':
-        case 'Verification Rejected':
-        case 'Request Recalled':
             return 'WcStatus-rejected';
 
         default:
             return '';
     }
 }
+
 function WcGetStatusLabel(status) {
     switch (status) {
         case 'queued':
-        case 'Ready to Send':
             return 'Ready to Send';
 
         case 'pending':
-        case 'Pending FDA Verification':
             return 'Pending FDA Verification';
 
         case 'confirmed_registered':
-        case 'Confirmed Registered':
             return 'Confirmed Registered';
 
         case 'confirmed_unregistered':
-        case 'Confirmed Unregistered':
             return 'Confirmed Unregistered';
 
         case 'rejected':
-        case 'recalled':
-        case 'Verification Rejected':
-        case 'Request Recalled':
             return 'Verification Rejected';
 
         default:
@@ -69,62 +56,30 @@ function WcGetStatusLabel(status) {
 function LeaWalkinComplaints() {
     // BACKEND:
     // Load complaints from API.
-    const [complaints, setComplaints] = useState([
-        {
-            id: 'ICM-2025-00185',
-            product: 'HerbalSlim Capsules',
-            manufacturer: 'NatureFit Labs',
-            complainant: 'M. Reyes',
-            status: 'queued',
-            category: 'Drugs',
-            logged: '2026-05-17 10:42',
-        },
-        {
-            id: 'ICM-2025-00186',
-            product: 'BioGlow Serum',
-            manufacturer: 'Aura Cosmetics',
-            complainant: 'L. Dela Cruz',
-            status: 'pending',
-            category: 'Cosmetics',
-            logged: '2026-05-17 11:15',
-        },
-        {
-            id: 'ICM-2025-00187',
-            product: 'ChocoMax Cereal',
-            manufacturer: 'GrainGood Foods',
-            complainant: 'J. Santos',
-            status: 'confirmed_registered',
-            category: 'Food',
-            logged: '2026-05-18 09:30',
-        },
-        {
-            id: 'ICM-2025-00188',
-            product: 'GlucoMeter Pro',
-            manufacturer: 'MedTech Solutions',
-            complainant: 'A. Ramos',
-            status: 'confirmed_unregistered',
-            category: 'Medical Devices',
-            logged: '2026-05-18 14:45',
-        },
-        {
-            id: 'ICM-2025-00189',
-            product: 'Vitamin C Plus',
-            manufacturer: 'NutriVital',
-            complainant: 'P. Alcantara',
-            status: 'rejected',
-            category: 'Drugs',
-            logged: '2026-05-19 10:00',
-        },
-        {
-            id: 'ICM-2025-00190',
-            product: 'YouthCream Anti-Aging',
-            manufacturer: 'GlowSkin Co.',
-            complainant: 'S. Lopez',
-            status: 'recalled',
-            category: 'Cosmetics',
-            logged: '2026-05-19 16:20',
-        }
-    ])
+    const [complaints, setComplaints] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const token = localStorage.getItem('access_token')
+        setLoading(true)
+        fetch(`${API_BASE}/complaints/walkin/`, {
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setComplaints(data.map((c) => ({
+                    id: c.case_reference,
+                    complaintId: c.complaint_id,
+                    product: c.product_title,
+                    manufacturer: c.manufacturer,
+                    complainant: c.complainant_name,
+                    status: c.status,
+                    category: c.product_category,
+                    logged: new Date(c.created_at).toLocaleString(),
+                })))
+            })
+            .finally(() => setLoading(false))
+    }, [])
     const [search, setSearch] = useState('')
     const [selectedStatus, setSelectedStatus] = useState('All')
     const [selectedCategory, setSelectedCategory] = useState('All')
@@ -204,9 +159,31 @@ function LeaWalkinComplaints() {
         return matchesSearch && matchesStatus && matchesCategory;
     })
 
+    const [detailLoading, setDetailLoading] = useState(false)
+
     const handleViewButton = (complaint) => {
         setSelectedComplaint(complaint)
         setViewModal(true)
+
+        const token = localStorage.getItem('access_token')
+        setDetailLoading(true)
+        fetch(`${API_BASE}/complaints/${complaint.complaintId}/walkin-detail`, {
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.json()
+            })
+            .then((data) => {
+                setSelectedComplaint((prev) => (prev && prev.id === complaint.id ? {
+                    ...prev,
+                    statement: data.nature_of_complaint,
+                    attached_files: data.attached_files,
+                    status: data.status,
+                } : prev))
+            })
+            .catch((err) => console.error('Failed to load complaint detail:', err))
+            .finally(() => setDetailLoading(false))
     }
     const handleCloseViewbutton = () => {
         setViewModal(false)
@@ -226,10 +203,20 @@ function LeaWalkinComplaints() {
     }
 
     const handleConfirmSingleDelete = () => {
-        // BACKEND: call delete API for singleDeleteTarget.id
-        setComplaints(complaints.filter((c) => c.id !== singleDeleteTarget.id))
-        setSingleDeleteTarget(null)
-        setShowSingleDeleteModal(false)
+        const token = localStorage.getItem('access_token')
+        fetch(`${API_BASE}/complaints/walkin/${singleDeleteTarget.complaintId}`, {
+            method: 'DELETE',
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                setComplaints((prev) => prev.filter((c) => c.id !== singleDeleteTarget.id))
+            })
+            .catch((err) => console.error('Failed to delete complaint:', err))
+            .finally(() => {
+                setSingleDeleteTarget(null)
+                setShowSingleDeleteModal(false)
+            })
     }
 
     const handleCancelSingleDelete = () => {
@@ -254,22 +241,35 @@ function LeaWalkinComplaints() {
     const OpenNewIntakePageButton = () => {
         navigate('/leacidgfolder/lea-new-intake');
     };
+    
     const handleEditComplaint = (complaint) => {
-        // BACKEND:
-        // The selected complaint data should be passed back from the API
-        // so the New Intake page opens in Edit Mode.
-        // All existing field values must automatically populate
-        // their corresponding inputs.
-
-        // BACKEND:
-        // When opening Edit mode,
-        // return all complaint fields so inputs are automatically pre-filled.
         navigate('/leacidgfolder/lea-new-intake', {
-            state: {
-                complaint
-            }
+            state: { complaintId: complaint.complaintId }
         });
     };
+
+    const handleExportCSV = () => {
+        const headers = ['Case ID', 'Product', 'Manufacturer', 'Complainant', 'Status', 'Category', 'Logged']
+        const rows = filtered.map((c) => [
+            c.id,
+            c.product,
+            c.manufacturer,
+            c.complainant,
+            WcGetStatusLabel(c.status),
+            c.category,
+            c.logged,
+        ])
+        const escapeCell = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`
+        const csvContent = [headers, ...rows].map((row) => row.map(escapeCell).join(',')).join('\r\n')
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `walkin-complaints-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
 
     return (
         <div className='LeaDashboardMain LeaWalkinComplaintsMain'>
@@ -286,7 +286,7 @@ function LeaWalkinComplaints() {
 
                         {/* Buttons now on their own row below the title, right-aligned */}
                         <div className='WalkinButtonActionsRow'>
-                            <button className='BtnExportCSV'>Export CSV</button>
+                            <button className='BtnExportCSV' onClick={handleExportCSV}>Export CSV</button>
                             <button className='BtnNewComplaint' onClick={OpenNewIntakePageButton}>New Complaint</button>
                         </div>
 
@@ -502,7 +502,7 @@ function LeaWalkinComplaints() {
                                     </div>
                                     <h6 className='Statementcomp'>COMPLAINANT STATEMENT</h6>
                                     <div className='StatementBox'>
-                                        <p>{selectedComplaint.statement || selectedComplaint.complainant_statement || selectedComplaint.description || 'Example statement....'}</p>
+                                        <p>{detailLoading ? 'Loading…' : (selectedComplaint.statement || selectedComplaint.complainant_statement || selectedComplaint.description || 'Example statement....')}</p>
                                     </div>
 
                                     {/* Auto-Attached Evidence & Request Documents */}

@@ -23,7 +23,7 @@ router = APIRouter(prefix="/admin/users", tags=["user-management"])
 
 def compute_display_status(user: User, latest_token) -> str:
     if user.is_locked:
-        return "Locked Account"
+        return "Locked"
     if user.status == UserStatus.INVITED:
         if latest_token:
             if latest_token.resend_requested_at is not None:
@@ -275,8 +275,8 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if not (user.status == UserStatus.ACTIVE and not user.is_active):
-        raise HTTPException(status_code=400, detail="Only suspended users can be deleted.")
+    if not (user.status == UserStatus.ACTIVE and not user.is_active) and user.status != UserStatus.INVITED:
+        raise HTTPException(status_code=400, detail="Only suspended users or invited/expired invitations can be deleted.")
 
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == user_id).delete()
     db.delete(user)

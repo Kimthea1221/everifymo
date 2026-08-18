@@ -46,11 +46,12 @@ function mapAdmin(item) {
 
 const STATUS_META = {
   Invited: { label: 'Invited', className: 'sam-badge-invited' },
-  'Invitation Expired': { label: 'Invitation Expired', className: 'sam-badge-expired' },
+  'Link Expired': { label: 'Link Expired', className: 'sam-badge-expired' },
+  'Resend Requested': { label: 'Resend Requested', className: 'sam-badge-pending' },
   Active: { label: 'Active', className: 'sam-badge-active' },
   Suspended: { label: 'Suspended', className: 'sam-badge-suspended' },
   'Pending Approval': { label: 'Pending Approval', className: 'sam-badge-pending' },
-  'Locked Account': { label: 'Locked Account', className: 'sam-badge-locked' },
+  Locked: { label: 'Locked', className: 'sam-badge-locked' },
 };
 
 function SAMStatusBadge({ status }) {
@@ -98,8 +99,8 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
             <Eye size={14} /> View Details
           </button>
 
-          {/* Invitation Expired/Invited — Resend Invitation */}
-          {['Invited', 'Invitation Expired'].includes(status) && (
+          {/* Invited / Resend Requested / Link Expired — Resend Invitation */}
+          {['Invited', 'Resend Requested', 'Link Expired'].includes(status) && (
             <button
               className="SAMDropdownItem"
               onClick={() => {
@@ -109,6 +110,22 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
             >
               <Send size={14} /> Resend Invitation
             </button>
+          )}
+
+          {/* Link Expired — Delete Invitation */}
+          {status === 'Link Expired' && (
+            <>
+              <div className="SAMDropdownDivider" />
+              <button
+                className="SAMDropdownItem danger"
+                onClick={() => {
+                  onAction('delete');
+                  toggleDropdown();
+                }}
+              >
+                <Trash2 size={14} /> Delete Invitation
+              </button>
+            </>
           )}
 
           {/* Pending Approval — Activate */}
@@ -125,7 +142,7 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
           )}
 
           {/* Locked Account — Unlock */}
-          {status === 'Locked Account' && (
+          {status === 'Locked' && (
             <button
               className="SAMDropdownItem"
               onClick={() => {
@@ -587,7 +604,6 @@ export default function SuperAdminAdminManagement() {
 
             <div className="SAMStatsRow">
               {[
-                { label: 'Total Superadmins', value: admins.length, className: 'sam-stat-total' },
                 {
                   label: 'Active',
                   value: admins.filter((a) => a.status === 'Active').length,
@@ -600,22 +616,17 @@ export default function SuperAdminAdminManagement() {
                 },
                 {
                   label: 'Invited',
-                  value: admins.filter((a) => a.status === 'Invited').length,
+                  value: admins.filter((a) => ['Invited', 'Resend Requested'].includes(a.status)).length,
                   className: 'sam-stat-invited',
                 },
                 {
-                  label: 'Invitation Expired',
-                  value: admins.filter((a) => a.status === 'Invitation Expired').length,
+                  label: 'Link Expired',
+                  value: admins.filter((a) => a.status === 'Link Expired').length,
                   className: 'sam-stat-expired',
                 },
                 {
-                  label: 'Suspended',
-                  value: admins.filter((a) => a.status === 'Suspended').length,
-                  className: 'sam-stat-suspended',
-                },
-                {
                   label: 'Locked',
-                  value: admins.filter((a) => a.status === 'Locked Account').length,
+                  value: admins.filter((a) => a.status === 'Locked').length,
                   className: 'sam-stat-locked',
                 },
               ].map((s) => (
@@ -664,11 +675,12 @@ export default function SuperAdminAdminManagement() {
                 >
                   <option value="All">All</option>
                   <option value="Invited">Invited</option>
-                  <option value="Invitation Expired">Invitation Expired</option>
+                  <option value="Resend Requested">Resend Requested</option>
+                  <option value="Link Expired">Link Expired</option>
                   <option value="Pending Approval">Pending Approval</option>
                   <option value="Active">Active</option>
                   <option value="Suspended">Suspended</option>
-                  <option value="Locked Account">Locked Account</option>
+                  <option value="Locked">Locked</option>
                 </select>
               </div>
             </div>
