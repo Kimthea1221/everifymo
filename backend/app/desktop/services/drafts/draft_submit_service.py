@@ -180,6 +180,7 @@ def create_walkin_complaint_direct(
     db.refresh(new_complaint)
     return new_complaint
 
+# Ashanti code starts here
 
 def update_walkin_complaint_direct(
     db: Session,
@@ -262,3 +263,5 @@ def update_walkin_complaint_direct(
     db.commit()
     db.refresh(complaint)
     return complaint
+
+#Ashanti code ends here

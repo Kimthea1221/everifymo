@@ -95,6 +95,7 @@ class VerificationRequestDraftDetailResponse(BaseModel):
     complaint: ComplaintVerificationDetailResponse
 
 
+# I added this (Ashanti) starting here
 class WalkinComplaintListResponse(BaseModel):
     complaint_id: UUID
     case_reference: str
@@ -120,3 +121,5 @@ class WalkinComplaintDetailResponse(WalkinComplaintListResponse):
     id_type: str | None
     address: str | None
     attached_files: list[SharedFileResponse]
+
+#Ashanti code ends here

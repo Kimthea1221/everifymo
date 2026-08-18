@@ -102,7 +102,8 @@ def create_verification_request_direct(
     return new_request
 
 
-#mhae
+#ashanti start
+
 def recall_verification_request(db: Session, request_id: UUID, current_user) -> VerificationRequest:
     request = db.query(VerificationRequest).join(
         Complaint, VerificationRequest.complaint_id == Complaint.complaint_id
@@ -196,3 +197,5 @@ def resend_reminder(db: Session, request_id: UUID, current_user) -> Verification
     db.refresh(request)
 
     return request
+
+#ashanti  end

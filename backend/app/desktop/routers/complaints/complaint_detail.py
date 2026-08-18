@@ -64,7 +64,7 @@ def list_complaints_awaiting_request(
     return complaints
 
     #
-    #
+    #Ashanti code starts here
     # GET /complaints/{complaint_id}/walkin-detail
 @router.get("/{complaint_id}/walkin-detail", response_model=WalkinComplaintDetailResponse)
 def get_walkin_complaint_detail(
@@ -76,7 +76,7 @@ def get_walkin_complaint_detail(
     Complaint.complaint_id == complaint_id,
     Complaint.region_id == current_user.region_id,
     Complaint.source == "walk_in",
-    Complaint.deleted_at.is_(None),
+    Complaint.deleted_at.is_(None), #added
     ).first()
 
     if not complaint:
@@ -124,3 +124,4 @@ def get_walkin_complaint_detail(
         address=complainant.address if complainant else None,
         attached_files=[SharedFileResponse.model_validate(f) for f in files],
     )
+#Ashanti code ends here

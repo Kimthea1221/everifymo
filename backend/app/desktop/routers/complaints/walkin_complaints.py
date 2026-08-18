@@ -97,7 +97,7 @@ def create_complaint_direct(
     #
     #
     #
-    #
+    #Ashanti code starts here
     #
     # GET /complaints/walkin/
 @direct_complaint_router.get("/", response_model=list[WalkinComplaintListResponse])
@@ -259,3 +259,5 @@ def delete_walkin_complaint(
     db.commit()
 
     return {"message": "Complaint deleted successfully."}
+
+#Ashanti code ends here

@@ -99,7 +99,7 @@ def create_request_direct(
     #
     #
     #
-    #
+    # Ashanti code starts here
     #
     #
     # POST /verification-requests/{request_id}/recall
@@ -126,6 +126,8 @@ def resend_reminder_endpoint(
     current_user=Depends(get_current_user),
 ):
     return resend_reminder(db, request_id, current_user)
+
+# Ashanti code ends here
 
 
 # Third router in this file — listing/browsing, separate from the
