@@ -64,32 +64,35 @@ function ForgotPassword() {
     };
 
     const handleSendCode = async (e) => {
-        e.preventDefault();
-        if (!email) return;
-        setForgotError('');
+    e.preventDefault();
+    if (!email) return;
+    setForgotError('');
 
-        try {
-            const response = await fetch('http://127.0.0.1:8000/auth/password/forgot', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
+      try {
+          const response = await fetch('http://127.0.0.1:8000/auth/password/forgot', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  email,
+                  portal: isSuperAdmin ? 'superadmin' : 'personnel',
+              }),
+          });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to send code.');
-            }
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || 'Failed to send code.');
+          }
 
-            setStep('code');
-            setTimer(300);
-            setOtp(new Array(6).fill(''));
-            setTimeout(() => {
-                otpRefs.current[0]?.focus();
-            }, 0);
-        } catch (err) {
-            setForgotError(err.message);
-        }
-    };
+          setStep('code');
+          setTimer(300);
+          setOtp(new Array(6).fill(''));
+          setTimeout(() => {
+              otpRefs.current[0]?.focus();
+          }, 0);
+      } catch (err) {
+          setForgotError(err.message);
+      }
+  };
 
     const handleResendOtp = async () => {
         setForgotError('');
@@ -97,7 +100,10 @@ function ForgotPassword() {
             const response = await fetch('http://127.0.0.1:8000/auth/password/forgot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({
+                    email,
+                    portal: isSuperAdmin ? 'superadmin' : 'personnel',
+                }),
             });
 
             if (!response.ok) {
@@ -116,7 +122,7 @@ function ForgotPassword() {
     };
 
     const handleVerifyCode = async (e) => {
-        e.preventDefault();
+      e.preventDefault();
         const otpCode = otp.join('');
         if (otpCode.length < 6) {
             setForgotError('Please enter the full 6-digit verification code.');
@@ -128,7 +134,11 @@ function ForgotPassword() {
             const response = await fetch('http://127.0.0.1:8000/auth/password/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp: otpCode }),
+                body: JSON.stringify({
+                    email,
+                    otp: otpCode,
+                    portal: isSuperAdmin ? 'superadmin' : 'personnel',   // <-- NEW
+                }),
             });
 
             if (!response.ok) {
@@ -164,7 +174,12 @@ function ForgotPassword() {
             const response = await fetch('http://127.0.0.1:8000/auth/password/reset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp: otp.join(''), new_password: newPassword }),
+                body: JSON.stringify({
+                    email,
+                    otp: otp.join(''),
+                    new_password: newPassword,
+                    portal: isSuperAdmin ? 'superadmin' : 'personnel',   // <-- NEW
+                }),
             });
 
             if (!response.ok) {
@@ -175,7 +190,7 @@ function ForgotPassword() {
             setStep('success');
         } catch (err) {
             setForgotError(err.message);
-            setStep('code'); // send them back to re-enter the code if it was wrong/expired
+            setStep('code');
         }
     };
 
@@ -457,7 +472,8 @@ function ForgotPassword() {
                   border: 1px solid red;
                   padding: 12px 16px;
                   border-radius: 8px;
-                  margin-bottom: 20px;
+                  margin-top: 10px;
+                  margin-bottom: 10px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
@@ -689,19 +705,25 @@ function ForgotPassword() {
                 }
 
                 .ErrorContainer.superadmin {
-                  padding: 10px 14px;
+                  padding: 12px 16px;
                   background: rgba(239, 68, 68, 0.15);
                   border: 1px solid rgba(239, 68, 68, 0.5);
                   border-radius: 8px;
-                  margin-top: 4px;
+                  margin-top: 10px;
+                  margin-bottom: 10px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-sizing: border-box;
                 }
 
                 .ErrorMsg.superadmin {
                   font-family: 'Inter', sans-serif;
-                  font-style: italic;
-                  font-size: 10px;
-                  color: #B91C1C;
+                  font-size: 12px;
+                  font-weight: 500;
+                  color: #f87171;
                   margin: 0;
+                  text-align: center;
                 }
 
                 /* --- Success page specific overrides --- */
@@ -817,6 +839,11 @@ function ForgotPassword() {
                 .cp-input-error {
                   border-color: #ef4444 !important;
                   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+                }
+
+                .login-input-error {
+                  border-color: #ef4444 !important;
+                  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
                 }
 
                 .CPToggleBtn {
@@ -977,12 +1004,6 @@ function ForgotPassword() {
                         </p>
                     </div>
 
-                    {forgotError && step !== 'reset' && (
-                        <div className={`ErrorContainer ${themeClass}`} style={{ margin: isSuperAdmin ? '20px 48px 0' : '20px 40px 0' }}>
-                            <p className={`ErrorMsg ${themeClass}`}>{forgotError}</p>
-                        </div>
-                    )}
-
                     {/*FOR INPUT EMAIL */}
                     {step === 'email' && (
                         <form onSubmit={handleSendCode} className={`ForgotForm ${themeClass}`}>
@@ -995,10 +1016,16 @@ function ForgotPassword() {
                                         placeholder="youremail@gmail.com" 
                                         value={email}
                                         onChange={handleEmailChange}
+                                        className={forgotError ? 'login-input-error' : ''}
                                         required
                                     />
                                 </div>
                             </div>
+                            {forgotError && (
+                                <div className={`ErrorContainer ${themeClass}`} style={{ marginTop: '5px', marginBottom: '5px' }}>
+                                    <p className={`ErrorMsg ${themeClass}`}>{forgotError}</p>
+                                </div>
+                            )}
                             <button type="submit" className={`SubmitBtn ${themeClass}`}>Send Code</button>
                             <button type="button" className={`BackBtn ${themeClass}`} onClick={handleBackToLogin}>Back to Login</button>
                         </form>
@@ -1043,6 +1070,12 @@ function ForgotPassword() {
                                     )}
                                 </div>
                             </div>
+
+                            {forgotError && (
+                                <div className={`ErrorContainer ${themeClass}`} style={{ marginTop: '5px', marginBottom: '5px' }}>
+                                    <p className={`ErrorMsg ${themeClass}`}>{forgotError}</p>
+                                </div>
+                            )}
 
                             <button type="submit" className={`SubmitBtn ${themeClass}`}>Verify Code</button>
                             <button type="button" className={`BackBtn ${themeClass}`} onClick={() => setStep('email')}>
