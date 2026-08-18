@@ -17,6 +17,7 @@ from app.desktop.services.Product_database.registered_product_service import (
     get_all_registered_products,
     update_registered_product,
     convert_advisory_to_product,
+    delete_registered_product,
 )
 
 # Fetch the logged-in user profile from the authentication token
@@ -65,3 +66,13 @@ def convert_from_advisory(
 ):
     db.execute(text("SET app.bypass_rls = 'true'"))
     return convert_advisory_to_product(db, advisory_id, payload, current_user.user_id)
+
+
+@router.delete("/{product_id}")
+def delete_registered_product_endpoint(
+    product_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    db.execute(text("SET app.bypass_rls = 'true'"))
+    return delete_registered_product(db, product_id, current_user.user_id)
