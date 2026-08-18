@@ -152,3 +152,22 @@ def convert_product_to_advisory(db: Session, product_id, data: UnregisteredAdvis
     db.refresh(new_advisory)
 
     return format_advisory_response(new_advisory, db)
+
+
+def delete_unregistered_advisory(db: Session, advisory_id, current_user_id):
+    advisory = db.query(UnregisteredAdvisory).filter(
+        UnregisteredAdvisory.advisory_id == advisory_id,
+        UnregisteredAdvisory.deleted_at.is_(None)
+    ).first()
+
+    if not advisory:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Unregistered advisory not found."
+        )
+
+    advisory.deleted_at = func.now()
+    advisory.deleted_by = current_user_id
+
+    db.commit()
+    return {"message": "Advisory deleted successfully."}

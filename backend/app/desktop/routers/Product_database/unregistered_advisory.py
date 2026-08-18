@@ -16,6 +16,7 @@ from app.desktop.services.Product_database.unregistered_advisory_service import 
     get_all_unregistered_advisories,
     update_unregistered_advisory,
     convert_product_to_advisory,
+    delete_unregistered_advisory,
 )
 
 # Fetch the logged-in user profile from the authentication token
@@ -64,3 +65,13 @@ def convert_from_product(
 ):
     db.execute(text("SET app.bypass_rls = 'true'"))
     return convert_product_to_advisory(db, product_id, payload, current_user.user_id)
+
+
+@router.delete("/{advisory_id}")
+def delete_unregistered_advisory_endpoint(
+    advisory_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    db.execute(text("SET app.bypass_rls = 'true'"))
+    return delete_unregistered_advisory(db, advisory_id, current_user.user_id)
