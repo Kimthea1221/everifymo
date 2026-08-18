@@ -792,7 +792,7 @@ function SuperAdminAuditLog() {
                 <Search size={16} className="AuditSearchIcon" />
                 <input
                   type="text"
-                  placeholder="Search by user, target reference, table, or ID..."
+                  placeholder="Search by user, target reference/table/ID..."
                   className="AuditSearchInput"
                   value={searchQuery}
                   onChange={(e) => {
