@@ -17,6 +17,9 @@ from app.desktop.routers.admin_management import management as admin_management_
 from app.desktop.routers.auth.personnel_login import router as personnel_login_router
 from app.desktop.routers.auth.password_change import router as password_change_router
 from app.desktop.routers.profile_setting import profile as profile_router
+from app.desktop.routers.auth.superadmin_invite_public import router as superadmin_invite_public_router
+from app.desktop.routers.superadmin_notifications.superadmin_notifications import router as superadmin_notifications_router
+
 
 from app.database.base import Base
 from app.database.sessions import engine, get_db
@@ -60,6 +63,19 @@ from app.desktop.routers.verification.verification_requests import (
     list_router as verification_list_router,
 )
 
+# FDA Verification Drafts and Confirmation FDA Response feature
+from app.desktop.routers.drafts.fda_verification_drafts import router as fda_verification_draft_router
+from app.desktop.routers.verification.verification_response import fda_response_router
+
+# Title Extaction Retrieved from the Chrome Extension to NLP
+from app.extension.routers.retrieval import router as retrieval_router
+
+<<<<<<< HEAD
+#for verification history in extension
+from app.extension.routers import verification
+
+=======
+>>>>>>> 12ea3d36ceede4106955b1cf8a8206025f05c8c9
 app = FastAPI()
 # Base.metadata.create_all(bind=engine) wag na iuuncomment this line, since we are using alembic for migrations
 
@@ -102,6 +118,8 @@ app.include_router(admin_management_router.router)
 app.include_router(walkin_drafts_router)
 app.include_router(all_drafts_router)
 app.include_router(verification_drafts_router)
+app.include_router(fda_verification_draft_router)
+
 
 app.include_router(draft_submit_router)
 app.include_router(direct_complaint_router)
@@ -111,12 +129,15 @@ app.include_router(shared_files_router)
 
 app.include_router(verification_draft_submit_router)
 app.include_router(verification_direct_request_router)
+app.include_router(fda_response_router)
 
 app.include_router(verification_list_router)
 
 app.include_router(personnel_login_router)
 app.include_router(password_change_router)
 app.include_router(profile_router.router)
+app.include_router(superadmin_invite_public_router)
+app.include_router(superadmin_notifications_router)
 
 @app.get("/", status_code=status.HTTP_200_OK)
 async def user(consumer: consumer_dependency):
@@ -127,3 +148,11 @@ async def user(consumer: consumer_dependency):
         "User": consumer
     }
 
+
+<<<<<<< HEAD
+app.include_router(retrieval_router)
+
+app.include_router(verification.router)
+=======
+app.include_router(retrieval_router)
+>>>>>>> 12ea3d36ceede4106955b1cf8a8206025f05c8c9

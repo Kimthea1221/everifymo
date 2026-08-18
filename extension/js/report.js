@@ -1,4 +1,6 @@
 // report.js
+import { whenSessionReady, isUserLoggedIn, getCurrentUser, submitComplaint } from "../scripts/session.js";
+
 function showReportView(viewId) {
   const views = document.querySelectorAll('.report-view, .report-view-guest');
   views.forEach(view => {
@@ -138,8 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!success) {
               console.error("Complaint submission failed:", e);
             }
-          }
-        );
+          });
       });
     });
 

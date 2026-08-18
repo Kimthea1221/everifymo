@@ -8,6 +8,7 @@ TEMPLATE_PATH_SUPERADMIN = Path(__file__).parent / "templates" / "superadmin_otp
 TEMPLATE_PATH_PERSONNEL = Path(__file__).parent / "templates" / "personnel_otp_email.html"
 TEMPLATE_PATH_ACTIVATION = Path(__file__).parent / "templates" / "user_activation_email.html"
 TEMPLATE_PATH_SUPERADMIN_INVITE = Path(__file__).parent / "templates" / "superadmin_invite_email.html"
+TEMPLATE_PATH_SUPERADMIN_ACTIVATION = Path(__file__).parent / "templates" / "superadmin_activation_email.html"
 
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -134,6 +135,28 @@ async def send_activation_email(to_email: str, full_name: str, temp_password: st
 
     message = MessageSchema(
         subject="Your ICMDA account has been activated",
+        recipients=[to_email],
+        body=html_body,
+        subtype=MessageType.html,
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
+
+
+
+
+def render_superadmin_activation_email(email: str) -> str:
+    html = TEMPLATE_PATH_SUPERADMIN_ACTIVATION.read_text(encoding="utf-8")
+    html = html.replace("{{EMAIL}}", email)
+    return html
+
+
+async def send_superadmin_activation_email(to_email: str):
+    html_body = render_superadmin_activation_email(to_email)
+
+    message = MessageSchema(
+        subject="Your ICMDA Superadmin account is now active",
         recipients=[to_email],
         body=html_body,
         subtype=MessageType.html,

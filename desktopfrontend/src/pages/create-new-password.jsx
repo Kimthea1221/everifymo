@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function CreateNewPassword() {
   const navigate = useNavigate();
+  const location = useLocation(); 
 
   const [form, setForm] = useState({
     newPassword: '',
@@ -56,30 +58,32 @@ function CreateNewPassword() {
     setSubmitting(true);
 
     try {
-      // 🔌 BACKEND: Submit new password to API endpoint
-      // const response = await fetch('http://127.0.0.1:8000/auth/password/create-from-invite', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     token: inviteToken,
-      //     new_password: form.newPassword,
-      //   }),
-      // });
-      // if (!response.ok) {
-      //   const errorData = await response.json();
-      //   throw new Error(errorData.detail || 'Failed to create password.');
-      // }
+    const token = location.state?.token; // make sure token is passed in via navigate() state
 
-      // ⚠️ REMOVE THIS: Simulated frontend delay and success
-      await new Promise((resolve) => setTimeout(resolve, 600));
+    const response = await fetch('http://127.0.0.1:8000/auth/password/create-from-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: token,
+        new_password: form.newPassword,
+      }),
+    });
 
-      setSubmitting(false);
-      setSaved(true);
-    } catch (err) {
-      setSubmitting(false);
-      setSubmitError(err.message || 'An error occurred.');
+    if (!response.ok) {
+      const errorData = await response.json();
+      const message = Array.isArray(errorData.detail)
+        ? errorData.detail[0]?.msg
+        : errorData.detail;
+      throw new Error(message || 'Failed to create password.');
     }
+
+    setSubmitting(false);
+    setSaved(true);
+  } catch (err) {
+    setSubmitting(false);
+    setSubmitError(err.message || 'An error occurred.');
   }
+    }
 
   function handleGoToLogin() {
     navigate('/superadmin-login');
@@ -95,10 +99,10 @@ function CreateNewPassword() {
               <div className="CNPSuccessIcon">🔐</div>
               <h2 className="CNPSuccessTitle">Password Created!</h2>
               <p className="CNPSuccessDesc">
-                Your Superadmin password has been created successfully. You can now proceed to log in to your Superadmin account.
+                Your Superadmin password has been created successfully. Your account is now awaiting approval from a fellow Superadmin before you can log in. You'll receive an email once it's activated.
               </p>
               <button className="CNPSuccessBtn" onClick={handleGoToLogin}>
-                Go to Superadmin Login
+                Back to Login
               </button>
             </div>
           </div>

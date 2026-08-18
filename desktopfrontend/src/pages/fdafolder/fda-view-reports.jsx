@@ -16,13 +16,67 @@ import {
 } from 'lucide-react';
 import { allConsumerReports } from './reportData';
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 25;
 
 // Display-label mapping for categories.
 // Underlying data values stay unchanged (Supplement / Pharmaceutical) so
 // filtering logic and reportData.js don't need to change — only what's shown.
 const CATEGORY_LABELS = {
   Supplement: 'Foods',
+  Food: 'Food',
+  Pharmaceutical: 'Drugs',
+};
+
+function getCategoryLabel(category) {
+  return CATEGORY_LABELS[category] || category;
+}
+
+// Maps the legacy status values still stored in reportData.js to the FINAL
+// user-facing complaint-workflow statuses. This keeps the change scoped to
+// fda-view-reports.jsx only, without touching reportData.js or any other
+// module. Legacy label -> final label reasoning:
+//   "Under Review"          -> "Under Review"          (unchanged)
+//   "Pending Verification"  -> "Under Review"           (obsolete label folded in)
+//   "Takedown Requested"    -> "Forwarded to LEA"        (FDA requested a takedown = case handed to LEA)
+//   "Forwarded to LEA"      -> "Forwarded to LEA"        (unchanged)
+//   "Verified"              -> "Case Closed"             (no violation found, obsolete label removed)
+//   "Takedown Completed"    -> "Takedown Completed"       (unchanged)
+//   "Dismissed"             -> "Case Closed"             (renamed from "Closed")
+//   "New Report"            -> no legacy source; left untouched, not in scope
+// "Operation in Progress" (takedown_initiated) has no mock data source yet,
+// but is included below as a display case + filter option so the page is
+// ready once real takedown_initiated data comes from the backend.
+const STATUS_WORKFLOW_MAP = {
+  // Backend / snake_case status values
+  "under_review": "Under Review",
+  "takedown_requested": "Forwarded to LEA",
+  "takedown_initiated": "Operation in Progress",
+  "completed": "Takedown Completed",
+  "dismissed": "Case Closed",
+
+  // Legacy / Title Case status values from mock data
+  "Under Review": "Under Review",
+  "Pending Verification": "Under Review",
+  "Takedown Requested": "Forwarded to LEA",
+  "Forwarded to LEA": "Forwarded to LEA",
+  "Operation in Progress": "Operation in Progress",
+  "Verified": "Case Closed",
+  "Takedown Completed": "Takedown Completed",
+  "Dismissed": "Case Closed",
+  "Case Closed": "Case Closed",
+  "Closed": "Case Closed",
+};
+
+function getWorkflowStatus(status) {
+  return STATUS_WORKFLOW_MAP[status] || status;
+}
+
+// Display-label mapping for categories.
+// Underlying data values stay unchanged (Supplement / Pharmaceutical) so
+// filtering logic and reportData.js don't need to change — only what's shown.
+const CATEGORY_LABELS = {
+  Supplement: 'Food',
+  Food: 'Food',
   Pharmaceutical: 'Drugs',
 };
 
@@ -211,28 +265,29 @@ function FDAViewReports() {
   // Reflects the complaint lifecycle only (not verification results or
   // enforcement actions, which live in the Verification Queue module).
   const getStatusStyle = (status) => {
-    switch (status) {
-      case "New Report":
-        return {
-          backgroundColor: "rgba(31, 41, 55, 0.08)", // 8% opacity of #1F2937
-          color: "rgba(31, 41, 55, 0.6)"
-        };
+    const s = getWorkflowStatus(status);
+    switch (s) {
       case "Under Review":
         return {
           backgroundColor: "rgba(217, 119, 6, 0.1)", // 10% opacity of #D97706
           color: "#D97706"
         };
-      case "Verification Completed":
-        return {
-          backgroundColor: "rgba(27, 67, 50, 0.1)", // 10% opacity of #1B4332
-          color: "#1B4332"
-        };
       case "Forwarded to LEA":
         return {
-          backgroundColor: "rgba(19, 33, 60, 0.1)", // 10% opacity of #13213c
-          color: "#13213c"
+          backgroundColor: "rgba(37, 99, 235, 0.1)", // 10% opacity of #2563EB
+          color: "#2563EB"
         };
-      case "Closed":
+      case "Operation in Progress":
+        return {
+          backgroundColor: "rgba(234, 88, 12, 0.1)", // 10% opacity of #EA580C
+          color: "#EA580C"
+        };
+      case "Takedown Completed":
+        return {
+          backgroundColor: "rgba(31, 41, 55, 0.08)", // 8% opacity of #1F2937
+          color: "rgba(31, 41, 55, 0.6)"
+        };
+      case "Case Closed":
         return {
           backgroundColor: "rgba(31, 41, 55, 0.08)", // 8% opacity of #1F2937
           color: "rgba(31, 41, 55, 0.6)"
@@ -249,11 +304,11 @@ function FDAViewReports() {
   const categoriesList = ["All", ...Array.from(new Set(reports.map(r => r.category)))];
   const statusesList = [
     "All",
-    "New Report",
     "Under Review",
-    "Verification Completed",
     "Forwarded to LEA",
-    "Closed"
+    "Operation in Progress",
+    "Takedown Completed",
+    "Case Closed"
   ];
 
   return (
@@ -354,8 +409,9 @@ function FDAViewReports() {
                     setCurrentPage(1);
                   }}
                 >
-                  Clear Filters
+                  <X size={16} />
                 </button>
+                
               )}
             </div>
           </div>

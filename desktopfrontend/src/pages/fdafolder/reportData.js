@@ -4,7 +4,7 @@ const allConsumerReports = [
     caseId: "ICM-2025-00185",
     product: "HerbalSlim Capsules",
     manufacturer: "NatureFit Labs",
-    category: "Supplement",
+    category: "Food",
     source: "Walk-in",
     leaConfirmation: true,
     status: "Pending Verification",
@@ -65,7 +65,7 @@ const allConsumerReports = [
     caseId: "ICM-2026-00705",
     product: "DietSlim Shake",
     manufacturer: "NutraLife Inc.",
-    category: "Supplement",
+    category: "Food",
     source: "Browser Extension",
     status: "Takedown Completed",
     region: "Region XI",
@@ -149,7 +149,7 @@ function getReportStats(reports) {
 
   const categoryMix = [
     { label: 'Cosmetics', value: categoryCounts['Cosmetics'] || 0, color: '#2563eb' },
-    { label: 'Supplements', value: categoryCounts['Supplement'] || 0, color: '#10b981' },
+    { label: 'Food', value: (categoryCounts['Food'] || 0) + (categoryCounts['Supplement'] || 0), color: '#10b981' },
     { label: 'Drugs', value: categoryCounts['Pharmaceutical'] || 0, color: '#06b6d4' },
     { label: 'Med Device', value: categoryCounts['Medical Device'] || 0, color: '#f59e0b' }
   ];

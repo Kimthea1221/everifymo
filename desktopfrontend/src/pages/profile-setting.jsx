@@ -170,8 +170,16 @@ function ProfileSetting() {
       }
       if (!newPassword) {
         newErrors.newPassword = 'New password is required.';
-      } else if (newPassword.length < 8) {
-        newErrors.newPassword = 'New password must be at least 8 characters long.';
+      } else {
+        if (newPassword.length < 8) {
+          newErrors.newPassword = 'New password must be at least 8 characters long.';
+        } else if (!/[A-Z]/.test(newPassword)) {
+          newErrors.newPassword = 'Password must include at least one uppercase letter.';
+        } else if (!/[0-9]/.test(newPassword)) {
+          newErrors.newPassword = 'Password must include at least one number.';
+        } else if (!/[^A-Za-z0-9]/.test(newPassword)) {
+          newErrors.newPassword = 'Password must include at least one special character.';
+        }
       }
       if (newPassword !== confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match.';
@@ -179,6 +187,7 @@ function ProfileSetting() {
     }
     return newErrors;
   };
+  
 
   async function savePasswordIfProvided() {
     if (!security.newPassword) return true; // nothing to change, not an error

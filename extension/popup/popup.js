@@ -1,4 +1,7 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+﻿
+import { whenSessionReady, isUserLoggedIn, getCurrentUser } from "../scripts/session.js";
+
+document.addEventListener("DOMContentLoaded", () => {
 
   whenSessionReady(() => {
 
@@ -7,10 +10,9 @@
       ['productTitle', 'productPlatform', 'productUrl', 'productStatus'],
       (data) => {
 
-        // TEMPORARY HARDCODE FOR TESTING — should be remove later
-        const title = document.getElementById('complaint-product-name');
-        const url = document.getElementById('complaint-product-url');
-        const status = 'unregistered'; // here are the states: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
+        const title = data.productTitle;
+        const url = data.productUrl;
+        const status = data.productStatus || 'idle'; // here are the states: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
 
         chrome.storage.local.set({
           productTitle: title,

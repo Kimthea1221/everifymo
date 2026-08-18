@@ -115,12 +115,22 @@ function SuperAdminLogin() {
         setAdminLoginError('');
     }
 
-    function validatePassword(pwd) {
-        if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter.';
-        if (!/[0-9]/.test(pwd)) return 'Password must contain at least one number.';
-        if (!/[!@#$%^&*(),.?":{}|<>_\-+=/\\[\]~`';]/.test(pwd)) return 'Password must contain at least one special character.';
-        return null;
+    // ADDED — masks an email for display on the OTP screen so the full
+    // address isn't shown in plain text (e.g. "admin@gmail.com" -> "ad***@gmail.com")
+    function maskEmail(rawEmail) {
+        if (!rawEmail || !rawEmail.includes('@')) return rawEmail
+
+        const [localPart, domain] = rawEmail.split('@')
+
+        // Keep the first 2 characters of the local part visible, mask the rest
+        const visibleChars = Math.min(2, localPart.length)
+        const maskedLocal =
+            localPart.slice(0, visibleChars) + '*'.repeat(Math.max(localPart.length - visibleChars, 3))
+
+        return `${maskedLocal}@${domain}`
     }
+
+
 
     async function handleLogin() {
     if (!isOtpSent) {
@@ -138,12 +148,7 @@ function SuperAdminLogin() {
             return;
         }
 
-        // Validate password format
-        const pwdError = validatePassword(password);
-        if (pwdError) {
-            setAdminLoginError(pwdError);
-            return;
-        }
+
 
         try {
             const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
@@ -233,7 +238,20 @@ function SuperAdminLogin() {
                                             type="email" 
                                             placeholder="youremail@gmail.com"
                                             value={email}
-                                            onChange={(e) => { setEmail(e.target.value); setAdminLoginError(''); }}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setEmail(val);
+                                                if (!val.trim()) {
+                                                    setAdminLoginError('');
+                                                } else {
+                                                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                                    if (!emailRegex.test(val.trim())) {
+                                                        setAdminLoginError('Please enter a valid email address.');
+                                                    } else {
+                                                        setAdminLoginError('');
+                                                    }
+                                                }
+                                            }}
                                             required
                                         />
                                     </div>
@@ -286,10 +304,7 @@ function SuperAdminLogin() {
 
                                 <div className="OtpContainer">
                                     <div className="OtpInstructions">
-                                        Enter the code sent to <span>{email}</span>.
-                                        <span className="OtpTestHint">
-                                            (For testing, use verification code: <strong>123456</strong>)
-                                        </span>
+                                        Enter the code sent to <span>{maskEmail(email)}</span>.
                                     </div>
 
                                     <div className="OtpInputGrid">
@@ -324,12 +339,13 @@ function SuperAdminLogin() {
                                         )}
                                     </div>
 
-                                    <button type="button" className="BackToLoginBtn" onClick={handleBackToLogin}>
-                                        ← Back to login
-                                    </button>
+                                    
 
                                     <button type="submit" style={{ marginTop: '20px' }}>
                                         Verify &amp; Login
+                                    </button>
+                                    <button type="button" className="BackToLoginBtn" onClick={handleBackToLogin}>
+                                        ← Back to login
                                     </button>
                                 </div>
 
