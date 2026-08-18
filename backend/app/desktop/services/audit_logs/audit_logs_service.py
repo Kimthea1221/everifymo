@@ -5,6 +5,7 @@ from sqlalchemy import select, func
 from app.models.audit_logs import AuditLog
 from app.models.users import User
 
+from sqlalchemy import cast, String
 
 def get_fda_audit_logs(
     db: Session,
@@ -32,9 +33,15 @@ def get_fda_audit_logs(
         query = query.where(AuditLog.performed_at <= date_to)
     if search:
         like = f"%{search}%"
+        full_name = User.first_name.concat(" ").concat(User.last_name)
         query = query.where(
             AuditLog.target_reference.ilike(like)
             | AuditLog.target_table.ilike(like)
+            | cast(AuditLog.target_id, String).ilike(like)
+            | User.first_name.ilike(like)
+            | User.last_name.ilike(like)
+            | User.email.ilike(like)
+            | full_name.ilike(like)
         )
 
     total = db.scalar(select(func.count()).select_from(query.subquery()))
