@@ -1,6 +1,1 @@
-//#region src/electron/preload.cjs
-var { contextBridge, ipcRenderer } = require("electron");
-contextBridge.exposeInMainWorld("electronAPI", { onDeepLinkToken: (callback) => {
-	ipcRenderer.on("deep-link-token", (event, token) => callback(token));
-} });
-//#endregion
+var{contextBridge:e,ipcRenderer:t}=require("electron");e.exposeInMainWorld(`electronAPI`,{onDeepLinkToken:e=>{t.on(`deep-link-token`,(t,n)=>e(n))}});
