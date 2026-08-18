@@ -147,9 +147,9 @@ function LeaWalkinComplaints() {
     // BACKEND:
     // Filter using API query parameters if server-side filtering is implemented.
     const filtered = complaints.filter((c) => {
-        const matchesSearch = c.id.toLowerCase().includes(search.toLowerCase()) ||
-            c.product.toLowerCase().includes(search.toLowerCase()) ||
-            c.complainant.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.product || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.complainant || '').toLowerCase().includes(search.toLowerCase());
 
         const matchesStatus = selectedStatus === 'All' || 
             c.status === selectedStatus || 
