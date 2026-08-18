@@ -410,9 +410,11 @@ const FDA_ACTION_OPTIONS = [
   'CREATE_REGISTERED_PRODUCT',
   'UPDATE_REGISTERED_PRODUCT',
   'DELETE_REGISTERED_PRODUCT',
+  'CONVERT_TO_REGISTERED_PRODUCT',
   'CREATE_UNREGISTERED_ADVISORY',
   'UPDATE_UNREGISTERED_ADVISORY',
   'DELETE_UNREGISTERED_ADVISORY',
+  'CONVERT_TO_UNREGISTERED_ADVISORY',
   'UPDATE_USER_PROFILE',
   'UPDATE_USER_PASSWORD',
 ];
@@ -422,7 +424,8 @@ function getFdaActionCategory(actionCode) {
   if (actionCode.startsWith('CREATE_')) return 'create';
   if (actionCode.startsWith('UPDATE_')) return 'update';
   if (actionCode.startsWith('DELETE_')) return 'delete';
-  // LOGIN, LOGOUT, LOGIN_FAILED all fall here
+  if (actionCode.startsWith('CONVERT_')) return 'convert';
+  // LOGIN, LOGIN_FAILED, LOGOUT all fall here
   return 'login';
 }
 
@@ -463,6 +466,8 @@ function getActionBadgeClass(actionType) {
       return 'badge-action-update';
     case 'delete':
       return 'badge-action-delete';
+    case 'convert':
+      return 'badge-action-convert';
     case 'login':
     default:
       return 'badge-action-neutral';
@@ -510,6 +515,7 @@ function normalizeFdaLog(raw) {
   return {
     log_id: raw.log_id,
     timestamp: raw.timestamp,
+    user_id: raw.user_id,
     // FDA rows: system-fallback is driven by user_name being null, not user_id
     user_name: raw.user_name,
     user_role: raw.user_role,
@@ -786,7 +792,7 @@ function SuperAdminAuditLog() {
                 <Search size={16} className="AuditSearchIcon" />
                 <input
                   type="text"
-                  placeholder="Search Target ID, Table, User..."
+                  placeholder="Search by user, target reference/table/ID..."
                   className="AuditSearchInput"
                   value={searchQuery}
                   onChange={(e) => {
@@ -894,7 +900,7 @@ function SuperAdminAuditLog() {
                         <th>Agency</th>
                         <th>Region</th>
                         <th>Action</th>
-                        <th>Target</th>
+                        <th>Target Table</th>
                         <th className="AuditTextCenter">Details</th>
                       </tr>
                     </thead>
@@ -915,7 +921,7 @@ function SuperAdminAuditLog() {
 
                         // FDA row, real user, but no display name on file — show the
                         // role instead of fabricating a name or mislabeling as System.
-                        const fdaUserLabel = log.user_name || (log.user_role ? `Unnamed ${log.user_role}` : 'Unnamed user');
+                        const fdaUserLabel = log.user_name || 'Unnamed';
 
                         return (
                           <tr key={log.log_id}>
@@ -1030,10 +1036,20 @@ function SuperAdminAuditLog() {
                     <span className="AuditLogDetailsLabel">Date & Time</span>
                     <span className="AuditLogDetailsValue">{selectedLog.timestamp}</span>
                   </div>
-                  <div className="AuditLogDetailsRow">
+                                    <div className="AuditLogDetailsRow">
                     <span className="AuditLogDetailsLabel">User</span>
                     <span className="AuditLogDetailsValue">
-                      {selectedLog.user_name || 'System'}
+                      {selectedLog._isFdaRow
+                        ? (selectedLog.agency === 'System' || selectedLog.user_role === 'system'
+                            ? 'System'
+                            : (selectedLog.user_name || 'Unnamed'))
+                        : (selectedLog.user_name || 'System')}
+                    </span>
+                  </div>
+                                    <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">User ID</span>
+                    <span className="AuditLogDetailsValue">
+                      {selectedLog.user_id || '—'}
                     </span>
                   </div>
                   <div className="AuditLogDetailsRow">

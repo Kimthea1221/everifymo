@@ -1,6 +1,11 @@
+# backend/app/desktop/services/Product_database/unregistered_advisory_service.py
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy import func
 from fastapi import HTTPException, status
+
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.models.unregistered_advisories import UnregisteredAdvisory
 from app.models.registered_products import RegisteredProduct
@@ -79,7 +84,11 @@ def get_all_unregistered_advisories(db: Session, current_user: User):
     return formatted
 
 
-def create_unregistered_advisory(db: Session, data: UnregisteredAdvisoryCreate, current_user_id):
+def create_unregistered_advisory(db: Session, data: UnregisteredAdvisoryCreate, current_user, request: Request = None):
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
+
     new_advisory = UnregisteredAdvisory(
         product_name=data.product_name,
         advisory_details=data.advisory_details,
@@ -93,10 +102,28 @@ def create_unregistered_advisory(db: Session, data: UnregisteredAdvisoryCreate, 
     db.commit()
     db.refresh(new_advisory)
 
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.CREATE_UNREGISTERED_ADVISORY,
+        target_table="unregistered_advisories",
+        target_id=new_advisory.advisory_id,
+        target_reference=new_advisory.product_name,
+        new_value={
+            "product_name": new_advisory.product_name,
+            "advisory_details": new_advisory.advisory_details,
+            "source_url": new_advisory.source_url,
+        },
+        request=request,
+        region_code=region_code,
+    )
+
     return format_advisory_response(new_advisory, db)
 
 
-def update_unregistered_advisory(db: Session, advisory_id, data: UnregisteredAdvisoryUpdate, current_user_id):
+def update_unregistered_advisory(db: Session, advisory_id, data: UnregisteredAdvisoryUpdate, current_user, request: Request = None):
     advisory = db.query(UnregisteredAdvisory).filter(
         UnregisteredAdvisory.advisory_id == advisory_id,
         UnregisteredAdvisory.deleted_at.is_(None)
@@ -108,6 +135,15 @@ def update_unregistered_advisory(db: Session, advisory_id, data: UnregisteredAdv
             detail="Unregistered advisory not found."
         )
 
+    old_value = {
+        "product_name": advisory.product_name,
+        "advisory_details": advisory.advisory_details,
+        "source_url": advisory.source_url,
+    }
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
+
     advisory.product_name = data.product_name
     advisory.advisory_details = data.advisory_details
     advisory.advisory_date = data.advisory_date
@@ -117,10 +153,29 @@ def update_unregistered_advisory(db: Session, advisory_id, data: UnregisteredAdv
     db.commit()
     db.refresh(advisory)
 
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.UPDATE_UNREGISTERED_ADVISORY,
+        target_table="unregistered_advisories",
+        target_id=advisory.advisory_id,
+        target_reference=advisory.product_name,
+        old_value=old_value,
+        new_value={
+            "product_name": advisory.product_name,
+            "advisory_details": advisory.advisory_details,
+            "source_url": advisory.source_url,
+        },
+        request=request,
+        region_code=region_code,
+    )
+
     return format_advisory_response(advisory, db)
 
 
-def convert_product_to_advisory(db: Session, product_id, data: UnregisteredAdvisoryCreate, current_user_id):
+def convert_product_to_advisory(db: Session, product_id, data: UnregisteredAdvisoryCreate, current_user, request: Request = None):
     product = db.query(RegisteredProduct).filter(
         RegisteredProduct.product_id == product_id,
         RegisteredProduct.deleted_at.is_(None)
@@ -131,6 +186,11 @@ def convert_product_to_advisory(db: Session, product_id, data: UnregisteredAdvis
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Registered product not found."
         )
+
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
+    source_product_name = product.product_name
 
     # Soft delete the product
     product.deleted_at = func.now()
@@ -151,10 +211,29 @@ def convert_product_to_advisory(db: Session, product_id, data: UnregisteredAdvis
     db.commit()
     db.refresh(new_advisory)
 
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.CONVERT_TO_UNREGISTERED_ADVISORY,
+        target_table="unregistered_advisories",
+        target_id=new_advisory.advisory_id,
+        target_reference=new_advisory.product_name,
+        old_value={"source_product_id": str(product_id), "source_product_name": source_product_name},
+        new_value={
+            "product_name": new_advisory.product_name,
+            "advisory_details": new_advisory.advisory_details,
+            "source_url": new_advisory.source_url,
+        },
+        request=request,
+        region_code=region_code,
+    )
+
     return format_advisory_response(new_advisory, db)
 
 
-def delete_unregistered_advisory(db: Session, advisory_id, current_user_id):
+def delete_unregistered_advisory(db: Session, advisory_id, current_user, request: Request = None):
     advisory = db.query(UnregisteredAdvisory).filter(
         UnregisteredAdvisory.advisory_id == advisory_id,
         UnregisteredAdvisory.deleted_at.is_(None)
@@ -166,8 +245,31 @@ def delete_unregistered_advisory(db: Session, advisory_id, current_user_id):
             detail="Unregistered advisory not found."
         )
 
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
+    old_value = {
+        "product_name": advisory.product_name,
+        "advisory_details": advisory.advisory_details,
+    }
+
     advisory.deleted_at = func.now()
     advisory.deleted_by = current_user_id
 
     db.commit()
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.DELETE_UNREGISTERED_ADVISORY,
+        target_table="unregistered_advisories",
+        target_id=advisory.advisory_id,
+        target_reference=old_value["product_name"],
+        old_value=old_value,
+        request=request,
+        region_code=region_code,
+    )
+
     return {"message": "Advisory deleted successfully."}
