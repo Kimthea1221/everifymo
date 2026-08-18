@@ -33,8 +33,6 @@ def create_otp_for_user(db: Session, user: User) -> str:
     db.add(otp_token)
     db.commit()
 
-    print(f"\n========================================\n[DEBUG] Generated OTP for user {user.email}: {otp}\n========================================\n", flush=True)
-
     return otp
 
 
@@ -46,6 +44,9 @@ def verify_otp_for_user(db: Session, user: User, otp: str) -> OTPToken:
     Tracks cumulative failed OTP attempts on the User (persists across OTP re-requests)
     and locks the account (is_locked=True) once it reaches 5.
     """
+    if user.is_locked:
+        raise ValueError("Account is locked. Please contact your administrator.")
+
     otp_token = (
         db.query(OTPToken)
         .filter(OTPToken.user_id == user.user_id, OTPToken.is_used.is_(False))

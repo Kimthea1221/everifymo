@@ -1,4 +1,3 @@
-# backend/app/desktop/routers/auth/password_reset.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -27,8 +26,15 @@ router = APIRouter(prefix="/auth/password", tags=["auth-password"])
 async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
     db.execute(text("SET app.bypass_rls = 'true'"))
     user = db.query(User).filter(User.email == payload.email).first()
-    if not user:
-        return {"message": "If an account exists for this email, an OTP was sent."}
+
+    # NOTE: per team decision, this endpoint now returns a distinguishable
+    # response for invalid/nonexistent/locked emails vs. valid ones. This is a
+    # deliberate deviation from the anti-enumeration pattern (OWASP ASVS 2.1.15 /
+    # user enumeration prevention) and allows an attacker to confirm which
+    # emails are registered accounts by observing the response. Flagged to team
+    # lead; revisit if this becomes a concern (e.g. security review, pentest).
+    if not user or user.is_locked:
+        raise HTTPException(status_code=400, detail="We couldn't process your request.")
 
     otp = create_otp_for_user(db, user)
     if user.role == "superadmin":
@@ -36,7 +42,7 @@ async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(
     else:
         await send_personnel_otp_email(user.email, otp)
 
-    return {"message": "If an account exists for this email, an OTP was sent."}
+    return {"message": "OTP sent to your email."}
 
 
 @router.post("/verify-otp")

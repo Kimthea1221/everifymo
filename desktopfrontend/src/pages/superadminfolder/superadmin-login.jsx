@@ -259,14 +259,7 @@ function SuperAdminLogin() {
                                 </div>
 
                                 <div style={{ marginTop: '15px' }}>
-                                    <div className="PasswordLabelRow">
-                                        <label htmlFor="password">Password <span>*</span></label>
-                                        
-                                         <a   onClick={() => navigate('/forgot-password?from=superadmin')}
-                                            className="ForgotPasswordLink">
-                                            Forgot?
-                                        </a>
-                                    </div>
+                                    <label htmlFor="password">Password <span>*</span></label>
 
                                     <div className="PasswordInputWrapper">
                                         <Lock className="LoginInputIcon" size={16} />
@@ -287,6 +280,13 @@ function SuperAdminLogin() {
                                         >
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                                        <a onClick={() => navigate('/forgot-password?from=superadmin')}
+                                           className="ForgotPasswordLink">
+                                            Forgot password?
+                                        </a>
                                     </div>
 
                                     {!isOtpSent && adminLoginError && (
