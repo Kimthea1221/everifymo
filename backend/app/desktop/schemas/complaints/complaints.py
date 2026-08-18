@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from app.desktop.schemas.drafts.drafts import DraftStatus, Priority
 
+
 from pydantic import BaseModel, ConfigDict, computed_field
 
 from app.core.formatting import format_file_size
@@ -92,3 +93,33 @@ class VerificationRequestDraftDetailResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     complaint: ComplaintVerificationDetailResponse
+
+
+# I added this (Ashanti) starting here
+class WalkinComplaintListResponse(BaseModel):
+    complaint_id: UUID
+    case_reference: str
+    product_title: str
+    manufacturer: str | None
+    product_category: str | None
+    complainant_name: str | None
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+class WalkinComplaintDetailResponse(WalkinComplaintListResponse):
+    nature_of_complaint: str | None
+    place_of_purchase: str | None
+    date_of_purchase: date | None
+    amount_paid: Decimal | None
+    full_name: str | None
+    contact_number: str | None
+    email: str | None
+    id_type: str | None
+    address: str | None
+    attached_files: list[SharedFileResponse]
+
+#Ashanti code ends here

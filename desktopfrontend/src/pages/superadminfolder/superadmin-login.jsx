@@ -2,12 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import './superadmin-css.css';
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 //LOGIN PAGE EXCLUSIVELY FOR SUPERADMIN
-
-
-
 
 function SuperAdminLogin() {
     const navigate = useNavigate();
@@ -18,6 +15,7 @@ function SuperAdminLogin() {
     //toggle password visibility states
     const [showPassword, setShowPassword] = useState(false);
     const [adminLoginError, setAdminLoginError] = useState('');
+    const [errors, setErrors] = useState({});
 
     // OTP verification states
     //controls if show ba otp screen or credentials form
@@ -131,76 +129,80 @@ function SuperAdminLogin() {
         return `${maskedLocal}@${domain}`
     }
 
-
-
     async function handleLogin() {
-    if (!isOtpSent) {
+        if (!isOtpSent) {
+            // per-field validation
+            const newErrors = {};
 
-        // Check if fields are empty
-        if (!email || !password) {
-            setAdminLoginError('Please input your credentials to continue.');
-            return;
-        }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            setAdminLoginError('Please enter a valid email address.');
-            return;
-        }
-
-
-
-        try {
-            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Invalid email or password.');
+            if (!email.trim()) {
+                newErrors.email = 'Email is required.';
+            } else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    newErrors.email = 'Please enter a valid email address.';
+                }
             }
 
-            setIsOtpSent(true);
-            setTimer(300);
+            if (!password.trim()) {
+                newErrors.password = 'Password is required.';
+            }
+
+            if (Object.keys(newErrors).length > 0) {
+                setErrors(newErrors);
+                return;
+            }
+            setErrors({});
             setAdminLoginError('');
-        } catch (err) {
-            setAdminLoginError(err.message);
-        }
 
-    } else {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
 
-        const otpCode = otp.join('');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Invalid email or password.');
+                }
 
-        if (otpCode.length < 6) {
-            setAdminLoginError('Please enter the full 6-digit verification code.');
-            return;
-        }
-
-        try {
-            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp: otpCode }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
+                setIsOtpSent(true);
+                setTimer(300);
+                setAdminLoginError('');
+            } catch (err) {
+                setAdminLoginError(err.message);
             }
 
-            const data = await response.json();
-            localStorage.setItem('access_token', data.access_token);
-            localStorage.setItem('refresh_token', data.refresh_token);
-            localStorage.setItem('agency', 'superadmin');
-            navigate('/superadminfolder/superadmin-user-management');
-        } catch (err) {
-            setAdminLoginError(err.message);
+        } else {
+            const otpCode = otp.join('');
+
+            if (otpCode.length < 6) {
+                setAdminLoginError('Please enter the full 6-digit verification code.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/auth/superadmin/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, otp: otpCode }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
+                }
+
+                const data = await response.json();
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
+                localStorage.setItem('agency', 'superadmin');
+                navigate('/superadminfolder/superadmin-user-management');
+            } catch (err) {
+                setAdminLoginError(err.message);
+            }
         }
     }
-}
     const formatTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
     return (
@@ -230,69 +232,85 @@ function SuperAdminLogin() {
                                     <p>Please login to your account.</p>
                                 </div>
 
-                                <div>
-                                    <label htmlFor="email">Email <span>*</span></label>
-                                    <div className="LoginInputWrapper">
-                                        <Mail className="LoginInputIcon" size={16} />
-                                        <input
-                                            id="email"
-                                            type="email" 
-                                            placeholder="youremail@gmail.com"
-                                            value={email}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setEmail(val);
-                                                if (!val.trim()) {
-                                                    setAdminLoginError('');
+                                <label htmlFor="email">Email <span>*</span></label>
+                                <div className="LoginInputWrapper">
+                                    <Mail className="LoginInputIcon" size={16} />
+                                    <input
+                                        id="email"
+                                        type="email" 
+                                        placeholder="youremail@gmail.com"
+                                        value={email}
+                                        className={errors.email ? 'login-input-error' : ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setEmail(val);
+                                            if (!val.trim()) {
+                                                setErrors(prev => ({ ...prev, email: '' }));
+                                            } else {
+                                                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                                if (!emailRegex.test(val.trim())) {
+                                                    setErrors(prev => ({ ...prev, email: 'Please enter a valid email address.' }));
                                                 } else {
-                                                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                                                    if (!emailRegex.test(val.trim())) {
-                                                        setAdminLoginError('Please enter a valid email address.');
-                                                    } else {
-                                                        setAdminLoginError('');
-                                                    }
+                                                    setErrors(prev => ({ ...prev, email: '' }));
                                                 }
-                                            }}
-                                            required
-                                        />
-                                    </div>
+                                            }
+                                            setAdminLoginError('');
+                                        }}
+                                        required
+                                    />
+                                </div>
+                                {errors.email && (
+                                    <span className="AdminLoginFieldError">
+                                        <AlertCircle size={12} /> {errors.email}
+                                    </span>
+                                )}
+
+                                <label htmlFor="password">Password <span>*</span></label>
+
+                                <div className="PasswordInputWrapper">
+                                    <Lock className="LoginInputIcon" size={16} />
+                                    <input
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        placeholder="Enter your password"
+                                        value={password}
+                                        className={errors.password ? 'login-input-error' : ''}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setAdminLoginError('');
+                                            if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
+                                        }}
+                                        required
+                                    />
+                                    
+                                    <button
+                                        type="button"
+                                        className="TogglePasswordBtn"
+                                        onClick={() => setShowPassword(v => !v)}
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                                {errors.password && (
+                                    <span className="AdminLoginFieldError">
+                                        <AlertCircle size={12} /> {errors.password}
+                                    </span>
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-12px', marginBottom: '20px' }}>
+                                    <a onClick={() => navigate('/forgot-password?from=superadmin')}
+                                       className="ForgotPasswordLink">
+                                        Forgot password?
+                                    </a>
                                 </div>
 
-                                <div style={{ marginTop: '15px' }}>
-                                    <div className="PasswordLabelRow">
-                                        <label htmlFor="password">Password <span>*</span></label>
-                                        
-                                         <a   onClick={() => navigate('/forgot-password?from=superadmin')}
-                                            className="ForgotPasswordLink">
-                                            Forgot?
-                                        </a>
+                                {!isOtpSent && adminLoginError && (
+                                    <div className="AdminLoginErrorMsgContainer">
+                                        <AlertCircle size={14} />
+                                        <p className="AdminLoginErrorText">{adminLoginError}</p>
                                     </div>
-
-                                    <div className="PasswordInputWrapper">
-                                        <Lock className="LoginInputIcon" size={16} />
-                                        <input
-                                            id="password"
-                                            type={showPassword ? 'text' : 'password'}
-                                            placeholder="Enter your password"
-                                            value={password}
-                                            onChange={(e) => { setPassword(e.target.value); setAdminLoginError(''); }}
-                                            required
-                                        />
-                                        
-                                        <button
-                                            type="button"
-                                            className="TogglePasswordBtn"
-                                            onClick={() => setShowPassword(v => !v)}
-                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                        >
-                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        </button>
-                                    </div>
-
-                                    {!isOtpSent && adminLoginError && (
-                                        <p className="AdminLoginErrorMsg" style={{ marginTop: '8px' }}>{adminLoginError}</p>
-                                    )}
-                                </div>
+                                )}
 
                                 <button type="submit">Login</button>
                             </>
@@ -340,7 +358,12 @@ function SuperAdminLogin() {
                                         )}
                                     </div>
 
-                                    
+                                    {adminLoginError && (
+                                        <div className="AdminLoginErrorMsgContainer" style={{ marginTop: '10px' }}>
+                                            <AlertCircle size={14} />
+                                            <p className="AdminLoginErrorText">{adminLoginError}</p>
+                                        </div>
+                                    )}
 
                                     <button type="submit" style={{ marginTop: '20px' }}>
                                         Verify &amp; Login
@@ -349,12 +372,6 @@ function SuperAdminLogin() {
                                         ← Back to login
                                     </button>
                                 </div>
-
-                                {adminLoginError && (
-                                    <div className="AdminLoginErrorMsgContainer" style={{ marginTop: '15px' }}>
-                                        <p className="AdminLoginErrorMsg">{adminLoginError}</p>
-                                    </div>
-                                )}
                             </>
                         )}
                     </form>
