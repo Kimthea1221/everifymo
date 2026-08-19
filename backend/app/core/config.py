@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     OTP_EXTENSION_MIN_EXPIRE: int = 5
     MAIL_EXTENSION_FROM: str = "noreply@icmda.gov.ph"
 
+    # uploaded screenshot for extension
+    UPLOAD_DIR: str = "uploaded_complaints"
+    
     class Config:
         env_file = ".env"
 

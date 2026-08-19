@@ -15,7 +15,11 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 @router.post('/submitVerification')
 async def InsertVerification(verification: CreateVerification, db: db_dependency, current_user: user_dependency):
     try:     
-        consumer_id = current_user["id"] if current_user else None
+        if current_user:
+            consumer_id = current_user["id"]
+        else:
+            consumer_id = None
+
         return verification_service.create_verification(db, verification, consumer_id) 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

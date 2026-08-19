@@ -31,7 +31,10 @@ console.log('Background received message:', message);
           console.log('Product info stored:', message.title);
         });
 
-        updateBadge(status, sender.tab.id);
+        if (sender.tab && sender.tab.id) {
+          updateBadge(status, sender.tab.id);
+        }
+        
         sendResponse({ status: 'success', data: data });
 
         const res = await fetch('http://localhost:8001/submitVerification', {
@@ -65,8 +68,52 @@ console.log('Background received message:', message);
           console.log('Product info stored with error fallback:', message.title);
         });
 
-        updateBadge(status, sender.tab.id);
+        if (sender.tab && sender.tab.id) {
+          updateBadge(status, sender.tab.id);
+        }
+        
         sendResponse({ status: 'error', data: null });
+      }
+    })();
+    return true;
+  }
+
+  if (message.action === 'submitComplaint') {
+    (async () => {
+      try {
+        const { access_token } = await chrome.storage.local.get(['access_token']);
+
+        const res = await fetch('http://localhost:8001/submitComplaint', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(access_token ? { 'Authorization': `Bearer ${access_token}` } : {})
+          },
+          body: JSON.stringify({
+            product_title: message.data.productName,
+            product_url: message.data.productUrl,
+            store_name: message.data.storeName,
+            consumer_description: message.data.description,
+            platform: message.data.platform,
+            verification_result: message.data.verificationResult,
+            attachment_data: message.data.attachmentData,
+            attachment_name: message.data.attachmentName
+          })
+        });
+
+        const resData = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          console.error('submitComplaint failed:', resData);
+          sendResponse({ success: false, error: resData?.detail || 'Submission failed' });
+          return;
+        }
+
+        sendResponse({ success: true, data: resData });
+
+      } catch (error) {
+        console.error('Error submitting complaint:', error);
+        sendResponse({ success: false, error: error.message });
       }
     })();
     return true;
@@ -93,3 +140,4 @@ function updateBadge(status, tabId) {
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.action.setBadgeText({ text: '', tabId: tabId });
 });
+
