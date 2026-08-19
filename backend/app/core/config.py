@@ -14,6 +14,7 @@
 
 #contents before i replaced it with the following code
 from pydantic_settings import BaseSettings
+from pathlib import Path
 
 class Settings(BaseSettings):
     DATABASE_URL: str
