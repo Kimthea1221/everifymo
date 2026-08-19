@@ -129,7 +129,7 @@ const initiatedCases = [
 ];
 
 // REMOVE THIS
-// BACKEND: Dummy cases for Closed and Dismissed cases. 
+// BACKEND: Dummy cases for Closed cases. 
 const dismissedCases = [
   {
     id: 1,
@@ -152,6 +152,17 @@ const dismissedCases = [
     dateClosed: '2026-05-21',
     closedBy: 'Officer M. Santos',
     reasonClosed: 'Rejected by FDA',
+  },
+    {
+    id: 3,
+    caseId: 'ICM-2025-00185-T',
+    product: 'HerbalSlim Capsules',
+    manufacturer: 'NatureFit Labs',
+    category: 'Drugs',
+    dateFiled: '2026-05-14',
+    dateClosed: '2026-05-22',
+    closedBy: 'Officer J. Domingo',
+    reasonClosed: 'Completed',
   },
 ];
 
@@ -263,7 +274,8 @@ function LeaVerificationRequest() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
-  useEffect(() => { setClosedPage(1); }, [dismissedSearch, filterCategory, filterDateFrom, filterDateTo, activeTab]);
+  const [filterReasonClosed, setFilterReasonClosed] = useState('');
+useEffect(() => { setClosedPage(1); }, [dismissedSearch, filterCategory, filterReasonClosed, filterDateFrom, filterDateTo, activeTab]);
 
   // NOTE: Modal overlay, success alert, and read-only details modal states
   const [modalConfig, setModalConfig] = useState(null);
@@ -271,16 +283,16 @@ function LeaVerificationRequest() {
   const [errorMessage, setErrorMessage] = useState('');
   const [viewCaseModalData, setViewCaseModalData] = useState(null);
 
-  // ADDED — real state/fetch logic for Ready to Send tab (previously fully mock)
-  // ─── TAB 1: Ready to Send ────────────────────────────────────────────────
+
+  // TAB 1: Ready to Send
   const [readyList, setReadyList] = useState([]);
   const [readyLoading, setReadyLoading] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState(null);
 
-  // ADDED — real state/fetch logic for Awaiting FDA tab (previously fully mock)
-  // ─── TAB 2: Awaiting FDA ─────────────────────────────────────────────────
+
+  //  TAB 2: Awaiting FDA
   const [awaitingList, setAwaitingList] = useState([]);
   const [awaitingLoading, setAwaitingLoading] = useState(false);
   const [selectedAwaitingFda, setSelectedAwaitingFda] = useState(null);
@@ -307,7 +319,7 @@ function LeaVerificationRequest() {
   };
 
   // ADDED — GET /complaints/awaiting-verification-request
-  // ─── Fetch: Ready to Send list ───────────────────────────────────────────
+  //Fetch: Ready to Send list 
   const fetchReadyList = async () => {
     const token = localStorage.getItem('access_token');
     setReadyLoading(true);
@@ -330,7 +342,7 @@ function LeaVerificationRequest() {
   };
 
   // ADDED — GET /complaints/{id}/verification-detail
-  // ─── Fetch: complaint verification detail (right panel) ──────────────────
+  //Fetch: complaint verification detail (right panel) 
   const fetchComplaintDetail = async (complaintId) => {
     const token = localStorage.getItem('access_token');
     setDetailLoading(true);
@@ -353,7 +365,7 @@ function LeaVerificationRequest() {
   };
 
   // ADDED — GET /verification-requests/awaiting-fda
-  // ─── Fetch: Awaiting FDA list ─────────────────────────────────────────────
+  // Fetch: Awaiting FDA list
   const fetchAwaitingList = async () => {
     const token = localStorage.getItem('access_token');
     setAwaitingLoading(true);
@@ -712,17 +724,18 @@ function LeaVerificationRequest() {
 
   // NOTE: Filter logic for closed/dismissed complaints table rows
   // MERGED-CHANGED — now also matches dismissedSearch against case ID / product / manufacturer
-  const filteredDismissed = dismissedCases.filter((c) => {
-    const q = dismissedSearch.toLowerCase().trim();
-    const matchSearch = !q ||
-      c.caseId.toLowerCase().includes(q) ||
-      c.product.toLowerCase().includes(q) ||
-      c.manufacturer.toLowerCase().includes(q);
-    const matchCategory = filterCategory ? c.category === filterCategory : true;
-    const matchFrom = filterDateFrom ? c.dateClosed >= filterDateFrom : true;
-    const matchTo = filterDateTo ? c.dateClosed <= filterDateTo : true;
-    return matchSearch && matchCategory && matchFrom && matchTo;
-  });
+const filteredDismissed = dismissedCases.filter((c) => {
+  const q = dismissedSearch.toLowerCase().trim();
+  const matchSearch = !q ||
+    c.caseId.toLowerCase().includes(q) ||
+    c.product.toLowerCase().includes(q) ||
+    c.manufacturer.toLowerCase().includes(q);
+  const matchCategory = filterCategory ? c.category === filterCategory : true;
+  const matchReasonClosed = filterReasonClosed ? c.reasonClosed === filterReasonClosed : true;
+  const matchFrom = filterDateFrom ? c.dateClosed >= filterDateFrom : true;
+  const matchTo = filterDateTo ? c.dateClosed <= filterDateTo : true;
+  return matchSearch && matchCategory && matchReasonClosed && matchFrom && matchTo;
+});
 
   // NOTE: Trigger confirmation modals and success alerts for actions
   const handleActionButtonClick = (actionType, caseNumber, id) => {
@@ -1781,6 +1794,16 @@ function LeaVerificationRequest() {
                           <option value="Medical Devices">Medical Devices</option>
                         </select>
                       </div>
+                      <div className="LeaFilterGroup">
+                        {/* BACKEND: pass filterReasonClosed as reason_closed query param */}
+                        <label>Reason Closed</label>
+                        <select value={filterReasonClosed} onChange={(e) => setFilterReasonClosed(e.target.value)}>
+                          <option value="">All Reasons</option>
+                          <option value="Registered">Registered</option>
+                          <option value="Rejected by FDA">Rejected by FDA</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      </div>
                       {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
                       {(() => {
                         const hasDismissedFilters = Boolean(dismissedSearch || filterCategory || filterDateFrom || filterDateTo);
@@ -1857,11 +1880,15 @@ function LeaVerificationRequest() {
                               <td>{c.dateFiled}</td>
                               <td>{c.dateClosed}</td>
                               <td>{c.closedBy}</td>
-                              <td>
-                                <span className={c.reasonClosed === 'Registered' ? 'ReasonRegistered' : 'ReasonRejected'}>
-                                  {c.reasonClosed}
-                                </span>
-                              </td>
+                            <td>
+                              <span className={
+                                c.reasonClosed === 'Registered' ? 'ReasonRegistered' :
+                                c.reasonClosed === 'Completed' ? 'ReasonCompleted' :
+                                'ReasonRejected'
+                              }>
+                                {c.reasonClosed}
+                              </span>
+                            </td>
                               <td>
                                 <button
                                   className="BtnView"
@@ -1978,22 +2005,33 @@ function LeaVerificationRequest() {
               </div>
             </div>
 
-            <div className="RejectionReasonBox" style={{
-              backgroundColor: viewCaseModalData.reasonClosed === 'Registered' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(249, 115, 22, 0.1)',
-              borderColor: viewCaseModalData.reasonClosed === 'Registered' ? '#10b981' : '#f97316',
+           <div className="RejectionReasonBox" style={{
+              backgroundColor:
+                viewCaseModalData.reasonClosed === 'Registered' ? 'rgba(16, 185, 129, 0.1)' :
+                viewCaseModalData.reasonClosed === 'Completed' ? 'rgba(37, 99, 235, 0.1)' :
+                'rgba(249, 115, 22, 0.1)',
+              borderColor:
+                viewCaseModalData.reasonClosed === 'Registered' ? '#10b981' :
+                viewCaseModalData.reasonClosed === 'Completed' ? '#2563eb' :
+                '#f97316',
               margin: '0 0 20px 0'
             }}>
               <label style={{
                 display: 'block',
                 fontSize: '11px',
                 textTransform: 'uppercase',
-                color: viewCaseModalData.reasonClosed === 'Registered' ? '#059669' : '#ea580c',
+                color:
+                  viewCaseModalData.reasonClosed === 'Registered' ? '#059669' :
+                  viewCaseModalData.reasonClosed === 'Completed' ? '#1d4ed8' :
+                  '#ea580c',
                 fontWeight: '600',
                 marginBottom: '6px'
               }}>Reason Closed</label>
               <p className="ReasonDetail" style={{ color: '#030303', fontWeight: '500', margin: 0 }}>
                 {viewCaseModalData.reasonClosed === 'Registered'
                   ? 'Product confirmed registered with FDA registry'
+                  : viewCaseModalData.reasonClosed === 'Completed'
+                  ? 'Takedown operation completed — case closed by field officer'
                   : 'Rejected by FDA verifier — case acknowledged and dismissed'}
               </p>
             </div>
