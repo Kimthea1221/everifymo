@@ -1,3 +1,4 @@
+# backend/app/desktop/services/auth/personnel_auth.py
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime, timezone

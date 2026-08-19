@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/login-user.jsx
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, AlertCircle  } from 'lucide-react'
@@ -129,12 +130,37 @@ function Login(){
     // Format seconds as M:SS to match the superadmin login OTP timer
     const formatTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+    // ADDED — masks an email for display on the OTP screen so the full
+    // address isn't shown in plain text (e.g. "juan@gmail.com" -> "ju***@gmail.com")
+    function maskEmail(rawEmail) {
+      if (!rawEmail || !rawEmail.includes('@')) return rawEmail
+
+      const [localPart, domain] = rawEmail.split('@')
+
+      // Keep the first 2 characters of the local part visible, mask the rest
+      const visibleChars = Math.min(2, localPart.length)
+      const maskedLocal =
+        localPart.slice(0, visibleChars) + '*'.repeat(Math.max(localPart.length - visibleChars, 3))
+
+      return `${maskedLocal}@${domain}`
+    }
+
     // Field change handlers — clear that field's error the moment the user edits it
 
     // Field change handlers — clear that field's error the moment the user edits it
     function handleEmailChange(e) {
-      setEmail(e.target.value);
-      if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+      const val = e.target.value;
+      setEmail(val);
+      if (!val.trim()) {
+        setErrors((prev) => ({ ...prev, email: '' }));
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(val.trim())) {
+          setErrors((prev) => ({ ...prev, email: 'Please enter a valid email address.' }));
+        } else {
+          setErrors((prev) => ({ ...prev, email: '' }));
+        }
+      }
     }
 
     function handlePasswordChange(e) {
@@ -335,13 +361,13 @@ function Login(){
                     />
                     Remember my email
                   </label>
-                  <label htmlFor="forgot-password" className="ForgetPass"><a onClick={() => navigate('/forgot-password?from=interagency')} style={{cursor:'pointer'}}>Forget your password?</a></label>
+                  <label htmlFor="forgot-password" className="ForgetPass"><a onClick={() => navigate('/forgot-password?from=interagency')} style={{cursor:'pointer'}}>Forgot password?</a></label>
                 </div>
               </>
             ) : (
               <div className="OtpContainer">
                 <div className="OtpInstructions">
-                  Enter the code sent to your email <span>{email}</span>.
+                  Enter the code sent to your email <span>{maskEmail(email)}</span>.
                 </div>
 
                 <div className="LoginOtpInputGrid">

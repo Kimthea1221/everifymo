@@ -25,12 +25,6 @@ def _create_complainant_and_complaint(
     complainant_fields: dict,
     complaint_fields: dict,
 ) -> Complaint:
-    """
-    Shared logic for both submit paths — builds and flushes a
-    WalkinComplainant, then a Complaint linked to it. Both the
-    draft-submit path and the direct-submit path funnel through
-    this, so this insert logic only exists in ONE place.
-    """
     case_reference = generate_case_reference(db, region_id=region_id)
 
     new_complainant = WalkinComplainant(
@@ -47,7 +41,7 @@ def _create_complainant_and_complaint(
         source="walk_in",
         status="open",
         complainant_id=new_complainant.complainant_id,
-        created_by=current_user.user_id, 
+        created_by=current_user.user_id,
     )
     db.add(new_complaint)
     db.flush()
@@ -75,12 +69,6 @@ def _save_new_upload_to_shared_files(file: UploadFile, complaint_id) -> dict:
             status_code=400,
             detail=f"File type '{file_extension}' is not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
         )
-    """
-    Used ONLY by the direct-submit path — the officer's files here
-    were never saved anywhere before (unlike a draft's, which were
-    already sitting in draft_attachments). So this saves them
-    straight to their permanent location in one step, no copying.
-    """
     os.makedirs(SHARED_FILES_DIR, exist_ok=True)
     unique_name = f"{uuid4()}_{file.filename}"
     destination_path = os.path.join(SHARED_FILES_DIR, str(complaint_id), unique_name)
@@ -92,7 +80,7 @@ def _save_new_upload_to_shared_files(file: UploadFile, complaint_id) -> dict:
     if actual_size > MAX_FILE_SIZE_BYTES:
         os.remove(destination_path)
         raise HTTPException(status_code=400, detail="File exceeds the 25 MB limit.")
-    
+
     return {
         "file_name": file.filename,
         "file_path": destination_path,
@@ -109,9 +97,7 @@ def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
 
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found.")
-    
-    # ADDED — defense in depth. Frontend should already prevent this,
-    # but the backend must never trust that alone.
+
     if draft.draft_status != "draft":
         raise HTTPException(status_code=400, detail="This draft is still incomplete and cannot be submitted yet.")
 
@@ -172,14 +158,9 @@ def create_walkin_complaint_direct(
     complaint_fields: dict,
     files: list[UploadFile],
 ) -> Complaint:
-    """
-    The NO-DRAFT path — officer filled the New Walk-in Intake form
-    and clicked "Log Complaint & Queue for FDA" directly, without
-    ever saving a draft first (Image 1/2).
-    """
     if len(files) == 0:
-            raise HTTPException(status_code=400, detail="At least one file attachment is required.")
-    
+        raise HTTPException(status_code=400, detail="At least one file attachment is required.")
+
     new_complaint = _create_complainant_and_complaint(
         db, current_user, current_user.region_id,
         complainant_fields=complainant_fields,
@@ -198,3 +179,89 @@ def create_walkin_complaint_direct(
     db.commit()
     db.refresh(new_complaint)
     return new_complaint
+
+# Ashanti code starts here
+
+def update_walkin_complaint_direct(
+    db: Session,
+    current_user,
+    complaint_id: UUID,
+    complainant_fields: dict,
+    complaint_fields: dict,
+    files: list[UploadFile],
+    remove_attachment_ids: list[UUID],
+) -> Complaint:
+    """
+    Edit path for an already-submitted walk-in complaint. Only
+    allowed while the complaint is still 'open' (Ready to Send) —
+    same rule as delete, since anything past that point has a
+    verification request genuinely in flight or FDA has already
+    responded, and editing those would be misleading.
+    """
+    complaint = db.query(Complaint).filter(
+        Complaint.complaint_id == complaint_id,
+        Complaint.region_id == current_user.region_id,
+        Complaint.source == "walk_in",
+        Complaint.deleted_at.is_(None),
+    ).first()
+
+    if not complaint:
+        raise HTTPException(status_code=404, detail="Complaint not found.")
+
+    if complaint.status != "open":
+        raise HTTPException(
+            status_code=400,
+            detail="Only complaints in Ready to Send status can be edited.",
+        )
+
+    # A complaint must always have at least one supporting attachment.
+    # Existing files not being removed still count — only check that
+    # after removals + no new uploads, we wouldn't end up at zero.
+
+    existing_query = db.query(SharedFile).filter(SharedFile.complaint_id == complaint_id)
+    if remove_attachment_ids:
+        existing_query = existing_query.filter(SharedFile.file_id.notin_(remove_attachment_ids))
+    existing_count = existing_query.count()
+
+    if existing_count == 0 and len(files) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one file attachment is required.",
+        )
+
+    if complaint.complainant_id:
+        complainant = db.query(WalkinComplainant).filter(
+            WalkinComplainant.complainant_id == complaint.complainant_id
+        ).first()
+        if complainant:
+            for field, value in complainant_fields.items():
+                setattr(complainant, field, value)
+
+    for field, value in complaint_fields.items():
+        setattr(complaint, field, value)
+    complaint.updated_by = current_user.user_id
+
+    if remove_attachment_ids:
+        files_to_remove = db.query(SharedFile).filter(
+            SharedFile.file_id.in_(remove_attachment_ids),
+            SharedFile.complaint_id == complaint_id,
+        ).all()
+        for f in files_to_remove:
+            if os.path.exists(f.file_path):
+                os.remove(f.file_path)
+            db.delete(f)
+
+    for uploaded_file in files:
+        file_info = _save_new_upload_to_shared_files(uploaded_file, complaint.complaint_id)
+        db.add(SharedFile(
+            complaint_id=complaint.complaint_id,
+            region_id=complaint.region_id,
+            uploaded_by=current_user.user_id,
+            **file_info,
+        ))
+
+    db.commit()
+    db.refresh(complaint)
+    return complaint
+
+#Ashanti code ends here

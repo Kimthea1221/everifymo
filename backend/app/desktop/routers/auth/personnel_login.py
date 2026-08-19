@@ -1,3 +1,4 @@
+# backend/app/desktop/routers/auth/personnel_login.py   
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -13,14 +14,36 @@ from app.models.user_sessions import UserSession
 from app.core.config import settings
 from datetime import datetime, timezone, timedelta
 
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
+from app.core.constants import AuditAction, Role
+
 router = APIRouter(prefix="/auth", tags=["personnel-auth"])
 
 
 @router.post("/login")
-async def personnel_login(request: PersonnelLoginRequest, db: Session = Depends(get_db)):
+async def personnel_login(request: PersonnelLoginRequest, http_request: Request, db: Session = Depends(get_db)):
     try:
         user = authenticate_personnel(db, request.email, request.password, request.agency)
     except ValueError as exc:
+        # Attribute to the agency the person selected, even if the email
+        # doesn't match a real user — so a bad-credentials attempt still
+        # shows up on the right agency's audit tab, not bucketed as "system".
+        failed_user = db.query(User).filter(User.email == request.email).first()
+        agency_role_map = {"fda": Role.FDA_PERSONNEL, "lea": Role.LEA_PERSONNEL}
+        role_override = failed_user.role if failed_user else agency_role_map.get(request.agency)
+        write_audit_log(
+            db,
+            user=failed_user,
+            action=AuditAction.LOGIN_FAILED,
+            target_table="users",
+            target_reference=request.email,
+            new_value={"reason": str(exc)},
+            request=http_request,
+            region_code=get_user_region_code(db, failed_user) if failed_user else None,
+            user_role_override=role_override,
+        )
         raise HTTPException(status_code=400, detail=str(exc))
 
     otp = create_otp_for_user(db, user)
@@ -30,7 +53,7 @@ async def personnel_login(request: PersonnelLoginRequest, db: Session = Depends(
 
 
 @router.post("/verify-otp")
-def verify_personnel_otp(request: PersonnelOTPVerifyRequest, db: Session = Depends(get_db)):
+def verify_personnel_otp(request: PersonnelOTPVerifyRequest, http_request: Request, db: Session = Depends(get_db)):
     db.execute(text("SET app.bypass_rls = 'true'"))
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
@@ -39,6 +62,20 @@ def verify_personnel_otp(request: PersonnelOTPVerifyRequest, db: Session = Depen
     try:
         otp_token = verify_otp_for_user(db, user, request.otp)
     except ValueError as exc:
+        # A wrong/expired OTP after the password already checked out is
+        # still a failed login attempt — target is otp_tokens here since
+        # that's the actual record being validated, not user_sessions
+        # (no session exists yet at this point).
+        write_audit_log(
+            db,
+            user=user,
+            action=AuditAction.LOGIN_FAILED,
+            target_table="otp_tokens",
+            target_reference=request.email,
+            new_value={"reason": str(exc)},
+            request=http_request,
+            region_code=get_user_region_code(db, user),
+        )
         raise HTTPException(status_code=400, detail=str(exc))
 
     otp_token.is_used = True
@@ -57,6 +94,17 @@ def verify_personnel_otp(request: PersonnelOTPVerifyRequest, db: Session = Depen
     )
     db.add(session)
     db.commit()
+
+    write_audit_log(
+        db,
+        user=user,
+        action=AuditAction.LOGIN,
+        target_table="user_sessions",
+        target_id=session.session_id,
+        target_reference=request.email,
+        request=http_request,
+        region_code=get_user_region_code(db, user),
+    )
 
     return {
         "access_token": access_token,
