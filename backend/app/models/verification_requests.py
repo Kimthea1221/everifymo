@@ -42,6 +42,11 @@ class VerificationRequest(Base):
 
     # added for the rejected and registered verification status
     lea_acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+    lea_acknowledged_by = Column(
+    UUID(as_uuid=True),
+    ForeignKey("users.user_id", ondelete="SET NULL"),
+    nullable=True,
+    ) 
 
     reminder_sent_at = Column(DateTime(timezone=True), nullable=True)
     reminder_sent_by = Column(

@@ -1949,10 +1949,10 @@ function FDAVerification() {
                         onChange={(e) => { setCompletedCategory(e.target.value); setCompletedPage(1); }}
                         id="fda-completed-category-filter"
                       >
-                        <option value="All">All Categories</option>
+                        <option value="">All Categories</option>
                         <option value="Cosmetics">Cosmetics</option>
                         <option value="Food">Food</option>
-                        <option value="Medical Devices">Medical Devices</option>
+                        <option value="Devices">Medical Devices</option>
                         <option value="Drugs">Drugs</option>
                       </select>
                     </div>
@@ -2197,7 +2197,7 @@ function FDAVerification() {
                         <option value="All">All Categories</option>
                         <option value="Cosmetics">Cosmetics</option>
                         <option value="Food">Food</option>
-                        <option value="Medical Devices">Medical Devices</option>
+                        <option value="Devices">Medical Devices</option>
                         <option value="Drugs">Drugs</option>
                       </select>
                     </div>
