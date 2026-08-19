@@ -1,4 +1,5 @@
 from uuid import UUID
+from datetime import datetime, timezone, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -99,3 +100,102 @@ def create_verification_request_direct(
     db.commit()
     db.refresh(new_request)
     return new_request
+
+
+#ashanti start
+
+def recall_verification_request(db: Session, request_id: UUID, current_user) -> VerificationRequest:
+    request = db.query(VerificationRequest).join(
+        Complaint, VerificationRequest.complaint_id == Complaint.complaint_id
+    ).filter(
+        VerificationRequest.request_id == request_id,
+        Complaint.region_id == current_user.region_id,   # region scoping, same pattern as everywhere else
+    ).first()
+
+    if not request:
+        raise HTTPException(status_code=404, detail="Verification request not found.")
+
+    if request.verification_request_status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Only pending requests can be recalled.",
+        )
+
+    complaint = db.query(Complaint).filter(
+        Complaint.complaint_id == request.complaint_id
+    ).first()
+
+    # Send the complaint back to Ready to Send — raises a clear 400
+    # itself if this transition somehow isn't allowed, so no need to
+    # duplicate that check here.
+    transition_complaint_status(complaint, "open")
+
+    request.verification_request_status = "recalled"
+    request.recalled_at = datetime.now(timezone.utc)
+    request.recalled_by = current_user.user_id
+
+    # TODO: notify FDA that LEA recalled this request. Not built yet —
+    # no notification system exists in the project as of this task.
+    # Whoever builds notifications should hook in here: fire an event
+    # or call a notify_fda(...) service right after this comment,
+    # using request.request_id / complaint.case_reference as context.
+
+    db.commit()
+    db.refresh(request)
+
+    return request
+
+
+REMINDER_COOLDOWN = timedelta(hours=24)
+
+
+def resend_reminder(db: Session, request_id: UUID, current_user) -> VerificationRequest:
+    request = db.query(VerificationRequest).join(
+        Complaint, VerificationRequest.complaint_id == Complaint.complaint_id
+    ).filter(
+        VerificationRequest.request_id == request_id,
+        Complaint.region_id == current_user.region_id,
+    ).first()
+
+    if not request:
+        raise HTTPException(status_code=404, detail="Verification request not found.")
+
+    if request.verification_request_status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail="Only pending requests can be reminded.",
+        )
+
+    now = datetime.now(timezone.utc)
+
+    if request.reminder_sent_at is not None:
+        elapsed = now - request.reminder_sent_at
+        if elapsed < REMINDER_COOLDOWN:
+            wait_left = REMINDER_COOLDOWN - elapsed
+            # Round down to whole minutes — an officer doesn't need
+            # second/microsecond precision, just a rough sense of when
+            # they can try again.
+            total_minutes = int(wait_left.total_seconds() // 60)
+            hours, minutes = divmod(total_minutes, 60)
+
+            if hours > 0:
+                readable_wait = f"{hours} hour{'s' if hours != 1 else ''} and {minutes} minute{'s' if minutes != 1 else ''}"
+            else:
+                readable_wait = f"{minutes} minute{'s' if minutes != 1 else ''}"
+
+            raise HTTPException(
+                status_code=400,
+                detail=f"A reminder was already sent recently. Try again in {readable_wait}.",
+            )
+
+    request.reminder_sent_at = now
+    request.reminder_sent_by = current_user.user_id
+
+    # TODO: notify FDA that LEA sent a reminder on this request.
+
+    db.commit()
+    db.refresh(request)
+
+    return request
+
+#ashanti  end

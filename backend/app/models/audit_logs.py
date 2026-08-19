@@ -1,3 +1,4 @@
+# backend/app/models/audit_logs.py
 from sqlalchemy import Column, String, Text, DateTime, ForeignKey, text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
@@ -29,7 +30,9 @@ class AuditLog(Base):
 
     action = Column(String(100), nullable=False)
     target_table = Column(String(100), nullable=True)
-    target_id = Column(UUID(as_uuid=True), nullable=True) 
+    target_id = Column(UUID(as_uuid=True), nullable=True)
+    target_reference = Column(String(150), nullable=True)
+    region_code = Column(String(20), nullable=True) 
 
     old_value = Column(JSONB, nullable=True)
     new_value = Column(JSONB, nullable=True)

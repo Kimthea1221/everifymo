@@ -29,14 +29,17 @@ router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 
 def compute_admin_status(user: User, latest_token) -> str:
     if user.is_locked:
-        return "Locked Account"
+        return "Locked"
     if user.status == UserStatus.INVITED:
-        expires_at = latest_token.expires_at if latest_token else None
-        if expires_at:
-            if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
-            if expires_at < datetime.now(timezone.utc):
-                return "Invitation Expired"
+        if latest_token:
+            if latest_token.resend_requested_at is not None:
+                return "Resend Requested"
+            expires_at = latest_token.expires_at
+            if expires_at:
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(tzinfo=timezone.utc)
+                if expires_at < datetime.now(timezone.utc):
+                    return "Link Expired"
         return "Invited"
     if user.status == UserStatus.PENDING_APPROVAL:
         return "Pending Approval"
@@ -107,7 +110,7 @@ def superadmin_summary(
         tokens_map = {t.user_id: t for t in tokens}
         for a in invited_admins:
             status = compute_admin_status(a, tokens_map.get(a.user_id))
-            if status == "Invitation Expired":
+            if status == "Link Expired":
                 expired_count += 1
             else:
                 invited_count += 1
@@ -244,8 +247,8 @@ def delete_superadmin(
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
 
-    if not (admin.status == UserStatus.ACTIVE and not admin.is_active):
-        raise HTTPException(status_code=400, detail="Only suspended superadmins can be deleted.")
+    if not (admin.status == UserStatus.ACTIVE and not admin.is_active) and admin.status != UserStatus.INVITED:
+        raise HTTPException(status_code=400, detail="Only suspended superadmins or invited/expired invitations can be deleted.")
 
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == admin_id).delete()
     db.delete(admin)

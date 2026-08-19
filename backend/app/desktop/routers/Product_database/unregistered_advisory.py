@@ -1,8 +1,11 @@
+# backend/app/desktop/routers/Product_database/unregistered_advisory.py 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
 from uuid import UUID
+
+from fastapi import Request
 
 from app.database.sessions import get_db
 from app.models.users import User
@@ -37,41 +40,45 @@ def list_unregistered_advisories(
 @router.post("/", response_model=UnregisteredAdvisoryResponse)
 def add_unregistered_advisory(
     payload: UnregisteredAdvisoryCreate,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user), # Retrieve actual authenticated user
 ):
     db.execute(text("SET app.bypass_rls = 'true'"))
     # Pass current_user.user_id to record who added the product
-    return create_unregistered_advisory(db, payload, current_user.user_id)
+    return create_unregistered_advisory(db, payload, current_user, http_request)
 
 
 @router.put("/{advisory_id}", response_model=UnregisteredAdvisoryResponse)
 def edit_unregistered_advisory(
     advisory_id: UUID,
     payload: UnregisteredAdvisoryUpdate,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     db.execute(text("SET app.bypass_rls = 'true'"))
-    return update_unregistered_advisory(db, advisory_id, payload, current_user.user_id)
+    return update_unregistered_advisory(db, advisory_id, payload, current_user, http_request)
 
 
 @router.post("/convert-from-product/{product_id}", response_model=UnregisteredAdvisoryResponse)
 def convert_from_product(
     product_id: UUID,
     payload: UnregisteredAdvisoryCreate,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     db.execute(text("SET app.bypass_rls = 'true'"))
-    return convert_product_to_advisory(db, product_id, payload, current_user.user_id)
+    return convert_product_to_advisory(db, product_id, payload, current_user, http_request)
 
 
 @router.delete("/{advisory_id}")
 def delete_unregistered_advisory_endpoint(
     advisory_id: UUID,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     db.execute(text("SET app.bypass_rls = 'true'"))
-    return delete_unregistered_advisory(db, advisory_id, current_user.user_id)
+    return delete_unregistered_advisory(db, advisory_id, current_user, http_request)

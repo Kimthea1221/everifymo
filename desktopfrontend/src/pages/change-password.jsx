@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/change-password.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../utils/apiFetch';
