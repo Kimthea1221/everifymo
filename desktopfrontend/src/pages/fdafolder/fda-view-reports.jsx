@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/fdafolder/fda-view-reports.jsx
 import { useState, useEffect } from "react";
 import { useLocation } from 'react-router-dom';
 import Sidebar from "../component/sidebar";

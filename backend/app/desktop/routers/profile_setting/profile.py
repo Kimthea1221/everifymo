@@ -1,8 +1,14 @@
+# backend/app/desktop/routers/profile_setting/profile.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
+
 from app.database.sessions import get_db
+from app.models.user_sessions import UserSession
 from app.models.users import User
 from app.models.regions import Region
 from app.desktop.schemas.profile_setting.profile import (
@@ -54,24 +60,66 @@ def get_profile(
     return build_profile_response(db, current_user)
 
 
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+
+# ... (already imported at the top for change_password, so no new import needed)
+
 @router.put("/update", response_model=ProfileResponse)
 def update_profile(
     payload: ProfileUpdateRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     update_data = payload.model_dump(exclude_unset=True)
+
+    if "employee_id" in update_data and update_data["employee_id"]:
+        existing = (
+            db.query(User)
+            .filter(
+                User.employee_id == update_data["employee_id"],
+                User.user_id != current_user.user_id,
+            )
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="This Employee ID is already in use.")
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
 
     db.commit()
     db.refresh(current_user)
+
+    if update_data:
+        notification_service.create_notification_for_all_superadmins(
+            db=db,
+            event_type=NotificationEventType.ACCOUNT_INFO_UPDATED,
+            title="Profile information updated",
+            message=f"{current_user.email} updated their profile information.",
+            related_user_id=current_user.user_id,
+        )
+
+        write_audit_log(
+            db,
+            user=current_user,
+            action=AuditAction.UPDATE_USER_PROFILE,
+            target_table="users",
+            target_id=current_user.user_id,
+            target_reference=f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email,
+            new_value=update_data,
+            request=http_request,
+            region_code=get_user_region_code(db, current_user),
+        )
+
     return build_profile_response(db, current_user)
 
 
 @router.post("/change-password")
 def change_password(
     payload: ChangePasswordRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -82,6 +130,9 @@ def change_password(
 
     current_user.password_hash = hash_password(payload.new_password)
     current_user.force_password_change = False
+    db.query(UserSession).filter(UserSession.user_id == current_user.user_id).update(
+    {"is_revoked": True}
+    )
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
@@ -90,6 +141,17 @@ def change_password(
         title="Password changed",
         message=f"{current_user.email} changed their password.",
         related_user_id=current_user.user_id,
+    )
+
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.UPDATE_USER_PASSWORD,
+        target_table="users",
+        target_id=current_user.user_id,
+        target_reference=current_user.email,
+        request=http_request,
+        region_code=get_user_region_code(db, current_user),
     )
 
     return {"message": "Password updated successfully"}
