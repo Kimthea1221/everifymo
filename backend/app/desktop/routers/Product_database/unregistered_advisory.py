@@ -7,14 +7,14 @@ from uuid import UUID
 
 from fastapi import Request
 
-from app.database.sessions import get_db
-from app.models.users import User
-from app.desktop.schemas.Product_database.unregistered_advisories import (
+from backend.app.database.sessions import get_db
+from backend.app.models.users import User
+from backend.app.desktop.schemas.Product_database.unregistered_advisories import (
     UnregisteredAdvisoryCreate,
     UnregisteredAdvisoryUpdate,
     UnregisteredAdvisoryResponse,
 )
-from app.desktop.services.Product_database.unregistered_advisory_service import (
+from backend.app.desktop.services.Product_database.unregistered_advisory_service import (
     create_unregistered_advisory,
     get_all_unregistered_advisories,
     update_unregistered_advisory,
@@ -23,7 +23,7 @@ from app.desktop.services.Product_database.unregistered_advisory_service import 
 )
 
 # Fetch the logged-in user profile from the authentication token
-from app.core.dependencies import get_current_user
+from backend.app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/unregistered-advisories", tags=["Unregistered Advisories"])
 

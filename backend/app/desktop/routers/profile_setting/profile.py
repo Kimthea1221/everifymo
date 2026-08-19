@@ -4,22 +4,22 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from fastapi import Request
-from app.core.audit import write_audit_log, get_user_region_code
-from app.core.constants import AuditAction
+from backend.app.core.audit import write_audit_log, get_user_region_code
+from backend.app.core.constants import AuditAction
 
-from app.database.sessions import get_db
-from app.models.user_sessions import UserSession
-from app.models.users import User
-from app.models.regions import Region
-from app.desktop.schemas.profile_setting.profile import (
+from backend.app.database.sessions import get_db
+from backend.app.models.user_sessions import UserSession
+from backend.app.models.users import User
+from backend.app.models.regions import Region
+from backend.app.desktop.schemas.profile_setting.profile import (
     ProfileResponse,
     ProfileUpdateRequest,
     ChangePasswordRequest,
 )
-from app.core.dependencies import get_current_user
-from app.core.security import hash_password, verify_password
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.core.dependencies import get_current_user
+from backend.app.core.security import hash_password, verify_password
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
@@ -60,8 +60,8 @@ def get_profile(
     return build_profile_response(db, current_user)
 
 
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 # ... (already imported at the top for change_password, so no new import needed)
 

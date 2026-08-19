@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 
 """ from pgvector.sqlalchemy import Vector """
 
-from app.database.base import Base
+from backend.app.database.base import Base
 
 
 class RegisteredProduct(Base):

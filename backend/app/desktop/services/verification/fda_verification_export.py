@@ -6,7 +6,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
 from reportlab.lib.units import inch
 
-from app.desktop.schemas.verification.verification import (
+from backend.app.desktop.schemas.verification.verification import (
     FdaVerificationCompletedDetailResponse,
     FdaVerificationRejectedDetailResponse,
 )

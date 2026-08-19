@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.core.security import authenticate_consumer, create_consumer_access_token
-from app.extension.schemas.auth import Token
+from backend.app.database.sessions import get_db
+from backend.app.core.security import authenticate_consumer, create_consumer_access_token
+from backend.app.extension.schemas.auth import Token
 
-from app.extension.services.consumer_acc_service import login_with_google
-from app.extension.schemas.consumer_acc import GoogleLoginRequest
+from backend.app.extension.services.consumer_acc_service import login_with_google
+from backend.app.extension.schemas.consumer_acc import GoogleLoginRequest
 
 router = APIRouter(
     prefix="/auth",

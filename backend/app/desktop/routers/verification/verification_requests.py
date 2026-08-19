@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.core.dependencies import get_current_user
+from backend.app.database.sessions import get_db
+from backend.app.core.dependencies import get_current_user
 
-from app.desktop.schemas.verification.verification import (
+from backend.app.desktop.schemas.verification.verification import (
     VerificationRequestCreate,
     VerificationRequestResponse,
     VerificationRequestAwaitingFDAResponse,
@@ -22,20 +22,20 @@ from app.desktop.schemas.verification.verification import (
     LeaVerificationQueueCounts,
 )
 
-from app.desktop.services.verification.verification_submit_service import (
+from backend.app.desktop.services.verification.verification_submit_service import (
     submit_verification_draft,
     create_verification_request_direct,
     recall_verification_request,   # ADD BY MHAE
     resend_reminder,   # ADD BY MHAE
 )
 
-from app.models.complaints import Complaint
-from app.models.walkin_complainants import WalkinComplainant
-from app.models.verification_requests import VerificationRequest
+from backend.app.models.complaints import Complaint
+from backend.app.models.walkin_complainants import WalkinComplainant
+from backend.app.models.verification_requests import VerificationRequest
 
-from app.desktop.services.verification.fda_verification_response import get_fda_verification_request_detail
+from backend.app.desktop.services.verification.fda_verification_response import get_fda_verification_request_detail
 
-from app.desktop.services.verification.fda_verification_lists import (
+from backend.app.desktop.services.verification.fda_verification_lists import (
     list_fda_verification_completed,
     get_fda_verification_completed_detail,
     list_fda_verification_rejected,
@@ -43,12 +43,12 @@ from app.desktop.services.verification.fda_verification_lists import (
     get_fda_verification_queue_counts,
 )
 
-from app.desktop.services.verification.fda_verification_export import (
+from backend.app.desktop.services.verification.fda_verification_export import (
     build_completed_pdf,
     build_rejected_pdf,
 )
 
-from app.desktop.services.verification.lea_verification_lists import (
+from backend.app.desktop.services.verification.lea_verification_lists import (
     get_lea_verification_queue_counts,
 )
 

@@ -4,10 +4,10 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Request
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.core.security import generate_refresh_token, hash_refresh_token
-from app.models.user_sessions import UserSession
-from app.models.users import User
+from backend.app.core.config import settings
+from backend.app.core.security import generate_refresh_token, hash_refresh_token
+from backend.app.models.user_sessions import UserSession
+from backend.app.models.users import User
 
 
 def create_session(db: Session, user: User, request: Request) -> tuple[UserSession, str]:

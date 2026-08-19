@@ -12,8 +12,8 @@ from uuid import UUID
 from fastapi import Request
 from sqlalchemy.orm import Session
 
-from app.models.audit_logs import AuditLog
-from app.models.regions import Region
+from backend.app.models.audit_logs import AuditLog
+from backend.app.models.regions import Region
 
 
 def get_user_region_code(db: Session, user) -> Optional[str]:

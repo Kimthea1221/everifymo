@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, Boolean, text, ForeignKey, Text, DateTim
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
-from app.database.base import Base
+from backend.app.database.base import Base
 
 class ConsumerOTPToken(Base):
     __tablename__ = "consumer_otp_tokens"

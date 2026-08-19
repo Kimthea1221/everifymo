@@ -2,8 +2,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 
-from app.models.audit_logs import AuditLog
-from app.models.users import User
+from backend.app.models.audit_logs import AuditLog
+from backend.app.models.users import User
 
 from sqlalchemy import cast, String
 

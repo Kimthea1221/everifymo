@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.desktop.services.admin_management.invite import (
+from backend.app.database.sessions import get_db
+from backend.app.desktop.services.admin_management.invite import (
     complete_superadmin_registration,
     request_new_superadmin_invite,
 )
-from app.desktop.services.auth.email import send_superadmin_invite_email
+from backend.app.desktop.services.auth.email import send_superadmin_invite_email
 
 router = APIRouter(tags=["superadmin-invite-public"])
 

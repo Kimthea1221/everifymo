@@ -1,6 +1,6 @@
 
 from pydantic import BaseModel, field_validator
-from app.core.security import validate_password_strength
+from backend.app.core.security import validate_password_strength
 
 class ChangePasswordRequest(BaseModel):
     current_password: str

@@ -3,9 +3,9 @@ from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database.sessions import get_db
-from app.core.security import decode_access_token
-from app.models.users import User
+from backend.app.database.sessions import get_db
+from backend.app.core.security import decode_access_token
+from backend.app.models.users import User
 
 
 def get_current_user(

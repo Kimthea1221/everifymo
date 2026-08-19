@@ -11,11 +11,11 @@ up committed to Git.
 from getpass import getpass
 from sqlalchemy import text
 
-from app.database.sessions import SessionLocal
-from app.core.security import hash_password
-from app.core.constants import Role, UserStatus
-from app.models.users import User
-from app.models.regions import Region
+from backend.app.database.sessions import SessionLocal
+from backend.app.core.security import hash_password
+from backend.app.core.constants import Role, UserStatus
+from backend.app.models.users import User
+from backend.app.models.regions import Region
 
 
 def main():

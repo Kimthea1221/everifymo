@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 import uuid
-from app.core.security import validate_password_strength
+from backend.app.core.security import validate_password_strength
 
 
 class ProfileResponse(BaseModel):

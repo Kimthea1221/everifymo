@@ -3,13 +3,13 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from datetime import datetime, timezone
 
-from app.core.security import pwd_context
-from app.models.consumer_accounts import ConsumerAccount
-from app.extension.schemas.consumer_acc import CreateConsumerAcc, DeleteAccountRequest
-from app.models import consumer_accounts
+from backend.app.core.security import pwd_context
+from backend.app.models.consumer_accounts import ConsumerAccount
+from backend.app.extension.schemas.consumer_acc import CreateConsumerAcc, DeleteAccountRequest
+from backend.app.models import consumer_accounts
 
-from app.extension.services import consumer_otp_service
-from app.extension.services import google_auth_service
+from backend.app.extension.services import consumer_otp_service
+from backend.app.extension.services import google_auth_service
 
 def create_user(db: Session, create_user_request: CreateConsumerAcc) -> ConsumerAccount:
     acc_exist = db.query(ConsumerAccount).filter(

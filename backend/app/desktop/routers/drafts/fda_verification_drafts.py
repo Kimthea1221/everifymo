@@ -7,12 +7,12 @@ from sqlalchemy.orm import Session
 from datetime import date
 from sqlalchemy import cast, Date
 
-from app.database.sessions import get_db
-from app.models.fda_verification_drafts import FdaVerificationDraft
-from app.models.verification_requests import VerificationRequest
-from app.models.complaints import Complaint
-from app.models.users import User
-from app.desktop.schemas.drafts.drafts import (
+from backend.app.database.sessions import get_db
+from backend.app.models.fda_verification_drafts import FdaVerificationDraft
+from backend.app.models.verification_requests import VerificationRequest
+from backend.app.models.complaints import Complaint
+from backend.app.models.users import User
+from backend.app.desktop.schemas.drafts.drafts import (
     FdaVerificationDraftSave,
     FdaVerificationDraftResponse,
     FdaVerificationDraftDetailResponse,
@@ -21,8 +21,8 @@ from app.desktop.schemas.drafts.drafts import (
     DraftStatus,
     SortOption,
 )
-from app.core.dependencies import get_current_user
-from app.core.user_display import format_officer_display_name
+from backend.app.core.dependencies import get_current_user
+from backend.app.core.user_display import format_officer_display_name
 
 
 router = APIRouter(prefix="/drafts/fda-verification", tags=["FDA Verification Drafts"])

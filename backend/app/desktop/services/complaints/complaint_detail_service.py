@@ -3,10 +3,10 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.complaints import Complaint
-from app.models.walkin_complainants import WalkinComplainant
-from app.models.shared_files import SharedFile
-from app.desktop.schemas.complaints.complaints import (
+from backend.app.models.complaints import Complaint
+from backend.app.models.walkin_complainants import WalkinComplainant
+from backend.app.models.shared_files import SharedFile
+from backend.app.desktop.schemas.complaints.complaints import (
     ComplaintVerificationDetailResponse,
     SharedFileResponse,
 )

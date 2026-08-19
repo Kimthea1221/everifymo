@@ -3,15 +3,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 
-from app.core.audit import write_audit_log, get_user_region_code
-from app.core.constants import AuditAction
+from backend.app.core.audit import write_audit_log, get_user_region_code
+from backend.app.core.constants import AuditAction
 
-from app.database.sessions import get_db
-from app.models.user_sessions import UserSession
-from app.core.security import hash_refresh_token, create_desktop_access_token, generate_refresh_token
-from app.core.config import settings
-from app.core.dependencies import get_current_user
-from app.models.users import User
+from backend.app.database.sessions import get_db
+from backend.app.models.user_sessions import UserSession
+from backend.app.core.security import hash_refresh_token, create_desktop_access_token, generate_refresh_token
+from backend.app.core.config import settings
+from backend.app.core.dependencies import get_current_user
+from backend.app.models.users import User
 
 router = APIRouter(prefix="/auth/token", tags=["auth-token"])
 
@@ -48,8 +48,8 @@ def refresh_token(payload: dict, db: Session = Depends(get_db), request: Request
     return {"access_token": access_token, "token_type": "bearer", "refresh_token": new_refresh}
 
 
-from app.core.dependencies import get_current_user
-from app.models.users import User
+from backend.app.core.dependencies import get_current_user
+from backend.app.models.users import User
 
 @router.post("/revoke")
 def revoke_token(

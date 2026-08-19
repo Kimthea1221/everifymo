@@ -3,25 +3,25 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime, timezone, timedelta
 
-from app.database.sessions import get_db
-from app.models.users import User
-from app.models.account_invitation_tokens import AccountInvitationToken
-from app.models.regions import Region
+from backend.app.database.sessions import get_db
+from backend.app.models.users import User
+from backend.app.models.account_invitation_tokens import AccountInvitationToken
+from backend.app.models.regions import Region
 
-from app.desktop.schemas.auth.registration import (
+from backend.app.desktop.schemas.auth.registration import (
     ValidateTokenResponse, TokenStatus,
     RegistrationCompleteRequest, RegistrationCompleteResponse,
 )
 
-from app.core.constants import UserStatus
+from backend.app.core.constants import UserStatus
 
-from app.desktop.schemas.auth.registration import ResendInviteRequest, ResendInviteResponse
+from backend.app.desktop.schemas.auth.registration import ResendInviteRequest, ResendInviteResponse
 import secrets
 
-from app.desktop.schemas.auth.registration import RequestResendRequest, RequestResendResponse
+from backend.app.desktop.schemas.auth.registration import RequestResendRequest, RequestResendResponse
 
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 
 # All registration-related endpoints will start with /registration

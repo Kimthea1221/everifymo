@@ -4,14 +4,14 @@ from sqlalchemy import func
 from fastapi import HTTPException, status
 
 from fastapi import Request
-from app.core.audit import write_audit_log, get_user_region_code
-from app.core.constants import AuditAction
+from backend.app.core.audit import write_audit_log, get_user_region_code
+from backend.app.core.constants import AuditAction
 
-from app.models.unregistered_advisories import UnregisteredAdvisory
-from app.models.registered_products import RegisteredProduct
-from app.models.users import User
-from app.core.user_display import format_officer_display_name
-from app.desktop.schemas.Product_database.unregistered_advisories import (
+from backend.app.models.unregistered_advisories import UnregisteredAdvisory
+from backend.app.models.registered_products import RegisteredProduct
+from backend.app.models.users import User
+from backend.app.core.user_display import format_officer_display_name
+from backend.app.desktop.schemas.Product_database.unregistered_advisories import (
     UnregisteredAdvisoryCreate,
     UnregisteredAdvisoryUpdate
 )

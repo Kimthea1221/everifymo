@@ -2,15 +2,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.models.walkin_intake_drafts import WalkinIntakeDraft
-from app.models.verification_request_drafts import VerificationRequestDraft
-from app.models.complaints import Complaint
-from app.models.walkin_complainants import WalkinComplainant
-from app.desktop.schemas.drafts.drafts import (
+from backend.app.database.sessions import get_db
+from backend.app.models.walkin_intake_drafts import WalkinIntakeDraft
+from backend.app.models.verification_request_drafts import VerificationRequestDraft
+from backend.app.models.complaints import Complaint
+from backend.app.models.walkin_complainants import WalkinComplainant
+from backend.app.desktop.schemas.drafts.drafts import (
     UnifiedDraftResponse, DraftStatus, DraftType, SortOption,
 )
-from app.core.dependencies import get_current_user
+from backend.app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/drafts", tags=["All Drafts"])
 

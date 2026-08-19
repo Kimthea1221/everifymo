@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.constants import UserStatus
-from app.database.sessions import get_db
-from app.desktop.schemas.auth.superadmin_login import SuperAdminLoginRequest, SuperAdminOTPVerifyRequest
-from app.desktop.services.auth.superadmin_auth import authenticate_superadmin
-from app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
-from app.desktop.services.auth.email import send_superadmin_otp_email
-from app.models.users import User
-from app.core.security import create_desktop_access_token
+from backend.app.core.constants import UserStatus
+from backend.app.database.sessions import get_db
+from backend.app.desktop.schemas.auth.superadmin_login import SuperAdminLoginRequest, SuperAdminOTPVerifyRequest
+from backend.app.desktop.services.auth.superadmin_auth import authenticate_superadmin
+from backend.app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
+from backend.app.desktop.services.auth.email import send_superadmin_otp_email
+from backend.app.models.users import User
+from backend.app.core.security import create_desktop_access_token
 
 router = APIRouter(prefix="/auth/superadmin", tags=["superadmin-auth"])
 

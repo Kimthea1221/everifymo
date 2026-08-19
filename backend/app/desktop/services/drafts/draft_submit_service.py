@@ -5,12 +5,12 @@ from uuid import uuid4, UUID
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.models.walkin_intake_drafts import WalkinIntakeDraft
-from app.models.draft_attachments import DraftAttachment
-from app.models.walkin_complainants import WalkinComplainant
-from app.models.complaints import Complaint
-from app.models.shared_files import SharedFile
-from app.core.case_reference import generate_case_reference
+from backend.app.models.walkin_intake_drafts import WalkinIntakeDraft
+from backend.app.models.draft_attachments import DraftAttachment
+from backend.app.models.walkin_complainants import WalkinComplainant
+from backend.app.models.complaints import Complaint
+from backend.app.models.shared_files import SharedFile
+from backend.app.core.case_reference import generate_case_reference
 
 
 SHARED_FILES_DIR = "uploads/shared_files"

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.models.complaints import Complaint
-from app.desktop.schemas.verification.verification import LeaVerificationQueueCounts
+from backend.app.models.complaints import Complaint
+from backend.app.desktop.schemas.verification.verification import LeaVerificationQueueCounts
 
 
 # tiny dashboard counts for the LEA verification tabs — mirrors

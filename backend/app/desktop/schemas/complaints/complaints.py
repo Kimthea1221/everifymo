@@ -2,12 +2,12 @@ from uuid import UUID
 from datetime import date, datetime
 from decimal import Decimal
 
-from app.desktop.schemas.drafts.drafts import DraftStatus, Priority
+from backend.app.desktop.schemas.drafts.drafts import DraftStatus, Priority
 
 
 from pydantic import BaseModel, ConfigDict, computed_field
 
-from app.core.formatting import format_file_size
+from backend.app.core.formatting import format_file_size
 
 
 class ComplaintResponse(BaseModel):

@@ -5,11 +5,11 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy import cast, Date
 
-from app.models.verification_requests import VerificationRequest
-from app.models.complaints import Complaint
-from app.models.users import User
-from app.core.user_display import format_officer_display_name
-from app.desktop.schemas.verification.verification import (
+from backend.app.models.verification_requests import VerificationRequest
+from backend.app.models.complaints import Complaint
+from backend.app.models.users import User
+from backend.app.core.user_display import format_officer_display_name
+from backend.app.desktop.schemas.verification.verification import (
     FdaVerificationCompletedListItem,
     FdaVerificationCompletedListResponse,
     FdaVerificationCompletedDetailResponse,

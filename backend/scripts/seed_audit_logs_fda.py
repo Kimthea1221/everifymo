@@ -9,10 +9,10 @@ right user_id gets attached to the seeded rows.
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from app.database.sessions import SessionLocal
-from app.core.constants import Role
-from app.models.users import User
-from app.models.audit_logs import AuditLog
+from backend.app.database.sessions import SessionLocal
+from backend.app.core.constants import Role
+from backend.app.models.users import User
+from backend.app.models.audit_logs import AuditLog
 from sqlalchemy import text
 
 

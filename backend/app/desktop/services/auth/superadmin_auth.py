@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
-from app.models.users import User
-from app.core.security import verify_password
-from app.core.constants import UserStatus
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.models.users import User
+from backend.app.core.security import verify_password
+from backend.app.core.constants import UserStatus
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 def authenticate_superadmin(db: Session, email: str, password: str) -> User:
     user = db.query(User).filter(User.email == email).first()

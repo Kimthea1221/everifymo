@@ -3,19 +3,19 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.core.dependencies import get_current_user
-from app.desktop.schemas.complaints.complaints import ComplaintVerificationDetailResponse
-from app.desktop.services.complaints.complaint_detail_service import get_complaint_verification_detail
+from backend.app.database.sessions import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.desktop.schemas.complaints.complaints import ComplaintVerificationDetailResponse
+from backend.app.desktop.services.complaints.complaint_detail_service import get_complaint_verification_detail
 
-from app.models.verification_requests import VerificationRequest
-from app.desktop.schemas.complaints.complaints import ComplaintAwaitingRequestResponse
+from backend.app.models.verification_requests import VerificationRequest
+from backend.app.desktop.schemas.complaints.complaints import ComplaintAwaitingRequestResponse
 
-from app.models.complaints import Complaint
-from app.models.walkin_complainants import WalkinComplainant
+from backend.app.models.complaints import Complaint
+from backend.app.models.walkin_complainants import WalkinComplainant
 
-from app.desktop.schemas.complaints.complaints import WalkinComplaintDetailResponse, SharedFileResponse
-from app.models.shared_files import SharedFile
+from backend.app.desktop.schemas.complaints.complaints import WalkinComplaintDetailResponse, SharedFileResponse
+from backend.app.models.shared_files import SharedFile
 
 router = APIRouter(prefix="/complaints", tags=["Complaint Detail"])
 

@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Literal
 import uuid
 
-from app.core.constants import Role
+from backend.app.core.constants import Role
 
 class InvitePersonnelRequest(BaseModel):
     email: EmailStr

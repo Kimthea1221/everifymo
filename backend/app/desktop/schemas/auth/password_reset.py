@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, constr, field_validator
 from typing import Literal
-from app.core.security import validate_password_strength
+from backend.app.core.security import validate_password_strength
 
 
 class ForgotPasswordRequest(BaseModel):

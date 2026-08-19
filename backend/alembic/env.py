@@ -9,8 +9,8 @@ from sqlalchemy import engine_from_config, pool
 # Make sure Python can find the "app" package when Alembic runs
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.database.base import Base  # noqa: E402
-import app.models #this should be added from the __init__.py file in the models folder, so that Alembic can see all the models when generating migrations
+from backend.app.database.base import Base  # noqa: E402
+import backend.app.models #this should be added from the __init__.py file in the models folder, so that Alembic can see all the models when generating migrations
 
 # Load environment variables from .env
 load_dotenv()

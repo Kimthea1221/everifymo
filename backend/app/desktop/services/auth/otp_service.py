@@ -3,12 +3,12 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.core.security import hash_password, verify_password
-from app.models.otp_tokens import OTPToken
-from app.models.users import User
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.core.config import settings
+from backend.app.core.security import hash_password, verify_password
+from backend.app.models.otp_tokens import OTPToken
+from backend.app.models.users import User
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 
 def generate_otp() -> str:

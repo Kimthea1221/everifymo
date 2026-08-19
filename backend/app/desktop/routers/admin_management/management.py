@@ -6,23 +6,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database.sessions import get_db
-from app.models.users import User
-from app.models.account_invitation_tokens import AccountInvitationToken
-from app.desktop.schemas.admin_management.management import (
+from backend.app.database.sessions import get_db
+from backend.app.models.users import User
+from backend.app.models.account_invitation_tokens import AccountInvitationToken
+from backend.app.desktop.schemas.admin_management.management import (
     SuperadminListItem,
     SuperadminSummary,
     InviteSuperadminRequest,
 )
-from app.core.constants import UserStatus
-from app.core.dependencies import get_current_superadmin
-from app.desktop.services.auth.email import send_invite_email
-from app.desktop.services.auth.email import send_superadmin_invite_email
-from app.desktop.services.admin_management.invite import create_invited_superadmin
-from app.desktop.services.admin_management.invite import activate_superadmin
-from app.desktop.services.auth.email import send_superadmin_activation_email
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.core.constants import UserStatus
+from backend.app.core.dependencies import get_current_superadmin
+from backend.app.desktop.services.auth.email import send_invite_email
+from backend.app.desktop.services.auth.email import send_superadmin_invite_email
+from backend.app.desktop.services.admin_management.invite import create_invited_superadmin
+from backend.app.desktop.services.admin_management.invite import activate_superadmin
+from backend.app.desktop.services.auth.email import send_superadmin_activation_email
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 

@@ -6,16 +6,16 @@ from fastapi import Request
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.core.dependencies import get_current_user
-from app.core.constants import Role
-from app.desktop.schemas.verification.verification import (
+from backend.app.database.sessions import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.core.constants import Role
+from backend.app.desktop.schemas.verification.verification import (
     FdaVerificationSubmitRequest,
     FdaVerificationSubmitResponse,
     FdaVerificationRejectRequest,
     FdaVerificationRejectResponse,
 )
-from app.desktop.services.verification.fda_verification_response import (
+from backend.app.desktop.services.verification.fda_verification_response import (
     submit_fda_verification_response,
     reject_fda_verification_response,
 )

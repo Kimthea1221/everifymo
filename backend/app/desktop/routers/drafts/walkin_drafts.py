@@ -5,10 +5,10 @@ from uuid import uuid4, UUID
 from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.models.walkin_intake_drafts import WalkinIntakeDraft
-from app.models.draft_attachments import DraftAttachment
-from app.desktop.schemas.drafts.drafts import (
+from backend.app.database.sessions import get_db
+from backend.app.models.walkin_intake_drafts import WalkinIntakeDraft
+from backend.app.models.draft_attachments import DraftAttachment
+from backend.app.desktop.schemas.drafts.drafts import (
     WalkinIntakeDraftSave,
     WalkinIntakeDraftResponse,
     WalkinIntakeDraftDetailResponse,   
@@ -16,7 +16,7 @@ from app.desktop.schemas.drafts.drafts import (
     DraftStatus,
     SortOption,
 )
-from app.core.dependencies import get_current_user
+from backend.app.core.dependencies import get_current_user
 
 
 router = APIRouter(prefix="/drafts/walkin", tags=["Walk-in Intake Drafts"])

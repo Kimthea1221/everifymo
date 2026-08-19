@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey, Chec
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
-from app.database.base import Base
+from backend.app.database.base import Base
 
 
 class Notification(Base):

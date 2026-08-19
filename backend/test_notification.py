@@ -6,9 +6,9 @@ Run from your backend root (same place you run `alembic` commands) with:
     python test_notification.py
 """
 
-from app.database.sessions import get_db
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.database.sessions import get_db
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 # get_db is a generator (FastAPI dependency) - grab one session from it manually
 db = next(get_db())

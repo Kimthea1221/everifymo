@@ -4,11 +4,11 @@ from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.verification_request_drafts import VerificationRequestDraft
-from app.models.verification_requests import VerificationRequest
-from app.models.complaints import Complaint
+from backend.app.models.verification_request_drafts import VerificationRequestDraft
+from backend.app.models.verification_requests import VerificationRequest
+from backend.app.models.complaints import Complaint
 
-from app.core.complaint_status import transition_complaint_status
+from backend.app.core.complaint_status import transition_complaint_status
 
 
 def _create_verification_request(

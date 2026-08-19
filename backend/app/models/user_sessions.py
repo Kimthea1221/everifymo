@@ -3,7 +3,7 @@ from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
-from app.database.base import Base
+from backend.app.database.base import Base
 
 
 class UserSession(Base):             

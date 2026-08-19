@@ -3,7 +3,7 @@ from sqlalchemy import Column, String, Text, DateTime, ForeignKey, CheckConstrai
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
-from app.database.base import Base
+from backend.app.database.base import Base
 
 
 class VerificationRequest(Base):

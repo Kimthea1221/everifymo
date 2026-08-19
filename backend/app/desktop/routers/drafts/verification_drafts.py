@@ -3,19 +3,19 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.models.verification_request_drafts import VerificationRequestDraft
-from app.models.complaints import Complaint
-from app.desktop.schemas.drafts.drafts import (
+from backend.app.database.sessions import get_db
+from backend.app.models.verification_request_drafts import VerificationRequestDraft
+from backend.app.models.complaints import Complaint
+from backend.app.desktop.schemas.drafts.drafts import (
     VerificationRequestDraftSave,
     VerificationRequestDraftResponse,
     DraftStatus,
     SortOption,
 )
-from app.desktop.schemas.complaints.complaints import VerificationRequestDraftDetailResponse
-from app.desktop.services.complaints.complaint_detail_service import get_complaint_verification_detail
+from backend.app.desktop.schemas.complaints.complaints import VerificationRequestDraftDetailResponse
+from backend.app.desktop.services.complaints.complaint_detail_service import get_complaint_verification_detail
 
-from app.core.dependencies import get_current_user
+from backend.app.core.dependencies import get_current_user
 
 
 router = APIRouter(prefix="/drafts/verification", tags=["Verification Request Drafts"])

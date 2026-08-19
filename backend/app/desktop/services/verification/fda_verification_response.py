@@ -6,24 +6,24 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from fastapi import Request
-from app.core.audit import write_audit_log, get_user_region_code
-from app.core.constants import AuditAction
+from backend.app.core.audit import write_audit_log, get_user_region_code
+from backend.app.core.constants import AuditAction
 
-from app.models.verification_requests import VerificationRequest
-from app.models.complaints import Complaint
-from app.models.fda_verification_drafts import FdaVerificationDraft
-from app.core.complaint_status import transition_complaint_status
-from app.desktop.schemas.verification.verification import (
+from backend.app.models.verification_requests import VerificationRequest
+from backend.app.models.complaints import Complaint
+from backend.app.models.fda_verification_drafts import FdaVerificationDraft
+from backend.app.core.complaint_status import transition_complaint_status
+from backend.app.desktop.schemas.verification.verification import (
     FdaVerificationSubmitRequest,
     FdaVerificationStatusChoice,
     FdaVerificationRejectRequest,
 )
 
-from app.models.users import User
-from app.models.shared_files import SharedFile
-from app.core.user_display import format_officer_display_name
-from app.desktop.schemas.verification.verification import FdaVerificationRequestDetailResponse
-from app.desktop.schemas.complaints.complaints import SharedFileResponse
+from backend.app.models.users import User
+from backend.app.models.shared_files import SharedFile
+from backend.app.core.user_display import format_officer_display_name
+from backend.app.desktop.schemas.verification.verification import FdaVerificationRequestDetailResponse
+from backend.app.desktop.schemas.complaints.complaints import SharedFileResponse
 
 
 # Shared by both submit and reject below — loads a VerificationRequest

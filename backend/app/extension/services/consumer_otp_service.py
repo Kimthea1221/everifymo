@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.models.consumer_accounts import ConsumerAccount
+from backend.app.models.consumer_accounts import ConsumerAccount
 
 import secrets 
 from datetime import datetime, timedelta, timezone
-from app.models.consumer_otp_tokens import ConsumerOTPToken
-from app.core.security import pwd_context
+from backend.app.models.consumer_otp_tokens import ConsumerOTPToken
+from backend.app.core.security import pwd_context
 
 OTP_EXPIRATION_MINS = 5
 MAX_OTP_ATTEMPTS = 5

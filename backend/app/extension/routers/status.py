@@ -3,11 +3,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session, aliased
 
-from app.database.sessions import get_db
-from app.core.security import get_current_user
-from app.models.complaints_status_history import ComplaintStatusHistory
-from app.models.complaints import Complaint
-from app.extension.schemas.status import ToPrintStatus
+from backend.app.database.sessions import get_db
+from backend.app.core.security import get_current_user
+from backend.app.models.complaints_status_history import ComplaintStatusHistory
+from backend.app.models.complaints import Complaint
+from backend.app.extension.schemas.status import ToPrintStatus
 
 router = APIRouter()
 db_dependency = Annotated[Session, Depends(get_db)]

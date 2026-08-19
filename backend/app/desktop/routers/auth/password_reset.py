@@ -3,21 +3,21 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from fastapi import Request
-from app.core.audit import write_audit_log, get_user_region_code
-from app.core.constants import AuditAction
+from backend.app.core.audit import write_audit_log, get_user_region_code
+from backend.app.core.constants import AuditAction
 
-from app.database.sessions import get_db
-from app.models.users import User
-from app.desktop.schemas.auth.password_reset import (
+from backend.app.database.sessions import get_db
+from backend.app.models.users import User
+from backend.app.desktop.schemas.auth.password_reset import (
     ForgotPasswordRequest,
     ResetPasswordRequest,
     VerifyResetOtpRequest,
 )
-from app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
-from app.desktop.services.auth.email import send_superadmin_otp_email, send_personnel_otp_email
-from app.core.security import hash_password
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
+from backend.app.desktop.services.auth.email import send_superadmin_otp_email, send_personnel_otp_email
+from backend.app.core.security import hash_password
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/auth/password", tags=["auth-password"])
 

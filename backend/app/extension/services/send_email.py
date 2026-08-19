@@ -1,6 +1,6 @@
 from pathlib import Path
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
-from app.core.config import settings
+from backend.app.core.config import settings
 
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "otp_email.html"
 LOGO_PATH = Path(__file__).parent.parent.parent.parent.parent / "extension" / "assets" / "images" / "extension_icon.png"  # adjust if needed, file path for logo icon

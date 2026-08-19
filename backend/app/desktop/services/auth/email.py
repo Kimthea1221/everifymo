@@ -1,7 +1,7 @@
 from pathlib import Path
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
-from app.core.config import settings
+from backend.app.core.config import settings
 
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "invite_email.html"
 TEMPLATE_PATH_SUPERADMIN = Path(__file__).parent / "templates" / "superadmin_otp_email.html"

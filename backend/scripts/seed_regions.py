@@ -1,10 +1,10 @@
 # scripts/seed_regions.py
 
 # The database session to actually talk to Postgres from sessions.py
-from app.database.sessions import SessionLocal
+from backend.app.database.sessions import SessionLocal
 
 # Import the model we are inserting rows into
-from app.models.regions import Region
+from backend.app.models.regions import Region
 
 
 def seed_regions():

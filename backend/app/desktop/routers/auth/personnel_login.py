@@ -3,21 +3,21 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database.sessions import get_db
-from app.desktop.schemas.auth.personnel_login import PersonnelLoginRequest, PersonnelOTPVerifyRequest
-from app.desktop.services.auth.personnel_auth import authenticate_personnel
-from app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
-from app.desktop.services.auth.email import send_personnel_otp_email
-from app.models.users import User
-from app.core.security import create_desktop_access_token, generate_refresh_token, hash_refresh_token
-from app.models.user_sessions import UserSession
-from app.core.config import settings
+from backend.app.database.sessions import get_db
+from backend.app.desktop.schemas.auth.personnel_login import PersonnelLoginRequest, PersonnelOTPVerifyRequest
+from backend.app.desktop.services.auth.personnel_auth import authenticate_personnel
+from backend.app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
+from backend.app.desktop.services.auth.email import send_personnel_otp_email
+from backend.app.models.users import User
+from backend.app.core.security import create_desktop_access_token, generate_refresh_token, hash_refresh_token
+from backend.app.models.user_sessions import UserSession
+from backend.app.core.config import settings
 from datetime import datetime, timezone, timedelta
 
 from fastapi import Request
-from app.core.audit import write_audit_log, get_user_region_code
-from app.core.constants import AuditAction
-from app.core.constants import AuditAction, Role
+from backend.app.core.audit import write_audit_log, get_user_region_code
+from backend.app.core.constants import AuditAction
+from backend.app.core.constants import AuditAction, Role
 
 router = APIRouter(prefix="/auth", tags=["personnel-auth"])
 

@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.core.dependencies import get_current_user
-from app.models.shared_files import SharedFile
+from backend.app.database.sessions import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.models.shared_files import SharedFile
 
 router = APIRouter(prefix="/shared-files", tags=["Shared Files"])
 

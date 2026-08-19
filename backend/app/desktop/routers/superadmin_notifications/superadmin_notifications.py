@@ -3,15 +3,15 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.core.dependencies import get_current_superadmin
-from app.models.users import User
-from app.desktop.schemas.superadmin_notifications.superadmin_notifications import (
+from backend.app.database.sessions import get_db
+from backend.app.core.dependencies import get_current_superadmin
+from backend.app.models.users import User
+from backend.app.desktop.schemas.superadmin_notifications.superadmin_notifications import (
     NotificationListResponse,
     UnreadCountResponse,
     MarkReadResponse,
 )
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as service
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as service
 
 router = APIRouter(prefix="/notifications", tags=["Superadmin Notifications"])
 

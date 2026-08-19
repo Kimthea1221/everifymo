@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from app.database.base import Base
+from backend.app.database.base import Base
 
 
 class CaseReferenceCounter(Base):

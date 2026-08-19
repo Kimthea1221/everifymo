@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy import Index
 
-from app.database.base import Base
+from backend.app.database.base import Base
 
 class ConsumerAccount(Base):
     __tablename__ = 'consumer_account_table'

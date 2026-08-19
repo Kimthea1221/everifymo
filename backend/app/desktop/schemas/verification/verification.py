@@ -4,9 +4,9 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 
-from app.desktop.schemas.drafts.drafts import Priority
-from app.desktop.schemas.common import NonEmptyStr
-from app.desktop.schemas.complaints.complaints import SharedFileResponse
+from backend.app.desktop.schemas.drafts.drafts import Priority
+from backend.app.desktop.schemas.common import NonEmptyStr
+from backend.app.desktop.schemas.complaints.complaints import SharedFileResponse
 
 
 

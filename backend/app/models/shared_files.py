@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Text, Boolean, BigInteger, DateTime, Fore
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
-from app.database.base import Base
+from backend.app.database.base import Base
 
 
 class SharedFile(Base):

@@ -7,16 +7,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database.sessions import get_db
-from app.models.users import User
-from app.models.account_invitation_tokens import AccountInvitationToken
-from app.desktop.schemas.user_management.management import UserListItem, UserSummary
-from app.core.constants import UserStatus
-from app.core.dependencies import get_current_superadmin
-from app.core.security import hash_password
-from app.desktop.services.auth.email import send_activation_email
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.database.sessions import get_db
+from backend.app.models.users import User
+from backend.app.models.account_invitation_tokens import AccountInvitationToken
+from backend.app.desktop.schemas.user_management.management import UserListItem, UserSummary
+from backend.app.core.constants import UserStatus
+from backend.app.core.dependencies import get_current_superadmin
+from backend.app.core.security import hash_password
+from backend.app.desktop.services.auth.email import send_activation_email
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/admin/users", tags=["user-management"])
 

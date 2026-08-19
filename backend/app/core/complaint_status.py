@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 
-from app.core.constants import VALID_COMPLAINT_TRANSITIONS
-from app.models.complaints import Complaint
+from backend.app.core.constants import VALID_COMPLAINT_TRANSITIONS
+from backend.app.models.complaints import Complaint
 
 
 def transition_complaint_status(complaint: Complaint, new_status: str) -> None:

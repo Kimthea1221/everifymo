@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database.sessions import get_db
-from app.models.regions import Region
-from app.desktop.schemas.regions.regions import RegionOut
+from backend.app.database.sessions import get_db
+from backend.app.models.regions import Region
+from backend.app.desktop.schemas.regions.regions import RegionOut
 
 router = APIRouter(prefix="/regions", tags=["regions"])
 

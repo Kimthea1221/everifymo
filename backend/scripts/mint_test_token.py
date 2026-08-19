@@ -10,9 +10,9 @@ the same way.
 """
 from sqlalchemy import text  # add this import at the top
 
-from app.database.sessions import SessionLocal
-from app.core.security import create_desktop_access_token
-from app.models.users import User
+from backend.app.database.sessions import SessionLocal
+from backend.app.core.security import create_desktop_access_token
+from backend.app.models.users import User
 
 
 def main():

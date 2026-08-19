@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database.sessions import get_db
-from app.models.users import User
-from app.desktop.schemas.auth.invite import InvitePersonnelRequest
-from app.desktop.services.auth.invite import create_invited_user
-from app.desktop.services.auth.email import send_invite_email
-from app.core.dependencies import get_current_superadmin
+from backend.app.database.sessions import get_db
+from backend.app.models.users import User
+from backend.app.desktop.schemas.auth.invite import InvitePersonnelRequest
+from backend.app.desktop.services.auth.invite import create_invited_user
+from backend.app.desktop.services.auth.email import send_invite_email
+from backend.app.core.dependencies import get_current_superadmin
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 

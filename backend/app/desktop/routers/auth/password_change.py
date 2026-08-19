@@ -4,16 +4,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from fastapi import Request
-from app.core.audit import write_audit_log, get_user_region_code
-from app.core.constants import AuditAction
+from backend.app.core.audit import write_audit_log, get_user_region_code
+from backend.app.core.constants import AuditAction
 
-from app.database.sessions import get_db
-from app.core.dependencies import get_current_user
-from app.core.security import verify_password, hash_password
-from app.models.users import User
-from app.desktop.schemas.auth.password_change import ChangePasswordRequest
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.database.sessions import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.core.security import verify_password, hash_password
+from backend.app.models.users import User
+from backend.app.desktop.schemas.auth.password_change import ChangePasswordRequest
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 router = APIRouter(prefix="/auth/password", tags=["auth-password"])
 

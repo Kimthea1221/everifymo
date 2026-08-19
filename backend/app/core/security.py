@@ -10,9 +10,9 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.database.sessions import get_db
-from app.models.consumer_accounts import ConsumerAccount
+from backend.app.core.config import settings
+from backend.app.database.sessions import get_db
+from backend.app.models.consumer_accounts import ConsumerAccount
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)

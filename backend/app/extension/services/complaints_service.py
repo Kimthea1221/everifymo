@@ -1,10 +1,10 @@
 import uuid
 from sqlalchemy.orm import Session
 
-from app.models.complaints import Complaint
-from app.models.complaints_status_history import ComplaintStatusHistory
-from app.extension.schemas.complaints import CreateComplaint
-from app.core.config import settings
+from backend.app.models.complaints import Complaint
+from backend.app.models.complaints_status_history import ComplaintStatusHistory
+from backend.app.extension.schemas.complaints import CreateComplaint
+from backend.app.core.config import settings
 
 def create_complaints(db: Session, create_consumer_request: CreateComplaint, consumer_id: str) -> Complaint:
     complaint = Complaint(

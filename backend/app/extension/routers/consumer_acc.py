@@ -5,13 +5,13 @@ from fastapi import BackgroundTasks
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.extension.schemas import consumer_acc #CreateConsumerAcc, UpdateUsername, VerifyOTP, RequestOTP
-from app.extension.services import consumer_acc_service
-from app.core.security import get_current_user
+from backend.app.database.sessions import get_db
+from backend.app.extension.schemas import consumer_acc #CreateConsumerAcc, UpdateUsername, VerifyOTP, RequestOTP
+from backend.app.extension.services import consumer_acc_service
+from backend.app.core.security import get_current_user
 
-from app.extension.services.send_email import send_otp_email
-from app.extension.services import consumer_otp_service
+from backend.app.extension.services.send_email import send_otp_email
+from backend.app.extension.services import consumer_otp_service
 
 router = APIRouter(
     prefix="/accounts",

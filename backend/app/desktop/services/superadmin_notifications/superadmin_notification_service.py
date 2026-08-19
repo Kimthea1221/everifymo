@@ -4,13 +4,13 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from app.models.superadmin_notifications import SuperadminNotification
-from app.models.users import User
-from app.models.account_invitation_tokens import AccountInvitationToken
-from app.desktop.schemas.superadmin_notifications.notification_enums import (
+from backend.app.models.superadmin_notifications import SuperadminNotification
+from backend.app.models.users import User
+from backend.app.models.account_invitation_tokens import AccountInvitationToken
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import (
     NotificationEventType,
 )
-from app.desktop.schemas.superadmin_notifications.superadmin_notifications import (
+from backend.app.desktop.schemas.superadmin_notifications.superadmin_notifications import (
     NotificationOut,
 )
 

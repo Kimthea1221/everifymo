@@ -5,18 +5,18 @@ from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.database.sessions import get_db
-from app.core.dependencies import get_current_user
-from app.desktop.schemas.complaints.complaints import ComplaintResponse
-from app.desktop.services.drafts.draft_submit_service import (
+from backend.app.database.sessions import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.desktop.schemas.complaints.complaints import ComplaintResponse
+from backend.app.desktop.services.drafts.draft_submit_service import (
     submit_walkin_draft,
     create_walkin_complaint_direct,
     update_walkin_complaint_direct,
 )
-from app.models.verification_requests import VerificationRequest
-from app.models.walkin_complainants import WalkinComplainant
-from app.desktop.schemas.complaints.complaints import WalkinComplaintListResponse
-from app.models.complaints import Complaint
+from backend.app.models.verification_requests import VerificationRequest
+from backend.app.models.walkin_complainants import WalkinComplainant
+from backend.app.desktop.schemas.complaints.complaints import WalkinComplaintListResponse
+from backend.app.models.complaints import Complaint
 
 # Two separate routers in this one file, since these two endpoints
 # need two different URL prefixes, even though they're closely

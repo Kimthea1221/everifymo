@@ -3,10 +3,10 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.models.users import User
-from app.models.account_invitation_tokens import AccountInvitationToken
-from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
-from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from backend.app.models.users import User
+from backend.app.models.account_invitation_tokens import AccountInvitationToken
+from backend.app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 
 def create_invited_user(db: Session, email: str, region_id, role: str, created_by) -> tuple[User, str]:

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from app.desktop.schemas.superadmin_notifications.notification_enums import (
+from backend.app.desktop.schemas.superadmin_notifications.notification_enums import (
     NotificationEventType,
 )
 

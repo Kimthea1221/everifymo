@@ -3,10 +3,10 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db
-from app.core.dependencies import get_current_superadmin
-from app.desktop.schemas.audit_logs.audit_logs import AuditLogListResponse, AuditLogItem
-from app.desktop.services.audit_logs.audit_logs_service import get_fda_audit_logs
+from backend.app.database.sessions import get_db
+from backend.app.core.dependencies import get_current_superadmin
+from backend.app.desktop.schemas.audit_logs.audit_logs import AuditLogListResponse, AuditLogItem
+from backend.app.desktop.services.audit_logs.audit_logs_service import get_fda_audit_logs
 
 router = APIRouter(prefix="/admin/audit-logs", tags=["audit-logs"])
 def derive_agency(user_role: str) -> str:
