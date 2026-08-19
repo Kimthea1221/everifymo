@@ -2210,7 +2210,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  height: 40px !important;
+
 }
 
 .LeaFilterGroup label {
@@ -2220,9 +2220,8 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
 .LeaFilterGroup select {
-  height: 40px;
+  height: 48px !important;   
   box-sizing: border-box;
   border: 1px solid #EDEDED;
   border-radius: 8px;
@@ -2231,12 +2230,12 @@
   background: #FDFDFD;
   outline: none;
   cursor: pointer;
-  /* Change 2 — responsive: was min-width:160px fixed; now flex+clamp */
   flex: 1;
   min-width: clamp(100px, 20%, 150px);
   max-width: 150px;
   transition: 0.2s;
 }
+
 
 .LeaFilterGroup select:focus {
   border-color: #1A1A2E;
@@ -2835,6 +2834,18 @@
   font-weight: 600;
   display: inline-block;
   white-space: nowrap;
+}
+.ReasonCompleted {
+   border: 1px solid #1d4ed8;
+  color: #1d4ed8;
+  background-color: rgba(37, 99, 235, 0.1);
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+
 }
 
 /* WALK-IN COMPLAINTS IMPROVEMENTS */

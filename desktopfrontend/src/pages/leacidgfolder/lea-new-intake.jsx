@@ -530,7 +530,7 @@ function LeaNewIntake() {
 
   }
 
-  return (
+  return ( 
     <div className='LeaDashboardMain'>
       <Sidebar sidebarType="LEA" />
       <div className='LeaContentContainer'>
