@@ -49,6 +49,6 @@ class Settings(BaseSettings):
     MAIL_EXTENSION_FROM: str = "noreply@icmda.gov.ph"
 
     class Config:
-        env_file = ".env"
+        env_file = Path(__file__).resolve().parent.parent.parent / ".env"
 
 settings = Settings()
