@@ -40,6 +40,7 @@ def list_fda_audit_logs(
             log_id=log.log_id,
             timestamp=log.performed_at,
             user_id=log.user_id,
+            user_email=user.email if user else None,
             user_name=(
                 f"{user.first_name or ''} {user.last_name or ''}".strip() or None
             ) if user else None,
