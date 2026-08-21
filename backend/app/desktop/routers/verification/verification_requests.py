@@ -1,33 +1,19 @@
 from uuid import UUID
+from datetime import date
+import io
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
-import io
 from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
 from app.core.dependencies import get_current_user
+
 from app.desktop.schemas.verification.verification import (
-    LeaVerificationQueueCounts,
     VerificationRequestCreate,
     VerificationRequestResponse,
-)
-from app.desktop.services.verification.verification_submit_service import (
-    submit_verification_draft,
-    create_verification_request_direct,
-)
-
-from app.models.complaints import Complaint
-from app.models.walkin_complainants import WalkinComplainant
-from app.desktop.schemas.verification.verification import VerificationRequestAwaitingFDAResponse
-
-from app.models.verification_requests import VerificationRequest
-
-from app.desktop.schemas.verification.verification import FdaVerificationRequestDetailResponse
-from app.desktop.services.verification.fda_verification_response import get_fda_verification_request_detail
-
-from datetime import date
-from app.desktop.schemas.verification.verification import (
+    VerificationRequestAwaitingFDAResponse,
+    FdaVerificationRequestDetailResponse,
     FdaVerificationCompletedListResponse,
     FdaVerificationCompletedDetailResponse,
     FdaVerificationRejectedListResponse,
@@ -35,6 +21,19 @@ from app.desktop.schemas.verification.verification import (
     FdaVerificationQueueCounts,
     LeaVerificationQueueCounts,
 )
+
+from app.desktop.services.verification.verification_submit_service import (
+    submit_verification_draft,
+    create_verification_request_direct,
+    recall_verification_request,   # ADD BY MHAE
+    resend_reminder,   # ADD BY MHAE
+)
+
+from app.models.complaints import Complaint
+from app.models.walkin_complainants import WalkinComplainant
+from app.models.verification_requests import VerificationRequest
+
+from app.desktop.services.verification.fda_verification_response import get_fda_verification_request_detail
 
 from app.desktop.services.verification.fda_verification_lists import (
     list_fda_verification_completed,
@@ -95,6 +94,40 @@ def create_request_direct(
         priority=data.priority,
         notes_to_fda=data.notes_to_fda,
     )
+
+
+    #
+    #
+    #
+    # Ashanti code starts here
+    #
+    #
+    # POST /verification-requests/{request_id}/recall
+@direct_request_router.post("/{request_id}/recall", response_model=VerificationRequestResponse)
+def recall_request_endpoint(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return recall_verification_request(db, request_id, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # POST /verification-requests/{request_id}/resend-reminder
+@direct_request_router.post("/{request_id}/resend-reminder", response_model=VerificationRequestResponse)
+def resend_reminder_endpoint(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return resend_reminder(db, request_id, current_user)
+
+# Ashanti code ends here
 
 
 # Third router in this file — listing/browsing, separate from the

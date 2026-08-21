@@ -620,29 +620,45 @@ function LeaVerificationRequest() {
       confirmBg: '#ef4444',
       onConfirm: async () => {
         setModalConfig(null);
+        const token = localStorage.getItem('access_token');
 
+        // If a draft exists for this complaint, clean it up first —
+        // separate record from the complaint itself
         if (currentDraftId) {
-          const token = localStorage.getItem('access_token');
           try {
-            const res = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}`, {
+            const draftRes = await fetch(`${API_BASE}/drafts/verification/${currentDraftId}`, {
               method: 'DELETE',
               headers: { authorization: `Bearer ${token}` },
             });
-            if (!res.ok) {
-              const msg = await parseBackendError(res);
+            if (!draftRes.ok) {
+              const msg = await parseBackendError(draftRes);
               showError(msg);
               return;
             }
-            showSuccess('Draft deleted successfully.');
           } catch {
             showError('Failed to delete draft. Please try again.');
             return;
           }
-        } else {
-          showSuccess('Verification request draft cleared.');
         }
 
-        // Reset compose form state and selection
+        // Always delete the actual complaint — this is what the
+        // officer actually expects when clicking Delete here
+        try {
+          const res = await fetch(`${API_BASE}/complaints/walkin/${selectedComplaint.complaint_id}`, {
+            method: 'DELETE',
+            headers: { authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) {
+            const msg = await parseBackendError(res);
+            showError(msg);
+            return;
+          }
+          showSuccess('Complaint deleted successfully.');
+        } catch {
+          showError('Failed to delete complaint. Please try again.');
+          return;
+        }
+
         setCurrentDraftId(null);
         setSelectedComplaint(null);
         setProductCode('');
@@ -654,7 +670,7 @@ function LeaVerificationRequest() {
         setModalConfig(null);
       },
     });
-  };
+};
 
   // MERGED-ADD — client-side search + category filtering for the four queue tabs
   const filteredReadyList = readyList.filter((item) => {
@@ -770,13 +786,54 @@ function LeaVerificationRequest() {
       message,
       confirmText,
       confirmBg,
-      onConfirm: () => {
-        // Trigger success alert
+      onConfirm: async () => {
+        if (actionType === 'Send Reminder' || actionType === 'Recall Request') {
+          const token = localStorage.getItem('access_token');
+          const endpoint = actionType === 'Send Reminder' ? 'resend-reminder' : 'recall';
+
+          try {
+            const res = await fetch(`${API_BASE}/verification-requests/${id}/${endpoint}`, {
+              method: 'POST',
+              headers: { authorization: `Bearer ${token}` },
+            });
+
+            if (!res.ok) {
+              const msg = await parseBackendError(res);
+              showError(msg);
+              setModalConfig(null);
+              return;
+            }
+
+            const updated = await res.json();
+
+            if (actionType === 'Recall Request') {
+              // Recalled — this request no longer belongs in Awaiting FDA at all
+              setAwaitingList(awaitingList.filter((r) => r.request_id !== id));
+              setSelectedAwaitingFda(null);
+            } else {
+              // Reminder sent — request stays in the list, nothing to remove;
+              // this just confirms the call succeeded
+            }
+
+            setSuccessMessage(successText);
+            setModalConfig(null);
+            setTimeout(() => setSuccessMessage(''), 3000);
+          } catch {
+            showError('Something went wrong. Please try again.');
+            setModalConfig(null);
+          }
+          return;
+        }
+
+        // Existing behavior for the other action types (Initiate Takedown,
+        // Dismiss Case, Close Case, Acknowledge) — untouched, still local-only
         setSuccessMessage(successText);
         setModalConfig(null);
         setTimeout(() => {
           setSuccessMessage('');
         }, 3000);
+
+
 
         /*
          BACKEND NOTIFICATION:
