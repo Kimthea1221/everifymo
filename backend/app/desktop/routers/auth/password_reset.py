@@ -1,3 +1,4 @@
+# backend/app/desktop/routers/auth/password_reset.py    
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -96,10 +97,16 @@ def reset_password(payload: ResetPasswordRequest, http_request: Request, db: Ses
         related_user_id=user.user_id,
     )
 
+    password_action = (
+        AuditAction.UPDATE_SUPERADMIN_PASSWORD
+        if user.role == "superadmin"
+        else AuditAction.UPDATE_USER_PASSWORD
+    )
+
     write_audit_log(
         db,
         user=user,
-        action=AuditAction.UPDATE_USER_PASSWORD,
+        action=password_action,
         target_table="users",
         target_id=user.user_id,
         target_reference=user.email,

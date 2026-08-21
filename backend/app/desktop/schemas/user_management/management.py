@@ -1,3 +1,4 @@
+# backend/app/desktop/schemas/user_management/management.py
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 import uuid

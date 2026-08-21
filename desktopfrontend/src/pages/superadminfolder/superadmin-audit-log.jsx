@@ -516,6 +516,7 @@ function normalizeFdaLog(raw) {
     log_id: raw.log_id,
     timestamp: raw.timestamp,
     user_id: raw.user_id,
+    user_email: raw.user_email,
     // FDA rows: system-fallback is driven by user_name being null, not user_id
     user_name: raw.user_name,
     user_role: raw.user_role,
@@ -1046,10 +1047,16 @@ function SuperAdminAuditLog() {
                         : (selectedLog.user_name || 'System')}
                     </span>
                   </div>
-                                    <div className="AuditLogDetailsRow">
+                  <div className="AuditLogDetailsRow">
                     <span className="AuditLogDetailsLabel">User ID</span>
                     <span className="AuditLogDetailsValue">
                       {selectedLog.user_id || '—'}
+                    </span>
+                  </div>
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">Email</span>
+                    <span className="AuditLogDetailsValue">
+                      {selectedLog.user_email || '—'}
                     </span>
                   </div>
                   <div className="AuditLogDetailsRow">
