@@ -1,3 +1,4 @@
+# backend/app/desktop/services/admin_management/invite.py
 import secrets
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
@@ -6,13 +7,16 @@ from fastapi import HTTPException
 from app.core.constants import UserStatus
 from app.core.security import hash_password
 
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
+
 from app.models.users import User
 from app.models.account_invitation_tokens import AccountInvitationToken
 from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
 from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 
-def create_invited_superadmin(db: Session, email: str, created_by) -> tuple[User, str]:
+def create_invited_superadmin(db: Session, email: str, created_by, request=None) -> tuple[User, str]:
     db.execute(text("SET app.bypass_rls = 'true'"))
 
     user = User(
@@ -44,6 +48,20 @@ def create_invited_superadmin(db: Session, email: str, created_by) -> tuple[User
         related_user_id=user.user_id,
     )
 
+    inviting_admin = db.query(User).filter(User.user_id == created_by).first()
+    write_audit_log(
+        db,
+        user=inviting_admin,
+        action=AuditAction.INVITE_SUPERADMIN,
+        target_table="users",
+        target_id=user.user_id,
+        target_reference=user.email,
+        new_value={"email": user.email, "role": "superadmin"},
+        request=request,
+        region_code=None,
+        user_role_override="superadmin",
+    )
+
     return user, token
 
 
@@ -59,7 +77,7 @@ def _resolve_token_status(invite: AccountInvitationToken) -> str:
     return "valid"
 
 
-def complete_superadmin_registration(db: Session, token: str, new_password: str) -> User:
+def complete_superadmin_registration(db: Session, token: str, new_password: str, request=None) -> User:
     db.execute(text("SET app.bypass_rls = 'true'"))
     invite = (
         db.query(AccountInvitationToken)
@@ -96,10 +114,22 @@ def complete_superadmin_registration(db: Session, token: str, new_password: str)
         related_user_id=user.user_id,
     )
 
+    write_audit_log(
+        db,
+        user=user,
+        action=AuditAction.SUPERADMIN_PENDING_APPROVAL,
+        target_table="users",
+        target_id=user.user_id,
+        target_reference=user.email,
+        request=request,
+        region_code=None,
+        user_role_override="superadmin",
+    )
+
     return user
 
 
-def request_new_superadmin_invite(db: Session, old_token: str) -> tuple[User, str]:
+def request_new_superadmin_invite(db: Session, old_token: str, request=None) -> tuple[User, str]:
     db.execute(text("SET app.bypass_rls = 'true'"))
     invite = (
         db.query(AccountInvitationToken)
@@ -135,11 +165,23 @@ def request_new_superadmin_invite(db: Session, old_token: str) -> tuple[User, st
         related_user_id=user.user_id,
     )
 
+    write_audit_log(
+        db,
+        user=user,
+        action=AuditAction.SUPERADMIN_REQUEST_INVITE,
+        target_table="account_invitation_tokens",
+        target_id=user.user_id,
+        target_reference=user.email,
+        request=request,
+        region_code=None,
+        user_role_override="superadmin",
+    )
+
     return user, new_token
 
 # Replace approve_superadmin() in services/admin_management/invite.py with this:
 
-def activate_superadmin(db: Session, admin_id) -> User:
+def activate_superadmin(db: Session, admin_id, activated_by=None, request=None) -> User:
     db.execute(text("SET app.bypass_rls = 'true'"))
     admin = db.query(User).filter(
         User.user_id == admin_id, User.role == "superadmin"
@@ -160,6 +202,18 @@ def activate_superadmin(db: Session, admin_id) -> User:
         title="Account activated",
         message=f"{admin.email} has been activated and is now a full superadmin.",
         related_user_id=admin.user_id,
+    )
+
+    write_audit_log(
+        db,
+        user=activated_by,
+        action=AuditAction.APPROVE_SUPERADMIN_ACCOUNT,
+        target_table="users",
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        request=request,
+        region_code=None,
+        user_role_override="superadmin",
     )
 
     return admin
