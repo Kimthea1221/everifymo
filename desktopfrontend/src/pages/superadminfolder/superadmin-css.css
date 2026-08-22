@@ -88,7 +88,7 @@ width: 100%;
 }
 
 .AdminLoginRightPanel form.OtpFormActive .OtpContainer {
-  padding: 0 48px;
+  padding: 0 20px;
   margin-top: 10px;
 }
 
@@ -149,7 +149,7 @@ width: 100%;
 .AdminLoginHeader{
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .AdminLoginHeader small{
@@ -172,41 +172,38 @@ width: 100%;
 .AdminLoginHeader_otp {
   width: 100%;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #1E293B 0%, #111827 100%);
-  padding: 32px 32px 28px;
-  border-bottom: 1px solid #0D9488;
   text-align: center;
-  margin: 0;
-  padding: 32px 48px 28px;
-  border-bottom: 1px solid #0D9488;
+  margin: 0 0 20px 0;
+  padding: 0;
+  background: none;
+  border-bottom: none;
 }
 
 .AdminLoginHeader_otp h3 {
-  font-family: var(--font-headings);
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
   letter-spacing: 0.3px;
   margin: 0;
-  text-align: center;
 }
 
 .AdminLoginHeader_otp p {
-  /* font-size: 13px;
-  color: #94a3b8; */
   font-family: 'Poppins', sans-serif;
-  font-size: 15px;
-  color: #0f172a;
+  font-size: 14px;
+  color: #64748b;
   margin: 8px 0 0 0;
-  text-align: center;
 }
 
 
 
 
 
-
-
+.AdminLoginWrapper form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px 32px 36px;
+}
 .AdminLoginWrapper label {
   /* display: block;
   font-size: 13px;
@@ -380,7 +377,7 @@ width: 100%;
 }
 
 /* per-field validation error styling (mirrors SAMFieldError / UMFieldError) */
-.LoginFieldError {
+.AdminLoginFieldError {
   font-size: 12px;
   color: #B91C1C !important;
   margin-top: 6px;
@@ -394,9 +391,8 @@ width: 100%;
 .OtpContainer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  animation: fadeIn 0.4s ease-out forwards;
 }
-
 .OtpInstructions {
   color: #cbd5e1;
   text-align: center;
@@ -420,30 +416,31 @@ width: 100%;
 
 .OtpInputGrid {
   display: flex;
+  gap: 8px;
   justify-content: center;
-  gap: 10px;
   margin-bottom: 20px;
 }
 
-.OtpDigitInput {
+.OtpInputGrid input{
   width: 48px !important;
-  height: 56px;
+  height: 48px !important;
   padding: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 44px !important;
   text-align: center;
-  font-size: 22px;
-  font-weight: 700;
-  color: #f1f5f9;
-  background: rgba(255, 255, 255, 0.07);
-  border: 2px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 10px;
-  caret-color: #0D9488;
+  font-size: 20px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  box-sizing: border-box !important;
   transition: all 0.2s ease;
 }
 
-.OtpDigitInput:focus {
+.OtpInputGrid input:focus {
   border-color: #0D9488 !important;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25) !important;
-  background: rgba(13, 148, 136, 0.06);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
   outline: none;
 }
 
@@ -1123,55 +1120,77 @@ width: 100%;
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.AuditTabsContainer::-webkit-scrollbar {
+  display: none;
 }
 
 .AuditTabsButton {
-  display: flex;
-  background: #EDEDED;
-  border: 1px solid #d8d8d8;
-  box-shadow: #d8d8d8 0.5px 0.5px 0.5px 0.5px;
-  border-radius: 20px;
-  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  border-radius: 9999px;
+  padding: 5px;
+  gap: 4px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .AuditTabButton {
-  padding: 8px 10px;
+  padding: 8px 18px;
   background: transparent;
   border: none;
-  border-radius: 20px;
+  border-radius: 9999px;
   color: #51606f;
   font-family: 'Poppins', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  line-height: 1.4;
+  user-select: none;
 }
 
-.AuditTabButton:hover {
-  background: #d8d8d8;
+.AuditTabButton:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.8);
+  color: #1E293B;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .AuditTabButton.active {
-  background: #1E293B;
-  color: #FDFDFD;
-  border-radius: 20px;
+  border-radius: 9999px;
+  background: #1E293B !important;
+  color: #FDFDFD !important;
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.25);
 }
 
 .AuditTabCount {
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 700;
-  background: rgba(255,255,255,0.25);
+  background: rgba(255, 255, 255, 0.22);
+  color: #FDFDFD;
   transition: all 0.2s ease;
 }
 
 .AuditTabButton:not(.active) .AuditTabCount {
-  background: #d0d0d0;
+  background: rgba(30, 41, 59, 0.08);
   color: #475569;
 }
 
@@ -1179,7 +1198,7 @@ width: 100%;
 .AuditFiltersRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 20px;
@@ -1226,8 +1245,22 @@ width: 100%;
 .AuditFiltersGroup {
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-end;
   flex-wrap: wrap;
+}
+
+.AuditFilterItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.AuditFilterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .AuditSelectFilter {
@@ -1249,7 +1282,7 @@ width: 100%;
 
 .AuditDateGroup {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
 }
 
@@ -1257,6 +1290,8 @@ width: 100%;
   font-size: 12px;
   font-weight: 600;
   color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   white-space: nowrap;
 }
 
@@ -1291,6 +1326,28 @@ width: 100%;
 .BtnClearAuditFilters:hover {
   background: #e2e8f0;
   color: #1e293b;
+}
+
+.BtnClearFiltersIcon {
+  background: #f8fafc;
+  color: #4b5563;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.BtnClearFiltersIcon:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 /* Badges styling */
@@ -1641,24 +1698,32 @@ width: 100%;
 /* Filters Bar */
 .UserMgmtFiltersContainer {
   display: flex;
-  justify-content: flex-start;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
   gap: 12px;
   background: #ffffff;
   padding: 16px 20px;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
 }
-
+.UserMgmtFilterRowContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .UserMgmtFilterLabel {
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .UserMgmtSelectFilter {
-  padding: 8px 12px;
+  padding: 9px 12px;
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   font-size: 13.5px;
@@ -2404,7 +2469,7 @@ width: 100%;
 /* ── Filters Bar ── */
 .SAMFiltersContainer {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   background: #ffffff;
@@ -2419,7 +2484,7 @@ width: 100%;
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1;
+  flex: 0 0 340px;
   min-width: 240px;
   max-width: 380px;
 }
@@ -2441,6 +2506,7 @@ width: 100%;
   background: #f8fafc;
   outline: none;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .SAMSearchInput:focus {
@@ -2467,14 +2533,23 @@ width: 100%;
 
 .SAMFilterGroup {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.SAMFilterItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .SAMFilterLabel {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .SAMSelectFilter {

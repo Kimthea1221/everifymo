@@ -1,6 +1,6 @@
-// merged lea-verification-request.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import mammoth from 'mammoth';
 import './lea-css.css'
 import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
@@ -168,22 +168,23 @@ const dismissedCases = [
 
 // Frontend queue pagination helper — matches the existing project .Pagination / .BtnPage design
 function QueuePagination({ currentPage, totalPages, totalItems, onPageChange }) {
-  if (totalPages <= 1) return null;
+  const safeTotalPages = Math.max(1, totalPages || 1);
+  const safeCurrentPage = Math.min(Math.max(1, currentPage || 1), safeTotalPages);
   // Build page number list (max 5 visible)
-  const pageStart = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
-  const pageEnd = Math.min(totalPages, pageStart + 4);
+  const pageStart = Math.max(1, Math.min(safeCurrentPage - 2, safeTotalPages - 4));
+  const pageEnd = Math.min(safeTotalPages, pageStart + 4);
   const pages = Array.from({ length: pageEnd - pageStart + 1 }, (_, i) => pageStart + i);
   return (
     <div className="LeaVerifQueuePagination">
       <span className="LeaVerifQueuePageInfo">
-        Page {currentPage} of {totalPages}
+        Page {safeCurrentPage} of {safeTotalPages}
       </span>
       <div className="LeaVerifQueuePaginationControls">
         <button
           type="button"
           className="LeaVerifQueuePageBtn"
-          disabled={currentPage === 1}
-          onClick={() => onPageChange(currentPage - 1)}
+          disabled={safeCurrentPage <= 1}
+          onClick={() => onPageChange(safeCurrentPage - 1)}
         >
           &lsaquo; Prev
         </button>
@@ -191,7 +192,7 @@ function QueuePagination({ currentPage, totalPages, totalItems, onPageChange }) 
           <button
             key={pg}
             type="button"
-            className={`LeaVerifQueuePageNum${currentPage === pg ? ' active' : ''}`}
+            className={`LeaVerifQueuePageNum${safeCurrentPage === pg ? ' active' : ''}`}
             onClick={() => onPageChange(pg)}
           >
             {pg}
@@ -200,8 +201,8 @@ function QueuePagination({ currentPage, totalPages, totalItems, onPageChange }) 
         <button
           type="button"
           className="LeaVerifQueuePageBtn"
-          disabled={currentPage === totalPages}
-          onClick={() => onPageChange(currentPage + 1)}
+          disabled={safeCurrentPage >= safeTotalPages}
+          onClick={() => onPageChange(safeCurrentPage + 1)}
         >
           Next &rsaquo;
         </button>
@@ -215,8 +216,10 @@ function LeaVerificationRequest() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  //FOR BUTTON TABS ON VERIFICATION REQUEST
-  const [activeTab, setActiveTab] = useState('Ready to Send');
+  // NOTE: Active tab state (defaults to 'Ready to Send')
+  const [activeTab, setActiveTab] = useState(
+    location.state?.activeTab || 'Ready to Send'
+  );
   const [selectedResponse, setSelectedResponse] = useState(responseCases[0]);
   const tabs = ['Ready to Send', 'Awaiting FDA', 'FDA Response', 'Initiated Cases', 'Closed Cases'];
   const handleTabClick = (tabName) => {
@@ -255,8 +258,8 @@ function LeaVerificationRequest() {
   const [initiatedSearch, setInitiatedSearch] = useState('');
   const [initiatedCategory, setInitiatedCategory] = useState('');
 
-  // Frontend-only queue pagination states (25 items per page)
-  const QUEUE_PAGE_SIZE = 25;
+  // Frontend-only queue pagination states (10 items per page)
+  const QUEUE_PAGE_SIZE = 10;
   const [readyPage, setReadyPage] = useState(1);
   const [awaitingPage, setAwaitingPage] = useState(1);
   const [responsePage, setResponsePage] = useState(1);
@@ -304,6 +307,9 @@ useEffect(() => { setClosedPage(1); }, [dismissedSearch, filterCategory, filterR
   const [docPreviewUrl, setDocPreviewUrl] = useState(null);
   const [docPreviewLoading, setDocPreviewLoading] = useState(false);
   const [docPreviewError, setDocPreviewError] = useState(false);
+  const [docxHtml, setDocxHtml] = useState('');
+  const [docxLoading, setDocxLoading] = useState(false);
+  const [docxError, setDocxError] = useState(false);
 
   // ADDED — real counts for the 3 top stat cards, replaces the dummy-array .length
   const [leaCounts, setLeaCounts] = useState({ fda_response_count: 0, initiated_count: 0, dismissed_count: 0 });
@@ -448,25 +454,60 @@ useEffect(() => { setClosedPage(1); }, [dismissedSearch, filterCategory, filterR
   }, [activeTab]);
 
   // ADDED — fetches a preview blob from GET /shared-files/{file_id}/preview whenever
-  // docPreviewModal changes. Supports images and PDFs; other types are left to
+  // docPreviewModal changes. Supports images, PDFs, and Word (.docx via mammoth); other types are left to
   // the download-only fallback. Object URL is revoked on cleanup to avoid memory leaks.
   useEffect(() => {
     if (!docPreviewModal) {
       setDocPreviewUrl(null);
       setDocPreviewError(false);
+      setDocxHtml('');
+      setDocxLoading(false);
+      setDocxError(false);
       return;
     }
 
-    const isImage = docPreviewModal.mime_type?.startsWith('image/');
-    const isPdf = docPreviewModal.mime_type === 'application/pdf';
-    if (!isImage && !isPdf) return; // unsupported types keep the placeholder
+    const mime = docPreviewModal.mime_type || '';
+    const name = docPreviewModal.file_name || '';
+    const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+    const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(name);
+    const isDocx = mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(name);
+
+    if (!isImage && !isPdf && !isDocx) return; // unsupported types keep the placeholder
+
+    const fileId = docPreviewModal.file_id || docPreviewModal.id;
+    if (!fileId) return;
 
     let objectUrl = null;
+    const token = localStorage.getItem('access_token');
+
+    if (isDocx) {
+      setDocxLoading(true);
+      setDocxError(false);
+      fetch(`${API_BASE}/shared-files/${fileId}/preview`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.arrayBuffer();
+        })
+        .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+        .then((result) => {
+          setDocxHtml(result.value);
+        })
+        .catch((err) => {
+          console.error('Docx conversion error:', err);
+          setDocxError(true);
+        })
+        .finally(() => {
+          setDocxLoading(false);
+        });
+      return;
+    }
+
     setDocPreviewLoading(true);
     setDocPreviewError(false);
 
-    const token = localStorage.getItem('access_token');
-    fetch(`${API_BASE}/shared-files/${docPreviewModal.file_id}/preview`, {
+    fetch(`${API_BASE}/shared-files/${fileId}/preview`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
@@ -1008,22 +1049,13 @@ const filteredDismissed = dismissedCases.filter((c) => {
                         className={`QueueCard ${selectedComplaint?.complaint_id === item.complaint_id ? 'ActiveQueueCard' : ''}`}
                         onClick={() => fetchComplaintDetail(item.complaint_id)}
                       >
-                        <div className='QueueLabels'>
-                          <h4>{item.product_title}</h4>
-                          <p>{item.manufacturer || '—'}</p>
-                          <small>
-                            CASE ID: {item.case_reference}
-                          </small>
+                        <div className="QueueCardTopRow">
+                          <small style={{ margin: 0 }}>CASE ID: {item.case_reference}</small>
+                          <span className="QueueTagInline">{GetSourceLabel(item.source)}</span>
                         </div>
+                        <h4>{item.product_title}</h4>
+                        <p>{item.manufacturer || '—'}</p>
 
-                        <div className="QueueTag">
-                          <span>{GetSourceLabel(item.source)}</span>
-                        </div>
-
-                        {/* MERGED-ADD — category + date, matching old version's QueueCardFooterRow.
-                            FLAGGED: date field name not confirmed against the real API response for this
-                            list endpoint — using item.created_at as the best guess; please confirm the
-                            actual field the backend returns (or add it if it's missing from that endpoint). */}
                         <div className="QueueCardFooterRow">
                           <span className="QueueCategoryTag">{item.product_category || '—'}</span>
                           <span className="QueueDateTag">
@@ -1863,7 +1895,7 @@ const filteredDismissed = dismissedCases.filter((c) => {
                       </div>
                       {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
                       {(() => {
-                        const hasDismissedFilters = Boolean(dismissedSearch || filterCategory || filterDateFrom || filterDateTo);
+                        const hasDismissedFilters = Boolean(dismissedSearch || filterCategory || filterReasonClosed || filterDateFrom || filterDateTo);
                         return (
                           <button
                             className="BtnClearFiltersIcon"
@@ -1874,6 +1906,7 @@ const filteredDismissed = dismissedCases.filter((c) => {
                             onClick={() => {
                               setDismissedSearch('');
                               setFilterCategory('');
+                              setFilterReasonClosed('');
                               setFilterDateFrom('');
                               setFilterDateTo('');
                             }}
@@ -2122,7 +2155,13 @@ const filteredDismissed = dismissedCases.filter((c) => {
             </div>
 
             <div className="LeaVerifDocModalBody">
-              {(docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.mime_type === 'application/pdf') ? (
+              {(docPreviewModal.mime_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(docPreviewModal.file_name)) ? (
+                <img
+                  src={docPreviewUrl}
+                  alt={docPreviewModal.file_name}
+                  className="LeaVerifDocImagePreview"
+                />
+              ) : (docPreviewModal.mime_type === 'application/pdf' || /\.pdf$/i.test(docPreviewModal.file_name)) ? (
                 docPreviewLoading ? (
                   <div className="LeaVerifDocPlaceholderPreview">
                     <p className="LeaVerifPreviewText">Loading preview&hellip;</p>
@@ -2133,18 +2172,31 @@ const filteredDismissed = dismissedCases.filter((c) => {
                     <p className="LeaVerifPreviewTitle">Preview unavailable</p>
                     <p className="LeaVerifPreviewText">Try downloading the file instead.</p>
                   </div>
-                ) : docPreviewModal.mime_type.startsWith('image/') ? (
-                  <img
-                    src={docPreviewUrl}
-                    alt={docPreviewModal.file_name}
-                    className="LeaVerifDocImagePreview"
-                  />
                 ) : (
                   <iframe
                     src={docPreviewUrl}
                     title={docPreviewModal.file_name}
                     className="LeaVerifDocPdfPreview"
                   />
+                )
+              ) : (docPreviewModal.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(docPreviewModal.file_name)) ? (
+                docxLoading ? (
+                  <div className="LeaVerifDocPlaceholderPreview">
+                    <p className="LeaVerifPreviewText">Converting Word document for preview&hellip;</p>
+                  </div>
+                ) : docxError ? (
+                  <div className="LeaVerifDocPlaceholderPreview">
+                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                    <p className="LeaVerifPreviewTitle">Could not render Word preview</p>
+                    <p className="LeaVerifPreviewText">Try downloading the document to view its full contents.</p>
+                  </div>
+                ) : (
+                  <div className="LeaVerifDocDocxPreview">
+                    <div
+                      className="LeaVerifDocxContent"
+                      dangerouslySetInnerHTML={{ __html: docxHtml }}
+                    />
+                  </div>
                 )
               ) : (
                 <div className="LeaVerifDocPlaceholderPreview">
