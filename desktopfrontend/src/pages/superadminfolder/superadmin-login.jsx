@@ -313,11 +313,6 @@ function SuperAdminLogin() {
                                     </div>
                                     {errors.email && <span className="AdminLoginFieldError"><AlertCircle size={12} /> {errors.email}</span>}
                                 </div>
-                                {errors.email && (
-                                    <span className="AdminLoginFieldError">
-                                        <AlertCircle size={12} /> {errors.email}
-                                    </span>
-                                )}
 
                                 <div style={{ marginTop: '15px' }}>
                                     <div className="PasswordLabelRow">
@@ -364,14 +359,7 @@ function SuperAdminLogin() {
                                             Forgot Password?
                                         </a>
                                     </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-12px', marginBottom: '20px' }}>
-                                    <a onClick={() => navigate('/forgot-password?from=superadmin')}
-                                       className="ForgotPasswordLink">
-                                        Forgot password?
-                                    </a>
                                 </div>
-                                
                                 </div>
                                 
 
