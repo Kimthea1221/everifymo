@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/emailtemplates/superadmin-invite-status.jsx
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ClockAlert, Link, CircleCheckBig, ArrowRight } from 'lucide-react';
@@ -24,16 +25,23 @@ function SuperadminInviteStatus() {
     }
   }, [linkStatus, navigate, inviteToken]);
 
-  const handleRequestNewInvite = () => {
-    // 🔌 BACKEND: Call API to request a new superadmin invitation resend
-    // fetch('http://127.0.0.1:8000/superadmin/invite/request-new', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ token: inviteToken }),
-    // })
+    const handleRequestNewInvite = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/superadmin/invite/request-new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: inviteToken }),
+      });
 
-    // ⚠️ REMOVE THIS: Simulated frontend response
-    setRequested(true);
+      if (!response.ok) {
+        console.error('Failed to request new invite:', await response.text());
+        return;
+      }
+
+      setRequested(true);
+    } catch (err) {
+      console.error('Error requesting new invite:', err);
+    }
   };
 
   const statusContent = {

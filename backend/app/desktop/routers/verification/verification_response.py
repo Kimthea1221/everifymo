@@ -1,4 +1,7 @@
+# backend/app/desktop/routers/verification/verification_response.py
 from uuid import UUID
+
+from fastapi import Request
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -31,6 +34,7 @@ fda_response_router = APIRouter(prefix="/verification-requests", tags=["Verifica
 def submit_fda_response(
     request_id: UUID,
     data: FdaVerificationSubmitRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -38,7 +42,7 @@ def submit_fda_response(
         raise HTTPException(status_code=403, detail="Only FDA personnel can submit a verification response.")
 
     verification_request, complaint = submit_fda_verification_response(
-        db, request_id, current_user, data
+        db, request_id, current_user, data, http_request
     )
 
     return FdaVerificationSubmitResponse(
@@ -66,13 +70,14 @@ def submit_fda_response(
 def reject_fda_response(
     request_id: UUID,
     data: FdaVerificationRejectRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     if current_user.role != Role.FDA_PERSONNEL:
         raise HTTPException(status_code=403, detail="Only FDA personnel can reject a verification request.")
 
-    verification_request, complaint = reject_fda_verification_response(db, request_id, current_user, data)
+    verification_request, complaint = reject_fda_verification_response(db, request_id, current_user, data, http_request)
 
     return FdaVerificationRejectResponse(
         request_id=verification_request.request_id,

@@ -16,6 +16,47 @@ function LeaNewIntake() {
   // ADDED — draftId passed in from Saved Drafts "Edit Draft" click.
   // null = brand new intake, no draft involved.
   const editingDraftId = location.state?.draftId ?? null
+  const editingComplaintId = location.state?.complaintId ?? null
+  // ADDED — on page load, if editing an already-submitted complaint,
+  // fetch its full detail and fill every field
+  useEffect(() => {
+    if (!editingComplaintId) return  // brand new intake or draft edit — nothing to fetch
+
+    const token = localStorage.getItem('access_token')
+    setLoading(true)
+
+    fetch(`${API_BASE}/complaints/${editingComplaintId}/walkin-detail`, {
+      headers: { authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((data) => {
+        setFullName(data.full_name ?? '')
+        setContactNumber(data.contact_number ?? '')
+        setEmail(data.email ?? '')
+        setIdType(data.id_type ?? '')
+        setAddress(data.address ?? '')
+        setProductName(data.product_title ?? '')
+        setManufacturer(data.manufacturer ?? '')
+        setProductCategory(data.product_category ?? '')
+        setPlaceOfPurchase(data.place_of_purchase ?? '')
+        setDateOfPurchase(data.date_of_purchase ?? '')
+        setAmountPaid(data.amount_paid ?? '')
+        setNatureOfComplaint(data.nature_of_complaint ?? '')
+        setExistingAttachments(
+          (data.attached_files ?? []).map((f) => ({
+            attachment_id: f.file_id,
+            file_name: f.file_name,
+          }))
+        )
+      })
+      .catch(() => showToast('Could not load this complaint.'))
+      .finally(() => setLoading(false))
+  }, [editingComplaintId])
+
+
 
   const [files, setFiles] = useState([])
 
@@ -162,7 +203,8 @@ function LeaNewIntake() {
 
     if (field === 'attachments') {
       const { files: fList, existingAttachments: eList } = value || {}
-      if ((!fList || fList.length === 0) && (!editingDraftId || !eList || eList.length === 0)) {
+      const isEditingWithExisting = (editingDraftId || editingComplaintId)
+      if ((!fList || fList.length === 0) && (!isEditingWithExisting || !eList || eList.length === 0)) {
         return 'Please attach at least one supporting document or photo.'
       }
       return ''
@@ -360,7 +402,9 @@ function LeaNewIntake() {
     formData.append('product_category', productCategory)
     formData.append('place_of_purchase', placeOfPurchase)
     formData.append('date_of_purchase', dateOfPurchase)
-    formData.append('amount_paid', amountPaid)
+    if (amountPaid !== '' && amountPaid !== null && amountPaid !== undefined) {
+      formData.append('amount_paid', amountPaid)
+    }
     formData.append('nature_of_complaint', natureOfComplaint)
     files.forEach((file) => formData.append('files', file))
     return formData
@@ -379,6 +423,11 @@ function LeaNewIntake() {
   }
 
   const handleSaveAsDraft = async () => {
+    if (editingComplaintId) {
+      showToast('This complaint is already submitted and cannot be saved as a draft.')
+      return
+    }
+
     if (!validateFormatForDraft()) {
       showToast('Please fix the validation errors before saving.')
       return
@@ -429,7 +478,16 @@ function LeaNewIntake() {
 
     try {
       let res
-      if (editingDraftId) {
+      if (editingComplaintId) {
+        const formData = buildFormData()
+        attachmentIdsToRemove.forEach((id) => formData.append('remove_attachment_ids', id))
+
+        res = await fetch(`${API_BASE}/complaints/walkin/${editingComplaintId}`, {
+          method: 'PUT',
+          headers: { authorization: `Bearer ${token}` },
+          body: formData,
+        })
+      } else if (editingDraftId) {
         const formData = buildFormData()
         attachmentIdsToRemove.forEach((id) => formData.append('remove_attachment_ids', id))
 
@@ -469,9 +527,10 @@ function LeaNewIntake() {
     } finally {
       setLoading(false)
     }
+
   }
 
-  return (
+  return ( 
     <div className='LeaDashboardMain'>
       <Sidebar sidebarType="LEA" />
       <div className='LeaContentContainer'>
@@ -778,9 +837,11 @@ function LeaNewIntake() {
 
               <div>
                 <button type="button" className='CancelButton' onClick={() => navigate(-1)}>Cancel</button>
+                {!editingComplaintId && (
                 <button type="button" className='DraftButton' disabled={loading} onClick={handleSaveAsDraft}>
                   {loading ? 'Saving...' : 'Save as Draft'}
-                </button>
+                </button> 
+                )}
                 <button type="submit" className='LogButton' disabled={loading}>
                   {loading ? 'Submitting...' : 'Log Complaint & Queue for FDA'}
                 </button>
