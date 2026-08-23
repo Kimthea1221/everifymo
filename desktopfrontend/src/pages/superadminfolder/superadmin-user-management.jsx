@@ -1,7 +1,7 @@
 // desktopfrontend/src/pages/superadminfolder/superadmin-user-management.jsx
 import './superadmin-css.css';
 import { useState, useEffect, useRef } from 'react';
-import { Send, UserCheck, UserX, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, UserCheck, UserX, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 import { apiFetch } from '../../utils/apiFetch';
@@ -660,26 +660,41 @@ function SuperAdminUserManagement() {
 
             {/* Filter Bar */}
             <div className="UserMgmtFiltersContainer">
-              <span className="UserMgmtFilterLabel">Filter by Status:</span>
-              <select
-                className="UserMgmtSelectFilter"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="All">All</option>
-                <option value="Invited">Invited</option>
-                <option value="Resend Requested">Resend Requested</option>
-                <option value="Link Expired">Link Expired</option>
-                <option value="Pending Approval">Pending Approval</option>
-                <option value="Active">Active</option>
-                <option value="Suspended">Suspended</option>
-                <option value="Locked">Locked</option>
-              </select>
-            </div>
+              <div className="UserMgmtFilterRowContainer">
+                <span className="UserMgmtFilterLabel">STATUS</span>
+                <select
+                  className="UserMgmtSelectFilter"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="All">All</option>
+                  <option value="Invited">Invited</option>
+                  <option value="Resend Requested">Resend Requested</option>
+                  <option value="Link Expired">Link Expired</option>
+                  <option value="Pending Approval">Pending Approval</option>
+                  <option value="Active">Active</option>
+                  <option value="Suspended">Suspended</option>
+                  <option value="Locked Account">Locked Account</option>
+                </select>
+              </div>
 
+              {statusFilter !== 'All' && (
+                <button
+                  className="BtnClearFiltersIcon"
+                  aria-label="Clear Filters"
+                  title="Clear Filters"
+                  onClick={() => {
+                    setStatusFilter('All');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
             {/* Table */}
             <div className="UMTableWrapper">
               <table className="UMTable">

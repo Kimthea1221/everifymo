@@ -1,4 +1,3 @@
-// desktopfrontend/src/pages/superadminfolder/superadmin-login.jsx
 import { useState, useEffect, useRef } from "react";
 import './superadmin-css.css';
 import { useNavigate } from "react-router-dom";
@@ -7,6 +6,9 @@ import FDALogo from '../../images/FDA.png'
 import PNPLogo from '../../images/pnp-cidg.jpg'
 
 //LOGIN PAGE EXCLUSIVELY FOR SUPERADMIN
+
+
+
 
 function SuperAdminLogin() {
     const navigate = useNavigate();
@@ -190,8 +192,16 @@ function SuperAdminLogin() {
         }
         setErrors({});
 
-            if (!password.trim()) {
-                newErrors.password = 'Password is required.';
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Invalid email or password.');
             }
 
             // ADDED — remember/forget email in localStorage, frontend-only
@@ -204,56 +214,41 @@ function SuperAdminLogin() {
             setIsOtpSent(true);
             setTimer(300);
             setAdminLoginError('');
+        } catch (err) {
+            setAdminLoginError(err.message);
+        }
 
-            try {
-                const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
-                });
+    } else {
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Invalid email or password.');
-                }
+        const otpCode = otp.join('');
 
-                setIsOtpSent(true);
-                setTimer(300);
-                setAdminLoginError('');
-            } catch (err) {
-                setAdminLoginError(err.message);
+        if (otpCode.length < 6) {
+            setAdminLoginError('Please enter the full 6-digit verification code.');
+            return;
+        }
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp: otpCode }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
             }
 
-        } else {
-            const otpCode = otp.join('');
-
-            if (otpCode.length < 6) {
-                setAdminLoginError('Please enter the full 6-digit verification code.');
-                return;
-            }
-
-            try {
-                const response = await fetch('http://127.0.0.1:8000/auth/superadmin/verify-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, otp: otpCode }),
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
-                }
-
-                const data = await response.json();
-                localStorage.setItem('access_token', data.access_token);
-                localStorage.setItem('refresh_token', data.refresh_token);
-                localStorage.setItem('agency', 'superadmin');
-                navigate('/superadminfolder/superadmin-user-management');
-            } catch (err) {
-                setAdminLoginError(err.message);
-            }
+            const data = await response.json();
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+            localStorage.setItem('agency', 'superadmin');
+            navigate('/superadminfolder/superadmin-user-management');
+        } catch (err) {
+            setAdminLoginError(err.message);
         }
     }
+}
     const formatTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
     return (
@@ -311,13 +306,8 @@ function SuperAdminLogin() {
                                             required
                                         />
                                     </div>
-                                    {errors.email && <span className="LoginFieldError"><AlertCircle size={12} /> {errors.email}</span>}
+                                    {errors.email && <span className="AdminLoginFieldError"><AlertCircle size={12} /> {errors.email}</span>}
                                 </div>
-                                {errors.email && (
-                                    <span className="AdminLoginFieldError">
-                                        <AlertCircle size={12} /> {errors.email}
-                                    </span>
-                                )}
 
                                 <div style={{ marginTop: '15px' }}>
                                     <div className="PasswordLabelRow">
@@ -344,7 +334,7 @@ function SuperAdminLogin() {
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
-                                    {errors.password && <span className="LoginFieldError"><AlertCircle size={12} /> {errors.password}</span>}
+                                    {errors.password && <span className="AdminLoginFieldError"><AlertCircle size={12} /> {errors.password}</span>}
 
                                     <div className="AdminRememberMeRow">
                                         <label htmlFor="admin-remember-me">
@@ -364,23 +354,9 @@ function SuperAdminLogin() {
                                             Forgot Password?
                                         </a>
                                     </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-12px', marginBottom: '20px' }}>
-                                    <a onClick={() => navigate('/forgot-password?from=superadmin')}
-                                       className="ForgotPasswordLink">
-                                        Forgot password?
-                                    </a>
+                                </div>
                                 </div>
                                 
-                                </div>
-                                
-
-                                {!isOtpSent && adminLoginError && (
-                                    <div className="AdminLoginErrorMsgContainer">
-                                        <AlertCircle size={14} />
-                                        <p className="AdminLoginErrorText">{adminLoginError}</p>
-                                    </div>
-                                )}
 
                                 <button type="submit">Login</button>
                             </>
@@ -428,12 +404,7 @@ function SuperAdminLogin() {
                                         )}
                                     </div>
 
-                                    {adminLoginError && (
-                                        <div className="AdminLoginErrorMsgContainer" style={{ marginTop: '10px' }}>
-                                            <AlertCircle size={14} />
-                                            <p className="AdminLoginErrorText">{adminLoginError}</p>
-                                        </div>
-                                    )}
+                                    
 
                                     <button type="submit" style={{ marginTop: '20px' }}>
                                         Verify &amp; Login
@@ -442,6 +413,12 @@ function SuperAdminLogin() {
                                         ← Back to login
                                     </button>
                                 </div>
+
+                                {adminLoginError && (
+                                    <div className="AdminLoginErrorMsgContainer" style={{ marginTop: '15px' }}>
+                                        <p className="AdminLoginErrorMsg">{adminLoginError}</p>
+                                    </div>
+                                )}
                             </>
                         )}
                     </form>

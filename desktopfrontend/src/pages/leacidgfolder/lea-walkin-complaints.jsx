@@ -4,6 +4,7 @@ import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import mammoth from 'mammoth'
 import { Eye, MoreVertical, Pencil, Trash2, X, Paperclip, FileText, Image as ImageIcon, Download } from 'lucide-react'
 
 const API_BASE = 'http://127.0.0.1:8000';
@@ -98,19 +99,73 @@ function LeaWalkinComplaints() {
     const [docPreviewUrl, setDocPreviewUrl] = useState(null)
     const [docPreviewLoading, setDocPreviewLoading] = useState(false)
     const [docPreviewError, setDocPreviewError] = useState(false)
+    const [docxHtml, setDocxHtml] = useState('')
+    const [docxLoading, setDocxLoading] = useState(false)
+    const [docxError, setDocxError] = useState(false)
 
     // Fetches inline preview when docPreviewModal is set
     useEffect(() => {
         if (!docPreviewModal) {
             setDocPreviewUrl(null)
             setDocPreviewError(false)
+            setDocxHtml('')
+            setDocxLoading(false)
+            setDocxError(false)
             return
         }
 
         const mime = docPreviewModal.mime_type || docPreviewModal.type || ''
-        const isImage = mime.startsWith('image/')
-        const isPdf = mime === 'application/pdf'
-        if (!isImage && !isPdf) return
+        const name = docPreviewModal.file_name || docPreviewModal.name || ''
+        const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(name)
+        const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(name)
+        const isDocx = mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(name)
+
+        if (!isImage && !isPdf && !isDocx) return
+
+        if (isDocx) {
+            setDocxLoading(true)
+            setDocxError(false)
+
+            if (docPreviewModal.url) {
+                fetch(docPreviewModal.url)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                        return res.arrayBuffer()
+                    })
+                    .then(arrayBuffer => mammoth.convertToHtml({ arrayBuffer }))
+                    .then(result => { setDocxHtml(result.value) })
+                    .catch(err => {
+                        console.error('Docx preview error:', err)
+                        setDocxError(true)
+                    })
+                    .finally(() => setDocxLoading(false))
+                return
+            }
+
+            const fileId = docPreviewModal.file_id || docPreviewModal.id
+            if (!fileId) {
+                setDocxLoading(false)
+                setDocxError(true)
+                return
+            }
+
+            const token = localStorage.getItem('access_token')
+            fetch(`${API_BASE}/shared-files/${fileId}/preview`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                    return res.arrayBuffer()
+                })
+                .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                .then((result) => { setDocxHtml(result.value) })
+                .catch((err) => {
+                    console.error('Docx preview error:', err)
+                    setDocxError(true)
+                })
+                .finally(() => setDocxLoading(false))
+            return
+        }
 
         if (docPreviewModal.url) {
             setDocPreviewUrl(docPreviewModal.url)
@@ -324,7 +379,7 @@ function LeaWalkinComplaints() {
                                     <option value="All">All Categories</option>
                                     <option value="Cosmetics">Cosmetics</option>
                                     <option value="Food">Food</option>
-                                    <option value="Medical Devices">Medical Devices</option>
+                                    <option value="Devices">Medical Devices</option>
                                     <option value="Drugs">Drugs</option>
                                 </select>
 
@@ -575,8 +630,13 @@ function LeaWalkinComplaints() {
                                     </div>
 
                                     <div className="LeaVerifDocModalBody">
-                                        {((docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) || 
-                                          (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf')) ? (
+                                        {(docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            <img
+                                                src={docPreviewUrl}
+                                                alt={docPreviewModal.file_name || docPreviewModal.name}
+                                                className="LeaVerifDocImagePreview"
+                                            />
+                                        ) : (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf' || /\.pdf$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
                                             docPreviewLoading ? (
                                                 <div className="LeaVerifDocPlaceholderPreview">
                                                     <p className="LeaVerifPreviewText">Loading preview&hellip;</p>
@@ -587,18 +647,31 @@ function LeaWalkinComplaints() {
                                                     <p className="LeaVerifPreviewTitle">Preview unavailable</p>
                                                     <p className="LeaVerifPreviewText">Try downloading the file instead.</p>
                                                 </div>
-                                            ) : (docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) ? (
-                                                <img
-                                                    src={docPreviewUrl}
-                                                    alt={docPreviewModal.file_name || docPreviewModal.name}
-                                                    className="LeaVerifDocImagePreview"
-                                                />
                                             ) : (
                                                 <iframe
                                                     src={docPreviewUrl}
                                                     title={docPreviewModal.file_name || docPreviewModal.name}
                                                     className="LeaVerifDocPdfPreview"
                                                 />
+                                            )
+                                        ) : (docPreviewModal.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            docxLoading ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <p className="LeaVerifPreviewText">Converting Word document for preview&hellip;</p>
+                                                </div>
+                                            ) : docxError ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                                                    <p className="LeaVerifPreviewTitle">Could not render Word preview</p>
+                                                    <p className="LeaVerifPreviewText">Try downloading the document to view its full contents.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="LeaVerifDocDocxPreview">
+                                                    <div
+                                                        className="LeaVerifDocxContent"
+                                                        dangerouslySetInnerHTML={{ __html: docxHtml }}
+                                                    />
+                                                </div>
                                             )
                                         ) : (
                                             <div className="LeaVerifDocPlaceholderPreview">

@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
+{/* for universal login*/}
+import UniversalLogin from './pages/universal-login.jsx';
 
 {/* LEA-CIDG PAGES */ }
 import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
@@ -37,6 +39,7 @@ import FDAVerification from './pages/fdafolder/fda-verification.jsx';
 import FDAStatus from './pages/fdafolder/fda-status.jsx';
 import FDAProductDB from './pages/fdafolder/fda-product-db.jsx';
 import FDASavedDraft from './pages/fdafolder/fda-saved-draft.jsx';
+
 
 
 function DeepLinkListener() {
@@ -77,7 +80,7 @@ export default function App() {
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<SuperAdminLogin />} />
+        <Route path='/' element={<Login />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
@@ -86,6 +89,9 @@ export default function App() {
         <Route path='/change-password' element={<ChangePassword />} />
         <Route path='/create-new-password' element={<CreateNewPassword />} />
         <Route path='/user-registration' element={<UserRegistration />} />
+
+        {/* for universal login*/}
+        <Route path='/universal-login' element={<UniversalLogin />} />
 
         {/* LEA-CIDG ROUTES */}
         <Route path='/leacidgfolder/lea-dashboard' element={<LeaDashboard />} />
