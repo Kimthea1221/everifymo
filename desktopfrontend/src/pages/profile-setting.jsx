@@ -446,10 +446,16 @@ function ProfileSetting() {
 
                   <div className="SuperAdminProfileInfo">
                     <div className="SuperAdminProfileInfoRow">
-                      <span className="SuperAdminProfileLabel">Full Name</span>
-                      <span className="SuperAdminProfileValue">
-                        {`${form.firstName} ${form.lastName}`.trim() || '—'}
-                      </span>
+                      <span className="SuperAdminProfileLabel">First Name</span>
+                      <span className="SuperAdminProfileValue">{form.firstName || '—'}</span>
+                    </div>
+                    <div className="SuperAdminProfileInfoRow">
+                      <span className="SuperAdminProfileLabel">Middle Name</span>
+                      <span className="SuperAdminProfileValue">{form.middleName || '—'}</span>
+                    </div>
+                    <div className="SuperAdminProfileInfoRow">
+                      <span className="SuperAdminProfileLabel">Last Name</span>
+                      <span className="SuperAdminProfileValue">{form.lastName || '—'}</span>
                     </div>
                     <div className="SuperAdminProfileInfoRow">
                       <span className="SuperAdminProfileLabel">Email Address</span>
@@ -1541,7 +1547,7 @@ const styles = `
   }
 
   .SuperAdminProfileContainer {
-    max-width: 760px;
+    max-width: 980px;
     margin: 0 auto;
     padding: 32px 24px;
     display: flex;
