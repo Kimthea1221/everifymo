@@ -125,6 +125,7 @@ function Login(){
       setIsOtpSent(false);
       setOtp(new Array(6).fill(''));
       setLoginError('');
+      setPassword('');
     }
 
     // Format seconds as M:SS to match the superadmin login OTP timer

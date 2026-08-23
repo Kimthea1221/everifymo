@@ -4,7 +4,7 @@ import secrets
 import secrets as secrets_module 
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -146,6 +146,7 @@ def generate_temp_password() -> str:
 async def activate_user(
     user_id: uuid.UUID,
     http_request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -159,17 +160,26 @@ async def activate_user(
     user.force_password_change = True
     user.status = UserStatus.ACTIVE
     user.is_active = True
-    db.commit()
 
+    # capture everything BEFORE commit — including region_code, since
+    # get_user_region_code() also reads an attribute (region_id) that
+    # becomes unsafe once the object is expired
     fullname = " ".join(p for p in [user.first_name, user.middle_name, user.last_name] if p)
-    await send_activation_email(user.email, fullname or user.email, temp_password)
+    user_email = user.email
+    user_id_val = user.user_id
+    region_code = get_user_region_code(db, user)
+
+    db.commit()
+    # no user.<attr> reads past this point
+
+    background_tasks.add_task(send_activation_email, user_email, fullname or user_email, temp_password)
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.ACCOUNT_ACTIVATED,
         title="Account activated",
-        message=f"{user.email} has been activated and is now an active user.",
-        related_user_id=user.user_id,
+        message=f"{user_email} has been activated and is now an active user.",
+        related_user_id=user_id_val,
     )
 
     write_audit_log(
@@ -177,10 +187,10 @@ async def activate_user(
         user=current_user,
         action=AuditAction.APPROVE_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "User account activated successfully"}
@@ -198,14 +208,19 @@ def suspend_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = False
+
+    user_id_val = user.user_id
+    user_email = user.email
+    region_code = get_user_region_code(db, user)
+
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.ACCOUNT_SUSPENDED,
         title="Account suspended",
-        message=f"{user.email}'s account has been suspended.",
-        related_user_id=user.user_id,
+        message=f"{user_email}'s account has been suspended.",
+        related_user_id=user_id_val,
     )
 
     write_audit_log(
@@ -213,10 +228,10 @@ def suspend_user(
         user=current_user,
         action=AuditAction.SUSPEND_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "User account suspended successfully"}
@@ -234,14 +249,19 @@ def reactivate_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_active = True
+
+    user_id_val = user.user_id
+    user_email = user.email
+    region_code = get_user_region_code(db, user)
+
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.ACCOUNT_REACTIVATED,
         title="Account reactivated",
-        message=f"{user.email}'s account has been reactivated.",
-        related_user_id=user.user_id,
+        message=f"{user_email}'s account has been reactivated.",
+        related_user_id=user_id_val,
     )
 
     write_audit_log(
@@ -249,10 +269,10 @@ def reactivate_user(
         user=current_user,
         action=AuditAction.REACTIVATE_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "User account reactivated successfully"}
@@ -262,6 +282,7 @@ def reactivate_user(
 async def resend_invitation(
     user_id: uuid.UUID,
     http_request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -275,29 +296,35 @@ async def resend_invitation(
     token = secrets.token_urlsafe(32)
     expires = datetime.now(timezone.utc) + timedelta(days=2)
 
+    # capture everything from `user` BEFORE commit — user.role, user.email,
+    # user.user_id all become unsafe to read once the transaction ends
+    user_id_val = user.user_id
+    user_email = user.email
+    friendly_role = {
+        "fda_personnel": "FDA",
+        "lea_personnel": "LEA-CIDG"
+    }.get(user.role, user.role)
+    region_code = get_user_region_code(db, user)
+
     new_token = AccountInvitationToken(
-        user_id=user.user_id,
+        user_id=user_id_val,
         invite_token=token,
         expires_at=expires,
         resend_requested_at=None,
     )
     db.add(new_token)
     db.commit()
-
-    friendly_role = {
-        "fda_personnel": "FDA",
-        "lea_personnel": "LEA-CIDG"
-    }.get(user.role, user.role)
+    # no user.<attr> reads past this point
 
     from app.desktop.services.auth.email import send_invite_email
-    await send_invite_email(user.email, friendly_role, token)
+    background_tasks.add_task(send_invite_email, user_email, friendly_role, token)
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.RESEND_LINK_REQUESTED,
         title="Invitation resent",
-        message=f"Invitation resent to {user.email}.",
-        related_user_id=user.user_id,
+        message=f"Invitation resent to {user_email}.",
+        related_user_id=user_id_val,
     )
 
     write_audit_log(
@@ -305,10 +332,10 @@ async def resend_invitation(
         user=current_user,
         action=AuditAction.INVITE_PERSONNEL_RESENT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "Invitation resent successfully"}
@@ -336,6 +363,7 @@ def delete_user(
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == user_id).delete()
     db.delete(user)
     db.commit()
+    # user object is deleted AND expired — never touch it after this
 
     write_audit_log(
         db,
@@ -364,6 +392,11 @@ def unlock_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.is_locked = False
     user.failed_login_attempts = 0
+
+    user_id_val = user.user_id
+    user_email = user.email
+    region_code = get_user_region_code(db, user)
+
     db.commit()
 
     write_audit_log(
@@ -371,10 +404,10 @@ def unlock_user(
         user=current_user,
         action=AuditAction.UNLOCK_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "User account unlocked successfully"}

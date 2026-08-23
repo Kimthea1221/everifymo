@@ -1,6 +1,6 @@
 # backend/app/desktop/routers/auth/superadmin_invite_public.py  
 import re
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, BackgroundTasks
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
@@ -43,8 +43,9 @@ async def create_password_from_invite(
 async def request_new_invite(
     payload: RequestNewInviteRequest,
     http_request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    user, new_token = request_new_superadmin_invite(db, payload.token, request=http_request)
-    await send_superadmin_invite_email(user.email, new_token)
+    user_email, new_token = request_new_superadmin_invite(db, payload.token, request=http_request)
+    background_tasks.add_task(send_superadmin_invite_email, user_email, new_token)
     return {"message": "A new invitation has been sent."}

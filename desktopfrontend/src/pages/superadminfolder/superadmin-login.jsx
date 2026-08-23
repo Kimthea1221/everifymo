@@ -128,6 +128,7 @@ function SuperAdminLogin() {
         setIsOtpSent(false);
         setOtp(new Array(6).fill(''));
         setAdminLoginError('');
+        setPassword('');
     }
 
     // ADDED — masks an email for display on the OTP screen so the full
