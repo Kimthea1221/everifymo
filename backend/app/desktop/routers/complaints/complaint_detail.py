@@ -13,9 +13,22 @@ from app.desktop.schemas.complaints.complaints import ComplaintAwaitingRequestRe
 
 from app.models.complaints import Complaint
 from app.models.walkin_complainants import WalkinComplainant
-
-from app.desktop.schemas.complaints.complaints import WalkinComplaintDetailResponse, SharedFileResponse
 from app.models.shared_files import SharedFile
+
+from app.desktop.schemas.complaints.complaints import (
+    SharedFileResponse,
+    WalkinComplaintDetailResponse,
+    LeaInitiatedCaseListItem,
+    LeaInitiatedCaseDetailResponse,
+    LeaCloseCaseRequest,
+    LeaCloseCaseResponse,
+)
+
+from app.desktop.services.complaints.lea_initiated_cases import (
+    list_lea_initiated_cases,
+    get_lea_initiated_case_detail,
+    close_case,
+)
 
 router = APIRouter(prefix="/complaints", tags=["Complaint Detail"])
 
@@ -125,3 +138,58 @@ def get_walkin_complaint_detail(
         attached_files=[SharedFileResponse.model_validate(f) for f in files],
     )
 #Ashanti code ends here
+
+
+# added by darlene --start
+# ============================================================
+# LEA INITIATED CASES TAB
+# ============================================================
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /complaints/initiated
+@router.get("/initiated", response_model=list[LeaInitiatedCaseListItem])
+def list_initiated_cases_endpoint(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return list_lea_initiated_cases(db, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /complaints/initiated/{complaint_id}
+@router.get("/initiated/{complaint_id}", response_model=LeaInitiatedCaseDetailResponse)
+def get_initiated_case_detail_endpoint(
+    complaint_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_lea_initiated_case_detail(db, complaint_id, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # POST /complaints/{complaint_id}/close-case
+@router.post("/{complaint_id}/close-case", response_model=LeaCloseCaseResponse)
+def close_case_endpoint(
+    complaint_id: UUID,
+    data: LeaCloseCaseRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return close_case(db, complaint_id, current_user, data)
+#added by darlene --end 

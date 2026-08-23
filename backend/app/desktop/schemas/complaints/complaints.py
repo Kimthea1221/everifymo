@@ -123,3 +123,38 @@ class WalkinComplaintDetailResponse(WalkinComplaintListResponse):
     attached_files: list[SharedFileResponse]
 
 #Ashanti code ends here
+
+# added by Darlene --start
+class LeaInitiatedCaseListItem(BaseModel):
+    complaint_id: UUID
+    case_reference: str
+    product_title: str
+    manufacturer: str | None
+    product_category: str | None
+    field_operation_logged_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LeaInitiatedCaseDetailResponse(BaseModel):
+    complaint_id: UUID
+    case_reference: str
+    product_title: str
+    manufacturer: str | None
+    complainant_name: str | None
+    product_category: str | None
+    logged_at: datetime
+    source: str
+    field_operation_notes: str | None
+
+
+class LeaCloseCaseRequest(BaseModel):
+    field_operation_notes: str | None = None
+
+
+class LeaCloseCaseResponse(BaseModel):
+    complaint_id: UUID
+    complaint_status: str
+    field_operation_notes: str | None
+    field_operation_logged_at: datetime | None
+# added by Darlene --end
