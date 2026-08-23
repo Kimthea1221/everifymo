@@ -1301,7 +1301,7 @@ function FDAVerification() {
                       <p className="FdaVerifEmptyText">There are currently no new verification requests matching your filter.</p>
                     </div>
                   ) : (() => {
-                    const QUEUE_PAGE_SIZE = 25;
+                    const QUEUE_PAGE_SIZE = 10;
                     const totalQueuePages = Math.ceil(filteredQueue.length / QUEUE_PAGE_SIZE) || 1;
                     const safeQueuePage = Math.min(Math.max(1, queuePage), totalQueuePages);
                     const queueStartIdx = (safeQueuePage - 1) * QUEUE_PAGE_SIZE;

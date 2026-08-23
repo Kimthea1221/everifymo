@@ -1,7 +1,8 @@
 import './lea-css.css'
 import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
-import { AlertCircle, CheckCircle, AlertTriangle, Info, XCircle, X } from 'lucide-react'
+import { AlertCircle, CheckCircle, AlertTriangle, Info, XCircle, X, Image as ImageIcon, FileText, Eye, Download, Paperclip } from 'lucide-react'
+import mammoth from 'mammoth'
 
 import { useState, useEffect } from 'react' // ADDED useEffect: runs code on page load
 import { useLocation, useNavigate } from 'react-router-dom' // ADDED: read nav data + redirect
@@ -59,6 +60,57 @@ function LeaNewIntake() {
 
 
   const [files, setFiles] = useState([])
+  const [previewFile, setPreviewFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [docxHtml, setDocxHtml] = useState('')
+  const [docxLoading, setDocxLoading] = useState(false)
+  const [docxError, setDocxError] = useState(false)
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+  }
+
+  useEffect(() => {
+    if (!previewFile) {
+      setPreviewUrl(null)
+      setDocxHtml('')
+      setDocxLoading(false)
+      setDocxError(false)
+      return
+    }
+
+    const isDocx = previewFile.name?.toLowerCase().endsWith('.docx') ||
+                   previewFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+    if (isDocx) {
+      setPreviewUrl(null)
+      setDocxLoading(true)
+      setDocxError(false)
+      previewFile.arrayBuffer()
+        .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+        .then((result) => {
+          setDocxHtml(result.value)
+        })
+        .catch((err) => {
+          console.error('Docx conversion error:', err)
+          setDocxError(true)
+        })
+        .finally(() => {
+          setDocxLoading(false)
+        })
+    } else {
+      setDocxHtml('')
+      const url = URL.createObjectURL(previewFile)
+      setPreviewUrl(url)
+      return () => {
+        URL.revokeObjectURL(url)
+      }
+    }
+  }, [previewFile])
 
   // ADDED — files already saved on the draft (from backend), separate
   // from `files` (new uploads picked just now)
@@ -342,6 +394,10 @@ function LeaNewIntake() {
   }
 
   const handleRemoveFile = (indexToRemove) => {
+    const fileToRemove = files[indexToRemove]
+    if (previewFile && previewFile === fileToRemove) {
+      setPreviewFile(null)
+    }
     const updated = files.filter((_, index) => index !== indexToRemove)
     setFiles(updated)
     if (touched.attachments) {
@@ -800,36 +856,68 @@ function LeaNewIntake() {
                   )}
 
                   {existingAttachments.length > 0 && (
-                    <div className="UploadedFiles">
-                      {existingAttachments.map((attachment) => (
-                        <div key={attachment.attachment_id} className="FileItem">
-                          <span>📄 {attachment.file_name}</span>
-                          <button type="button" className="BtnRemoveFile"
-                            onClick={() => handleRemoveExistingAttachment(attachment.attachment_id)}>
-                            ✕
-                          </button>
-                        </div>
-                      ))}
+                    <div className="LeaVerifDocsGrid" style={{ marginTop: '12px' }}>
+                      {existingAttachments.map((attachment) => {
+                        const isImage = attachment.mime_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.file_name)
+                        return (
+                          <div key={attachment.attachment_id} className="LeaVerifDocCard">
+                            <div className="LeaVerifDocIcon">
+                              {isImage ? <ImageIcon size={18} /> : <FileText size={18} />}
+                            </div>
+                            <div className="LeaVerifDocInfo">
+                              <p className="LeaVerifDocName" title={attachment.file_name}>{attachment.file_name}</p>
+                              <span className="LeaVerifDocMeta">{attachment.file_size_display || (attachment.file_size ? formatFileSize(attachment.file_size) : '')}</span>
+                            </div>
+                            <div className="LeaVerifDocActions" style={{ display: 'flex', gap: '4px' }}>
+                              <button
+                                type="button"
+                                className="LeaVerifDocActionBtn"
+                                title="Remove File"
+                                onClick={() => handleRemoveExistingAttachment(attachment.attachment_id)}
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
 
                   {files.length > 0 && (
-                    <div className="UploadedFiles">
-                      {files.map((file, index) => (
-                        <div
-                          key={index}
-                          className="FileItem"
-                        >
-                          <span>📄 {file.name}</span>
-                          <button
-                            type="button"
-                            className="BtnRemoveFile"
-                            onClick={() => handleRemoveFile(index)}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
+                    <div className="LeaVerifDocsGrid" style={{ marginTop: '12px' }}>
+                      {files.map((file, index) => {
+                        const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
+                        return (
+                          <div key={index} className="LeaVerifDocCard">
+                            <div className="LeaVerifDocIcon">
+                              {isImage ? <ImageIcon size={18} /> : <FileText size={18} />}
+                            </div>
+                            <div className="LeaVerifDocInfo">
+                              <p className="LeaVerifDocName" title={file.name}>{file.name}</p>
+                              <span className="LeaVerifDocMeta">{formatFileSize(file.size)}</span>
+                            </div>
+                            <div className="LeaVerifDocActions" style={{ display: 'flex', gap: '4px' }}>
+                              <button
+                                type="button"
+                                className="LeaVerifDocActionBtn"
+                                title="Inspect Attachment"
+                                onClick={() => setPreviewFile(file)}
+                              >
+                                <Eye size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="LeaVerifDocActionBtn"
+                                title="Remove File"
+                                onClick={() => handleRemoveFile(index)}
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -851,6 +939,93 @@ function LeaNewIntake() {
         </div>
 
       </div>
+
+      {/* LOCAL ATTACHMENT PREVIEW MODAL */}
+      {previewFile && (
+        <div className="ModalOverlay">
+          <div className="LeaVerifDocModalContainer">
+            <div className="LeaVerifDocModalHeader">
+              <div className="LeaVerifDocModalTitleGroup">
+                <Paperclip size={16} className="LeaVerifBlueIcon" />
+                <div>
+                  <h3>{previewFile.name}</h3>
+                  <p className="LeaVerifDocModalMeta">
+                    {previewFile.type || 'Document'} &bull; {formatFileSize(previewFile.size)}
+                  </p>
+                </div>
+              </div>
+              <button type="button" className="LeaVerifIconButton" onClick={() => setPreviewFile(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="LeaVerifDocModalBody">
+              {(previewFile.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(previewFile.name)) ? (
+                <img
+                  src={previewUrl}
+                  alt={previewFile.name}
+                  className="LeaVerifDocImagePreview"
+                />
+              ) : (previewFile.type === 'application/pdf' || /\.pdf$/i.test(previewFile.name)) ? (
+                <iframe
+                  src={previewUrl}
+                  title={previewFile.name}
+                  className="LeaVerifDocPdfPreview"
+                />
+              ) : (previewFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(previewFile.name)) ? (
+                docxLoading ? (
+                  <div className="LeaVerifDocPlaceholderPreview">
+                    <p className="LeaVerifPreviewText">Converting Word document for preview&hellip;</p>
+                  </div>
+                ) : docxError ? (
+                  <div className="LeaVerifDocPlaceholderPreview">
+                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                    <p className="LeaVerifPreviewTitle">Could not render Word preview</p>
+                    <p className="LeaVerifPreviewText">Try downloading the document to view its full contents.</p>
+                  </div>
+                ) : (
+                  <div className="LeaVerifDocDocxPreview">
+                    <div
+                      className="LeaVerifDocxContent"
+                      dangerouslySetInnerHTML={{ __html: docxHtml }}
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="LeaVerifDocPlaceholderPreview">
+                  <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                  <p className="LeaVerifPreviewTitle">Preview not supported</p>
+                  <p className="LeaVerifPreviewText">
+                    <strong>{previewFile.name}</strong> can't be previewed inline &mdash; use download instead.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="LeaVerifModalFooter">
+              <button type="button" className="LeaVerifBtnOutline" onClick={() => setPreviewFile(null)}>
+                Close Preview
+              </button>
+              <button
+                type="button"
+                className="LeaVerifBtnPrimary"
+                onClick={() => {
+                  if (!previewFile) return
+                  const url = previewUrl || URL.createObjectURL(previewFile)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = previewFile.name
+                  a.click()
+                  if (!previewUrl) URL.revokeObjectURL(url)
+                }}
+              >
+                <Download size={14} />
+                <span>Download Attachment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FDA-STYLE FLOATING TOAST NOTIFICATION ALERT */}
       {toast && (

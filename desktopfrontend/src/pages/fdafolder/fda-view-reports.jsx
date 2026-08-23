@@ -13,9 +13,12 @@ import {
   ChevronLeft, 
   ChevronRight, 
   X,
-  FileText
+  FileText,
+  Image as ImageIcon,
+  Paperclip
 } from 'lucide-react';
 import { allConsumerReports } from './reportData';
+import mammoth from 'mammoth';
 
 const ITEMS_PER_PAGE = 25;
 
@@ -102,6 +105,48 @@ function FDAViewReports() {
 
   // SELECTED DETAIL CARD REPORT ID
   const [selectedReportId, setSelectedReportId] = useState(null);
+
+  // DOCUMENT PREVIEW MODAL STATE
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [docxHtml, setDocxHtml] = useState('');
+  const [docxLoading, setDocxLoading] = useState(false);
+  const [docxError, setDocxError] = useState(false);
+
+  // MAMMOTH DOCX CONVERSION
+  useEffect(() => {
+    if (!previewDoc) {
+      setDocxHtml('');
+      setDocxError(false);
+      setDocxLoading(false);
+      return;
+    }
+
+    const isDocx = previewDoc.name?.toLowerCase().endsWith('.docx') || 
+                   previewDoc.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    if (isDocx && previewDoc.url && previewDoc.url !== '#') {
+      setDocxLoading(true);
+      setDocxError(false);
+      fetch(previewDoc.url)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.arrayBuffer();
+        })
+        .then(arrayBuffer => mammoth.convertToHtml({ arrayBuffer }))
+        .then(result => {
+          setDocxHtml(result.value);
+        })
+        .catch((err) => {
+          console.error('Docx preview error:', err);
+          setDocxError(true);
+        })
+        .finally(() => {
+          setDocxLoading(false);
+        });
+    } else {
+      setDocxHtml('');
+    }
+  }, [previewDoc]);
 
   // FIND REPORT FOR DETAIL VIEW
   const selectedReport = reports.find(r => r.id === selectedReportId) || null;
@@ -588,26 +633,31 @@ function FDAViewReports() {
                   <label>Attached Files / Evidence</label>
                   {selectedReport.documents && selectedReport.documents.length > 0 ? (
                     <div className="FdaVerifDocsGrid">
-                      {selectedReport.documents.map(doc => (
-                        <div className="FdaVerifDocCard" key={doc.id}>
-                          <FileText size={20} className="FdaVerifDocIcon" />
-                          <div className="FdaVerifDocInfo">
-                            <p className="FdaVerifDocName" title={doc.name}>{doc.name}</p>
-                            <span className="FdaVerifDocMeta">
-                              {doc.uploadedBy}{doc.size ? ` · ${doc.size}` : ''}
-                            </span>
+                      {selectedReport.documents.map(doc => {
+                        const isImage = doc.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(doc.name || doc.url);
+                        return (
+                          <div className="FdaVerifDocCard" key={doc.id}>
+                            <div className="FdaVerifDocIcon">
+                              {isImage ? <ImageIcon size={18} /> : <FileText size={18} />}
+                            </div>
+                            <div className="FdaVerifDocInfo">
+                              <p className="FdaVerifDocName" title={doc.name}>{doc.name}</p>
+                              <span className="FdaVerifDocMeta">
+                                {doc.uploadedBy}{doc.size ? ` · ${doc.size}` : ''}
+                              </span>
+                            </div>
+                            <div className="FdaVerifDocActions">
+                              <button
+                                className="FdaVerifDocActionBtn"
+                                title="Inspect Attachment"
+                                onClick={() => setPreviewDoc(doc)}
+                              >
+                                <Eye size={13} />
+                              </button>
+                            </div>
                           </div>
-                          <div className="FdaVerifDocActions">
-                            <button
-                              className="FdaVerifDocActionBtn"
-                              title="View file"
-                              onClick={() => doc.url && window.open(doc.url, '_blank', 'noopener,noreferrer')}
-                            >
-                              <Eye size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="FdaVerifNoDocsText">No files or evidence were attached to this complaint.</p>
@@ -619,6 +669,101 @@ function FDAViewReports() {
 
         </div>
       </div>
+
+      {/* ATTACHMENT PREVIEW MODAL */}
+      {previewDoc && (
+        <div className="FdaVerifModalOverlay" role="dialog" aria-modal="true" style={{ zIndex: 1000 }}>
+          <div className="FdaVerifDocModalContainer">
+            <div className="FdaVerifDocModalHeader">
+              <div className="FdaVerifDocModalTitleGroup">
+                <Paperclip size={18} className="FdaVerifGreenIcon" />
+                <div>
+                  <h3>{previewDoc.name}</h3>
+                  <p className="FdaVerifDocModalMeta">
+                    {previewDoc.type || 'Document'} &bull; {previewDoc.size || ''}{previewDoc.uploadedBy ? ` &bull; ${previewDoc.uploadedBy}` : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="FdaVerifIconButton"
+                onClick={() => setPreviewDoc(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="FdaVerifDocModalBody">
+              {(previewDoc.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(previewDoc.name || previewDoc.url)) ? (
+                <img
+                  src={previewDoc.url}
+                  alt={previewDoc.name}
+                  className="FdaVerifDocImagePreview"
+                />
+              ) : (previewDoc.type === 'application/pdf' || /\.pdf$/i.test(previewDoc.name || previewDoc.url)) ? (
+                <iframe
+                  src={previewDoc.url}
+                  title={previewDoc.name}
+                  className="FdaVerifDocPdfPreview"
+                />
+              ) : (previewDoc.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(previewDoc.name || previewDoc.url)) ? (
+                docxLoading ? (
+                  <div className="FdaVerifDocPlaceholderPreview">
+                    <p className="FdaVerifPreviewText">Converting Word document for preview&hellip;</p>
+                  </div>
+                ) : docxError ? (
+                  <div className="FdaVerifDocPlaceholderPreview">
+                    <FileText size={48} className="FdaVerifDocPreviewIcon" />
+                    <p className="FdaVerifPreviewTitle">Could not render Word preview</p>
+                    <p className="FdaVerifPreviewText">Try downloading the document to view its full contents.</p>
+                  </div>
+                ) : (
+                  <div className="FdaVerifDocDocxPreview">
+                    <div
+                      className="FdaVerifDocxContent"
+                      dangerouslySetInnerHTML={{ __html: docxHtml }}
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="FdaVerifDocPlaceholderPreview">
+                  <FileText size={48} className="FdaVerifDocPreviewIcon" />
+                  <p className="FdaVerifPreviewTitle">Preview not supported</p>
+                  <p className="FdaVerifPreviewText">
+                    <strong>{previewDoc.name}</strong> can't be previewed inline &mdash; use download instead.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="FdaVerifModalFooter">
+              <button
+                className="FdaVerifBtnOutline"
+                onClick={() => setPreviewDoc(null)}
+              >
+                Close Preview
+              </button>
+              <button
+                className="FdaVerifBtnDownloadAttachment"
+                onClick={() => {
+                  if (!previewDoc.url || previewDoc.url === '#') {
+                    alert('Mock file cannot be downloaded.');
+                    return;
+                  }
+                  const a = document.createElement('a');
+                  a.href = previewDoc.url;
+                  a.download = previewDoc.name;
+                  a.target = '_blank';
+                  a.click();
+                }}
+              >
+                <Download size={14} />
+                <span>Download Attachment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
