@@ -739,7 +739,7 @@ function FDAVerification() {
       // omitted entirely when empty ('All Results') to let the backend return both.
       if (completedResultFilter) params.set('verification_result', completedResultFilter);
       params.set('page', String(completedPage));
-      params.set('page_size', '10');
+      params.set('page_size', '25');
 
       fetch(`${API_BASE}/verification-requests/completed?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -782,7 +782,7 @@ function FDAVerification() {
       if (rejectedDateFrom) params.set('date_from', rejectedDateFrom);
       if (rejectedDateTo) params.set('date_to', rejectedDateTo);
       params.set('page', String(rejectedPage));
-      params.set('page_size', '10');
+      params.set('page_size', '25');
 
       fetch(`${API_BASE}/verification-requests/rejected?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -1301,7 +1301,7 @@ function FDAVerification() {
                       <p className="FdaVerifEmptyText">There are currently no new verification requests matching your filter.</p>
                     </div>
                   ) : (() => {
-                    const QUEUE_PAGE_SIZE = 25;
+                    const QUEUE_PAGE_SIZE = 10;
                     const totalQueuePages = Math.ceil(filteredQueue.length / QUEUE_PAGE_SIZE) || 1;
                     const safeQueuePage = Math.min(Math.max(1, queuePage), totalQueuePages);
                     const queueStartIdx = (safeQueuePage - 1) * QUEUE_PAGE_SIZE;
@@ -1949,10 +1949,10 @@ function FDAVerification() {
                         onChange={(e) => { setCompletedCategory(e.target.value); setCompletedPage(1); }}
                         id="fda-completed-category-filter"
                       >
-                        <option value="All">All Categories</option>
+                        <option value="">All Categories</option>
                         <option value="Cosmetics">Cosmetics</option>
                         <option value="Food">Food</option>
-                        <option value="Medical Devices">Medical Devices</option>
+                        <option value="Devices">Medical Devices</option>
                         <option value="Drugs">Drugs</option>
                       </select>
                     </div>
@@ -2197,7 +2197,7 @@ function FDAVerification() {
                         <option value="All">All Categories</option>
                         <option value="Cosmetics">Cosmetics</option>
                         <option value="Food">Food</option>
-                        <option value="Medical Devices">Medical Devices</option>
+                        <option value="Devices">Medical Devices</option>
                         <option value="Drugs">Drugs</option>
                       </select>
                     </div>

@@ -126,42 +126,69 @@ h6 {
 }
 
 .FdaPillContainer {
-  display: flex;
-  background: #EDEDED;
-  border: 1.5px solid rgba(0, 0, 0, 0.06);
-  border-radius: 20px;
-  padding: 1px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  border-radius: 9999px;
+  padding: 5px;
+  gap: 4px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.FdaPillContainer::-webkit-scrollbar {
+  display: none;
 }
 
 .FdaPill {
-  border: none;
+  padding: 8px 18px;
   background: transparent;
-  color: #1B4332;
-  padding: 9px 16px;
-  border-radius: 18px;
-  font-size: 13px;
+  border: none;
+  border-radius: 9999px;
+  color: #51606f;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1.4;
+  user-select: none;
+}
+
+.FdaPill:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.8);
+  color: #1B4332;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .FdaPill.active {
-  background: #1B4332;
-  color: #FDFDFD;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  background: #1B4332 !important;
+  color: #FDFDFD !important;
+  box-shadow: 0 4px 12px rgba(27, 67, 50, 0.25);
 }
 
 .FdaPillCount {
   font-size: 11px;
-  background: rgba(31, 41, 55, 0.1);
-  color: #1F2937;
-  padding: 1px 7px;
-  border-radius: 10px;
-  font-weight: 600;
+  background: rgba(27, 67, 50, 0.08);
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  transition: all 0.2s ease;
 }
 
 .FdaPill.active .FdaPillCount {
@@ -1841,35 +1868,55 @@ h6 {
 .FdaTabContainer {
   display: inline-flex;
   align-items: center;
-  background: #EDEDED;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
   border-radius: 9999px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 5px;
   gap: 4px;
   width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
 
+.FdaTabContainer::-webkit-scrollbar {
+  display: none;
 }
 
 .FDAButtonTab {
-  padding: 8px 20px;
+  padding: 8px 18px;
   background: transparent;
-  border-radius: 20px;
-  color: #1B4332;
-  font-weight: 700;
-  font-family: 'Poppins', sans-serif;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
   border: none;
+  border-radius: 9999px;
+  color: #51606f;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.4;
+  user-select: none;
+}
+
+.FDAButtonTab:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.8);
+  color: #1B4332;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .FDAButtonTab.active {
-  background: #1B4332;
-  color: #fff;
-}
-
-.FdaTabContainer button:not(.active):hover {
-  background: #d8d8d8;
+  border-radius: 9999px;
+  background: #1B4332 !important;
+  color: #FDFDFD !important;
+  box-shadow: 0 4px 12px rgba(27, 67, 50, 0.25);
 }
 
 /* Filter panel for FDA Verification — Completed & Rejected tabs (standalone, full width) */
@@ -2594,6 +2641,10 @@ h6 {
 
 /* QUEUE COLUMN */
 .FdaVerifQueueColumn {
+  background: #FDFDFD;
+  border: 1.5px solid #EDEDED;
+  border-radius: 10px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2604,10 +2655,10 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #FDFDFD;
-  border: 1.5px solid #EDEDED;
-  border-radius: 10px;
-  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .FdaVerifSearchBox {
@@ -2704,9 +2755,9 @@ h6 {
 }
 
 .FdaVerifCardSelected {
-  border-color: #1B4332 !important;
-  background: #FDFDFD;
-  box-shadow: 0 0 0 2px rgba(27, 67, 50, 0.15) !important;
+  background: rgba(252, 163, 17, 0.08) !important;
+  border-color: #EDEDED;
+  box-shadow: none;
 }
 
 .FdaVerifCardTop {
@@ -5303,3 +5354,59 @@ h6 {
     flex-wrap: wrap;
   }
 }
+
+/* ADDED — Word document (.docx) preview container rendered via Mammoth */
+.FdaVerifDocDocxPreview {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  display: block;
+}
+
+.FdaVerifDocxContent {
+  width: 100%;
+  max-width: 100%;
+  background: #FFFFFF;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 24px 32px;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1F2937;
+}
+
+.FdaVerifDocxContent h1,
+.FdaVerifDocxContent h2,
+.FdaVerifDocxContent h3,
+.FdaVerifDocxContent h4 {
+  color: #13213C;
+  font-weight: 700;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+}
+
+.FdaVerifDocxContent p {
+  margin-bottom: 1em;
+}
+
+.FdaVerifDocxContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.FdaVerifDocxContent th,
+.FdaVerifDocxContent td {
+  border: 1px solid #D1D5DB;
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
