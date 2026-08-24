@@ -306,7 +306,7 @@ function SuperAdminLogin() {
                                             required
                                         />
                                     </div>
-                                    {errors.email && <span className="LoginFieldError"><AlertCircle size={12} /> {errors.email}</span>}
+                                    {errors.email && <span className="AdminLoginFieldError"><AlertCircle size={12} /> {errors.email}</span>}
                                 </div>
 
                                 <div style={{ marginTop: '15px' }}>
@@ -334,7 +334,7 @@ function SuperAdminLogin() {
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
-                                    {errors.password && <span className="LoginFieldError"><AlertCircle size={12} /> {errors.password}</span>}
+                                    {errors.password && <span className="AdminLoginFieldError"><AlertCircle size={12} /> {errors.password}</span>}
 
                                     <div className="AdminRememberMeRow">
                                         <label htmlFor="admin-remember-me">
@@ -354,12 +354,7 @@ function SuperAdminLogin() {
                                             Forgot Password?
                                         </a>
                                     </div>
-
-                                    {!isOtpSent && adminLoginError && (
-                                        <p className="AdminLoginErrorMsg" style={{ marginTop: '8px' }}>{adminLoginError}</p>
-                                    )}
                                 </div>
-                                
                                 </div>
                                 
 
