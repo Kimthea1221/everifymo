@@ -32,23 +32,31 @@ router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 
 
 def compute_admin_status(user: User, latest_token) -> str:
-    if user.is_locked:
-        return "Locked"
+    if user.status == UserStatus.ACTIVE:
+        if not user.is_active:
+            return "Suspended"
+        if user.is_locked:
+            return "Locked"
+        return "Active"
+
     if user.status == UserStatus.INVITED:
-        if latest_token:
-            if latest_token.resend_requested_at is not None:
-                return "Resend Requested"
-            expires_at = latest_token.expires_at
-            if expires_at:
-                if expires_at.tzinfo is None:
-                    expires_at = expires_at.replace(tzinfo=timezone.utc)
-                if expires_at < datetime.now(timezone.utc):
-                    return "Link Expired"
-        return "Invited"
+        if not latest_token:
+            return "Invited"
+
+        expires_at = latest_token.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        token_expired = expires_at < datetime.now(timezone.utc)
+
+        if not token_expired:
+            return "Invited"
+        if latest_token.resend_requested_at is not None:
+            return "Resend Requested"
+        return "Link Expired"
+
     if user.status == UserStatus.PENDING_APPROVAL:
         return "Pending Approval"
-    if user.status == UserStatus.ACTIVE:
-        return "Active" if user.is_active else "Suspended"
+
     return user.status
 
 
@@ -78,6 +86,8 @@ def list_superadmins(
         result.append(
             SuperadminListItem(
                 admin_id=admin.user_id,
+                first_name=admin.first_name,
+                last_name=admin.last_name,
                 email=admin.email,
                 invitation_date=latest_token.created_at if latest_token else None,
                 expiration_date=latest_token.expires_at if latest_token else None,
@@ -142,11 +152,14 @@ async def invite_superadmin(
         raise HTTPException(400, "A user with this email already exists.")
 
     admin_id, token = create_invited_superadmin(
-        db, payload.email, created_by=current_user.user_id, request=http_request
+        db,
+        payload.email,
+        payload.first_name,
+        payload.last_name,
+        created_by=current_user.user_id,
+        request=http_request,
     )
 
-    # use payload.email, not admin.email — create_invited_superadmin now
-    # returns a plain UUID, not an ORM object
     background_tasks.add_task(send_superadmin_invite_email, payload.email, token)
 
     return {"message": "Superadmin invitation sent", "admin_id": str(admin_id)}
@@ -223,12 +236,10 @@ def suspend_superadmin(
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_active = False
 
-    # capture BEFORE commit — admin.email/admin.user_id unsafe to read after
     admin_id_val = admin.user_id
     admin_email = admin.email
 
     db.commit()
-    # no admin.<attr> reads past this point
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
@@ -309,8 +320,8 @@ def delete_superadmin(
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
 
-    if not (admin.status == UserStatus.ACTIVE and not admin.is_active):
-        raise HTTPException(status_code=400, detail="Only suspended superadmins can be deleted.")
+    if not (admin.status == UserStatus.ACTIVE and not admin.is_active) and admin.status != UserStatus.INVITED:
+        raise HTTPException(status_code=400, detail="Only suspended superadmins or invited/expired invitations can be deleted.")
 
     deleted_admin_id = admin.user_id
     deleted_admin_email = admin.email
@@ -344,7 +355,6 @@ async def activate_superadmin_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
-    # activate_superadmin now returns (admin_id_val, admin_email) — plain values
     admin_id_val, admin_email = activate_superadmin(db, admin_id, activated_by=current_user, request=http_request)
     background_tasks.add_task(send_superadmin_activation_email, admin_email)
     return {"message": "Superadmin account activated."}

@@ -23,15 +23,21 @@ function SuperAdminLogin() {
     const [rememberMe, setRememberMe] = useState(false);
     // ADDED — per-field validation errors, same pattern as login-user.jsx
     const [errors, setErrors] = useState({});
+    const REMEMBERED_EMAIL_KEY = 'remembered_email_superadmin';
 
     // ADDED — Load remembered email on mount
+    // on mount
+    // builds the per-agency localStorage key so FDA and LEA-CIDG
+    // "remember me" emails never overwrite each other
+    // new
     useEffect(() => {
-        const savedEmail = localStorage.getItem('remembered_email');
+        const savedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
         if (savedEmail) {
             setEmail(savedEmail);
             setRememberMe(true);
         }
     }, []);
+
 
     // OTP verification states
     //controls if show ba otp screen or credentials form
@@ -206,10 +212,12 @@ function SuperAdminLogin() {
             }
 
             // ADDED — remember/forget email in localStorage, frontend-only
+            // after successful login
+            // new
             if (rememberMe) {
-                localStorage.setItem('remembered_email', email);
+                localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
             } else {
-                localStorage.removeItem('remembered_email');
+                localStorage.removeItem(REMEMBERED_EMAIL_KEY);
             }
 
             setIsOtpSent(true);
@@ -228,7 +236,7 @@ function SuperAdminLogin() {
             return;
         }
 
-        try {
+                try {
             const response = await fetch('http://127.0.0.1:8000/auth/superadmin/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -247,6 +255,19 @@ function SuperAdminLogin() {
             navigate('/superadminfolder/superadmin-user-management');
         } catch (err) {
             setAdminLoginError(err.message);
+
+             // Always clear the OTP boxes and refocus box 1 on any invalid code
+            setOtp(new Array(6).fill(''));
+            setTimeout(() => {
+                otpRefs.current[0]?.focus();
+            }, 0);
+
+            // OTP exhausted its per-code attempts (backend's 3-try cap) —
+            // surface Resend immediately instead of waiting for the timer,
+            // and refocus box 1 so the user can jump straight to Resend/retry.
+            if (/request a new otp/i.test(err.message)) {
+                setTimer(0);
+            }
         }
     }
 }

@@ -1,9 +1,7 @@
-
-
 """Seed script: create a superadmin account for login testing or deployment.
 
 Run this once to create a superadmin you can log in with via
-POST /auth/superadmin/login. You'll be prompted for the email and
+POST /auth/superadmin/login. You'll be prompted for the name, email, and
 password at runtime — nothing is hardcoded, so nothing sensitive
 ends up committed to Git.
 """
@@ -15,9 +13,15 @@ from app.models.users import User
 
 
 def main():
-    email = input("Superadmin email: ")
+    first_name = input("Superadmin first name: ").strip()
+    last_name = input("Superadmin last name: ").strip()
+    email = input("Superadmin email: ").strip()
     password = getpass("Superadmin password (hidden): ")
     password_confirm = getpass("Confirm password (hidden): ")
+
+    if not first_name or not last_name:
+        print("First and last name are required. Aborting.")
+        return
 
     if password != password_confirm:
         print("Passwords do not match. Aborting.")
@@ -35,6 +39,8 @@ def main():
             return
 
         user = User(
+            first_name=first_name,
+            last_name=last_name,
             email=email,
             password_hash=hash_password(password),
             role="superadmin",
@@ -47,7 +53,7 @@ def main():
         db.commit()
         db.refresh(user)
 
-        print(f"Created superadmin: {user.email}")
+        print(f"Created superadmin: {user.first_name} {user.last_name} ({user.email})")
         print("You can now log in with these credentials.")
 
     finally:

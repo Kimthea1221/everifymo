@@ -10,6 +10,7 @@ from sqlalchemy import text
 
 from app.database.sessions import get_db
 from app.models.users import User
+from app.models.regions import Region
 from app.models.account_invitation_tokens import AccountInvitationToken
 from app.desktop.schemas.user_management.management import UserListItem, UserSummary
 from app.core.constants import UserStatus, AuditAction
@@ -22,27 +23,38 @@ from app.core.audit import write_audit_log, get_user_region_code
 
 router = APIRouter(prefix="/admin/users", tags=["user-management"])
 
+AGENCY_LABELS = {
+    "fda_personnel": "FDA",
+    "lea_personnel": "LEA-CIDG",
+}
+
 
 def compute_display_status(user: User, latest_token) -> str:
-    if user.is_locked:
-        return "Locked"
-    if user.status == UserStatus.INVITED:
-        if latest_token:
-            if latest_token.resend_requested_at is not None:
-                return "Resend Requested"
-            expires_at = latest_token.expires_at
-            if expires_at:
-                if expires_at.tzinfo is None:
-                    expires_at = expires_at.replace(tzinfo=timezone.utc)
-                if expires_at < datetime.now(timezone.utc):
-                    return "Link Expired"
-        return "Invited"
-    if user.status == UserStatus.PENDING_APPROVAL:
-        return "Pending Approval"
     if user.status == UserStatus.ACTIVE:
         if not user.is_active:
             return "Suspended"
+        if user.is_locked:
+            return "Locked"
         return "Active"
+
+    if user.status == UserStatus.INVITED:
+        if not latest_token:
+            return "Invited"
+
+        expires_at = latest_token.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        token_expired = expires_at < datetime.now(timezone.utc)
+
+        if not token_expired:
+            return "Invited"
+        if latest_token.resend_requested_at is not None:
+            return "Resend Requested"
+        return "Link Expired"
+
+    if user.status == UserStatus.PENDING_APPROVAL:
+        return "Pending Approval"
+
     return user.status
 
 
@@ -66,6 +78,10 @@ def list_users(
     )
     tokens_map = {token.user_id: token for token in tokens}
 
+    region_ids = [u.region_id for u in users if u.region_id]
+    regions = db.query(Region).filter(Region.region_id.in_(region_ids)).all() if region_ids else []
+    regions_map = {r.region_id: r.region_name for r in regions}
+
     result = []
     for user in users:
         latest_token = tokens_map.get(user.user_id)
@@ -81,6 +97,8 @@ def list_users(
                 last_name=user.last_name,
                 employee_id=user.employee_id,
                 email=user.email,
+                agency=AGENCY_LABELS.get(user.role, user.role),
+                region=regions_map.get(user.region_id),
                 department=user.department,
                 position=user.position,
                 contact_number=user.contact_number,
@@ -161,16 +179,12 @@ async def activate_user(
     user.status = UserStatus.ACTIVE
     user.is_active = True
 
-    # capture everything BEFORE commit — including region_code, since
-    # get_user_region_code() also reads an attribute (region_id) that
-    # becomes unsafe once the object is expired
     fullname = " ".join(p for p in [user.first_name, user.middle_name, user.last_name] if p)
     user_email = user.email
     user_id_val = user.user_id
     region_code = get_user_region_code(db, user)
 
     db.commit()
-    # no user.<attr> reads past this point
 
     background_tasks.add_task(send_activation_email, user_email, fullname or user_email, temp_password)
 
@@ -296,8 +310,6 @@ async def resend_invitation(
     token = secrets.token_urlsafe(32)
     expires = datetime.now(timezone.utc) + timedelta(days=2)
 
-    # capture everything from `user` BEFORE commit — user.role, user.email,
-    # user.user_id all become unsafe to read once the transaction ends
     user_id_val = user.user_id
     user_email = user.email
     friendly_role = {
@@ -314,7 +326,6 @@ async def resend_invitation(
     )
     db.add(new_token)
     db.commit()
-    # no user.<attr> reads past this point
 
     from app.desktop.services.auth.email import send_invite_email
     background_tasks.add_task(send_invite_email, user_email, friendly_role, token)
@@ -363,7 +374,6 @@ def delete_user(
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == user_id).delete()
     db.delete(user)
     db.commit()
-    # user object is deleted AND expired — never touch it after this
 
     write_audit_log(
         db,

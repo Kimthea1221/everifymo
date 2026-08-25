@@ -16,11 +16,13 @@ from app.desktop.services.superadmin_notifications import superadmin_notificatio
 from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
 
-def create_invited_superadmin(db: Session, email: str, created_by, request=None):
+def create_invited_superadmin(db: Session, email: str, first_name: str, last_name: str, created_by, request=None):
     db.execute(text("SET app.bypass_rls = 'true'"))
 
     user = User(
         email=email,
+        first_name=first_name,
+        last_name=last_name,
         region_id=None,
         role="superadmin",
         created_by=created_by,
@@ -52,7 +54,6 @@ def create_invited_superadmin(db: Session, email: str, created_by, request=None)
         related_user_id=user_id,
     )
 
-    # created_by is already the plain UUID passed in — no need to query/touch a User object
     write_audit_log(
         db,
         user=None,
@@ -136,62 +137,6 @@ def complete_superadmin_registration(db: Session, token: str, new_password: str,
     )
 
     return user_id
-
-
-def request_new_superadmin_invite(db: Session, old_token: str, request=None):
-    db.execute(text("SET app.bypass_rls = 'true'"))
-    invite = (
-        db.query(AccountInvitationToken)
-        .filter(AccountInvitationToken.invite_token == old_token)
-        .first()
-    )
-    if not invite:
-        raise HTTPException(status_code=404, detail="Invitation not found.")
-
-    user = db.query(User).filter(User.user_id == invite.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Associated account not found.")
-
-    if user.status != UserStatus.INVITED:
-        raise HTTPException(status_code=400, detail="This account is no longer awaiting invitation.")
-
-    # capture before commit
-    user_id = user.user_id
-    user_email = user.email
-
-    new_token = secrets.token_urlsafe(32)
-    expires = datetime.now(timezone.utc) + timedelta(days=2)
-
-    new_invite = AccountInvitationToken(
-        user_id=user_id,
-        invite_token=new_token,
-        expires_at=expires,
-    )
-    db.add(new_invite)
-    db.commit()
-
-    notification_service.create_notification_for_all_superadmins(
-        db=db,
-        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
-        title="Invite resend requested",
-        message=f"A new invitation link was requested for {user_email}.",
-        related_user_id=user_id,
-    )
-
-    write_audit_log(
-        db,
-        user=None,
-        action=AuditAction.SUPERADMIN_REQUEST_INVITE,
-        target_table="account_invitation_tokens",
-        target_id=user_id,
-        target_reference=user_email,
-        request=request,
-        region_code=None,
-        user_role_override="superadmin",
-        user_id_override=user_id,
-    )
-
-    return user_email, new_token
 
 
 def activate_superadmin(db: Session, admin_id, activated_by=None, request=None):
