@@ -57,9 +57,13 @@ function DeepLinkListener() {
           console.log('Validate response:', data);
 
           if (data.role === 'superadmin') {
-            navigate('/superadmin-invite-status', {
-              state: { status: data.status, token },
-            });
+            if (data.status === 'valid') {
+              navigate('/create-new-password', { state: { token } });
+            } else {
+              navigate('/superadmin-invite-status', {
+                state: { status: data.status, token },
+              });
+            }
             return;
           }
 

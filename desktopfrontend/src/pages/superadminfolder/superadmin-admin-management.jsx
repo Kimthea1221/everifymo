@@ -107,8 +107,8 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
             <Eye size={14} /> View Details
           </button>
 
-          {/* Invited / Resend Requested / Link Expired — Resend Invitation */}
-          {['Invited', 'Resend Requested', 'Link Expired'].includes(status) && (
+          {/* Resend Requested / Link Expired — Resend Invitation */}
+          {['Resend Requested', 'Link Expired'].includes(status) && (
             <button
               className="SAMDropdownItem"
               onClick={() => {
@@ -174,16 +174,6 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
                 }}
               >
                 <UserX size={14} /> Suspend Account
-              </button>
-              <div className="SAMDropdownDivider" />
-              <button
-                className="SAMDropdownItem danger"
-                onClick={() => {
-                  onAction('delete');
-                  toggleDropdown();
-                }}
-              >
-                <Trash2 size={14} /> Delete Account
               </button>
             </>
           )}
@@ -502,6 +492,8 @@ function AddSuperadminModal({ open, onClose }) {
 function ViewAdminModal({ open, admin, onClose }) {
   if (!open || !admin) return null;
 
+  const showExpiration = ['Invited', 'Resend Requested', 'Link Expired'].includes(admin.status);
+
   return (
     <div className="SAMModalOverlay">
       <div className="SAMModal SAMViewModal">
@@ -526,10 +518,12 @@ function ViewAdminModal({ open, admin, onClose }) {
             <span className="SAMDetailLabel">Invitation Date:</span>
             <span className="SAMDetailValue">{admin.invitation_date || '—'}</span>
           </div>
-          <div className="SAMDetailRow">
-            <span className="SAMDetailLabel">Expiration Date:</span>
-            <span className="SAMDetailValue">{admin.expiration_date || '—'}</span>
-          </div>
+          {showExpiration && (
+            <div className="SAMDetailRow">
+              <span className="SAMDetailLabel">Expiration Date:</span>
+              <span className="SAMDetailValue">{admin.expiration_date || '—'}</span>
+            </div>
+          )}
           <div className="SAMDetailRow">
             <span className="SAMDetailLabel">Role:</span>
             <span className="SAMDetailValue">Super Administrator</span>

@@ -42,6 +42,10 @@ def authenticate_superadmin(db: Session, email: str, password: str) -> User:
                 message=f"{user.email} has been locked out after {user.failed_login_attempts} failed login attempts.",
                 related_user_id=user.user_id,
             )
+
+            raise ValueError("Too many failed login attempts. Your account has been locked. Please contact your administrator.")
+
+
         elif user.failed_login_attempts == 3:
             notification_service.create_notification_for_all_superadmins(
                 db=db,
