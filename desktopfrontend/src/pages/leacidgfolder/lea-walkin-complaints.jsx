@@ -4,6 +4,7 @@ import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import mammoth from 'mammoth'
 import { Eye, MoreVertical, Pencil, Trash2, X, Paperclip, FileText, Image as ImageIcon, Download } from 'lucide-react'
 
 const API_BASE = 'http://127.0.0.1:8000';
@@ -12,53 +13,40 @@ const API_BASE = 'http://127.0.0.1:8000';
 function WcGetStatusClass(status) {
     switch (status) {
         case 'queued':
-        case 'Ready to Send':
             return 'WcStatus-queued';
 
         case 'pending':
-        case 'Pending FDA Verification':
             return 'WcStatus-pending';
 
         case 'confirmed_registered':
-        case 'Confirmed Registered':
             return 'WcStatus-confirmed-registered';
 
         case 'confirmed_unregistered':
-        case 'Confirmed Unregistered':
             return 'WcStatus-confirmed-unregistered';
 
         case 'rejected':
-        case 'recalled':
-        case 'Verification Rejected':
-        case 'Request Recalled':
             return 'WcStatus-rejected';
 
         default:
             return '';
     }
 }
+
 function WcGetStatusLabel(status) {
     switch (status) {
         case 'queued':
-        case 'Ready to Send':
             return 'Ready to Send';
 
         case 'pending':
-        case 'Pending FDA Verification':
             return 'Pending FDA Verification';
 
         case 'confirmed_registered':
-        case 'Confirmed Registered':
             return 'Confirmed Registered';
 
         case 'confirmed_unregistered':
-        case 'Confirmed Unregistered':
             return 'Confirmed Unregistered';
 
         case 'rejected':
-        case 'recalled':
-        case 'Verification Rejected':
-        case 'Request Recalled':
             return 'Verification Rejected';
 
         default:
@@ -67,52 +55,32 @@ function WcGetStatusLabel(status) {
 }
 
 function LeaWalkinComplaints() {
+    // BACKEND:
+    // Load complaints from API.
     const [complaints, setComplaints] = useState([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const token = localStorage.getItem('access_token');
-        const headers = { Authorization: `Bearer ${token}` };
-
-        const fetchComplaints = async () => {
-            setLoading(true);
-            try {
-                const res = await fetch(`${API_BASE}/complaints?source=walk_in`, { headers });
-                if (res.ok) {
-                    const data = await res.json();
-                    const mapped = data.map(c => {
-                        let statusVal = 'queued';
-                        if (c.status === 'under_review') {
-                            statusVal = 'pending';
-                        } else if (c.status === 'takedown_requested' || c.status === 'takedown_initiated' || c.status === 'completed') {
-                            statusVal = 'confirmed_unregistered';
-                        } else if (c.status === 'dismissed') {
-                            statusVal = 'confirmed_registered';
-                        }
-
-                        return {
-                            id: c.case_reference,
-                            product: c.product_title,
-                            manufacturer: c.manufacturer || '—',
-                            complainant: c.complainant_name || '—',
-                            status: statusVal,
-                            category: c.product_category || '—',
-                            logged: c.created_at ? new Date(c.created_at).toLocaleString() : '—',
-                            rawDate: c.created_at ? new Date(c.created_at) : new Date(0),
-                            dbComplaint: c
-                        };
-                    });
-                    setComplaints(mapped);
-                }
-            } catch (err) {
-                console.error("Error fetching walkin complaints:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchComplaints();
-    }, []);
+        const token = localStorage.getItem('access_token')
+        setLoading(true)
+        fetch(`${API_BASE}/complaints/walkin/`, {
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setComplaints(data.map((c) => ({
+                    id: c.case_reference,
+                    complaintId: c.complaint_id,
+                    product: c.product_title,
+                    manufacturer: c.manufacturer,
+                    complainant: c.complainant_name,
+                    status: c.status,
+                    category: c.product_category,
+                    logged: new Date(c.created_at).toLocaleString(),
+                })))
+            })
+            .finally(() => setLoading(false))
+    }, [])
     const [search, setSearch] = useState('')
     const [selectedStatus, setSelectedStatus] = useState('All')
     const [selectedCategory, setSelectedCategory] = useState('All')
@@ -131,19 +99,73 @@ function LeaWalkinComplaints() {
     const [docPreviewUrl, setDocPreviewUrl] = useState(null)
     const [docPreviewLoading, setDocPreviewLoading] = useState(false)
     const [docPreviewError, setDocPreviewError] = useState(false)
+    const [docxHtml, setDocxHtml] = useState('')
+    const [docxLoading, setDocxLoading] = useState(false)
+    const [docxError, setDocxError] = useState(false)
 
     // Fetches inline preview when docPreviewModal is set
     useEffect(() => {
         if (!docPreviewModal) {
             setDocPreviewUrl(null)
             setDocPreviewError(false)
+            setDocxHtml('')
+            setDocxLoading(false)
+            setDocxError(false)
             return
         }
 
         const mime = docPreviewModal.mime_type || docPreviewModal.type || ''
-        const isImage = mime.startsWith('image/')
-        const isPdf = mime === 'application/pdf'
-        if (!isImage && !isPdf) return
+        const name = docPreviewModal.file_name || docPreviewModal.name || ''
+        const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(name)
+        const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(name)
+        const isDocx = mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(name)
+
+        if (!isImage && !isPdf && !isDocx) return
+
+        if (isDocx) {
+            setDocxLoading(true)
+            setDocxError(false)
+
+            if (docPreviewModal.url) {
+                fetch(docPreviewModal.url)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                        return res.arrayBuffer()
+                    })
+                    .then(arrayBuffer => mammoth.convertToHtml({ arrayBuffer }))
+                    .then(result => { setDocxHtml(result.value) })
+                    .catch(err => {
+                        console.error('Docx preview error:', err)
+                        setDocxError(true)
+                    })
+                    .finally(() => setDocxLoading(false))
+                return
+            }
+
+            const fileId = docPreviewModal.file_id || docPreviewModal.id
+            if (!fileId) {
+                setDocxLoading(false)
+                setDocxError(true)
+                return
+            }
+
+            const token = localStorage.getItem('access_token')
+            fetch(`${API_BASE}/shared-files/${fileId}/preview`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                    return res.arrayBuffer()
+                })
+                .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                .then((result) => { setDocxHtml(result.value) })
+                .catch((err) => {
+                    console.error('Docx preview error:', err)
+                    setDocxError(true)
+                })
+                .finally(() => setDocxLoading(false))
+            return
+        }
 
         if (docPreviewModal.url) {
             setDocPreviewUrl(docPreviewModal.url)
@@ -180,9 +202,9 @@ function LeaWalkinComplaints() {
     // BACKEND:
     // Filter using API query parameters if server-side filtering is implemented.
     const filtered = complaints.filter((c) => {
-        const matchesSearch = c.id.toLowerCase().includes(search.toLowerCase()) ||
-            c.product.toLowerCase().includes(search.toLowerCase()) ||
-            c.complainant.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.product || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.complainant || '').toLowerCase().includes(search.toLowerCase());
 
         const matchesStatus = selectedStatus === 'All' ||
             c.status === selectedStatus ||
@@ -192,31 +214,31 @@ function LeaWalkinComplaints() {
         return matchesSearch && matchesStatus && matchesCategory;
     })
 
-    const handleViewButton = async (complaint) => {
-        const complaintId = complaint.dbComplaint?.complaint_id;
-        if (complaintId) {
-            const token = localStorage.getItem('access_token');
-            try {
-                const res = await fetch(`${API_BASE}/complaints/${complaintId}/verification-detail`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setSelectedComplaint({
-                        ...complaint,
-                        complainant: data.complainant_name || complaint.complainant || '—',
-                        statement: data.nature_of_complaint || data.consumer_description || '—',
-                        attached_files: data.attached_files || []
-                    });
-                    setViewModal(true);
-                    return;
-                }
-            } catch (err) {
-                console.error("Error loading complaint detail:", err);
-            }
-        }
-        setSelectedComplaint(complaint);
-        setViewModal(true);
+    const [detailLoading, setDetailLoading] = useState(false)
+
+    const handleViewButton = (complaint) => {
+        setSelectedComplaint(complaint)
+        setViewModal(true)
+
+        const token = localStorage.getItem('access_token')
+        setDetailLoading(true)
+        fetch(`${API_BASE}/complaints/${complaint.complaintId}/walkin-detail`, {
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.json()
+            })
+            .then((data) => {
+                setSelectedComplaint((prev) => (prev && prev.id === complaint.id ? {
+                    ...prev,
+                    statement: data.nature_of_complaint,
+                    attached_files: data.attached_files,
+                    status: data.status,
+                } : prev))
+            })
+            .catch((err) => console.error('Failed to load complaint detail:', err))
+            .finally(() => setDetailLoading(false))
     }
     const handleCloseViewbutton = () => {
         setViewModal(false)
@@ -236,10 +258,20 @@ function LeaWalkinComplaints() {
     }
 
     const handleConfirmSingleDelete = () => {
-        // BACKEND: call delete API for singleDeleteTarget.id
-        setComplaints(complaints.filter((c) => c.id !== singleDeleteTarget.id))
-        setSingleDeleteTarget(null)
-        setShowSingleDeleteModal(false)
+        const token = localStorage.getItem('access_token')
+        fetch(`${API_BASE}/complaints/walkin/${singleDeleteTarget.complaintId}`, {
+            method: 'DELETE',
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                setComplaints((prev) => prev.filter((c) => c.id !== singleDeleteTarget.id))
+            })
+            .catch((err) => console.error('Failed to delete complaint:', err))
+            .finally(() => {
+                setSingleDeleteTarget(null)
+                setShowSingleDeleteModal(false)
+            })
     }
 
     const handleCancelSingleDelete = () => {
@@ -264,33 +296,35 @@ function LeaWalkinComplaints() {
     const OpenNewIntakePageButton = () => {
         navigate('/leacidgfolder/lea-new-intake');
     };
-    const handleEditComplaint = async (complaint) => {
-        const complaintId = complaint.dbComplaint?.complaint_id;
-        let fullComplaint = complaint.dbComplaint || complaint;
-        if (complaintId) {
-            const token = localStorage.getItem('access_token');
-            try {
-                const res = await fetch(`${API_BASE}/complaints/${complaintId}/verification-detail`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    fullComplaint = {
-                        ...complaint.dbComplaint,
-                        ...data,
-                        product_name: data.product_title
-                    };
-                }
-            } catch (err) {
-                console.error("Error loading complaint detail for edit:", err);
-            }
-        }
+    
+    const handleEditComplaint = (complaint) => {
         navigate('/leacidgfolder/lea-new-intake', {
-            state: {
-                complaint: fullComplaint
-            }
+            state: { complaintId: complaint.complaintId }
         });
     };
+
+    const handleExportCSV = () => {
+        const headers = ['Case ID', 'Product', 'Manufacturer', 'Complainant', 'Status', 'Category', 'Logged']
+        const rows = filtered.map((c) => [
+            c.id,
+            c.product,
+            c.manufacturer,
+            c.complainant,
+            WcGetStatusLabel(c.status),
+            c.category,
+            c.logged,
+        ])
+        const escapeCell = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`
+        const csvContent = [headers, ...rows].map((row) => row.map(escapeCell).join(',')).join('\r\n')
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `walkin-complaints-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
 
     return (
         <div className='LeaDashboardMain LeaWalkinComplaintsMain'>
@@ -305,11 +339,11 @@ function LeaWalkinComplaints() {
                         </div>
                     </div>
 
-                    {/* Buttons now on their own row below the title, right-aligned */}
-                    <div className='WalkinButtonActionsRow'>
-                        <button className='BtnExportCSV'>Export CSV</button>
-                        <button className='BtnNewComplaint' onClick={OpenNewIntakePageButton}>New Complaint</button>
-                    </div>
+                        {/* Buttons now on their own row below the title, right-aligned */}
+                        <div className='WalkinButtonActionsRow'>
+                            <button className='BtnExportCSV' onClick={handleExportCSV}>Export CSV</button>
+                            <button className='BtnNewComplaint' onClick={OpenNewIntakePageButton}>New Complaint</button>
+                        </div>
 
                     {/* Filter & Search Section */}
                     <div className="DraftsFilterSection">
@@ -345,7 +379,7 @@ function LeaWalkinComplaints() {
                                     <option value="All">All Categories</option>
                                     <option value="Cosmetics">Cosmetics</option>
                                     <option value="Food">Food</option>
-                                    <option value="Medical Devices">Medical Devices</option>
+                                    <option value="Devices">Medical Devices</option>
                                     <option value="Drugs">Drugs</option>
                                 </select>
 
@@ -523,7 +557,7 @@ function LeaWalkinComplaints() {
                                     </div>
                                     <h6 className='Statementcomp'>COMPLAINANT STATEMENT</h6>
                                     <div className='StatementBox'>
-                                        <p>{selectedComplaint.statement || selectedComplaint.complainant_statement || selectedComplaint.description || 'Example statement....'}</p>
+                                        <p>{detailLoading ? 'Loading…' : (selectedComplaint.statement || selectedComplaint.complainant_statement || selectedComplaint.description || 'Example statement....')}</p>
                                     </div>
 
                                     {/* Auto-Attached Evidence & Request Documents */}
@@ -596,8 +630,13 @@ function LeaWalkinComplaints() {
                                     </div>
 
                                     <div className="LeaVerifDocModalBody">
-                                        {((docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) ||
-                                            (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf')) ? (
+                                        {(docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            <img
+                                                src={docPreviewUrl}
+                                                alt={docPreviewModal.file_name || docPreviewModal.name}
+                                                className="LeaVerifDocImagePreview"
+                                            />
+                                        ) : (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf' || /\.pdf$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
                                             docPreviewLoading ? (
                                                 <div className="LeaVerifDocPlaceholderPreview">
                                                     <p className="LeaVerifPreviewText">Loading preview&hellip;</p>
@@ -608,18 +647,31 @@ function LeaWalkinComplaints() {
                                                     <p className="LeaVerifPreviewTitle">Preview unavailable</p>
                                                     <p className="LeaVerifPreviewText">Try downloading the file instead.</p>
                                                 </div>
-                                            ) : (docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) ? (
-                                                <img
-                                                    src={docPreviewUrl}
-                                                    alt={docPreviewModal.file_name || docPreviewModal.name}
-                                                    className="LeaVerifDocImagePreview"
-                                                />
                                             ) : (
                                                 <iframe
                                                     src={docPreviewUrl}
                                                     title={docPreviewModal.file_name || docPreviewModal.name}
                                                     className="LeaVerifDocPdfPreview"
                                                 />
+                                            )
+                                        ) : (docPreviewModal.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            docxLoading ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <p className="LeaVerifPreviewText">Converting Word document for preview&hellip;</p>
+                                                </div>
+                                            ) : docxError ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                                                    <p className="LeaVerifPreviewTitle">Could not render Word preview</p>
+                                                    <p className="LeaVerifPreviewText">Try downloading the document to view its full contents.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="LeaVerifDocDocxPreview">
+                                                    <div
+                                                        className="LeaVerifDocxContent"
+                                                        dangerouslySetInnerHTML={{ __html: docxHtml }}
+                                                    />
+                                                </div>
                                             )
                                         ) : (
                                             <div className="LeaVerifDocPlaceholderPreview">

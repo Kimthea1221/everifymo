@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/profile-setting.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -86,8 +87,10 @@ function ProfileSetting() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const [errors, setErrors] = useState({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState(null); // { type: 'success' | 'error', message: string }
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [profileStatus, setProfileStatus] = useState(null);
+  const [passwordStatus, setPasswordStatus] = useState(null);
 
   const REQUIRED_FIELDS = [
     'firstName',
@@ -127,6 +130,15 @@ function ProfileSetting() {
     }
   };
 
+  // Digits-only, hard-capped at 11 characters — strips non-numeric input as it's typed (including paste)
+  const handleContactNumberChange = (e) => {
+    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 11);
+    setForm((prev) => ({ ...prev, contactNumber: digitsOnly }));
+    if (errors.contactNumber) {
+      setErrors((prev) => ({ ...prev, contactNumber: '' }));
+    }
+  };
+
   const handleSecurityChange = (e) => {
     const { name, value } = e.target;
     setSecurity((prev) => ({ ...prev, [name]: value }));
@@ -152,46 +164,42 @@ function ProfileSetting() {
       }
     });
 
-    const phoneRegex = /^[0-9+\s-]{7,15}$/;
-    if (form.contactNumber && !phoneRegex.test(form.contactNumber.trim())) {
-      newErrors.contactNumber = 'Please enter a valid contact number format.';
+    if (form.contactNumber && form.contactNumber.length !== 11) {
+      newErrors.contactNumber = 'Contact number must be exactly 11 digits.';
     }
+
     return newErrors;
   };
 
-  // Validates password fields — only enforced if the person started typing a password change
-  const validatePasswordFields = ({ required } = { required: false }) => {
+  // Validates password fields — always required when this validator is called,
+  // since password submission is now its own dedicated form/action
+  const validatePasswordFields = () => {
     const newErrors = {};
     const { currentPassword, newPassword, confirmPassword } = security;
 
-    if (required || currentPassword || newPassword || confirmPassword) {
-      if (!currentPassword) {
-        newErrors.currentPassword = 'Current password is required to update security credentials.';
+    if (!currentPassword) {
+      newErrors.currentPassword = 'Current password is required to update security credentials.';
+    }
+    if (!newPassword) {
+      newErrors.newPassword = 'New password is required.';
+    } else {
+      if (newPassword.length < 8) {
+        newErrors.newPassword = 'New password must be at least 8 characters long.';
+      } else if (!/[A-Z]/.test(newPassword)) {
+        newErrors.newPassword = 'Password must include at least one uppercase letter.';
+      } else if (!/[0-9]/.test(newPassword)) {
+        newErrors.newPassword = 'Password must include at least one number.';
+      } else if (!/[^A-Za-z0-9]/.test(newPassword)) {
+        newErrors.newPassword = 'Password must include at least one special character.';
       }
-      if (!newPassword) {
-        newErrors.newPassword = 'New password is required.';
-      } else {
-        if (newPassword.length < 8) {
-          newErrors.newPassword = 'New password must be at least 8 characters long.';
-        } else if (!/[A-Z]/.test(newPassword)) {
-          newErrors.newPassword = 'Password must include at least one uppercase letter.';
-        } else if (!/[0-9]/.test(newPassword)) {
-          newErrors.newPassword = 'Password must include at least one number.';
-        } else if (!/[^A-Za-z0-9]/.test(newPassword)) {
-          newErrors.newPassword = 'Password must include at least one special character.';
-        }
-      }
-      if (newPassword !== confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match.';
-      }
+    }
+    if (newPassword !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match.';
     }
     return newErrors;
   };
-  
 
   async function savePasswordIfProvided() {
-    if (!security.newPassword) return true; // nothing to change, not an error
-
     const response = await apiFetch('/profile/change-password', {
       method: 'POST',
       body: JSON.stringify({
@@ -207,25 +215,48 @@ function ProfileSetting() {
     return true;
   }
 
-  // FDA/LEA submit — updates profile fields, and password if provided
-  const handleSubmit = async (e) => {
+  async function logoutAfterPasswordChange() {
+    const refreshToken = localStorage.getItem('refresh_token');
+    try {
+      if (refreshToken) {
+        await apiFetch('/auth/token/revoke', {
+          method: 'POST',
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+      }
+    } catch (err) {
+      console.error('Session revoke failed:', err);
+      // proceed with local cleanup regardless — the password already changed successfully
+    }
+
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('agency');
+    localStorage.removeItem('role');
+
+    if (currentRole === 'SUPERADMIN') {
+      navigate('/superadmin-login');
+    } else {
+      navigate('/login');
+    }
+  }
+
+  // FDA/LEA — profile fields only, no password involved
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
 
-    const profileErrors = validateProfileFields();
-    const passwordErrors = validatePasswordFields({ required: false });
-    const validationErrors = { ...profileErrors, ...passwordErrors };
-
+    const validationErrors = validateProfileFields();
     if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      setSaveStatus({
+      setErrors((prev) => ({ ...prev, ...validationErrors }));
+      setProfileStatus({
         type: 'error',
         message: 'Kindly address the validation errors before saving your changes.',
       });
       return;
     }
 
-    setIsSaving(true);
-    setSaveStatus(null);
+    setIsSavingProfile(true);
+    setProfileStatus(null);
 
     try {
       const response = await apiFetch('/profile/update', {
@@ -234,6 +265,7 @@ function ProfileSetting() {
           first_name: form.firstName,
           middle_name: form.middleName,
           last_name: form.lastName,
+          employee_id: form.employeeId,
           contact_number: form.contactNumber,
           department: form.department,
           position: form.position,
@@ -245,54 +277,102 @@ function ProfileSetting() {
         throw new Error(errData.detail || 'Failed to save profile.');
       }
 
-      await savePasswordIfProvided();
-
-      setSaveStatus({
+      setProfileStatus({
         type: 'success',
-        message: 'Your profile settings have been successfully updated.',
+        message: 'Your profile details have been successfully updated.',
       });
-      setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      await fetchProfile(); // refresh with server truth
+      await fetchProfile();
     } catch (err) {
-      setSaveStatus({ type: 'error', message: err.message || 'Failed to save changes.' });
+      setProfileStatus({ type: 'error', message: err.message || 'Failed to save changes.' });
     } finally {
-      setIsSaving(false);
+      setIsSavingProfile(false);
     }
   };
 
-  // Superadmin submit — password only, no editable profile fields in this view
-  const handleSuperAdminPasswordSubmit = async (e) => {
+  // FDA/LEA — password only, mirrors the Superadmin password flow
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
-    const passwordErrors = validatePasswordFields({ required: true });
+    const passwordErrors = validatePasswordFields();
     if (Object.keys(passwordErrors).length > 0) {
-      setErrors(passwordErrors);
-      setSaveStatus({
+      setErrors((prev) => ({ ...prev, ...passwordErrors }));
+      setPasswordStatus({
         type: 'error',
         message: 'Kindly address the validation errors before saving your changes.',
       });
       return;
     }
 
-    setIsSaving(true);
-    setSaveStatus(null);
+    setIsSavingPassword(true);
+    setPasswordStatus(null);
 
     try {
       await savePasswordIfProvided();
-      setSaveStatus({ type: 'success', message: 'Your password has been successfully updated.' });
-      setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordStatus({
+        type: 'success',
+        message: 'Password updated. Redirecting you to log in again...',
+      });
+      setTimeout(() => {
+        logoutAfterPasswordChange();
+      }, 1500);
     } catch (err) {
-      setSaveStatus({ type: 'error', message: err.message || 'Failed to update password.' });
-    } finally {
-      setIsSaving(false);
+      setPasswordStatus({ type: 'error', message: err.message || 'Failed to update password.' });
+      setIsSavingPassword(false);
     }
   };
 
-  const handleCancel = () => {
-    setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setErrors({});
-    setSaveStatus(null);
+  // Superadmin — password only, same handler shape as FDA/LEA's password form
+  const handleSuperAdminPasswordSubmit = async (e) => {
+    e.preventDefault();
+
+    const passwordErrors = validatePasswordFields();
+    if (Object.keys(passwordErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...passwordErrors }));
+      setPasswordStatus({
+        type: 'error',
+        message: 'Kindly address the validation errors before saving your changes.',
+      });
+      return;
+    }
+
+    setIsSavingPassword(true);
+    setPasswordStatus(null);
+
+    try {
+      await savePasswordIfProvided();
+      setPasswordStatus({
+        type: 'success',
+        message: 'Password updated. Redirecting you to log in again...',
+      });
+      setTimeout(() => {
+        logoutAfterPasswordChange();
+      }, 1500);
+    } catch (err) {
+      setPasswordStatus({ type: 'error', message: err.message || 'Failed to update password.' });
+      setIsSavingPassword(false);
+    }
+  };
+
+  const handleProfileCancel = () => {
+    setErrors((prev) => {
+      const next = { ...prev };
+      ['firstName', 'lastName', 'employeeId', 'contactNumber', 'department', 'position'].forEach(
+        (f) => delete next[f]
+      );
+      return next;
+    });
+    setProfileStatus(null);
     fetchProfile(); // discard unsaved profile edits, reload from server
+  };
+
+  const handlePasswordCancel = () => {
+    setSecurity({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setErrors((prev) => {
+      const next = { ...prev };
+      ['currentPassword', 'newPassword', 'confirmPassword'].forEach((f) => delete next[f]);
+      return next;
+    });
+    setPasswordStatus(null);
   };
 
   const layoutConfig = {
@@ -352,19 +432,6 @@ function ProfileSetting() {
             {currentRole === 'SUPERADMIN' ? (
               <div className="SuperAdminProfileContainer">
 
-                {saveStatus && (
-                  <div className={`ProfileStatusBanner ${
-                    saveStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
-                  }`}>
-                    {saveStatus.type === 'success' ? (
-                      <CheckCircle2 size={18} />
-                    ) : (
-                      <AlertCircle size={18} />
-                    )}
-                    <span>{saveStatus.message}</span>
-                  </div>
-                )}
-
                 {/* 1. Profile Information Card */}
                 <div className="SuperAdminProfileCard">
                   <div className="SuperAdminProfileHeader">
@@ -379,10 +446,16 @@ function ProfileSetting() {
 
                   <div className="SuperAdminProfileInfo">
                     <div className="SuperAdminProfileInfoRow">
-                      <span className="SuperAdminProfileLabel">Full Name</span>
-                      <span className="SuperAdminProfileValue">
-                        {`${form.firstName} ${form.lastName}`.trim() || '—'}
-                      </span>
+                      <span className="SuperAdminProfileLabel">First Name</span>
+                      <span className="SuperAdminProfileValue">{form.firstName || '—'}</span>
+                    </div>
+                    <div className="SuperAdminProfileInfoRow">
+                      <span className="SuperAdminProfileLabel">Middle Name</span>
+                      <span className="SuperAdminProfileValue">{form.middleName || '—'}</span>
+                    </div>
+                    <div className="SuperAdminProfileInfoRow">
+                      <span className="SuperAdminProfileLabel">Last Name</span>
+                      <span className="SuperAdminProfileValue">{form.lastName || '—'}</span>
                     </div>
                     <div className="SuperAdminProfileInfoRow">
                       <span className="SuperAdminProfileLabel">Email Address</span>
@@ -501,12 +574,25 @@ function ProfileSetting() {
                     </div>
                   </div>
 
+                  {passwordStatus && (
+                    <div className={`ProfileStatusBanner ${
+                      passwordStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
+                    }`} style={{ marginTop: 16 }}>
+                      {passwordStatus.type === 'success' ? (
+                        <CheckCircle2 size={18} />
+                      ) : (
+                        <AlertCircle size={18} />
+                      )}
+                      <span>{passwordStatus.message}</span>
+                    </div>
+                  )}
+
                   <div className="ProfileActionsContainer" style={{ gridColumn: 'unset', marginTop: 20 }}>
                     <button
                       type="button"
                       className="ProfileBtn ProfileBtnSecondary"
-                      onClick={handleCancel}
-                      disabled={isSaving}
+                      onClick={handlePasswordCancel}
+                      disabled={isSavingPassword}
                     >
                       <X size={16} />
                       Cancel
@@ -514,9 +600,9 @@ function ProfileSetting() {
                     <button
                       type="submit"
                       className="ProfileBtn ProfileBtnPrimary"
-                      disabled={isSaving}
+                      disabled={isSavingPassword}
                     >
-                      {isSaving ? (
+                      {isSavingPassword ? (
                         <>
                           <span className="ProfileSpinner"></span>
                           Saving…
@@ -563,23 +649,10 @@ function ProfileSetting() {
                   </div>
                 </div>
 
-                {saveStatus && (
-                  <div className={`ProfileStatusBanner ${
-                    saveStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
-                  }`}>
-                    {saveStatus.type === 'success' ? (
-                      <CheckCircle2 size={18} />
-                    ) : (
-                      <AlertCircle size={18} />
-                    )}
-                    <span>{saveStatus.message}</span>
-                  </div>
-                )}
+                <div className="ProfileGrid">
 
-                <form onSubmit={handleSubmit} noValidate>
-                  <div className="ProfileGrid">
-                    
-                    {/* Left Column: Account & Profile details */}
+                  {/* Left Column: Account & Profile details — own form */}
+                  <form onSubmit={handleProfileSubmit} noValidate>
                     <div className="ProfileCard">
                       <div className="ProfileCardHeader">
                         <h2 className="ProfileCardTitle">
@@ -717,8 +790,7 @@ function ProfileSetting() {
                               type="text"
                               name="employeeId"
                               value={form.employeeId}
-                              readOnly
-                              disabled
+                              onChange={handleProfileChange}
                               placeholder="EMP-XXXXX"
                             />
                           </div>
@@ -736,10 +808,12 @@ function ProfileSetting() {
                             <input
                               className={`ProfileInput ${errors.contactNumber ? 'ProfileInputError' : ''}`}
                               type="text"
+                              inputMode="numeric"
                               name="contactNumber"
                               value={form.contactNumber}
-                              onChange={handleProfileChange}
-                              placeholder="e.g. 0917XXXXXXX"
+                              onChange={handleContactNumberChange}
+                              maxLength={11}
+                              placeholder="e.g. 09171234567"
                             />
                           </div>
                           {errors.contactNumber && (
@@ -791,7 +865,52 @@ function ProfileSetting() {
                       </div>
                     </div>
 
-                    {/* Right Column: Security/Password Management */}
+                    {profileStatus && (
+                      <div className={`ProfileStatusBanner ${
+                        profileStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
+                      }`} style={{ marginTop: 16 }}>
+                        {profileStatus.type === 'success' ? (
+                          <CheckCircle2 size={18} />
+                        ) : (
+                          <AlertCircle size={18} />
+                        )}
+                        <span>{profileStatus.message}</span>
+                      </div>
+                    )}
+
+                    <div className="ProfileActionsContainer" style={{ gridColumn: 'unset' }}>
+                      <button
+                        type="button"
+                        className="ProfileBtn ProfileBtnSecondary"
+                        onClick={handleProfileCancel}
+                        disabled={isSavingProfile}
+                      >
+                        <X size={16} />
+                        Cancel Changes
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="ProfileBtn ProfileBtnPrimary"
+                        disabled={isSavingProfile}
+                      >
+                        {isSavingProfile ? (
+                          <>
+                            <span className="ProfileSpinner"></span>
+                            Saving Profile...
+                          </>
+                        ) : (
+                          <>
+                            <Save size={16} />
+                            Save Changes
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Right Column: Security/Password Management — own form */}
+                  <form onSubmit={handlePasswordSubmit} noValidate>
                     <div className="ProfileCard">
                       <div className="ProfileCardHeader">
                         <h2 className="ProfileCardTitle">
@@ -894,39 +1013,51 @@ function ProfileSetting() {
                       </div>
                     </div>
 
-                    {/* Global Actions Panel */}
-                    <div className="ProfileActionsContainer">
+                    {passwordStatus && (
+                      <div className={`ProfileStatusBanner ${
+                        passwordStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
+                      }`} style={{ marginTop: 16 }}>
+                        {passwordStatus.type === 'success' ? (
+                          <CheckCircle2 size={18} />
+                        ) : (
+                          <AlertCircle size={18} />
+                        )}
+                        <span>{passwordStatus.message}</span>
+                      </div>
+                    )}
+
+                    <div className="ProfileActionsContainer" style={{ gridColumn: 'unset' }}>
                       <button
                         type="button"
                         className="ProfileBtn ProfileBtnSecondary"
-                        onClick={handleCancel}
-                        disabled={isSaving}
+                        onClick={handlePasswordCancel}
+                        disabled={isSavingPassword}
                       >
                         <X size={16} />
-                        Cancel Changes
+                        Cancel
                       </button>
 
                       <button
                         type="submit"
                         className="ProfileBtn ProfileBtnPrimary"
-                        disabled={isSaving}
+                        disabled={isSavingPassword}
                       >
-                        {isSaving ? (
+                        {isSavingPassword ? (
                           <>
                             <span className="ProfileSpinner"></span>
-                            Saving Profile...
+                            Saving…
                           </>
                         ) : (
                           <>
                             <Save size={16} />
-                            Save Changes
+                            Update Password
                           </>
                         )}
                       </button>
                     </div>
+                  </form>
 
-                  </div>
-                </form>
+                </div>
 
               </div>
             )}
@@ -941,7 +1072,8 @@ function ProfileSetting() {
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 
-  .ProfileContainer {
+  .ProfileContainer,
+  .SuperAdminProfileContainer {
     --p-dark: #030303;
     --p-slate: #1F2937;
     --p-navy: #13213C;
@@ -951,7 +1083,9 @@ const styles = `
     --p-light-gray: #EDEDED;
     --p-white: #FDFDFD;
     --p-error: #B91C1C;
-    
+  }
+
+  .ProfileContainer {
     width: 100%;
     padding: 24px;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1097,7 +1231,6 @@ const styles = `
   .ProfileStatusBanner {
     padding: 14px 18px;
     border-radius: 10px;
-    margin-bottom: 24px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -1127,6 +1260,7 @@ const styles = `
     display: grid;
     grid-template-columns: 1.8fr 1fr;
     gap: 24px;
+    align-items: start;
   }
 
   @media (max-width: 968px) {
@@ -1310,19 +1444,12 @@ const styles = `
   }
 
   .ProfileActionsContainer {
-    grid-column: span 2;
     display: flex;
     justify-content: flex-end;
     gap: 14px;
     margin-top: 8px;
     padding-top: 20px;
     border-top: 1.5px solid var(--p-light-gray);
-  }
-
-  @media (max-width: 968px) {
-    .ProfileActionsContainer {
-      grid-column: span 1;
-    }
   }
 
   .ProfileBtn {
@@ -1420,7 +1547,7 @@ const styles = `
   }
 
   .SuperAdminProfileContainer {
-    max-width: 760px;
+    max-width: 980px;
     margin: 0 auto;
     padding: 32px 24px;
     display: flex;

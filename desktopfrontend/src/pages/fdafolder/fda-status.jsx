@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/fdafolder/fda-status.jsx   
 import { useState, useEffect } from "react";
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
@@ -10,7 +11,9 @@ import {
   BellRing,
   ShieldCheck,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  XCircle,
+  X
 } from 'lucide-react';
 
 /* ============================================================
@@ -150,7 +153,7 @@ const DISMISS_PRESETS = [
   "Insufficient evidence to proceed.",
 ];
 
-const CASES_PER_PAGE = 25;
+const CASES_PER_PAGE = 10;
 const HISTORY_PER_PAGE = 25;
 
 function getStatusBadgeStyle(status) {
@@ -188,6 +191,16 @@ function FdaStatus() {
   const [dismissNote, setDismissNote] = useState("");
 
   const [historyPage, setHistoryPage] = useState(1);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [toastError, setToastError] = useState(null);
+
+  useEffect(() => {
+    if (!toastError) return;
+    const timer = setTimeout(() => {
+      setToastError(null);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [toastError]);
 
   const selectedComplaint =
     complaints.find((c) => c.complaintId === selectedComplaintId) || null;
@@ -230,7 +243,7 @@ function FdaStatus() {
 
     const outgoingMessage = getOutgoingMessage();
     if (newStatus === "dismissed" && !outgoingMessage) {
-      alert("Please choose or write a reason for dismissing this complaint.");
+      setToastError("Please choose or write a reason for dismissing this complaint.");
       return;
     }
 
@@ -357,28 +370,40 @@ function FdaStatus() {
                 )}
               </div>
 
-              <div className="FdaCaseListFooter">
-                <span className="FdaFooterInfo">
-                  {filteredComplaints.length === 0 ? 0 : caseStart + 1}-
-                  {Math.min(caseStart + CASES_PER_PAGE, filteredComplaints.length)} of {filteredComplaints.length}
-                </span>
-                <div className="FdaPagination">
-                  <button
-                    className="BtnPageNav"
-                    disabled={safeCasePage === 1}
-                    onClick={() => setCasePage(safeCasePage - 1)}
-                  >
-                    <ChevronLeft size={14} />
-                  </button>
-                  <button
-                    className="BtnPageNav"
-                    disabled={safeCasePage === totalCasePages}
-                    onClick={() => setCasePage(safeCasePage + 1)}
-                  >
-                    <ChevronRight size={14} />
-                  </button>
+              {filteredComplaints.length > 0 && (
+                <div className="FdaCaseListFooter">
+                  <span className="FdaFooterInfo">
+                    Showing {caseStart + 1}–{Math.min(caseStart + CASES_PER_PAGE, filteredComplaints.length)} of {filteredComplaints.length}
+                  </span>
+                  <div className="FdaPagination">
+                    <button
+                      className="BtnPageNav"
+                      disabled={safeCasePage === 1}
+                      onClick={() => setCasePage(safeCasePage - 1)}
+                    >
+                      <ChevronLeft size={14} />
+                      Prev
+                    </button>
+                    {Array.from({ length: totalCasePages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        className={`FdaPageNumber ${safeCasePage === page ? "active" : ""}`}
+                        onClick={() => setCasePage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      className="BtnPageNav"
+                      disabled={safeCasePage === totalCasePages}
+                      onClick={() => setCasePage(safeCasePage + 1)}
+                    >
+                      Next
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* RIGHT: selected complaint detail + form */}
@@ -481,7 +506,19 @@ function FdaStatus() {
                 </div>
 
                 <div className="FdaPushRow">
-                  <button className="BtnPushUpdate" onClick={handlePushUpdate}>
+                  <button
+                    className="BtnPushUpdate"
+                    onClick={() => {
+                      if (!selectedComplaint) return;
+                      const outgoingMessage = getOutgoingMessage();
+                      if (newStatus === "dismissed" && !outgoingMessage) {
+                        setToastError("Please choose or write a reason for dismissing this complaint.");
+                        return;
+                      }
+                      setToastError(null);
+                      setShowConfirmModal(true);
+                    }}
+                  >
                     <Send size={15} />
                     Push update
                   </button>
@@ -546,6 +583,88 @@ function FdaStatus() {
               </div>
             </div>
           </div>
+
+          {/* CONFIRMATION MODAL */}
+          {showConfirmModal && selectedComplaint && (
+            <div className="FdaVerifModalOverlay" role="dialog" aria-modal="true">
+              <div className="FdaVerifModalContainer" style={{ maxWidth: "480px" }}>
+                <div className="FdaVerifModalHeader">
+                  <div className="FdaVerifModalIconWrap FdaVerifModalIcon_submit">
+                    <Send size={20} />
+                  </div>
+                  <div>
+                    <h3 className="FdaVerifModalTitle">Confirm Status Update</h3>
+                    <p className="FdaVerifModalDesc">
+                      Please review the details before pushing this update.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ margin: "16px 0", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #EDEDED", paddingBottom: "8px" }}>
+                    <span style={{ color: "#6B7280", fontWeight: 500 }}>Case ID</span>
+                    <span style={{ fontWeight: 600, color: "#111827" }}>{selectedComplaint.caseReference}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #EDEDED", paddingBottom: "8px" }}>
+                    <span style={{ color: "#6B7280", fontWeight: 500 }}>Product Name</span>
+                    <span style={{ fontWeight: 600, color: "#111827" }}>{selectedComplaint.productTitle}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #EDEDED", paddingBottom: "8px" }}>
+                    <span style={{ color: "#6B7280", fontWeight: 500 }}>New Status</span>
+                    <span className="FdaBadge" style={getStatusBadgeStyle(newStatus)}>
+                      {STATUS_LABELS[newStatus] || newStatus}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="FdaNoticeBanner" style={{ marginBottom: "16px" }}>
+                  <BellRing size={16} />
+                  <div className="FdaNoticeBannerText" style={{ fontSize: "12px" }}>
+                    Pushing this update will sync it to the consumer's email notification.
+                  </div>
+                </div>
+
+                <div className="FdaVerifModalFooter">
+                  <button
+                    type="button"
+                    className="FdaVerifBtnModalCancel"
+                    onClick={() => setShowConfirmModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="FdaVerifBtnModalConfirm FdaVerifBtnModal_primary"
+                    onClick={() => {
+                      setShowConfirmModal(false);
+                      handlePushUpdate();
+                    }}
+                  >
+                    Confirm / Push Update
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FLOATING TOAST ALERT NOTIFICATION */}
+          {toastError && (
+            <div className="FdaVerifToastAlert FdaVerifToast_danger" role="alert">
+              <div className="FdaVerifToastIconWrap">
+                <XCircle size={18} />
+              </div>
+              <div className="FdaVerifToastBody">
+                <p className="FdaVerifToastMessage">{toastError}</p>
+              </div>
+              <button
+                className="FdaVerifToastCloseBtn"
+                onClick={() => setToastError(null)}
+                aria-label="Close notification"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
         </div>
       </div>

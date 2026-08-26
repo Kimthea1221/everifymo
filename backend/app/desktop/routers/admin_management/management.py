@@ -1,10 +1,14 @@
+# backend/app/desktop/routers/admin_management/management.py        
 import uuid
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.database.sessions import get_db
 from app.models.users import User
@@ -29,14 +33,17 @@ router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 
 def compute_admin_status(user: User, latest_token) -> str:
     if user.is_locked:
-        return "Locked Account"
+        return "Locked"
     if user.status == UserStatus.INVITED:
-        expires_at = latest_token.expires_at if latest_token else None
-        if expires_at:
-            if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
-            if expires_at < datetime.now(timezone.utc):
-                return "Invitation Expired"
+        if latest_token:
+            if latest_token.resend_requested_at is not None:
+                return "Resend Requested"
+            expires_at = latest_token.expires_at
+            if expires_at:
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(tzinfo=timezone.utc)
+                if expires_at < datetime.now(timezone.utc):
+                    return "Link Expired"
         return "Invited"
     if user.status == UserStatus.PENDING_APPROVAL:
         return "Pending Approval"
@@ -107,7 +114,7 @@ def superadmin_summary(
         tokens_map = {t.user_id: t for t in tokens}
         for a in invited_admins:
             status = compute_admin_status(a, tokens_map.get(a.user_id))
-            if status == "Invitation Expired":
+            if status == "Link Expired":
                 expired_count += 1
             else:
                 invited_count += 1
@@ -124,6 +131,7 @@ def superadmin_summary(
 @router.post("/invite", status_code=201)
 async def invite_superadmin(
     payload: InviteSuperadminRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -133,7 +141,7 @@ async def invite_superadmin(
         raise HTTPException(400, "A user with this email already exists.")
 
     admin, token = create_invited_superadmin(
-        db, payload.email, created_by=current_user.user_id
+        db, payload.email, created_by=current_user.user_id, request=http_request
     )
 
     await send_superadmin_invite_email(admin.email, token)
@@ -144,6 +152,7 @@ async def invite_superadmin(
 @router.post("/{admin_id}/resend")
 async def resend_superadmin_invitation(
     admin_id: uuid.UUID,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -176,12 +185,25 @@ async def resend_superadmin_invitation(
         related_user_id=admin.user_id,
     )
 
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.INVITE_SUPERADMIN_RESENT,
+        target_table="users",
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        request=http_request,
+        region_code=None,
+        user_role_override="superadmin",
+    )
+
     return {"message": "Invitation resent successfully"}
 
 
 @router.post("/{admin_id}/suspend")
 def suspend_superadmin(
     admin_id: uuid.UUID,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -203,12 +225,25 @@ def suspend_superadmin(
         related_user_id=admin.user_id,
     )
 
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.SUSPEND_SUPERADMIN_ACCOUNT,
+        target_table="users",
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        request=http_request,
+        region_code=None,
+        user_role_override="superadmin",
+    )
+
     return {"message": "Superadmin account suspended successfully"}
 
 
 @router.post("/{admin_id}/reactivate")
 def reactivate_superadmin(
     admin_id: uuid.UUID,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -227,12 +262,25 @@ def reactivate_superadmin(
         related_user_id=admin.user_id,
     )
 
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.REACTIVATE_SUPERADMIN_ACCOUNT,
+        target_table="users",
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        request=http_request,
+        region_code=None,
+        user_role_override="superadmin",
+    )
+
     return {"message": "Superadmin account reactivated successfully"}
 
 
 @router.delete("/{admin_id}")
 def delete_superadmin(
     admin_id: uuid.UUID,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -247,9 +295,25 @@ def delete_superadmin(
     if not (admin.status == UserStatus.ACTIVE and not admin.is_active):
         raise HTTPException(status_code=400, detail="Only suspended superadmins can be deleted.")
 
+    deleted_admin_id = admin.user_id
+    deleted_admin_email = admin.email
+
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == admin_id).delete()
     db.delete(admin)
     db.commit()
+
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.DELETE_SUPERADMIN_ACCOUNT,
+        target_table="users",
+        target_id=deleted_admin_id,
+        target_reference=deleted_admin_email,
+        request=http_request,
+        region_code=None,
+        user_role_override="superadmin",
+    )
+
     return {"message": "Superadmin deleted successfully"}
 
 
@@ -257,10 +321,11 @@ def delete_superadmin(
 @router.post("/{admin_id}/activate")
 async def activate_superadmin_endpoint(
     admin_id: uuid.UUID,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
-    admin = activate_superadmin(db, admin_id)
+    admin = activate_superadmin(db, admin_id, activated_by=current_user, request=http_request)
     await send_superadmin_activation_email(admin.email)
     return {"message": "Superadmin account activated."}
 
@@ -268,6 +333,7 @@ async def activate_superadmin_endpoint(
 @router.post("/{admin_id}/unlock")
 def unlock_superadmin(
     admin_id: uuid.UUID,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -278,4 +344,17 @@ def unlock_superadmin(
     admin.is_locked = False
     admin.failed_login_attempts = 0
     db.commit()
+
+    write_audit_log(
+        db,
+        user=current_user,
+        action=AuditAction.UNLOCK_SUPERADMIN_ACCOUNT,
+        target_table="users",
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        request=http_request,
+        region_code=None,
+        user_role_override="superadmin",
+    )
+
     return {"message": "Superadmin account unlocked successfully"}

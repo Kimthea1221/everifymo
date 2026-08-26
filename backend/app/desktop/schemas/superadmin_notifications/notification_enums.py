@@ -34,6 +34,12 @@ class NotificationEventType(str, Enum):
     # 8. Password changed or reset requested
     PASSWORD_CHANGED = "password_changed"
 
+    # 8b. Profile/account info fields changed (name, contact number,
+    #     employee_id, department, position, etc.) - separate from
+    #     PASSWORD_CHANGED so superadmins can tell which kind of change
+    #     occurred at a glance.
+    ACCOUNT_INFO_UPDATED = "account_info_updated"
+
     # 9. User account suspended / reactivated (split into two so the
     #    frontend can distinguish which one happened). Named "suspended"
     #    to match the UI wording and is_active field, not "deactivated".

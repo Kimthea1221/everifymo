@@ -1,10 +1,13 @@
+// desktopfrontend/src/pages/superadminfolder/superadmin-audit-logs.jsx
 import './superadmin-css.css';
 import { useState, useEffect } from 'react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 import { Search, Calendar, X, ChevronLeft, ChevronRight, Info, History } from 'lucide-react';
+import { apiFetch } from '../../utils/apiFetch';
 
 // TODO(backend): user/region display names - These need to come pre-joined from the API, not resolved client-side.
+// NOTE: mock data still powers LEA-CIDG / Superadmin / System tabs until those backend endpoints exist.
 const MOCK_AUDIT_LOGS = [
   {
     log_id: 1,
@@ -389,6 +392,43 @@ const REGION_OPTIONS = [
   'Region 10', 'Region 11', 'Region 12', 'Region 13', 'BARMM'
 ];
 
+// Real region_code values seeded so far for the FDA backend (extend as more get seeded).
+const FDA_REGION_OPTIONS = [
+  { code: 'NCR', label: 'National Capital Region' },
+  { code: 'RO3', label: 'Region 3 — Central Luzon' },
+];
+
+// Finalized FDA action codes. All except the three login/session ones are
+// prefixed CREATE_/UPDATE_/DELETE_, so the category is derived from the prefix
+// rather than hand-mapped one by one.
+const FDA_ACTION_OPTIONS = [
+  'LOGIN',
+  'LOGOUT',
+  'LOGIN_FAILED',
+  'UPDATE_COMPLAINT_STATUS',
+  'UPDATE_VERIFICATION_STATUS',
+  'CREATE_REGISTERED_PRODUCT',
+  'UPDATE_REGISTERED_PRODUCT',
+  'DELETE_REGISTERED_PRODUCT',
+  'CONVERT_TO_REGISTERED_PRODUCT',
+  'CREATE_UNREGISTERED_ADVISORY',
+  'UPDATE_UNREGISTERED_ADVISORY',
+  'DELETE_UNREGISTERED_ADVISORY',
+  'CONVERT_TO_UNREGISTERED_ADVISORY',
+  'UPDATE_USER_PROFILE',
+  'UPDATE_USER_PASSWORD',
+];
+
+function getFdaActionCategory(actionCode) {
+  if (!actionCode) return 'login';
+  if (actionCode.startsWith('CREATE_')) return 'create';
+  if (actionCode.startsWith('UPDATE_')) return 'update';
+  if (actionCode.startsWith('DELETE_')) return 'delete';
+  if (actionCode.startsWith('CONVERT_')) return 'convert';
+  // LOGIN, LOGIN_FAILED, LOGOUT all fall here
+  return 'login';
+}
+
 function deriveAgencyInfo(userId, userRole) {
   if (!userId || !userRole) {
     return { name: 'System', badgeClass: 'badge-agency-system' };
@@ -406,6 +446,18 @@ function deriveAgencyInfo(userId, userRole) {
   return { name: 'System', badgeClass: 'badge-agency-system' };
 }
 
+// Agency badge class lookup for rows where the API already tells us the
+// agency (FDA tab) instead of us having to derive it from a role string.
+function agencyBadgeClassFor(agencyName) {
+  switch (agencyName) {
+    case 'FDA': return 'badge-agency-fda';
+    case 'LEA-CIDG': return 'badge-agency-lea';
+    case 'Superadmin': return 'badge-agency-super';
+    case 'System':
+    default: return 'badge-agency-system';
+  }
+}
+
 function getActionBadgeClass(actionType) {
   switch (actionType) {
     case 'create':
@@ -414,12 +466,25 @@ function getActionBadgeClass(actionType) {
       return 'badge-action-update';
     case 'delete':
       return 'badge-action-delete';
+    case 'convert':
+      return 'badge-action-convert';
     case 'login':
     default:
       return 'badge-action-neutral';
   }
 }
 
+// Badge color still comes from the category (create/update/delete/login),
+// but the visible label is the full action code where one exists (FDA rows).
+// Mock rows have no action_code, so they fall back to the short category.
+function getActionBadgeLabel(log) {
+  return log.action_code || log.action_type;
+}
+
+// NOTE: target_table is rendered as-is from the backend, whatever it says
+// (e.g. login rows currently come back as "sessions" in seed data even
+// though the real model/table is "user_sessions" — that's a backend seed
+// issue, not something to special-case or hardcode around here).
 function truncateTargetId(id) {
   if (!id) return '—';
   const idStr = String(id);
@@ -436,10 +501,38 @@ const ACTION_BADGES = {
   login:  { label: 'Login',  className: 'AuditLogDetailsBadgeLogin' },
 };
 
-function ActionBadge({ action }) {
+function ActionBadge({ action, label }) {
   if (!action) return null;
   const meta = ACTION_BADGES[action.toLowerCase()] || { label: action, className: 'AuditLogDetailsBadgeNeutral' };
-  return <span className={`AuditLogDetailsActionBadge ${meta.className}`}>{meta.label}</span>;
+  return <span className={`AuditLogDetailsActionBadge ${meta.className}`}>{label || meta.label}</span>;
+}
+
+// Normalizes a raw FDA API row into the same shape the table/drawer JSX
+// already expects from mock rows, so the rendering code below doesn't need
+// to branch on data source.
+function normalizeFdaLog(raw) {
+  const category = getFdaActionCategory(raw.action);
+  return {
+    log_id: raw.log_id,
+    timestamp: raw.timestamp,
+    user_id: raw.user_id,
+    user_email: raw.user_email,
+    // FDA rows: system-fallback is driven by user_name being null, not user_id
+    user_name: raw.user_name,
+    user_role: raw.user_role,
+    agency: raw.agency, // pre-derived server-side, no client-side guessing needed
+    region: raw.region_code,
+    action_type: category,        // for badge class / filter-tab bucketing
+    action_code: raw.action,      // raw code, shown in the drawer
+    target_table: raw.target_table,
+    target_reference: raw.target_reference,
+    target_id: raw.target_id,
+    ip_address: raw.ip_address,
+    user_agent: raw.user_agent,
+    old_value: raw.old_value,
+    new_value: raw.new_value,
+    _isFdaRow: true,
+  };
 }
 
 function SuperAdminAuditLog() {
@@ -455,20 +548,33 @@ function SuperAdminAuditLog() {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(10); // page size
   
-  // Simulated server-side response states
+  // Simulated server-side response states (mock tabs: LEA-CIDG / Superadmin / System)
   const [logs, setLogs] = useState([]);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // Real backend state (FDA tab only)
+  const [fdaLogs, setFdaLogs] = useState([]);
+  const [fdaTotalItems, setFdaTotalItems] = useState(0);
+  const [fdaTotalPages, setFdaTotalPages] = useState(1);
+  const [fdaLoading, setFdaLoading] = useState(false);
+  const [fdaError, setFdaError] = useState(null);
+
   // Detail Drawer State
   const [selectedLog, setSelectedLog] = useState(null);
 
-  // TAB CLICK WITH VIEW TRANSITION COMPATIBILITY (reference from lea-saved-draft.jsx pattern)
+  const isFdaTab = activeTab === 'FDA';
+
+  // Reset filters that don't make sense across tabs (FDA action codes vs.
+  // mock create/update/delete/login, FDA region_code vs. mock region names)
+  // whenever the tab changes, and reset to page 1.
   const handleTabClick = (tabName) => {
     if (activeTab === tabName) return;
     setCurrentPage(1);
-    
+    setActionFilter('All');
+    setRegionFilter('All');
+
     if (!document.startViewTransition) {
       setActiveTab(tabName);
       return;
@@ -488,9 +594,60 @@ function SuperAdminAuditLog() {
     setCurrentPage(1);
   };
 
+  // ---- FDA tab: real backend fetch ----
+  // GET /admin/audit-logs/fda — superadmin-only, returns 403 for non-superadmin tokens
+  useEffect(() => {
+    if (!isFdaTab) return;
+
+    let cancelled = false;
+    setFdaLoading(true);
+    setFdaError(null);
+
+    const params = new URLSearchParams();
+    params.set('page', String(currentPage));
+    params.set('limit', String(limit));
+    if (actionFilter !== 'All') params.set('action', actionFilter);
+    if (regionFilter !== 'All') params.set('region_code', regionFilter);
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    if (searchQuery.trim()) params.set('search', searchQuery.trim());
+
+    apiFetch(`/admin/audit-logs/fda?${params.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          if (res.status === 403) {
+            throw new Error('You do not have permission to view FDA audit logs.');
+          }
+          throw new Error(`Failed to load audit logs (${res.status})`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setFdaLogs((data.items || []).map(normalizeFdaLog));
+        setFdaTotalItems(data.total ?? 0);
+        setFdaTotalPages(data.total_pages ?? 1);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setFdaError(err.message || 'Failed to load audit logs.');
+        setFdaLogs([]);
+        setFdaTotalItems(0);
+        setFdaTotalPages(1);
+      })
+      .finally(() => {
+        if (!cancelled) setFdaLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [isFdaTab, actionFilter, regionFilter, dateFrom, dateTo, searchQuery, currentPage, limit]);
+
+  // ---- Mock tabs (LEA-CIDG / Superadmin / System / All): unchanged mock filtering ----
   // TODO(backend): fetch function - Note expected endpoint: GET /api/superadmin/audit-logs
   // Expected query params: page, limit, agency, action, dateFrom, dateTo, region, search
   useEffect(() => {
+    if (isFdaTab) return;
+
     setLoading(true);
     const timer = setTimeout(() => {
       let filtered = [...MOCK_AUDIT_LOGS];
@@ -546,10 +703,14 @@ function SuperAdminAuditLog() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [activeTab, actionFilter, regionFilter, dateFrom, dateTo, searchQuery, currentPage, limit]);
+  }, [isFdaTab, activeTab, actionFilter, regionFilter, dateFrom, dateTo, searchQuery, currentPage, limit]);
 
-  // Tab count calculation based on active secondary filters
+  // Tab count calculation based on active secondary filters (mock tabs only —
+  // FDA's count comes from fdaTotalItems since the real total lives server-side
+  // and only applies while the FDA tab itself is active).
   const getTabCount = (tabName) => {
+    if (tabName === 'FDA') return isFdaTab ? fdaTotalItems : null;
+
     let result = [...MOCK_AUDIT_LOGS];
 
     if (actionFilter !== 'All') {
@@ -581,8 +742,14 @@ function SuperAdminAuditLog() {
     }).length;
   };
 
+  // ---- Unified view of "what to render" regardless of data source ----
+  const displayLogs = isFdaTab ? fdaLogs : logs;
+  const displayLoading = isFdaTab ? fdaLoading : loading;
+  const displayTotalItems = isFdaTab ? fdaTotalItems : totalItems;
+  const displayTotalPages = isFdaTab ? fdaTotalPages : totalPages;
+
   const startIndex = (currentPage - 1) * limit;
-  const endIndex = Math.min(startIndex + limit, totalItems);
+  const endIndex = Math.min(startIndex + limit, displayTotalItems);
 
   return (
     <div className="SuperadminMainContainer">
@@ -604,16 +771,19 @@ function SuperAdminAuditLog() {
             {/* Filter Tabs */}
             <div className="AuditTabsContainer">
               <div className="AuditTabsButton">
-                {['All', 'FDA', 'LEA-CIDG', 'Superadmin', 'System'].map((tab) => (
-                  <button
-                    key={tab}
-                    className={`AuditTabButton ${activeTab === tab ? 'active' : ''}`}
-                    onClick={() => handleTabClick(tab)}
-                  >
-                    {tab === 'All' ? 'All Activities' : tab}
-                    <span className="AuditTabCount">{getTabCount(tab)}</span>
-                  </button>
-                ))}
+                {['All', 'FDA', 'LEA-CIDG', 'Superadmin', 'System'].map((tab) => {
+                  const count = getTabCount(tab);
+                  return (
+                    <button
+                      key={tab}
+                      className={`AuditTabButton ${activeTab === tab ? 'active' : ''}`}
+                      onClick={() => handleTabClick(tab)}
+                    >
+                      {tab === 'All' ? 'All Activities' : tab}
+                      {count !== null && <span className="AuditTabCount">{count}</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -623,7 +793,7 @@ function SuperAdminAuditLog() {
                 <Search size={16} className="AuditSearchIcon" />
                 <input
                   type="text"
-                  placeholder="Search Target ID, Table, User..."
+                  placeholder="Search by user, target reference/table/ID..."
                   className="AuditSearchInput"
                   value={searchQuery}
                   onChange={(e) => {
@@ -633,51 +803,58 @@ function SuperAdminAuditLog() {
                 />
               </div>
 
-              <div className="AuditFiltersGroup">
-                <select
-                  className="AuditSelectFilter"
-                  value={actionFilter}
-                  onChange={(e) => {
-                    setActionFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="All">All Actions</option>
-                  <option value="create">Create</option>
-                  <option value="update">Update</option>
-                  <option value="delete">Delete</option>
-                  <option value="login">Login</option>
-                </select>
+    <div className="AuditFiltersGroup">
+  <div className="AuditFilterItem">
+    <span className="AuditFilterLabel">ACTION</span>
+    <select
+      className="AuditSelectFilter"
+      value={actionFilter}
+      onChange={(e) => {
+        setActionFilter(e.target.value);
+        setCurrentPage(1);
+      }}
+    >
+      <option value="All">All Actions</option>
+      {isFdaTab ? (
+        FDA_ACTION_OPTIONS.map(code => (
+          <option key={code} value={code}>{code.replaceAll('_', ' ')}</option>
+        ))
+      ) : (
+        <>
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+          <option value="login">Login</option>
+        </>
+      )}
+    </select>
+  </div>
 
-                <select
-                  className="AuditSelectFilter"
-                  value={regionFilter}
-                  onChange={(e) => {
-                    setRegionFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="All">All Regions</option>
-                  {REGION_OPTIONS.map(reg => (
-                    <option key={reg} value={reg}>{reg}</option>
-                  ))}
-                </select>
+  <div className="AuditFilterItem">
+    <span className="AuditFilterLabel">REGION</span>
+    <select
+      className="AuditSelectFilter"
+      value={regionFilter}
+      onChange={(e) => {
+        setRegionFilter(e.target.value);
+        setCurrentPage(1);
+      }}
+    >
+      <option value="All">All Regions</option>
+      {isFdaTab ? (
+        FDA_REGION_OPTIONS.map(({ code, label }) => (
+          <option key={code} value={code}>{label}</option>
+        ))
+      ) : (
+        REGION_OPTIONS.map(reg => (
+          <option key={reg} value={reg}>{reg}</option>
+        ))
+      )}
+    </select>
+  </div>
 
-                <div className="AuditDateGroup">
-                  <span className="AuditDateLabel">From:</span>
-                  <input
-                    type="date"
-                    className="AuditDateInput"
-                    value={dateFrom}
-                    onChange={(e) => {
-                      setDateFrom(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="AuditDateGroup">
-                  <span className="AuditDateLabel">To:</span>
+  <div className="AuditDateGroup">
+                  <span className="AuditDateLabel">TO</span>
                   <input
                     type="date"
                     className="AuditDateInput"
@@ -690,8 +867,13 @@ function SuperAdminAuditLog() {
                 </div>
 
                 {(searchQuery || actionFilter !== 'All' || regionFilter !== 'All' || dateFrom || dateTo) && (
-                  <button className="BtnClearAuditFilters" onClick={handleClearFilters}>
-                    Clear Filters
+                  <button
+                    className="BtnClearFiltersIcon"
+                    aria-label="Clear Filters"
+                    title="Clear Filters"
+                    onClick={handleClearFilters}
+                  >
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -699,11 +881,15 @@ function SuperAdminAuditLog() {
 
             {/* Table Container */}
             <div className="UMTableWrapper">
-              {loading ? (
+              {fdaError && isFdaTab ? (
+                <div className="UMEmpty" style={{ padding: '40px', textAlign: 'center', color: '#b91c1c' }}>
+                  {fdaError}
+                </div>
+              ) : displayLoading ? (
                 <div className="UMEmpty" style={{ padding: '40px', textAlign: 'center' }}>
                   Loading logs...
                 </div>
-              ) : logs.length > 0 ? (
+              ) : displayLogs.length > 0 ? (
                 <>
                   <table className="UMTable">
                     <thead>
@@ -713,22 +899,36 @@ function SuperAdminAuditLog() {
                         <th>Agency</th>
                         <th>Region</th>
                         <th>Action</th>
-                        <th>Target</th>
-                        <th>IP Address</th>
+                        <th>Target Table</th>
                         <th className="AuditTextCenter">Details</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {logs.map((log) => {
-                        const agencyInfo = deriveAgencyInfo(log.user_id, log.user_role);
+                      {displayLogs.map((log) => {
+                        // FDA rows already carry `agency`; mock rows still need it derived.
+                        const agencyInfo = log._isFdaRow
+                          ? { name: log.agency, badgeClass: agencyBadgeClassFor(log.agency) }
+                          : deriveAgencyInfo(log.user_id, log.user_role);
+
+                        // FDA system-fallback: agency/role says "System" — NOT just a
+                        // null user_name, since a real seeded user can have no
+                        // first/last name set and still be a real account.
+                        // Mock rows: still keyed off user_id, unchanged.
+                        const isSystemRow = log._isFdaRow
+                          ? log.agency === 'System' || log.user_role === 'system'
+                          : !log.user_id;
+
+                        // FDA row, real user, but no display name on file — show the
+                        // role instead of fabricating a name or mislabeling as System.
+                        const fdaUserLabel = log.user_name || 'Unnamed';
+
                         return (
                           <tr key={log.log_id}>
                             <td className="AuditNoWrap">{log.timestamp}</td>
                             <td>
-                              {log.user_id ? (
+                              {!isSystemRow ? (
                                 <div className="AuditUserCell">
-                                  <strong>{log.user_name}</strong>
-                                  <span className="role-badge-pill">{log.user_role}</span>
+                                  <strong>{log._isFdaRow ? fdaUserLabel : log.user_name}</strong>
                                 </div>
                               ) : (
                                 <strong>System</strong>
@@ -742,18 +942,14 @@ function SuperAdminAuditLog() {
                             <td>{log.region || '—'}</td>
                             <td>
                               <span className={getActionBadgeClass(log.action_type)}>
-                                {log.action_type}
+                                {getActionBadgeLabel(log)}
                               </span>
                             </td>
                             <td>
                               <span className="AuditNoWrap">
                                 {log.target_table}
-                                <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '4px' }}>
-                                  ({truncateTargetId(log.target_id)})
-                                </span>
                               </span>
                             </td>
-                            <td className="AuditNoWrap">{log.ip_address || '—'}</td>
                             <td className="AuditTextCenter">
                               <button
                                 className="AuditDetailsBtn"
@@ -772,7 +968,7 @@ function SuperAdminAuditLog() {
                   {/* Pagination Controls */}
                   <div className="AuditPaginationWrapper">
                     <span className="AuditPaginationInfo">
-                      Showing {totalItems === 0 ? 0 : startIndex + 1}–{endIndex} of {totalItems} entries
+                      Showing {displayTotalItems === 0 ? 0 : startIndex + 1}–{endIndex} of {displayTotalItems} entries
                     </span>
                     <div className="AuditPaginationControls">
                       <button
@@ -783,7 +979,7 @@ function SuperAdminAuditLog() {
                         <ChevronLeft size={14} /> Prev
                       </button>
                       
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      {Array.from({ length: displayTotalPages }, (_, i) => i + 1).map(page => (
                         <button
                           key={page}
                           className={`AuditPageNumber ${currentPage === page ? 'active' : ''}`}
@@ -795,8 +991,8 @@ function SuperAdminAuditLog() {
 
                       <button
                         className="AuditPageBtn"
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === displayTotalPages}
+                        onClick={() => setCurrentPage(prev => Math.min(displayTotalPages, prev + 1))}
                       >
                         Next <ChevronRight size={14} />
                       </button>
@@ -839,10 +1035,26 @@ function SuperAdminAuditLog() {
                     <span className="AuditLogDetailsLabel">Date & Time</span>
                     <span className="AuditLogDetailsValue">{selectedLog.timestamp}</span>
                   </div>
-                  <div className="AuditLogDetailsRow">
+                                    <div className="AuditLogDetailsRow">
                     <span className="AuditLogDetailsLabel">User</span>
                     <span className="AuditLogDetailsValue">
-                      {selectedLog.user_name || 'System'}
+                      {selectedLog._isFdaRow
+                        ? (selectedLog.agency === 'System' || selectedLog.user_role === 'system'
+                            ? 'System'
+                            : (selectedLog.user_name || 'Unnamed'))
+                        : (selectedLog.user_name || 'System')}
+                    </span>
+                  </div>
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">User ID</span>
+                    <span className="AuditLogDetailsValue">
+                      {selectedLog.user_id || '—'}
+                    </span>
+                  </div>
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">Email</span>
+                    <span className="AuditLogDetailsValue">
+                      {selectedLog.user_email || '—'}
                     </span>
                   </div>
                   <div className="AuditLogDetailsRow">
@@ -865,13 +1077,19 @@ function SuperAdminAuditLog() {
                   <div className="AuditLogDetailsRow">
                     <span className="AuditLogDetailsLabel">Action</span>
                     <span className="AuditLogDetailsValue">
-                      <ActionBadge action={selectedLog.action_type} />
+                      <ActionBadge action={selectedLog.action_type} label={getActionBadgeLabel(selectedLog)} />
                     </span>
                   </div>
                   <div className="AuditLogDetailsRow">
                     <span className="AuditLogDetailsLabel">Target Table</span>
                     <span className="AuditLogDetailsValue">{selectedLog.target_table}</span>
                   </div>
+                  {selectedLog._isFdaRow && selectedLog.target_reference && (
+                    <div className="AuditLogDetailsRow">
+                      <span className="AuditLogDetailsLabel">Target Reference</span>
+                      <span className="AuditLogDetailsValue">{selectedLog.target_reference}</span>
+                    </div>
+                  )}
                   <div className="AuditLogDetailsRow">
                     <span className="AuditLogDetailsLabel">Record / Target ID</span>
                     <span className="AuditLogDetailsValue">{selectedLog.target_id || '—'}</span>
