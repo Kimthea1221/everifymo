@@ -8,6 +8,14 @@ from app.core.dependencies import get_current_user
 from app.desktop.schemas.complaints.complaints import ComplaintVerificationDetailResponse
 from app.desktop.services.complaints.complaint_detail_service import get_complaint_verification_detail
 
+from app.desktop.schemas.complaints.complaints import FdaComplaintListItem
+from app.desktop.services.complaints.fda_reports_service import list_all_complaints_for_fda
+from app.desktop.schemas.complaints.complaints import FdaComplaintDetailResponse
+from app.desktop.services.complaints.fda_reports_service import (
+    list_all_complaints_for_fda,
+    get_fda_complaint_detail,
+)
+
 from app.models.verification_requests import VerificationRequest
 from app.desktop.schemas.complaints.complaints import ComplaintAwaitingRequestResponse
 
@@ -193,3 +201,31 @@ def close_case_endpoint(
 ):
     return close_case(db, complaint_id, current_user, data)
 #added by darlene --end 
+
+
+    #
+    #Ashanti code starts here
+    # GET /complaints/fda-reports
+@router.get("/fda-reports", response_model=list[FdaComplaintListItem])
+def list_fda_reports_endpoint(
+    search: str | None = None,
+    category: str | None = None,
+    status: str | None = None,
+    source: str | None = None,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return list_all_complaints_for_fda(db, search, category, status, source)
+
+
+
+    # GET /complaints/{complaint_id}/fda-detail
+@router.get("/{complaint_id}/fda-detail", response_model=FdaComplaintDetailResponse)
+def get_fda_complaint_detail_endpoint(
+    complaint_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_fda_complaint_detail(db, complaint_id)
+
+#Ashanti code ends here
