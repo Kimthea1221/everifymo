@@ -67,6 +67,13 @@ const EMPTY_FORM = {
 /**
  * PROFILE & SETTINGS COMPONENT FOR ICMDA
  * Used by FDA, LEA-CIDG, and Super Admin personnel.
+ *
+ * Editable fields differ by role:
+ *  - FDA / LEA personnel: first, middle, last name, employee ID, contact number,
+ *    department, position — plus password.
+ *  - Superadmin: first, middle, last name only — plus password.
+ *    (Superadmins are invited with only first/last name; middle name, if any,
+ *    is added later here in Profile Settings.)
  */
 function ProfileSetting() {
   const navigate = useNavigate();
@@ -92,14 +99,12 @@ function ProfileSetting() {
   const [profileStatus, setProfileStatus] = useState(null);
   const [passwordStatus, setPasswordStatus] = useState(null);
 
-  const REQUIRED_FIELDS = [
-    'firstName',
-    'lastName',
-    'employeeId',
-    'contactNumber',
-    'department',
-    'position'
-  ];
+  // Role-aware required fields — superadmin only edits their name, personnel edit
+  // their full personnel profile.
+  const REQUIRED_FIELDS =
+    currentRole === 'SUPERADMIN'
+      ? ['firstName', 'lastName']
+      : ['firstName', 'lastName', 'employeeId', 'contactNumber', 'department', 'position'];
 
   useEffect(() => {
     fetchProfile();
@@ -147,7 +152,7 @@ function ProfileSetting() {
     }
   };
 
-  // Validates FDA/LEA editable profile fields
+  // Validates editable profile fields — scope depends on role (see REQUIRED_FIELDS above)
   const validateProfileFields = () => {
     const newErrors = {};
     REQUIRED_FIELDS.forEach((field) => {
@@ -164,7 +169,8 @@ function ProfileSetting() {
       }
     });
 
-    if (form.contactNumber && form.contactNumber.length !== 11) {
+    // Contact number format only applies to personnel — superadmin never has this field
+    if (currentRole !== 'SUPERADMIN' && form.contactNumber && form.contactNumber.length !== 11) {
       newErrors.contactNumber = 'Contact number must be exactly 11 digits.';
     }
 
@@ -198,6 +204,28 @@ function ProfileSetting() {
     }
     return newErrors;
   };
+
+  // Builds the PUT /profile/update payload — scope depends on role.
+  // Superadmin: name fields only. Personnel: full editable profile.
+  // (Must mirror the backend's PERSONNEL_EDITABLE_FIELDS / SUPERADMIN_EDITABLE_FIELDS
+  // allow-list in profile_setting/profile.py — the backend enforces this regardless,
+  // but keeping them in sync avoids sending fields that'll just get rejected.)
+  const buildProfilePayload = () =>
+    currentRole === 'SUPERADMIN'
+      ? {
+          first_name: form.firstName,
+          middle_name: form.middleName,
+          last_name: form.lastName,
+        }
+      : {
+          first_name: form.firstName,
+          middle_name: form.middleName,
+          last_name: form.lastName,
+          employee_id: form.employeeId,
+          contact_number: form.contactNumber,
+          department: form.department,
+          position: form.position,
+        };
 
   async function savePasswordIfProvided() {
     const response = await apiFetch('/profile/change-password', {
@@ -241,7 +269,8 @@ function ProfileSetting() {
     }
   }
 
-  // FDA/LEA — profile fields only, no password involved
+  // Profile fields only, no password involved — shared by FDA/LEA and Superadmin,
+  // payload scope is resolved by buildProfilePayload() based on role.
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
 
@@ -261,15 +290,7 @@ function ProfileSetting() {
     try {
       const response = await apiFetch('/profile/update', {
         method: 'PUT',
-        body: JSON.stringify({
-          first_name: form.firstName,
-          middle_name: form.middleName,
-          last_name: form.lastName,
-          employee_id: form.employeeId,
-          contact_number: form.contactNumber,
-          department: form.department,
-          position: form.position,
-        }),
+        body: JSON.stringify(buildProfilePayload()),
       });
 
       if (!response.ok) {
@@ -356,9 +377,11 @@ function ProfileSetting() {
   const handleProfileCancel = () => {
     setErrors((prev) => {
       const next = { ...prev };
-      ['firstName', 'lastName', 'employeeId', 'contactNumber', 'department', 'position'].forEach(
-        (f) => delete next[f]
-      );
+      const fieldsToReset =
+        currentRole === 'SUPERADMIN'
+          ? ['firstName', 'lastName', 'middleName']
+          : ['firstName', 'lastName', 'employeeId', 'contactNumber', 'department', 'position'];
+      fieldsToReset.forEach((f) => delete next[f]);
       return next;
     });
     setProfileStatus(null);
@@ -432,41 +455,130 @@ function ProfileSetting() {
             {currentRole === 'SUPERADMIN' ? (
               <div className="SuperAdminProfileContainer">
 
-                {/* 1. Profile Information Card */}
-                <div className="SuperAdminProfileCard">
-                  <div className="SuperAdminProfileHeader">
-                    <div className="SuperAdminProfileAvatar">
-                      <User size={32} />
+                {/* 1. Profile Information Card — editable: first, middle, last name */}
+                <form onSubmit={handleProfileSubmit} noValidate>
+                  <div className="SuperAdminProfileCard">
+                    <div className="SuperAdminProfileHeader">
+                      <div className="SuperAdminProfileAvatar">
+                        <User size={32} />
+                      </div>
+                      <div>
+                        <h2 className="SuperAdminProfileTitle">Profile Information</h2>
+                        <p className="SuperAdminProfileSubtitle">Super Administrator account details</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="SuperAdminProfileTitle">Profile Information</h2>
-                      <p className="SuperAdminProfileSubtitle">Super Administrator account details</p>
+
+                    <div className="SuperAdminPasswordSection">
+                      <div className="SuperAdminFormGroup">
+                        <label className="SuperAdminProfileLabel">
+                          First Name <span className="ProfileRequired">*</span>
+                        </label>
+                        <div className="SuperAdminInputWrapper">
+                          <User className="SuperAdminInputIcon" size={16} />
+                          <input
+                            className="SuperAdminInput"
+                            type="text"
+                            name="firstName"
+                            value={form.firstName}
+                            onChange={handleProfileChange}
+                            placeholder="Enter first name"
+                          />
+                        </div>
+                        {errors.firstName && (
+                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.firstName}</span>
+                        )}
+                      </div>
+
+                      <div className="SuperAdminFormGroup">
+                        <label className="SuperAdminProfileLabel">Middle Name</label>
+                        <div className="SuperAdminInputWrapper">
+                          <User className="SuperAdminInputIcon" size={16} />
+                          <input
+                            className="SuperAdminInput"
+                            type="text"
+                            name="middleName"
+                            value={form.middleName}
+                            onChange={handleProfileChange}
+                            placeholder="Optional"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="SuperAdminFormGroup">
+                        <label className="SuperAdminProfileLabel">
+                          Last Name <span className="ProfileRequired">*</span>
+                        </label>
+                        <div className="SuperAdminInputWrapper">
+                          <User className="SuperAdminInputIcon" size={16} />
+                          <input
+                            className="SuperAdminInput"
+                            type="text"
+                            name="lastName"
+                            value={form.lastName}
+                            onChange={handleProfileChange}
+                            placeholder="Enter last name"
+                          />
+                        </div>
+                        {errors.lastName && (
+                          <span className="ProfileFieldError"><AlertCircle size={12} /> {errors.lastName}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="SuperAdminProfileInfo" style={{ marginTop: 20 }}>
+                      <div className="SuperAdminProfileInfoRow">
+                        <span className="SuperAdminProfileLabel">Email Address</span>
+                        <span className="SuperAdminProfileValue">{form.email || '—'}</span>
+                      </div>
+                      <div className="SuperAdminProfileInfoRow">
+                        <span className="SuperAdminProfileLabel">Role</span>
+                        <span className="SuperAdminProfileValueBadge">Super Administrator</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="SuperAdminProfileInfo">
-                    <div className="SuperAdminProfileInfoRow">
-                      <span className="SuperAdminProfileLabel">First Name</span>
-                      <span className="SuperAdminProfileValue">{form.firstName || '—'}</span>
+                  {profileStatus && (
+                    <div className={`ProfileStatusBanner ${
+                      profileStatus.type === 'success' ? 'ProfileStatusSuccess' : 'ProfileStatusError'
+                    }`} style={{ marginTop: 16 }}>
+                      {profileStatus.type === 'success' ? (
+                        <CheckCircle2 size={18} />
+                      ) : (
+                        <AlertCircle size={18} />
+                      )}
+                      <span>{profileStatus.message}</span>
                     </div>
-                    <div className="SuperAdminProfileInfoRow">
-                      <span className="SuperAdminProfileLabel">Middle Name</span>
-                      <span className="SuperAdminProfileValue">{form.middleName || '—'}</span>
-                    </div>
-                    <div className="SuperAdminProfileInfoRow">
-                      <span className="SuperAdminProfileLabel">Last Name</span>
-                      <span className="SuperAdminProfileValue">{form.lastName || '—'}</span>
-                    </div>
-                    <div className="SuperAdminProfileInfoRow">
-                      <span className="SuperAdminProfileLabel">Email Address</span>
-                      <span className="SuperAdminProfileValue">{form.email || '—'}</span>
-                    </div>
-                    <div className="SuperAdminProfileInfoRow">
-                      <span className="SuperAdminProfileLabel">Role</span>
-                      <span className="SuperAdminProfileValueBadge">Super Administrator</span>
-                    </div>
+                  )}
+
+                  <div className="ProfileActionsContainer" style={{ gridColumn: 'unset', marginTop: 20 }}>
+                    <button
+                      type="button"
+                      className="ProfileBtn ProfileBtnSecondary"
+                      onClick={handleProfileCancel}
+                      disabled={isSavingProfile}
+                    >
+                      <X size={16} />
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="ProfileBtn ProfileBtnPrimary"
+                      disabled={isSavingProfile}
+                    >
+                      {isSavingProfile ? (
+                        <>
+                          <span className="ProfileSpinner"></span>
+                          Saving…
+                        </>
+                      ) : (
+                        <>
+                          <Save size={16} />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
                   </div>
-                </div>
+                </form>
 
                 {/* 2. Security Credentials Card */}
                 <form onSubmit={handleSuperAdminPasswordSubmit} noValidate>

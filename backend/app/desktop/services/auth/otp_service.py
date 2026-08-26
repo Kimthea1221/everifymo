@@ -16,7 +16,11 @@ def generate_otp() -> str:
 
 
 def create_otp_for_user(db: Session, user: User) -> str:
-    """Generates a fresh OTP, invalidates old ones, stores hash, returns plain OTP to send by email."""
+    """Generates a fresh OTP, invalidates old ones, stores hash, returns plain OTP to send by email.
+
+    Note: this does NOT reset user.failed_otp_attempts. Requesting a new OTP gives the
+    user a new code to try, not a new budget of attempts toward account lockout.
+    """
     otp = generate_otp()
 
     # invalidate previous unused OTPs for this user
@@ -41,8 +45,14 @@ def verify_otp_for_user(db: Session, user: User, otp: str) -> OTPToken:
     Returns the matching OTPToken if valid, else raises ValueError with a reason.
     Caller is responsible for marking it used once fully consumed (e.g. after password reset).
 
-    Tracks cumulative failed OTP attempts on the User (persists across OTP re-requests)
-    and locks the account (is_locked=True) once it reaches 5.
+    Two independent, non-interfering thresholds:
+      - Per-token: after settings.OTP_MAX_ATTEMPTS wrong guesses against THIS code,
+        the code is expired and the user must request a new one. This is a pure UX
+        nudge and does NOT affect the account-level counter or lockout.
+      - Per-account: user.failed_otp_attempts is cumulative, persists across OTP
+        re-requests, and only resets to 0 on a correct OTP. Once it reaches 5, the
+        account is locked (is_locked=True), mirroring the password-auth lockout
+        threshold exactly.
     """
     if user.is_locked:
         raise ValueError("Account is locked. Please contact your administrator.")
@@ -60,10 +70,12 @@ def verify_otp_for_user(db: Session, user: User, otp: str) -> OTPToken:
     if otp_token.expires_at < datetime.now(timezone.utc):
         raise ValueError("OTP has expired. Please request a new one.")
 
+    # Per-token guidance only: forces a new code after N wrong tries on this one.
+    # Does NOT lock the account and does NOT touch failed_otp_attempts.
     if otp_token.attempt_count >= settings.OTP_MAX_ATTEMPTS:
         otp_token.is_used = True
         db.commit()
-        raise ValueError("Too many failed attempts. Please request a new OTP.")
+        raise ValueError("Too many attempts on this code. Please request a new OTP.")
 
     if not verify_password(otp, otp_token.otp_hash):
         otp_token.attempt_count += 1
