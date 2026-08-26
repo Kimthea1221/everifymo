@@ -123,76 +123,98 @@ function ForgotPassword() {
 
     const handleVerifyCode = async (e) => {
       e.preventDefault();
-        const otpCode = otp.join('');
-        if (otpCode.length < 6) {
-            setForgotError('Please enter the full 6-digit verification code.');
-            return;
-        }
-        setForgotError('');
+      const otpCode = otp.join('');
+      if (otpCode.length < 6) {
+          setForgotError('Please enter the full 6-digit verification code.');
+          return;
+      }
+      setForgotError('');
 
-        try {
-            const response = await fetch('http://127.0.0.1:8000/auth/password/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email,
-                    otp: otpCode,
-                    portal: isSuperAdmin ? 'superadmin' : 'personnel',   // <-- NEW
-                }),
-            });
+      try {
+          const response = await fetch('http://127.0.0.1:8000/auth/password/verify-otp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  email,
+                  otp: otpCode,
+                  portal: isSuperAdmin ? 'superadmin' : 'personnel',
+              }),
+          });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Invalid verification code.');
-            }
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || 'Invalid verification code.');
+          }
 
-            setStep('reset');
-        } catch (err) {
-            setForgotError(err.message);
-        }
-    };
+          setStep('reset');
+      } catch (err) {
+          setForgotError(err.message);
+
+          // Always clear the OTP boxes and refocus box 1 on any invalid code
+          setOtp(new Array(6).fill(''));
+          setTimeout(() => {
+              otpRefs.current[0]?.focus();
+          }, 0);
+
+          // OTP exhausted its per-code attempts (backend's 3-try cap) —
+          // surface Resend immediately instead of waiting for the timer.
+          if (/request a new otp/i.test(err.message)) {
+              setTimer(0);
+          }
+      }
+  };
 
     const handleResetPassword = async (e) => {
-        e.preventDefault();
-        if (!newPassword) {
-            setForgotError('New password is required.');
-            return;
-        } else if (!allChecksPassed) {
-            setForgotError('Password does not meet all requirements.');
-            return;
-        }
-        if (!confirmPassword) {
-            setForgotError('Please confirm your new password.');
-            return;
-        } else if (newPassword !== confirmPassword) {
-            setForgotError('Passwords do not match.');
-            return;
-        }
-        setForgotError('');
+      e.preventDefault();
+      if (!newPassword) {
+          setForgotError('New password is required.');
+          return;
+      } else if (!allChecksPassed) {
+          setForgotError('Password does not meet all requirements.');
+          return;
+      }
+      if (!confirmPassword) {
+          setForgotError('Please confirm your new password.');
+          return;
+      } else if (newPassword !== confirmPassword) {
+          setForgotError('Passwords do not match.');
+          return;
+      }
+      setForgotError('');
 
-        try {
-            const response = await fetch('http://127.0.0.1:8000/auth/password/reset', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email,
-                    otp: otp.join(''),
-                    new_password: newPassword,
-                    portal: isSuperAdmin ? 'superadmin' : 'personnel',   // <-- NEW
-                }),
-            });
+      try {
+          const response = await fetch('http://127.0.0.1:8000/auth/password/reset', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  email,
+                  otp: otp.join(''),
+                  new_password: newPassword,
+                  portal: isSuperAdmin ? 'superadmin' : 'personnel',
+              }),
+          });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to reset password.');
-            }
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || 'Failed to reset password.');
+          }
 
-            setStep('success');
-        } catch (err) {
-            setForgotError(err.message);
-            setStep('code');
-        }
-    };
+          setStep('success');
+      } catch (err) {
+          setForgotError(err.message);
+          setStep('code');
+
+          // Same as verify: clear + refocus, and force Resend if attempts are exhausted
+          setOtp(new Array(6).fill(''));
+          setTimeout(() => {
+              otpRefs.current[0]?.focus();
+          }, 0);
+
+          if (/request a new otp/i.test(err.message)) {
+              setTimer(0);
+          }
+      }
+  };
 
     function handleOtpChange(element, index) {
         let val = element.value;

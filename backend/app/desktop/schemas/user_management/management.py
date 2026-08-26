@@ -10,6 +10,8 @@ class UserListItem(BaseModel):
     last_name: Optional[str]
     employee_id: Optional[str]
     email: EmailStr
+    agency: Optional[str] = None
+    region: Optional[str] = None
     department: Optional[str]
     position: Optional[str]
     contact_number: Optional[str]

@@ -1,5 +1,5 @@
 # backend/app/desktop/routers/auth/personnel_login.py   
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -23,7 +23,12 @@ router = APIRouter(prefix="/auth", tags=["personnel-auth"])
 
 
 @router.post("/login")
-async def personnel_login(request: PersonnelLoginRequest, http_request: Request, db: Session = Depends(get_db)):
+async def personnel_login(
+    request: PersonnelLoginRequest,
+    http_request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     try:
         user = authenticate_personnel(db, request.email, request.password, request.agency)
     except ValueError as exc:
@@ -47,7 +52,7 @@ async def personnel_login(request: PersonnelLoginRequest, http_request: Request,
         raise HTTPException(status_code=400, detail=str(exc))
 
     otp = create_otp_for_user(db, user)
-    await send_personnel_otp_email(user.email, otp)
+    background_tasks.add_task(send_personnel_otp_email, user.email, otp)
 
     return {"message": "OTP sent"}
 

@@ -516,6 +516,7 @@ function normalizeFdaLog(raw) {
     log_id: raw.log_id,
     timestamp: raw.timestamp,
     user_id: raw.user_id,
+    user_email: raw.user_email,
     // FDA rows: system-fallback is driven by user_name being null, not user_id
     user_name: raw.user_name,
     user_role: raw.user_role,
@@ -802,65 +803,58 @@ function SuperAdminAuditLog() {
                 />
               </div>
 
-              <div className="AuditFiltersGroup">
-                <select
-                  className="AuditSelectFilter"
-                  value={actionFilter}
-                  onChange={(e) => {
-                    setActionFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="All">All Actions</option>
-                  {isFdaTab ? (
-                    FDA_ACTION_OPTIONS.map(code => (
-                      <option key={code} value={code}>{code.replaceAll('_', ' ')}</option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="create">Create</option>
-                      <option value="update">Update</option>
-                      <option value="delete">Delete</option>
-                      <option value="login">Login</option>
-                    </>
-                  )}
-                </select>
+    <div className="AuditFiltersGroup">
+  <div className="AuditFilterItem">
+    <span className="AuditFilterLabel">ACTION</span>
+    <select
+      className="AuditSelectFilter"
+      value={actionFilter}
+      onChange={(e) => {
+        setActionFilter(e.target.value);
+        setCurrentPage(1);
+      }}
+    >
+      <option value="All">All Actions</option>
+      {isFdaTab ? (
+        FDA_ACTION_OPTIONS.map(code => (
+          <option key={code} value={code}>{code.replaceAll('_', ' ')}</option>
+        ))
+      ) : (
+        <>
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+          <option value="login">Login</option>
+        </>
+      )}
+    </select>
+  </div>
 
-                <select
-                  className="AuditSelectFilter"
-                  value={regionFilter}
-                  onChange={(e) => {
-                    setRegionFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="All">All Regions</option>
-                  {isFdaTab ? (
-                    FDA_REGION_OPTIONS.map(({ code, label }) => (
-                      <option key={code} value={code}>{label}</option>
-                    ))
-                  ) : (
-                    REGION_OPTIONS.map(reg => (
-                      <option key={reg} value={reg}>{reg}</option>
-                    ))
-                  )}
-                </select>
+  <div className="AuditFilterItem">
+    <span className="AuditFilterLabel">REGION</span>
+    <select
+      className="AuditSelectFilter"
+      value={regionFilter}
+      onChange={(e) => {
+        setRegionFilter(e.target.value);
+        setCurrentPage(1);
+      }}
+    >
+      <option value="All">All Regions</option>
+      {isFdaTab ? (
+        FDA_REGION_OPTIONS.map(({ code, label }) => (
+          <option key={code} value={code}>{label}</option>
+        ))
+      ) : (
+        REGION_OPTIONS.map(reg => (
+          <option key={reg} value={reg}>{reg}</option>
+        ))
+      )}
+    </select>
+  </div>
 
-                <div className="AuditDateGroup">
-                  <span className="AuditDateLabel">From:</span>
-                  <input
-                    type="date"
-                    className="AuditDateInput"
-                    value={dateFrom}
-                    onChange={(e) => {
-                      setDateFrom(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="AuditDateGroup">
-                  <span className="AuditDateLabel">To:</span>
+  <div className="AuditDateGroup">
+                  <span className="AuditDateLabel">TO</span>
                   <input
                     type="date"
                     className="AuditDateInput"
@@ -873,8 +867,13 @@ function SuperAdminAuditLog() {
                 </div>
 
                 {(searchQuery || actionFilter !== 'All' || regionFilter !== 'All' || dateFrom || dateTo) && (
-                  <button className="BtnClearAuditFilters" onClick={handleClearFilters}>
-                    Clear Filters
+                  <button
+                    className="BtnClearFiltersIcon"
+                    aria-label="Clear Filters"
+                    title="Clear Filters"
+                    onClick={handleClearFilters}
+                  >
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -1046,10 +1045,16 @@ function SuperAdminAuditLog() {
                         : (selectedLog.user_name || 'System')}
                     </span>
                   </div>
-                                    <div className="AuditLogDetailsRow">
+                  <div className="AuditLogDetailsRow">
                     <span className="AuditLogDetailsLabel">User ID</span>
                     <span className="AuditLogDetailsValue">
                       {selectedLog.user_id || '—'}
+                    </span>
+                  </div>
+                  <div className="AuditLogDetailsRow">
+                    <span className="AuditLogDetailsLabel">Email</span>
+                    <span className="AuditLogDetailsValue">
+                      {selectedLog.user_email || '—'}
                     </span>
                   </div>
                   <div className="AuditLogDetailsRow">

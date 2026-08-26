@@ -20,13 +20,27 @@ function Login(){
     const [errors, setErrors] = useState({})
 
     // Load remembered email on mount
+    // on mount
+    // builds the per-agency localStorage key so FDA and LEA-CIDG
+    // "remember me" emails never overwrite each other
+    function rememberedEmailKey(forAgency) {
+      return forAgency ? `remembered_email_user_${forAgency}` : null
+    }
+
+    // Load remembered email whenever the agency changes
     useEffect(() => {
-      const savedEmail = localStorage.getItem('remembered_email')
+      const key = rememberedEmailKey(agency)
+      if (!key) return
+      const savedEmail = localStorage.getItem(key)
       if (savedEmail) {
         setEmail(savedEmail)
         setRememberMe(true)
+      } else {
+        setEmail('')
+        setRememberMe(false)
       }
-    }, [])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [agency])
 
     // OTP verification states
     // controls whether to show the OTP screen or the login form
@@ -125,6 +139,7 @@ function Login(){
       setIsOtpSent(false);
       setOtp(new Array(6).fill(''));
       setLoginError('');
+      setPassword('');
     }
 
     // Format seconds as M:SS to match the superadmin login OTP timer
@@ -214,10 +229,15 @@ function Login(){
             throw new Error(errorData.detail || 'Invalid email or password.');
           }
 
-          if (rememberMe) {
-            localStorage.setItem('remembered_email', email);
-          } else {
-            localStorage.removeItem('remembered_email');
+          // after successful OTP verification / login success
+          // new
+          const key = rememberedEmailKey(agency);
+          if (key) {
+            if (rememberMe) {
+              localStorage.setItem(key, email);
+            } else {
+              localStorage.removeItem(key);
+            }
           }
 
           setIsOtpSent(true);
@@ -260,6 +280,19 @@ function Login(){
           }
         } catch (err) {
           setLoginError(err.message);
+
+          // Always clear the OTP boxes and refocus box 1 on any invalid code
+          setOtp(new Array(6).fill(''));
+          setTimeout(() => {
+            otpRefs.current[0]?.focus();
+          }, 0);
+
+          // OTP exhausted its per-code attempts (backend's 3-try cap) —
+          // surface Resend immediately instead of waiting for the timer,
+          // and refocus box 1 so the user can jump straight to Resend/retry.
+          if (/request a new otp/i.test(err.message)) {
+            setTimer(0);
+          }
         }
       }
     }

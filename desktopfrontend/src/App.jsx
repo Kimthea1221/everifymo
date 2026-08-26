@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
+{/* for universal login*/}
+import UniversalLogin from './pages/universal-login.jsx';
 
 {/* LEA-CIDG PAGES */ }
 import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
@@ -39,6 +41,7 @@ import FDAProductDB from './pages/fdafolder/fda-product-db.jsx';
 import FDASavedDraft from './pages/fdafolder/fda-saved-draft.jsx';
 
 
+
 function DeepLinkListener() {
   const navigate = useNavigate();
 
@@ -54,9 +57,13 @@ function DeepLinkListener() {
           console.log('Validate response:', data);
 
           if (data.role === 'superadmin') {
-            navigate('/superadmin-invite-status', {
-              state: { status: data.status, token },
-            });
+            if (data.status === 'valid') {
+              navigate('/create-new-password', { state: { token } });
+            } else {
+              navigate('/superadmin-invite-status', {
+                state: { status: data.status, token },
+              });
+            }
             return;
           }
 
@@ -86,6 +93,9 @@ export default function App() {
         <Route path='/change-password' element={<ChangePassword />} />
         <Route path='/create-new-password' element={<CreateNewPassword />} />
         <Route path='/user-registration' element={<UserRegistration />} />
+
+        {/* for universal login*/}
+        <Route path='/universal-login' element={<UniversalLogin />} />
 
         {/* LEA-CIDG ROUTES */}
         <Route path='/leacidgfolder/lea-dashboard' element={<LeaDashboard />} />

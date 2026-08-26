@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -18,6 +18,7 @@ router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 @router.post("/invite", status_code=201)
 async def invite_personnel(
     payload: InvitePersonnelRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -31,11 +32,12 @@ async def invite_personnel(
         "LEA-CIDG": "lea_personnel",
     }.get(payload.role, payload.role)
 
-    user, token = create_invited_user(
+    user_id, token = create_invited_user(
         db, payload.email, payload.region_id, db_role,
         created_by=current_user.user_id,
     )
 
-    await send_invite_email(user.email, payload.role, token)
+    # use payload.email, not user.email — avoids touching the expired ORM object
+    background_tasks.add_task(send_invite_email, payload.email, payload.role, token)
 
-    return {"message": "Registration link sent", "user_id": str(user.user_id)}
+    return {"message": "Registration link sent", "user_id": str(user_id)}

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+# backend/app/desktop/routers/auth/password_reset.py    
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -33,7 +34,7 @@ def _role_matches_portal(user: User | None, portal: str) -> bool:
 
 
 @router.post("/forgot")
-async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+async def forgot_password(payload: ForgotPasswordRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     db.execute(text("SET app.bypass_rls = 'true'"))
     user = db.query(User).filter(User.email == payload.email).first()
 
@@ -47,9 +48,9 @@ async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(
 
     otp = create_otp_for_user(db, user)
     if user.role == "superadmin":
-        await send_superadmin_otp_email(user.email, otp)
+        background_tasks.add_task(send_superadmin_otp_email, user.email, otp)
     else:
-        await send_personnel_otp_email(user.email, otp)
+        background_tasks.add_task(send_personnel_otp_email, user.email, otp)
 
     return {"message": "OTP sent to your email."}
 
@@ -96,10 +97,16 @@ def reset_password(payload: ResetPasswordRequest, http_request: Request, db: Ses
         related_user_id=user.user_id,
     )
 
+    password_action = (
+        AuditAction.UPDATE_SUPERADMIN_PASSWORD
+        if user.role == "superadmin"
+        else AuditAction.UPDATE_USER_PASSWORD
+    )
+
     write_audit_log(
         db,
         user=user,
-        action=AuditAction.UPDATE_USER_PASSWORD,
+        action=password_action,
         target_table="users",
         target_id=user.user_id,
         target_reference=user.email,
