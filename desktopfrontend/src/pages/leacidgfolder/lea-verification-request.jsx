@@ -1706,7 +1706,8 @@ function LeaVerificationRequest() {
                                shows "Select a case" when nothing chosen and "Loading..." only on very first load */}
                   {/* RIGHT PANEL */}
                   <div className='VerificationDetails'>
-                    <div className='VerificationCard'>
+                    {selectedResponse ? (
+                      <div className='VerificationCard'>
                       <div>
                         {responseDetailLoading && !selectedResponse ? (
                           <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
@@ -1901,7 +1902,12 @@ function LeaVerificationRequest() {
                         </div>
                       )}
                     </div>
-
+                    ) : (
+                      <div className="LeaVerifNoDetail" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#7a8796', fontSize: '14px', fontWeight: '500', padding: '40px', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc' }}>
+                        <Inbox size={32} style={{ marginBottom: '8px', color: '#94a3b8' }} />
+                        Select a case from the queue to view details.
+                      </div>
+                    )}
                   </div>
                 </div>}
 
@@ -1998,7 +2004,8 @@ function LeaVerificationRequest() {
                                now guards with null check, uses real detail fields, pre-fills fieldOperationNotes */}
                   {/* RIGHT PANEL */}
                   <div className='VerificationDetails'>
-                    <div className='VerificationCard'>
+                    {selectedInitiatedCase ? (
+                      <div className='VerificationCard'>
                       <div>
                         {initiatedDetailLoading && !selectedInitiatedCase ? (
                           <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
@@ -2060,6 +2067,12 @@ function LeaVerificationRequest() {
                         </div>
                       )}
                     </div>
+                    ) : (
+                      <div className="LeaVerifNoDetail" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#7a8796', fontSize: '14px', fontWeight: '500', padding: '40px', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc' }}>
+                        <Inbox size={32} style={{ marginBottom: '8px', color: '#94a3b8' }} />
+                        Select a case from the queue to view details.
+                      </div>
+                    )}
                   </div>
                 </div>}
 
