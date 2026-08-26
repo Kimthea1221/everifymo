@@ -72,42 +72,6 @@ function getWorkflowStatus(status) {
   return STATUS_WORKFLOW_MAP[status] || status;
 }
 
-// Display-label mapping for categories.
-// Underlying data values stay unchanged (Supplement / Pharmaceutical) so
-// filtering logic and reportData.js don't need to change — only what's shown.
-const CATEGORY_LABELS = {
-  Supplement: 'Food',
-  Food: 'Food',
-  Pharmaceutical: 'Drugs',
-};
-
-function getCategoryLabel(category) {
-  return CATEGORY_LABELS[category] || category;
-}
-
-// Maps the legacy status values still stored in reportData.js to the new
-// consolidated complaint-workflow statuses used on this page. This keeps
-// the change scoped to fda-view-reports.jsx only, without touching
-// reportData.js or any other module.
-//   New Report              -> complaint received, not yet reviewed (no legacy equivalent)
-//   Under Review            -> FDA currently reviewing
-//   Verification Completed  -> FDA finished verifying and submitted its response
-//   Forwarded to LEA        -> FDA done, handed back to LEA
-//   Closed                  -> fully processed / archived
-const STATUS_WORKFLOW_MAP = {
-  "Under Review": "Under Review",
-  "Pending Verification": "Under Review",
-  "Verified": "Verification Completed",
-  "Takedown Requested": "Verification Completed",
-  "Forwarded to LEA": "Forwarded to LEA",
-  "Takedown Completed": "Closed",
-  "Dismissed": "Closed",
-};
-
-function getWorkflowStatus(status) {
-  return STATUS_WORKFLOW_MAP[status] || status;
-}
-
 function FDAViewReports() {
   // REPORTS DATABASE STATE
   const [reports] = useState(allConsumerReports);
@@ -285,8 +249,8 @@ function FDAViewReports() {
         };
       case "Takedown Completed":
         return {
-          backgroundColor: "rgba(31, 41, 55, 0.08)", // 8% opacity of #1F2937
-          color: "rgba(31, 41, 55, 0.6)"
+          backgroundColor: "rgba(27, 67, 50, 0.1)", // 10% opacity of #1B4332
+          color: "#1B4332"
         };
       case "Case Closed":
         return {
