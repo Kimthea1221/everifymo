@@ -67,64 +67,52 @@ function WcGetStatusLabel(status) {
 }
 
 function LeaWalkinComplaints() {
-    // BACKEND:
-    // Load complaints from API.
-    const [complaints, setComplaints] = useState([
-        {
-            id: 'ICM-2025-00185',
-            product: 'HerbalSlim Capsules',
-            manufacturer: 'NatureFit Labs',
-            complainant: 'M. Reyes',
-            status: 'queued',
-            category: 'Drugs',
-            logged: '2026-05-17 10:42',
-        },
-        {
-            id: 'ICM-2025-00186',
-            product: 'BioGlow Serum',
-            manufacturer: 'Aura Cosmetics',
-            complainant: 'L. Dela Cruz',
-            status: 'pending',
-            category: 'Cosmetics',
-            logged: '2026-05-17 11:15',
-        },
-        {
-            id: 'ICM-2025-00187',
-            product: 'ChocoMax Cereal',
-            manufacturer: 'GrainGood Foods',
-            complainant: 'J. Santos',
-            status: 'confirmed_registered',
-            category: 'Food',
-            logged: '2026-05-18 09:30',
-        },
-        {
-            id: 'ICM-2025-00188',
-            product: 'GlucoMeter Pro',
-            manufacturer: 'MedTech Solutions',
-            complainant: 'A. Ramos',
-            status: 'confirmed_unregistered',
-            category: 'Medical Devices',
-            logged: '2026-05-18 14:45',
-        },
-        {
-            id: 'ICM-2025-00189',
-            product: 'Vitamin C Plus',
-            manufacturer: 'NutriVital',
-            complainant: 'P. Alcantara',
-            status: 'rejected',
-            category: 'Drugs',
-            logged: '2026-05-19 10:00',
-        },
-        {
-            id: 'ICM-2025-00190',
-            product: 'YouthCream Anti-Aging',
-            manufacturer: 'GlowSkin Co.',
-            complainant: 'S. Lopez',
-            status: 'recalled',
-            category: 'Cosmetics',
-            logged: '2026-05-19 16:20',
-        }
-    ])
+    const [complaints, setComplaints] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const token = localStorage.getItem('access_token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const fetchComplaints = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch(`${API_BASE}/complaints?source=walk_in`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    const mapped = data.map(c => {
+                        let statusVal = 'queued';
+                        if (c.status === 'under_review') {
+                            statusVal = 'pending';
+                        } else if (c.status === 'takedown_requested' || c.status === 'takedown_initiated' || c.status === 'completed') {
+                            statusVal = 'confirmed_unregistered';
+                        } else if (c.status === 'dismissed') {
+                            statusVal = 'confirmed_registered';
+                        }
+
+                        return {
+                            id: c.case_reference,
+                            product: c.product_title,
+                            manufacturer: c.manufacturer || '—',
+                            complainant: c.complainant_name || '—',
+                            status: statusVal,
+                            category: c.product_category || '—',
+                            logged: c.created_at ? new Date(c.created_at).toLocaleString() : '—',
+                            rawDate: c.created_at ? new Date(c.created_at) : new Date(0),
+                            dbComplaint: c
+                        };
+                    });
+                    setComplaints(mapped);
+                }
+            } catch (err) {
+                console.error("Error fetching walkin complaints:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchComplaints();
+    }, []);
     const [search, setSearch] = useState('')
     const [selectedStatus, setSelectedStatus] = useState('All')
     const [selectedCategory, setSelectedCategory] = useState('All')
@@ -196,17 +184,39 @@ function LeaWalkinComplaints() {
             c.product.toLowerCase().includes(search.toLowerCase()) ||
             c.complainant.toLowerCase().includes(search.toLowerCase());
 
-        const matchesStatus = selectedStatus === 'All' || 
-            c.status === selectedStatus || 
+        const matchesStatus = selectedStatus === 'All' ||
+            c.status === selectedStatus ||
             (selectedStatus === 'rejected' && c.status === 'recalled');
         const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;
 
         return matchesSearch && matchesStatus && matchesCategory;
     })
 
-    const handleViewButton = (complaint) => {
-        setSelectedComplaint(complaint)
-        setViewModal(true)
+    const handleViewButton = async (complaint) => {
+        const complaintId = complaint.dbComplaint?.complaint_id;
+        if (complaintId) {
+            const token = localStorage.getItem('access_token');
+            try {
+                const res = await fetch(`${API_BASE}/complaints/${complaintId}/verification-detail`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setSelectedComplaint({
+                        ...complaint,
+                        complainant: data.complainant_name || complaint.complainant || '—',
+                        statement: data.nature_of_complaint || data.consumer_description || '—',
+                        attached_files: data.attached_files || []
+                    });
+                    setViewModal(true);
+                    return;
+                }
+            } catch (err) {
+                console.error("Error loading complaint detail:", err);
+            }
+        }
+        setSelectedComplaint(complaint);
+        setViewModal(true);
     }
     const handleCloseViewbutton = () => {
         setViewModal(false)
@@ -254,19 +264,30 @@ function LeaWalkinComplaints() {
     const OpenNewIntakePageButton = () => {
         navigate('/leacidgfolder/lea-new-intake');
     };
-    const handleEditComplaint = (complaint) => {
-        // BACKEND:
-        // The selected complaint data should be passed back from the API
-        // so the New Intake page opens in Edit Mode.
-        // All existing field values must automatically populate
-        // their corresponding inputs.
-
-        // BACKEND:
-        // When opening Edit mode,
-        // return all complaint fields so inputs are automatically pre-filled.
+    const handleEditComplaint = async (complaint) => {
+        const complaintId = complaint.dbComplaint?.complaint_id;
+        let fullComplaint = complaint.dbComplaint || complaint;
+        if (complaintId) {
+            const token = localStorage.getItem('access_token');
+            try {
+                const res = await fetch(`${API_BASE}/complaints/${complaintId}/verification-detail`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    fullComplaint = {
+                        ...complaint.dbComplaint,
+                        ...data,
+                        product_name: data.product_title
+                    };
+                }
+            } catch (err) {
+                console.error("Error loading complaint detail for edit:", err);
+            }
+        }
         navigate('/leacidgfolder/lea-new-intake', {
             state: {
-                complaint
+                complaint: fullComplaint
             }
         });
     };
@@ -277,18 +298,18 @@ function LeaWalkinComplaints() {
             <div className='LeaContentContainer'>
                 <TopBar topbarType="LEA" />
                 <div className='LeaMainfeed LeaWalkinComplaintsFeed'>
-                      <div className='LeaHeader'>
-                            <div>
-                                <p>LEA-CIDG: Walk-in Complaints</p>
-                                <p>CITIZEN-REPORTED COMPLAINTS</p>
-                            </div>
+                    <div className='LeaHeader'>
+                        <div>
+                            <p>LEA-CIDG: Walk-in Complaints</p>
+                            <p>CITIZEN-REPORTED COMPLAINTS</p>
                         </div>
+                    </div>
 
-                        {/* Buttons now on their own row below the title, right-aligned */}
-                        <div className='WalkinButtonActionsRow'>
-                            <button className='BtnExportCSV'>Export CSV</button>
-                            <button className='BtnNewComplaint' onClick={OpenNewIntakePageButton}>New Complaint</button>
-                        </div>
+                    {/* Buttons now on their own row below the title, right-aligned */}
+                    <div className='WalkinButtonActionsRow'>
+                        <button className='BtnExportCSV'>Export CSV</button>
+                        <button className='BtnNewComplaint' onClick={OpenNewIntakePageButton}>New Complaint</button>
+                    </div>
 
                     {/* Filter & Search Section */}
                     <div className="DraftsFilterSection">
@@ -375,71 +396,71 @@ function LeaWalkinComplaints() {
                                     const paginatedComplaints = filtered.slice(startIndex, endIndex);
 
                                     return paginatedComplaints.map((complaint) => (
-                                    <tr key={complaint.id}>
-                                        <td className='ClassId'>{complaint.id}</td>
-                                        <td>
-                                            <p className='WcProductName'>{complaint.product}</p>
-                                        </td>
-                                        <td>
-                                            <p className='WcManufacturerName'>{complaint.manufacturer}</p>
-                                        </td>
-                                        <td>{complaint.complainant}</td>
-                                        <td>
-                                            <span className={`WcStatusBadge ${WcGetStatusClass(complaint.status)}`}>
-                                                {WcGetStatusLabel(complaint.status)}
-                                            </span>
-                                        </td>
-                                        <td className='WcCategoryCell'>{complaint.category}</td>
-                                        <td>{complaint.logged}</td>
-                                        <td>
-                                            <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
-                                                <span className='WcActionTooltipWrap'>
-                                                    <button
-                                                        className='WcBtnIconView'
-                                                        onClick={() => handleViewButton(complaint)}
-                                                        aria-label='View complaint'
-                                                    >
-                                                        <Eye size={16} />
-                                                    </button>
-                                                    <span className='WcTooltip'>View</span>
+                                        <tr key={complaint.id}>
+                                            <td className='ClassId'>{complaint.id}</td>
+                                            <td>
+                                                <p className='WcProductName'>{complaint.product}</p>
+                                            </td>
+                                            <td>
+                                                <p className='WcManufacturerName'>{complaint.manufacturer}</p>
+                                            </td>
+                                            <td>{complaint.complainant}</td>
+                                            <td>
+                                                <span className={`WcStatusBadge ${WcGetStatusClass(complaint.status)}`}>
+                                                    {WcGetStatusLabel(complaint.status)}
                                                 </span>
-
-                                                {complaint.status === 'queued' && (
-                                                    <div className='WcMenuWrapper'>
+                                            </td>
+                                            <td className='WcCategoryCell'>{complaint.category}</td>
+                                            <td>{complaint.logged}</td>
+                                            <td>
+                                                <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
+                                                    <span className='WcActionTooltipWrap'>
                                                         <button
-                                                            className='WcBtnIconMore'
-                                                            onClick={() => handleToggleMenu(complaint.id)}
-                                                            aria-label='More actions'
+                                                            className='WcBtnIconView'
+                                                            onClick={() => handleViewButton(complaint)}
+                                                            aria-label='View complaint'
                                                         >
-                                                            <MoreVertical size={16} />
+                                                            <Eye size={16} />
                                                         </button>
-                                                        {openMenuId === complaint.id && (
-                                                            <div className='WcDropdownMenu'>
-                                                                <button
-                                                                    className='WcDropdownItem WcDropdownItem--edit'
-                                                                    onClick={() => {
-                                                                        setOpenMenuId(null)
-                                                                        handleEditComplaint(complaint)
-                                                                    }}
-                                                                >
-                                                                    <Pencil size={14} />
-                                                                    Edit Complaint
-                                                                </button>
-                                                                <button
-                                                                    className='WcDropdownItem WcDropdownItem--delete'
-                                                                    onClick={() => handleDropdownDeleteClick(complaint)}
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                    Delete Complaint
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ));
+                                                        <span className='WcTooltip'>View</span>
+                                                    </span>
+
+                                                    {complaint.status === 'queued' && (
+                                                        <div className='WcMenuWrapper'>
+                                                            <button
+                                                                className='WcBtnIconMore'
+                                                                onClick={() => handleToggleMenu(complaint.id)}
+                                                                aria-label='More actions'
+                                                            >
+                                                                <MoreVertical size={16} />
+                                                            </button>
+                                                            {openMenuId === complaint.id && (
+                                                                <div className='WcDropdownMenu'>
+                                                                    <button
+                                                                        className='WcDropdownItem WcDropdownItem--edit'
+                                                                        onClick={() => {
+                                                                            setOpenMenuId(null)
+                                                                            handleEditComplaint(complaint)
+                                                                        }}
+                                                                    >
+                                                                        <Pencil size={14} />
+                                                                        Edit Complaint
+                                                                    </button>
+                                                                    <button
+                                                                        className='WcDropdownItem WcDropdownItem--delete'
+                                                                        onClick={() => handleDropdownDeleteClick(complaint)}
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                        Delete Complaint
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ));
                                 })()}
                             </tbody>
                         </table>
@@ -575,8 +596,8 @@ function LeaWalkinComplaints() {
                                     </div>
 
                                     <div className="LeaVerifDocModalBody">
-                                        {((docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) || 
-                                          (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf')) ? (
+                                        {((docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) ||
+                                            (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf')) ? (
                                             docPreviewLoading ? (
                                                 <div className="LeaVerifDocPlaceholderPreview">
                                                     <p className="LeaVerifPreviewText">Loading preview&hellip;</p>

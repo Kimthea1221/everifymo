@@ -61,99 +61,7 @@ function GetSourceLabel(source) {
   return source;
 }
 
-// REMOVE THIS
-// BACKEND: Dummy cases for FDA Response tab. 
-const responseCases = [
-  {
-    id: 1,
-    status: "Unregistered",
-    caseNumber: "ICM-2025-00185",
-    product: "HerbalSlim Capsules",
-    manufacturer: "NatureFit Labs",
-    complainant: "M. Reyes",
-    category: "Drugs",
-    loggedDate: "2026-05-17 10:42",
-    source: "Walk-in Intake",
-    returnedDate: "2026-05-17 16:02",
-    sentDate: "2026-05-17 14:33",
-    description: "No CPR or LTO found for manufacturer. Recommend takedown coordination."
-  },
-  {
-    id: 2,
-    status: "Registered",
-    caseNumber: "ICM-2026-00412",
-    product: "GlowSkin Cream",
-    manufacturer: "Radiant Beauty Co.",
-    complainant: "A. Santos",
-    category: "Cosmetic",
-    loggedDate: "2026-06-01 09:15",
-    source: "Online Portal",
-    returnedDate: "2026-06-03 14:20",
-    sentDate: "2026-06-02 10:00",
-    description: "Valid CPR and LTO found. Product is fully registered and compliant."
-  },
-  {
-    id: 3,
-    status: "Rejected",
-    caseNumber: "ICM-2026-00188",
-    product: "PureVita Multivitamin",
-    manufacturer: "Vita Manufacturing Inc.",
-    complainant: "J. Cruz",
-    category: "Drugs",
-    loggedDate: "2026-05-16 11:21",
-    source: "Walk-in Intake",
-    returnedDate: "2026-05-17 09:00",
-    sentDate: "2026-05-16 14:00",
-    rejectionReason: "Incomplete product information. Please provide the complete manufacturer address and product lot number.",
-    rejectedBy: "Dr. M. Dela Cruz · FDA Verifier",
-  }
-];
-
-// REMOVE THIS
-// BACKEND: Dummy cases for Initiated Cases tab. 
-const initiatedCases = [
-  {
-    id: 1,
-    status: "Operation in Progress",
-    caseNumber: "ICM-2025-00185",
-    product: "HerbalSlim Capsules",
-    manufacturer: "NatureFit Labs",
-    complainant: "M. Reyes",
-    category: "Drugs",
-    loggedDate: "2026-05-17 10:42",
-    source: "Walk-in Intake",
-    returnedDate: "2026-05-17 16:02",
-    sentDate: "2026-05-17 14:33",
-    description: "No CPR or LTO found for manufacturer. Takedown enforcement initiated."
-  }
-];
-
-// REMOVE THIS
-// BACKEND: Dummy cases for Closed and Dismissed cases. 
-const dismissedCases = [
-  {
-    id: 1,
-    caseId: 'ICM-2025-00185',
-    product: 'HerbalSlim Capsules',
-    manufacturer: 'NatureFit Labs',
-    category: 'Drugs',
-    dateFiled: '2026-05-17',
-    dateClosed: '2026-05-20',
-    closedBy: 'Officer J. Domingo',
-    reasonClosed: 'Registered',
-  },
-  {
-    id: 2,
-    caseId: 'ICM-2026-00188',
-    product: 'PureVita Multivitamin',
-    manufacturer: 'Vita Manufacturing Inc.',
-    category: 'Drugs',
-    dateFiled: '2026-05-16',
-    dateClosed: '2026-05-21',
-    closedBy: 'Officer M. Santos',
-    reasonClosed: 'Rejected by FDA',
-  },
-];
+// Dummy cases removed — loaded dynamically from backend APIs
 
 // Frontend queue pagination helper — matches the existing project .Pagination / .BtnPage design
 function QueuePagination({ currentPage, totalPages, totalItems, onPageChange }) {
@@ -206,7 +114,7 @@ function LeaVerificationRequest() {
 
   //FOR BUTTON TABS ON VERIFICATION REQUEST
   const [activeTab, setActiveTab] = useState('Ready to Send');
-  const [selectedResponse, setSelectedResponse] = useState(responseCases[0]);
+  const [selectedResponse, setSelectedResponse] = useState(null);
   const tabs = ['Ready to Send', 'Awaiting FDA', 'FDA Response', 'Initiated Cases', 'Closed Cases'];
   const handleTabClick = (tabName) => {
     if (activeTab === tabName) return;
@@ -232,7 +140,7 @@ function LeaVerificationRequest() {
   const [productCode, setProductCode] = useState('');
 
   // NOTE: States for the new tabs' selected items
-  const [selectedInitiatedCase, setSelectedInitiatedCase] = useState(initiatedCases[0]);
+  const [selectedInitiatedCase, setSelectedInitiatedCase] = useState(null);
 
   // MERGED-ADD — search & category filter state for Ready to Send / Awaiting FDA / FDA Response / Initiated Cases queues
   const [readySearch, setReadySearch] = useState('');
@@ -425,12 +333,131 @@ function LeaVerificationRequest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [responseList, setResponseList] = useState([]);
+  const [initiatedList, setInitiatedList] = useState([]);
+  const [dismissedList, setDismissedList] = useState([]);
+  const [responseLoading, setResponseLoading] = useState(false);
+  const [initiatedLoading, setInitiatedLoading] = useState(false);
+  const [dismissedLoading, setDismissedLoading] = useState(false);
+
+  const fetchResponseList = async () => {
+    const token = localStorage.getItem('access_token');
+    setResponseLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/complaints?status=takedown_requested`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map(c => ({
+          id: c.complaint_id,
+          status: 'Unregistered',
+          caseNumber: c.case_reference,
+          product: c.product_title,
+          manufacturer: c.manufacturer || '—',
+          complainant: c.complainant_name || '—',
+          category: c.product_category || '—',
+          loggedDate: formatDateTime(c.created_at),
+          source: GetSourceLabel(c.source),
+          returnedDate: formatDateTime(c.created_at),
+          sentDate: formatDateTime(c.created_at),
+          description: c.notes || 'No CPR or LTO found. Takedown enforcement recommended.',
+          dbComplaint: c
+        }));
+        setResponseList(mapped);
+        if (mapped.length > 0) {
+          setSelectedResponse(mapped[0]);
+        } else {
+          setSelectedResponse(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setResponseLoading(false);
+    }
+  };
+
+  const fetchInitiatedList = async () => {
+    const token = localStorage.getItem('access_token');
+    setInitiatedLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/complaints?status=takedown_initiated`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map(c => ({
+          id: c.complaint_id,
+          status: 'Operation in Progress',
+          caseNumber: c.case_reference,
+          product: c.product_title,
+          manufacturer: c.manufacturer || '—',
+          complainant: c.complainant_name || '—',
+          category: c.product_category || '—',
+          loggedDate: formatDateTime(c.created_at),
+          source: GetSourceLabel(c.source),
+          returnedDate: formatDateTime(c.created_at),
+          sentDate: formatDateTime(c.created_at),
+          description: c.notes || 'Takedown operation initiated.',
+          dbComplaint: c
+        }));
+        setInitiatedList(mapped);
+        if (mapped.length > 0) {
+          setSelectedInitiatedCase(mapped[0]);
+        } else {
+          setSelectedInitiatedCase(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setInitiatedLoading(false);
+    }
+  };
+
+  const fetchClosedList = async () => {
+    const token = localStorage.getItem('access_token');
+    setDismissedLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/complaints?status=completed&status=dismissed`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map(c => ({
+          id: c.complaint_id,
+          caseId: c.case_reference,
+          product: c.product_title,
+          manufacturer: c.manufacturer || '—',
+          category: c.product_category || '—',
+          dateFiled: c.created_at ? c.created_at.split('T')[0] : '—',
+          dateClosed: c.created_at ? c.created_at.split('T')[0] : '—',
+          closedBy: 'Officer',
+          reasonClosed: c.status === 'dismissed' ? 'Dismissed / Registered' : 'Takedown Completed',
+          dbComplaint: c
+        }));
+        setDismissedList(mapped);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDismissedLoading(false);
+    }
+  };
+
   // ─── Fetch lists when tabs become active ─────────────────────────────────
   useEffect(() => {
     if (activeTab === 'Ready to Send') {
       fetchReadyList();
     } else if (activeTab === 'Awaiting FDA') {
       fetchAwaitingList();
+    } else if (activeTab === 'FDA Response') {
+      fetchResponseList();
+    } else if (activeTab === 'Initiated Cases') {
+      fetchInitiatedList();
+    } else if (activeTab === 'Closed Cases') {
+      fetchClosedList();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -677,24 +704,22 @@ function LeaVerificationRequest() {
     return matchesSearch && matchesCategory;
   });
 
-  const filteredResponseCases = responseCases.filter((item) => {
-    const q = responseSearch.toLowerCase().trim();
-    const matchesSearch = !q ||
-      item.caseNumber.toLowerCase().includes(q) ||
-      item.product.toLowerCase().includes(q) ||
-      item.manufacturer.toLowerCase().includes(q);
-    const matchesCategory = !responseCategory || item.category === responseCategory;
-    return matchesSearch && matchesCategory;
+  const filteredResponseCases = responseList.filter((item) => {
+    const matchSearch = responseSearch === '' ||
+      item.caseNumber.toLowerCase().includes(responseSearch.toLowerCase()) ||
+      item.product.toLowerCase().includes(responseSearch.toLowerCase()) ||
+      item.manufacturer.toLowerCase().includes(responseSearch.toLowerCase());
+    const matchCategory = responseCategory === '' || item.category === responseCategory;
+    return matchSearch && matchCategory;
   });
 
-  const filteredInitiatedCases = initiatedCases.filter((item) => {
-    const q = initiatedSearch.toLowerCase().trim();
-    const matchesSearch = !q ||
-      item.caseNumber.toLowerCase().includes(q) ||
-      item.product.toLowerCase().includes(q) ||
-      item.manufacturer.toLowerCase().includes(q);
-    const matchesCategory = !initiatedCategory || item.category === initiatedCategory;
-    return matchesSearch && matchesCategory;
+  const filteredInitiatedCases = initiatedList.filter((item) => {
+    const matchSearch = initiatedSearch === '' ||
+      item.caseNumber.toLowerCase().includes(initiatedSearch.toLowerCase()) ||
+      item.product.toLowerCase().includes(initiatedSearch.toLowerCase()) ||
+      item.manufacturer.toLowerCase().includes(initiatedSearch.toLowerCase());
+    const matchCategory = initiatedCategory === '' || item.category === initiatedCategory;
+    return matchSearch && matchCategory;
   });
 
   // Frontend pagination slices — 15 items per page, operating on the already-filtered lists
@@ -712,7 +737,7 @@ function LeaVerificationRequest() {
 
   // NOTE: Filter logic for closed/dismissed complaints table rows
   // MERGED-CHANGED — now also matches dismissedSearch against case ID / product / manufacturer
-  const filteredDismissed = dismissedCases.filter((c) => {
+  const filteredDismissed = dismissedList.filter((c) => {
     const q = dismissedSearch.toLowerCase().trim();
     const matchSearch = !q ||
       c.caseId.toLowerCase().includes(q) ||
@@ -771,12 +796,73 @@ function LeaVerificationRequest() {
       confirmText,
       confirmBg,
       onConfirm: () => {
-        // Trigger success alert
-        setSuccessMessage(successText);
-        setModalConfig(null);
-        setTimeout(() => {
-          setSuccessMessage('');
-        }, 3000);
+        const token = localStorage.getItem('access_token');
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        };
+
+        const executeAction = async () => {
+          let newStatus = null;
+          let notes = null;
+
+          if (actionType === 'Initiate Takedown') {
+            newStatus = 'takedown_initiated';
+          } else if (actionType === 'Dismiss Case') {
+            newStatus = 'dismissed';
+          } else if (actionType === 'Close Case') {
+            newStatus = 'completed';
+            notes = fieldOperationNotes;
+          } else if (actionType === 'Acknowledge') {
+            newStatus = 'dismissed';
+          }
+
+          if (newStatus) {
+            try {
+              const res = await fetch(`${API_BASE}/complaints/${id}/transition`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ new_status: newStatus, notes })
+              });
+              if (!res.ok) {
+                const errMsg = await parseBackendError(res);
+                setErrorMessage(errMsg);
+                setTimeout(() => setErrorMessage(''), 4000);
+                return;
+              }
+            } catch (err) {
+              console.error(err);
+              setErrorMessage('Failed to connect to backend.');
+              setTimeout(() => setErrorMessage(''), 4000);
+              return;
+            }
+          }
+
+          // Trigger success alert
+          setSuccessMessage(successText);
+          setModalConfig(null);
+
+          // Clear operational notes input if it was close case
+          if (actionType === 'Close Case') {
+            setFieldOperationNotes('');
+          }
+
+          // Refresh the active tab list!
+          if (activeTab === 'FDA Response') {
+            fetchResponseList();
+          } else if (activeTab === 'Initiated Cases') {
+            fetchInitiatedList();
+          } else if (activeTab === 'Closed Cases') {
+            fetchClosedList();
+          }
+          fetchLeaCounts();
+
+          setTimeout(() => {
+            setSuccessMessage('');
+          }, 3000);
+        };
+
+        executeAction();
 
         /*
          BACKEND NOTIFICATION:
@@ -883,7 +969,7 @@ function LeaVerificationRequest() {
                   {/* LEFT PANEL */}
                   <div className="ReadytoSendQueue">
                     {/* MERGED-ADD — search bar + category filter dropdown */}
-                     <div className="ReadytoSendHeader">
+                    <div className="ReadytoSendHeader">
                       <p>Walk-in cases awaiting your request</p>
                       {/* MERGED-CHANGED — count now reflects filtered results */}
                       <span>{filteredReadyList.length}</span>
@@ -914,7 +1000,7 @@ function LeaVerificationRequest() {
                         </select>
                       </div>
                     </div>
-                   
+
 
                     {readyLoading && (
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
@@ -1158,7 +1244,7 @@ function LeaVerificationRequest() {
                         </select>
                       </div>
                     </div>
-                    
+
 
                     {awaitingLoading && (
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
@@ -1303,7 +1389,7 @@ function LeaVerificationRequest() {
                   {/* LEFT PANEL */}
                   <div className="LEAResponseQueue">
                     {/* MERGED-ADD — search bar + category filter dropdown */}
-                     <div className="LEAResponseHeader">
+                    <div className="LEAResponseHeader">
                       <p>FDA confirmations received</p>
                       {/* REMOVE THIS */}
                       {/* BACKEND: count of responseCases */}
@@ -1311,7 +1397,7 @@ function LeaVerificationRequest() {
                       <span>{filteredResponseCases.length}</span>
                     </div>
                     <div className="LeaVerifQueueFilterHeader">
-                      
+
                       <div className="LeaSearchWrapper">
                         <Search size={16} className="LeaSearchIcon" />
                         <input
@@ -1337,7 +1423,7 @@ function LeaVerificationRequest() {
                         </select>
                       </div>
                     </div>
-                   
+
 
                     {/* MERGED-ADD — empty state for when filters exclude everything */}
                     {filteredResponseCases.length === 0 && (
@@ -1350,7 +1436,7 @@ function LeaVerificationRequest() {
                     {paginatedResponseCases.map((item) => (
                       <div
                         key={item.id}
-                        className={`QueueCard ${selectedResponse.id === item.id ? 'ActiveQueueCard' : ''}`}
+                        className={`QueueCard ${selectedResponse?.id === item.id ? 'ActiveQueueCard' : ''}`}
                         id=''
                         onClick={() => setSelectedResponse(item)}
                       >
@@ -1385,7 +1471,8 @@ function LeaVerificationRequest() {
 
                   {/* RIGHT PANEL */}
                   <div className='VerificationDetails'>
-                    <div className='VerificationCard'>
+                    {selectedResponse ? (
+                      <div className='VerificationCard'>
                       <div>
                         <small>CASE ID: {selectedResponse.caseNumber}</small>
                         <h2>{selectedResponse.product}</h2>
@@ -1577,7 +1664,12 @@ function LeaVerificationRequest() {
                         )}
                       </div>
                     </div>
-
+                    ) : (
+                      <div className="LeaVerifNoDetail" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#7a8796', fontSize: '14px', fontWeight: '500', padding: '40px', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc' }}>
+                        <Inbox size={32} style={{ marginBottom: '8px', color: '#94a3b8' }} />
+                        Select a case from the queue to view details.
+                      </div>
+                    )}
                   </div>
                 </div>}
 
@@ -1620,7 +1712,7 @@ function LeaVerificationRequest() {
                         </select>
                       </div>
                     </div>
-                    
+
 
                     {/* MERGED-ADD — empty state for when filters exclude everything */}
                     {filteredInitiatedCases.length === 0 && (
@@ -1633,7 +1725,7 @@ function LeaVerificationRequest() {
                     {paginatedInitiatedCases.map((item) => (
                       <div
                         key={item.id}
-                        className={`QueueCard ${selectedInitiatedCase.id === item.id ? 'ActiveQueueCard' : ''}`}
+                        className={`QueueCard ${selectedInitiatedCase?.id === item.id ? 'ActiveQueueCard' : ''}`}
                         onClick={() => setSelectedInitiatedCase(item)}
                       >
                         {/* MERGED-CHANGED — restructured to match the reference UI: CASE ID + status badge on top row, category + date in footer */}
@@ -1661,7 +1753,8 @@ function LeaVerificationRequest() {
 
                   {/* RIGHT PANEL */}
                   <div className='VerificationDetails'>
-                    <div className='VerificationCard'>
+                    {selectedInitiatedCase ? (
+                      <div className='VerificationCard'>
                       <div>
                         {/* REMOVE THIS */}
                         {/* BACKEND: caseNumber */}
@@ -1726,6 +1819,12 @@ function LeaVerificationRequest() {
                         </div>
                       </div>
                     </div>
+                    ) : (
+                      <div className="LeaVerifNoDetail" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#7a8796', fontSize: '14px', fontWeight: '500', padding: '40px', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc' }}>
+                        <Inbox size={32} style={{ marginBottom: '8px', color: '#94a3b8' }} />
+                        Select a case from the queue to view details.
+                      </div>
+                    )}
                   </div>
                 </div>}
 
