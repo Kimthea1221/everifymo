@@ -207,8 +207,8 @@ function LeaWalkinComplaints() {
             (c.complainant || '').toLowerCase().includes(search.toLowerCase()) ||
             (c.manufacturer || '').toLowerCase().includes(search.toLowerCase());
 
-        const matchesStatus = selectedStatus === 'All' || 
-            c.status === selectedStatus || 
+        const matchesStatus = selectedStatus === 'All' ||
+            c.status === selectedStatus ||
             (selectedStatus === 'rejected' && c.status === 'recalled');
         const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;
 
@@ -333,12 +333,12 @@ function LeaWalkinComplaints() {
             <div className='LeaContentContainer'>
                 <TopBar topbarType="LEA" />
                 <div className='LeaMainfeed LeaWalkinComplaintsFeed'>
-                      <div className='LeaHeader'>
-                            <div>
-                                <p>LEA-CIDG: Walk-in Complaints</p>
-                                <p>CITIZEN-REPORTED COMPLAINTS</p>
-                            </div>
+                    <div className='LeaHeader'>
+                        <div>
+                            <p>LEA-CIDG: Walk-in Complaints</p>
+                            <p>CITIZEN-REPORTED COMPLAINTS</p>
                         </div>
+                    </div>
 
                         {/* Buttons now on their own row below the title, right-aligned */}
                         <div className='WalkinButtonActionsRow'>
@@ -431,71 +431,71 @@ function LeaWalkinComplaints() {
                                     const paginatedComplaints = filtered.slice(startIndex, endIndex);
 
                                     return paginatedComplaints.map((complaint) => (
-                                    <tr key={complaint.id}>
-                                        <td className='ClassId'>{complaint.id}</td>
-                                        <td>
-                                            <p className='WcProductName'>{complaint.product}</p>
-                                        </td>
-                                        <td>
-                                            <p className='WcManufacturerName'>{complaint.manufacturer}</p>
-                                        </td>
-                                        <td>{complaint.complainant}</td>
-                                        <td>
-                                            <span className={`WcStatusBadge ${WcGetStatusClass(complaint.status)}`}>
-                                                {WcGetStatusLabel(complaint.status)}
-                                            </span>
-                                        </td>
-                                        <td className='WcCategoryCell'>{complaint.category}</td>
-                                        <td>{complaint.logged}</td>
-                                        <td>
-                                            <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
-                                                <span className='WcActionTooltipWrap'>
-                                                    <button
-                                                        className='WcBtnIconView'
-                                                        onClick={() => handleViewButton(complaint)}
-                                                        aria-label='View complaint'
-                                                    >
-                                                        <Eye size={16} />
-                                                    </button>
-                                                    <span className='WcTooltip'>View</span>
+                                        <tr key={complaint.id}>
+                                            <td className='ClassId'>{complaint.id}</td>
+                                            <td>
+                                                <p className='WcProductName'>{complaint.product}</p>
+                                            </td>
+                                            <td>
+                                                <p className='WcManufacturerName'>{complaint.manufacturer}</p>
+                                            </td>
+                                            <td>{complaint.complainant}</td>
+                                            <td>
+                                                <span className={`WcStatusBadge ${WcGetStatusClass(complaint.status)}`}>
+                                                    {WcGetStatusLabel(complaint.status)}
                                                 </span>
-
-                                                {complaint.status === 'queued' && (
-                                                    <div className='WcMenuWrapper'>
+                                            </td>
+                                            <td className='WcCategoryCell'>{complaint.category}</td>
+                                            <td>{complaint.logged}</td>
+                                            <td>
+                                                <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
+                                                    <span className='WcActionTooltipWrap'>
                                                         <button
-                                                            className='WcBtnIconMore'
-                                                            onClick={() => handleToggleMenu(complaint.id)}
-                                                            aria-label='More actions'
+                                                            className='WcBtnIconView'
+                                                            onClick={() => handleViewButton(complaint)}
+                                                            aria-label='View complaint'
                                                         >
-                                                            <MoreVertical size={16} />
+                                                            <Eye size={16} />
                                                         </button>
-                                                        {openMenuId === complaint.id && (
-                                                            <div className='WcDropdownMenu'>
-                                                                <button
-                                                                    className='WcDropdownItem WcDropdownItem--edit'
-                                                                    onClick={() => {
-                                                                        setOpenMenuId(null)
-                                                                        handleEditComplaint(complaint)
-                                                                    }}
-                                                                >
-                                                                    <Pencil size={14} />
-                                                                    Edit Complaint
-                                                                </button>
-                                                                <button
-                                                                    className='WcDropdownItem WcDropdownItem--delete'
-                                                                    onClick={() => handleDropdownDeleteClick(complaint)}
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                    Delete Complaint
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ));
+                                                        <span className='WcTooltip'>View</span>
+                                                    </span>
+
+                                                    {complaint.status === 'queued' && (
+                                                        <div className='WcMenuWrapper'>
+                                                            <button
+                                                                className='WcBtnIconMore'
+                                                                onClick={() => handleToggleMenu(complaint.id)}
+                                                                aria-label='More actions'
+                                                            >
+                                                                <MoreVertical size={16} />
+                                                            </button>
+                                                            {openMenuId === complaint.id && (
+                                                                <div className='WcDropdownMenu'>
+                                                                    <button
+                                                                        className='WcDropdownItem WcDropdownItem--edit'
+                                                                        onClick={() => {
+                                                                            setOpenMenuId(null)
+                                                                            handleEditComplaint(complaint)
+                                                                        }}
+                                                                    >
+                                                                        <Pencil size={14} />
+                                                                        Edit Complaint
+                                                                    </button>
+                                                                    <button
+                                                                        className='WcDropdownItem WcDropdownItem--delete'
+                                                                        onClick={() => handleDropdownDeleteClick(complaint)}
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                        Delete Complaint
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ));
                                 })()}
                             </tbody>
                         </table>
