@@ -1,10 +1,29 @@
-// api.js
-class UnauthorizedError extends Error {}
+const API_BASE = 'http://localhost:8001'; // will be changed to real url during development (same with in the manifest)
 
-//login/signup to backend
-const API_BASE = 'http://localhost:8000'; // will be changed to real url during development (same with in the manifest)
+export class UnauthorizedError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
 
-async function apiSignUp({ email, username, password }){
+async function handleResponse(response) {
+    if (response.status === 401) {
+        throw new UnauthorizedError('Session expired. Please login once again');
+    }
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const message = data?.detail 
+            ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail)
+            : `Server responded ${response.status}`;
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
+export async function apiSignUp({ email, username, password }){
     const res = await fetch(`${API_BASE}/accounts/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -22,7 +41,7 @@ async function apiSignUp({ email, username, password }){
     return data;
 }
 
-async function apiLogin(email, password) {
+export async function apiLogin(email, password) {
     const formBody = new URLSearchParams();
     formBody.append('username', email);
     formBody.append('password', password);
@@ -42,7 +61,7 @@ async function apiLogin(email, password) {
     return data;
 }
 
-async function apiGoogleLogin(token) {
+export async function apiGoogleLogin(token) {
     const res = await fetch(`${API_BASE}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,7 +82,7 @@ async function apiGoogleLogin(token) {
     return data;
 }
 
-async function apiChangeUsername(email, newUsername) {
+export async function apiChangeUsername(email, newUsername) {
 
     const res = await fetch(`${API_BASE}/accounts/change-pending-username`, {
             method: 'PUT',
@@ -76,23 +95,7 @@ async function apiChangeUsername(email, newUsername) {
     return handleResponse(res);
 }
 
-async function handleResponse(response) {
-    if (response.status === 401) {
-        throw new UnauthorizedError('Session expired. Please login once again');
-    }
-
-    if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        const message = data?.detail 
-            ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail)
-            : `Server responded ${response.status}`;
-        throw new Error(message);
-    }
-
-    return response.json();
-}
-
-async function apiVerifyOtp(email, inputCode, callback) {
+export async function apiVerifyOtp(email, inputCode, callback) {
   const res = await fetch(`${API_BASE}/accounts/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -102,7 +105,7 @@ async function apiVerifyOtp(email, inputCode, callback) {
   return handleResponse(res);
 }
 
-async function apiResendOtp(email, callback) {
+export async function apiResendOtp(email, callback) {
     const res = await fetch(`${API_BASE}/accounts/resend-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -112,7 +115,7 @@ async function apiResendOtp(email, callback) {
     return handleResponse(res);
 }
 
-async function apiPasswordReset(email, callback) {
+export async function apiPasswordReset(email, callback) {
     const res = await fetch(`${API_BASE}/accounts/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +125,7 @@ async function apiPasswordReset(email, callback) {
     return handleResponse(res);
 }
 
-async function apiVerifyResetOtp(email, otpCode){
+export async function apiVerifyResetOtp(email, otpCode){
     const res = await fetch(`${API_BASE}/accounts/verify-reset-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,7 +135,7 @@ async function apiVerifyResetOtp(email, otpCode){
     return handleResponse(res);
 }
 
-async function apiConfirmPassReset(email, resetToken, newPassword) {
+export async function apiConfirmPassReset(email, resetToken, newPassword) {
     const res = await fetch(`${API_BASE}/accounts/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +145,7 @@ async function apiConfirmPassReset(email, resetToken, newPassword) {
     return handleResponse(res);
 }
 
-async function apiSubmitComplaint(complaintData, token){
+export async function apiSubmitComplaint(complaintData, token){
     let headers = { 'Content-Type': 'application/json'};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -155,7 +158,7 @@ async function apiSubmitComplaint(complaintData, token){
     return handleResponse(res);
 }
 
-async function apiGetComplaints(token){
+export async function apiGetComplaints(token){
     const res = await fetch(`${API_BASE}/ComplaintsHistory`, {
         method: 'GET',
         headers: { 
@@ -166,7 +169,7 @@ async function apiGetComplaints(token){
     return handleResponse(res);
 }
 
-async function apiGetStatus(token){  
+export async function apiGetStatus(token){  
     const res = await fetch(`${API_BASE}/ComplaintStatus`, {
         method: 'GET',
         headers: {
@@ -177,7 +180,7 @@ async function apiGetStatus(token){
     return handleResponse(res);
 }
 
-async function apiUpdateUsername(newUsername, token) {
+export async function apiUpdateUsername(newUsername, token) {
     
     const res = await fetch(`${API_BASE}/accounts/username`, {
         method: 'PUT',
@@ -191,7 +194,7 @@ async function apiUpdateUsername(newUsername, token) {
     return handleResponse(res);
 }
 
-async function apiDeleteAccount(password, token, permanent = false) {
+export async function apiDeleteAccount(password, token, permanent = false) {
 
     const res = await fetch(`${API_BASE}/accounts/delete-account`, {
         method: 'DELETE',
@@ -206,195 +209,26 @@ async function apiDeleteAccount(password, token, permanent = false) {
     return handleResponse(res);
 }
 
-function getVerificationHistory() {
-  return [
-    { id: 1, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
-    { id: 2, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'suspicious' },
-    { id: 3, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Tiktok Shop', time: '2 hrs ago', status: 'unregistered' },
-    { id: 4, productName: 'Miracle Glow Whitening Setting S.....', platform: 'Shopee', time: '2 hrs ago', status: 'registered' },
-    { id: 5, productName: 'Miracle Glow Whitening Setting Spray 60ml', platform: 'Lazada', time: '2 hrs ago', status: 'registered' }
-  ];
+export async function apiVerificationHistory(product, token) {
+    let headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/submitVerification`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(product)
+    });
+
+    return handleResponse(res);
 }
 
-// ================================
-// MOCK DATA — COMPLAINT STATUSES (persisted via chrome.storage.local
-// so it's shared across extension pages, not per-page memory)
-// ================================
+export async function getVerificationHistory(token) {
+    const res = await fetch(`${API_BASE}/VerificationHistory`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
 
-// const DEFAULT_COMPLAINT_STATUSES = [
-//   {
-//     id: 1,
-//     productName: 'Miracle Glow Whitening Setting Spray 60ml',
-//     stage: 'takedown_requested',
-//     platform: 'Lazada',
-//     time: '3 hrs ago',
-//     link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml-status1',
-//     storeName: 'SkinLuxe Official',
-//     description: 'Listing has no FDA registration number visible.',
-//     attachment: null,
-//     note: 'Takedown has been requested to CIDG. Awaiting enforcement action.'
-//   },
-//   {
-//     id: 2,
-//     productName: 'Miracle Glow Whitening Setting Spray 60ml',
-//     stage: 'under_review',
-//     platform: 'Shopee',
-//     time: '2 hrs ago',
-//     link: 'shopee.ph/Miracle-Glow-Whitening-Setting-Spray-status2',
-//     storeName: 'GlowBeautyPH Store',
-//     description: 'No FDA sticker visible on packaging photos.',
-//     attachment: null,
-//     note: 'Under review by FDA enforcement team. Evidence verified.'
-//   },
-//   {
-//     id: 3,
-//     productName: 'Miracle Glow Whitening Setting Spray 60ml',
-//     stage: 'open',
-//     platform: 'Tiktok Shop',
-//     time: '1 hr ago',
-//     link: 'shop.tiktok.com/miracle-glow-whitening-spray-status3',
-//     storeName: 'Radiance Beauty Hub',
-//     description: '',
-//     attachment: null,
-//     note: 'Report received. Queued for initial review.'
-//   }
-// ];
-
-// function getComplaintStatuses(callback) {
-//   chrome.storage.local.get(['complaintStatuses'], (data) => {
-//     if (data.complaintStatuses) {
-//       callback(data.complaintStatuses);
-//     } else {
-//       chrome.storage.local.set({ complaintStatuses: DEFAULT_COMPLAINT_STATUSES }, () => {
-//         callback(DEFAULT_COMPLAINT_STATUSES);
-//       });
-//     }
-//   });
-// }
-
-// function derivePlatformFromLink(link) {
-//   const lower = (link || '').toLowerCase();
-//   if (lower.includes('shopee')) return 'Shopee';
-//   if (lower.includes('lazada')) return 'Lazada';
-//   if (lower.includes('tiktok')) return 'Tiktok Shop';
-//   if (lower.includes('facebook') || lower.includes('fb.com')) return 'Facebook Marketplace';
-//   return 'Unknown';
-// }
-
-// function addComplaintToStatus(reportData, callback) {
-//   getComplaintStatuses((complaints) => {
-//     const nextId = complaints.length > 0 ? Math.max(...complaints.map(c => c.id)) + 1 : 1;
-
-//     const newComplaint = {
-//       id: nextId,
-//       productName: reportData.productName,
-//       stage: 'open',
-//       platform: derivePlatformFromLink(reportData.link),
-//       time: 'Just now',
-//       link: reportData.link,
-//       storeName: reportData.storeName,
-//       description: reportData.description || '',
-//       attachment: reportData.attachment || null,
-//       note: 'Report received. Queued for initial review.'
-//     };
-
-//     const updated = [newComplaint, ...complaints];
-//     chrome.storage.local.set({ complaintStatuses: updated }, () => {
-//       if (callback) callback(newComplaint);
-//     });
-//   });
-// }
-
-// function resetPasswordDirect(email, newPassword, callback) {
-//   getRegisteredUsers((users) => {
-//     const account = users.find(u => u.email === email);
-//     if (!account) {
-//       callback(false, 'Account does not exist.');
-//       return;
-//     }
-//     const updatedUsers = users.map(u =>
-//       u.email === email ? { ...u, password: newPassword } : u
-//     );
-//     chrome.storage.local.set({ registeredUsers: updatedUsers }, () => callback(true));
-//   });
-// }
-
-// function getComplaintsHistory() {
-//   return [
-//     {
-//       id: 101,
-//       productName: 'Miracle Glow Whitening Setting S.....',
-//       platform: 'Shopee',
-//       time: '2 hrs ago',
-//       link: 'shopee.ph/Miracle-Glow-Whitening-Setting-Spray',
-//       storeName: 'GlowBeautyPH Store',
-//       description: 'Packaging looked off — no FDA sticker, blurry printing.',
-//       attachment: null,
-//       status: 'completed',
-//       note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
-//     },
-//     {
-//       id: 102,
-//       productName: 'Miracle Glow Whitening Setting Spray 60ml',
-//       platform: 'Lazada',
-//       time: '2 hrs ago',
-//       link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray',
-//       storeName: 'SkinLuxe Official',
-//       description: '',
-//       attachment: null,
-//       status: 'dismissed',
-//       note: 'This complaint was dismissed because the product was found to be registered under a different FDA record not yet reflected in our database at the time of the report.'
-//     },
-//     {
-//       id: 103,
-//       productName: 'Miracle Glow Whitening Setting Spray 60ml',
-//       platform: 'Tiktok Shop',
-//       time: '2 hrs ago',
-//       link: 'shop.tiktok.com/miracle-glow-whitening-spray',
-//       storeName: 'Radiance Beauty Hub',
-//       description: 'Seller claims registered but listing has no FDA number.',
-//       attachment: null,
-//       status: 'dismissed',
-//       note: 'This complaint was dismissed because the product\'s registration is currently in process with the FDA and could not be confirmed unregistered at this time.'
-//     },
-//     {
-//       id: 104,
-//       productName: 'Miracle Glow Whitening Setting Spray 60ml',
-//       platform: 'Lazada',
-//       time: '2 hours ago',
-//       link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml',
-//       storeName: 'SkinLuxe Official',
-//       description: '',
-//       attachment: null,
-//       status: 'completed',
-//       note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
-//     },
-//     {
-//       id: 105,
-//       productName: 'Miracle Glow Whitening Setting Spray 60ml',
-//       platform: 'Lazada',
-//       time: '2 hours ago',
-//       link: 'lazada.com.ph/products/miracle-glow-whitening-setting-spray-60ml-2',
-//       storeName: 'SkinLuxe Official',
-//       description: '',
-//       attachment: null,
-//       status: 'completed',
-//       note: 'This complaint has been completed. The seller listing was taken down following FDA enforcement action.'
-//     }
-//   ];
-// }
-
-<<<<<<< HEAD
-function verifyOtp(inputCode, callback) {
-  chrome.storage.local.get(['pendingOtp'], (data) => {
-    const pending = data.pendingOtp;
-    if (!pending || inputCode !== pending.code) {
-      callback(false);
-      return;
-    }
-    chrome.storage.local.remove('pendingOtp', () => callback(true));
-  });
+    return handleResponse(res);
 }
-}
-=======
->>>>>>> origin/dev

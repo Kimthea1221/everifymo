@@ -22,6 +22,7 @@ async def InsertComplaint(complaint: CreateComplaint, db: db_dependency, current
             consumer_id = current_user["id"]
         else:
             consumer_id = None
+        
         return complaints_service.create_complaints(db, complaint, consumer_id) 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

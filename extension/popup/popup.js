@@ -1,4 +1,11 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+﻿
+import { whenSessionReady, isUserLoggedIn, getCurrentUser } from "../scripts/session.js";
+
+let lastProductTitle = '';
+let lastProductUrl = '';
+let lastVerificationStatus = 'unregistered';
+
+document.addEventListener("DOMContentLoaded", () => {
 
   whenSessionReady(() => {
 
@@ -7,10 +14,13 @@
       ['productTitle', 'productPlatform', 'productUrl', 'productStatus'],
       (data) => {
 
-        // TEMPORARY HARDCODE FOR TESTING — should be remove later
-        const title = document.getElementById('complaint-product-name');
-        const url = document.getElementById('complaint-product-url');
-        const status = 'unregistered'; // here are the states: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
+        const title = data.productTitle;
+        const url = data.productUrl;
+        const status = data.productStatus || 'idle'; // here are the states: 'registered', 'unregistered', 'suspicious', 'home', 'idle', 'scanning'
+
+        lastProductTitle = title || '';
+        lastProductUrl = url || '';
+        lastVerificationStatus = status;
 
         chrome.storage.local.set({
           productTitle: title,
@@ -47,22 +57,25 @@
 
     applyAuthView();
 
-    // const btnReport = document.getElementById('btn-report');
-    // if (btnReport) {
-    //   btnReport.addEventListener('click', () => {
-    //     chrome.tabs.create({ url: chrome.runtime.getURL('pages/report-complaint.html') });
-    //   });
-    // }
-
-    // passed the extracted url on report.js
     document.querySelectorAll('.btn-report').forEach(btn => {
-      btn.addEventListener('click', async() => {
-        let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        let productUrl = tab && tab.url ? encodeURIComponent(tab.url) : '';
-        let complaintUrl = chrome.runtime.getURL('pages/report-complaint.html') + '?productUrl=' + productUrl;
+      btn.addEventListener('click', () => {
+        const complaintUrl = chrome.runtime.getURL('pages/report-complaint.html');
         chrome.tabs.create({ url: complaintUrl });
       });
     });
+
+    // passed the extracted url on report.js
+    // document.querySelectorAll('.btn-report').forEach(btn => {
+    //   btn.addEventListener('click', async() => {
+    //     const nameEl = document.getElementById('rf-product-name');
+    //     const urlEl = document.getElementById('rf-product-url');
+    //     if (nameEl) nameEl.value = lastProductTitle;
+    //     if (urlEl) urlEl.value = sanitizeUrl(lastProductUrl);
+    //     document.getElementById('rf-store-name').value = '';
+    //     document.getElementById('rf-description').value = '';
+    //     showState('report-form');
+    //   });
+    // });
 
     document.querySelectorAll('.btn-skip').forEach(btn => {
       btn.addEventListener('click', () => window.close());
@@ -128,7 +141,7 @@
 
     const btnConfirmManual = document.getElementById('btn-confirm-manual');
     if (btnConfirmManual) {
-      btnConfirmManual.addEventListener('click', () => {
+      btnConfirmManual.addEventListener('click', async () => {
         const inputEl = document.getElementById('manual-product-name');
         const errorEl = document.getElementById('manual-input-error');
         const value = inputEl ? inputEl.value.trim() : '';
@@ -137,9 +150,27 @@
           if (errorEl) errorEl.textContent = 'Please enter the product name.';
           return;
         }
+        
         if (errorEl) errorEl.textContent = '';
 
-        resolveManualProduct(value);
+        lastProductTitle = value;
+
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        lastProductUrl = tab?.url || '';
+
+        showState('scanning');
+
+        chrome.runtime.sendMessage({
+          action: "extractedTitle",
+          title: lastProductTitle,
+          platform: platform(lastProductUrl),
+          url: lastProductUrl
+        }, (response) => {
+          const status = response?.data?.status || 'unregistered';
+          lastVerificationStatus = status;
+          const results = response?.data?.results || [];
+          renderResult(status, lastProductTitle, results);
+        });
       });
     }
 
@@ -164,30 +195,58 @@
 
 
 // --- Functions below can stay outside, since they don't touch the DOM until called ---
+function platform(url) {
+  if (url.includes("shopee")) return "shopee";
+  if (url.includes("lazada")) return "lazada";
+  if (url.includes("facebook")) return "facebook";
+  if (url.includes("tiktok")) return "tiktok";
+  return "unknown";
+}
 
-function resolveManualProduct(title) {
-  chrome.storage.local.get(['productStatus'], (data) => {
-    // Demo-only: real matching isn't built yet, so this reuses whatever
-    // status is currently hardcoded for testing in the DOMContentLoaded block.
-    const status = data.productStatus || 'unregistered';
+function renderResult(status, productTitle, results = []) {
+  const stateId = ['registered', 'suspicious', 'unregistered'].includes(status)
+    ? status
+    : 'suspicious';
 
-    if (status === 'registered') {
-      const el = document.getElementById('product-name-registered');
-      if (el) el.textContent = title;
-      showState('registered');
-    } else if (status === 'suspicious') {
-      const el = document.getElementById('product-name-suspicious');
-      if (el) el.textContent = title;
-      showState('suspicious');
-    } else {
-      const el = document.getElementById('product-name-unregistered');
-      if (el) el.textContent = title;
-      showState('unregistered');
-    }
+  const nameEl = document.getElementById(`product-name-${stateId}`);
+  if (nameEl) nameEl.textContent = productTitle;
 
-    chrome.storage.local.set({ productTitle: title });
+  if (stateId === 'registered' || stateId === 'unregistered') {
+    populateMatches(stateId, results);
+  }
+
+  showState(stateId);
+
+  chrome.storage.local.set({
+    productTitle,
+    productUrl: lastProductUrl,
+    productStatus: stateId
   });
 }
+
+// function resolveManualProduct(title) {
+//   chrome.storage.local.get(['productStatus'], (data) => {
+//     // Demo-only: real matching isn't built yet, so this reuses whatever
+//     // status is currently hardcoded for testing in the DOMContentLoaded block.
+//     const status = data.productStatus || 'unregistered';
+
+//     if (status === 'registered') {
+//       const el = document.getElementById('product-name-registered');
+//       if (el) el.textContent = title;
+//       showState('registered');
+//     } else if (status === 'suspicious') {
+//       const el = document.getElementById('product-name-suspicious');
+//       if (el) el.textContent = title;
+//       showState('suspicious');
+//     } else {
+//       const el = document.getElementById('product-name-unregistered');
+//       if (el) el.textContent = title;
+//       showState('unregistered');
+//     }
+
+//     chrome.storage.local.set({ productTitle: title });
+//   });
+// }
 
 function showState(state) {
   const states = ['idle', 'registered', 'suspicious', 'unregistered', 'home', 'scanning', 'manual-input'];
@@ -197,6 +256,26 @@ function showState(state) {
   });
   const target = document.getElementById(`state-${state}`);
   if (target) target.classList.remove('hidden');
+}
+
+function populateMatches(stateId, results) {
+  const suffix = stateId === 'unregistered' ? '-red' : '';
+  const cards = document.querySelectorAll(`#state-${stateId} .match-card${suffix}`);
+
+  cards.forEach((card, i) => {
+    const match = results[i];
+    if (!match) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    const titleEl = card.querySelector(`.match-title${suffix}`);
+    const percentEl = card.querySelector(`.match-percent${suffix}`);
+    const fillEl = card.querySelector(`.progress-fill${suffix}`);
+
+    if (titleEl) titleEl.textContent = match.title;
+    const pct = Math.round(match.cosine_similarity * 100);
+    if (percentEl) percentEl.textContent = `${pct}%`;
+    if (fillEl) fillEl.style.width = `${pct}%`;
+  });
 }
 
 function applyAuthView() {
