@@ -677,7 +677,7 @@ function SuperAdminUserManagement() {
                   <option value="Pending Approval">Pending Approval</option>
                   <option value="Active">Active</option>
                   <option value="Suspended">Suspended</option>
-                  <option value="Locked Account">Locked Account</option>
+                  <option value="Locked">Locked </option>
                 </select>
               </div>
 

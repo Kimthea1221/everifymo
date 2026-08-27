@@ -204,7 +204,8 @@ function LeaWalkinComplaints() {
     const filtered = complaints.filter((c) => {
         const matchesSearch = (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
             (c.product || '').toLowerCase().includes(search.toLowerCase()) ||
-            (c.complainant || '').toLowerCase().includes(search.toLowerCase());
+            (c.complainant || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.manufacturer || '').toLowerCase().includes(search.toLowerCase());
 
         const matchesStatus = selectedStatus === 'All' ||
             c.status === selectedStatus ||

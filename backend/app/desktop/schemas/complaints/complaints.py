@@ -158,3 +158,28 @@ class LeaCloseCaseResponse(BaseModel):
     field_operation_notes: str | None
     field_operation_logged_at: datetime | None
 # added by Darlene --end
+
+#Ashanti code starts here in FDA View Reports:
+
+class FdaComplaintListItem(BaseModel):
+    complaint_id: UUID
+    case_reference: str
+    product_title: str
+    manufacturer: str | None
+    product_category: str | None
+    source: str
+    status: str
+    created_at: datetime
+
+# desktop/schemas/complaints/complaints.py — add
+class FdaComplaintDetailResponse(BaseModel):
+    complaint_id: UUID
+    case_reference: str
+    product_title: str
+    manufacturer: str | None
+    product_category: str | None
+    source: str
+    status: str
+    created_at: datetime
+    description: str | None
+    attached_files: list[SharedFileResponse]

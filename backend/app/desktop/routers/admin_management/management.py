@@ -3,7 +3,7 @@ import uuid
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -32,23 +32,31 @@ router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 
 
 def compute_admin_status(user: User, latest_token) -> str:
-    if user.is_locked:
-        return "Locked"
+    if user.status == UserStatus.ACTIVE:
+        if not user.is_active:
+            return "Suspended"
+        if user.is_locked:
+            return "Locked"
+        return "Active"
+
     if user.status == UserStatus.INVITED:
-        if latest_token:
-            if latest_token.resend_requested_at is not None:
-                return "Resend Requested"
-            expires_at = latest_token.expires_at
-            if expires_at:
-                if expires_at.tzinfo is None:
-                    expires_at = expires_at.replace(tzinfo=timezone.utc)
-                if expires_at < datetime.now(timezone.utc):
-                    return "Link Expired"
-        return "Invited"
+        if not latest_token:
+            return "Invited"
+
+        expires_at = latest_token.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        token_expired = expires_at < datetime.now(timezone.utc)
+
+        if not token_expired:
+            return "Invited"
+        if latest_token.resend_requested_at is not None:
+            return "Resend Requested"
+        return "Link Expired"
+
     if user.status == UserStatus.PENDING_APPROVAL:
         return "Pending Approval"
-    if user.status == UserStatus.ACTIVE:
-        return "Active" if user.is_active else "Suspended"
+
     return user.status
 
 
@@ -78,6 +86,8 @@ def list_superadmins(
         result.append(
             SuperadminListItem(
                 admin_id=admin.user_id,
+                first_name=admin.first_name,
+                last_name=admin.last_name,
                 email=admin.email,
                 invitation_date=latest_token.created_at if latest_token else None,
                 expiration_date=latest_token.expires_at if latest_token else None,
@@ -132,6 +142,7 @@ def superadmin_summary(
 async def invite_superadmin(
     payload: InviteSuperadminRequest,
     http_request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -140,19 +151,25 @@ async def invite_superadmin(
     if existing:
         raise HTTPException(400, "A user with this email already exists.")
 
-    admin, token = create_invited_superadmin(
-        db, payload.email, created_by=current_user.user_id, request=http_request
+    admin_id, token = create_invited_superadmin(
+        db,
+        payload.email,
+        payload.first_name,
+        payload.last_name,
+        created_by=current_user.user_id,
+        request=http_request,
     )
 
-    await send_superadmin_invite_email(admin.email, token)
+    background_tasks.add_task(send_superadmin_invite_email, payload.email, token)
 
-    return {"message": "Superadmin invitation sent", "admin_id": str(admin.user_id)}
+    return {"message": "Superadmin invitation sent", "admin_id": str(admin_id)}
 
 
 @router.post("/{admin_id}/resend")
 async def resend_superadmin_invitation(
     admin_id: uuid.UUID,
     http_request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -163,11 +180,14 @@ async def resend_superadmin_invitation(
     if admin.status != UserStatus.INVITED:
         raise HTTPException(status_code=400, detail="Cannot resend invite for an admin who is not in invited status")
 
+    admin_email = admin.email
+    admin_id_val = admin.user_id
+
     token = secrets.token_urlsafe(32)
     expires = datetime.now(timezone.utc) + timedelta(days=2)
 
     new_token = AccountInvitationToken(
-        user_id=admin.user_id,
+        user_id=admin_id_val,
         invite_token=token,
         expires_at=expires,
         resend_requested_at=None,
@@ -175,14 +195,14 @@ async def resend_superadmin_invitation(
     db.add(new_token)
     db.commit()
 
-    await send_superadmin_invite_email(admin.email, token)
+    background_tasks.add_task(send_superadmin_invite_email, admin_email, token)
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.RESEND_LINK_REQUESTED,
         title="Invitation resent",
-        message=f"Invitation resent to {admin.email}.",
-        related_user_id=admin.user_id,
+        message=f"Invitation resent to {admin_email}.",
+        related_user_id=admin_id_val,
     )
 
     write_audit_log(
@@ -190,8 +210,8 @@ async def resend_superadmin_invitation(
         user=current_user,
         action=AuditAction.INVITE_SUPERADMIN_RESENT,
         target_table="users",
-        target_id=admin.user_id,
-        target_reference=admin.email,
+        target_id=admin_id_val,
+        target_reference=admin_email,
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
@@ -215,14 +235,18 @@ def suspend_superadmin(
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_active = False
+
+    admin_id_val = admin.user_id
+    admin_email = admin.email
+
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.ACCOUNT_SUSPENDED,
         title="Superadmin suspended",
-        message=f"{admin.email}'s superadmin account has been suspended.",
-        related_user_id=admin.user_id,
+        message=f"{admin_email}'s superadmin account has been suspended.",
+        related_user_id=admin_id_val,
     )
 
     write_audit_log(
@@ -230,8 +254,8 @@ def suspend_superadmin(
         user=current_user,
         action=AuditAction.SUSPEND_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin.user_id,
-        target_reference=admin.email,
+        target_id=admin_id_val,
+        target_reference=admin_email,
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
@@ -252,14 +276,18 @@ def reactivate_superadmin(
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_active = True
+
+    admin_id_val = admin.user_id
+    admin_email = admin.email
+
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.ACCOUNT_REACTIVATED,
         title="Superadmin reactivated",
-        message=f"{admin.email}'s superadmin account has been reactivated.",
-        related_user_id=admin.user_id,
+        message=f"{admin_email}'s superadmin account has been reactivated.",
+        related_user_id=admin_id_val,
     )
 
     write_audit_log(
@@ -267,8 +295,8 @@ def reactivate_superadmin(
         user=current_user,
         action=AuditAction.REACTIVATE_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin.user_id,
-        target_reference=admin.email,
+        target_id=admin_id_val,
+        target_reference=admin_email,
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
@@ -292,8 +320,8 @@ def delete_superadmin(
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
 
-    if not (admin.status == UserStatus.ACTIVE and not admin.is_active):
-        raise HTTPException(status_code=400, detail="Only suspended superadmins can be deleted.")
+    if not (admin.status == UserStatus.ACTIVE and not admin.is_active) and admin.status != UserStatus.INVITED:
+        raise HTTPException(status_code=400, detail="Only suspended superadmins or invited/expired invitations can be deleted.")
 
     deleted_admin_id = admin.user_id
     deleted_admin_email = admin.email
@@ -301,6 +329,7 @@ def delete_superadmin(
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == admin_id).delete()
     db.delete(admin)
     db.commit()
+    # admin object is deleted AND expired — never touch it after this
 
     write_audit_log(
         db,
@@ -322,11 +351,12 @@ def delete_superadmin(
 async def activate_superadmin_endpoint(
     admin_id: uuid.UUID,
     http_request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
-    admin = activate_superadmin(db, admin_id, activated_by=current_user, request=http_request)
-    await send_superadmin_activation_email(admin.email)
+    admin_id_val, admin_email = activate_superadmin(db, admin_id, activated_by=current_user, request=http_request)
+    background_tasks.add_task(send_superadmin_activation_email, admin_email)
     return {"message": "Superadmin account activated."}
 
 
@@ -343,6 +373,10 @@ def unlock_superadmin(
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_locked = False
     admin.failed_login_attempts = 0
+
+    admin_id_val = admin.user_id
+    admin_email = admin.email
+
     db.commit()
 
     write_audit_log(
@@ -350,8 +384,8 @@ def unlock_superadmin(
         user=current_user,
         action=AuditAction.UNLOCK_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin.user_id,
-        target_reference=admin.email,
+        target_id=admin_id_val,
+        target_reference=admin_email,
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
