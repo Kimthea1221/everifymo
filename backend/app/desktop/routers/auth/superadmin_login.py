@@ -1,5 +1,5 @@
 # backend/app/desktop/routers/auth/superadmin_login.py
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime, timezone, timedelta
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/auth/superadmin", tags=["superadmin-auth"])
 
 
 @router.post("/login")
-async def superadmin_login(request: SuperAdminLoginRequest, http_request: Request, db: Session = Depends(get_db)):
+async def superadmin_login(request: SuperAdminLoginRequest, http_request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     db.execute(text("SET app.bypass_rls = 'true'"))
     try:
         user = authenticate_superadmin(db, request.email, request.password)
@@ -52,7 +52,7 @@ async def superadmin_login(request: SuperAdminLoginRequest, http_request: Reques
 
     otp = create_otp_for_user(db, user)
 
-    await send_superadmin_otp_email(user.email, otp)
+    background_tasks.add_task(send_superadmin_otp_email, user.email, otp)
 
     return {"message": "OTP sent"}
 

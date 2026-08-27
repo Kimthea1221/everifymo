@@ -86,6 +86,10 @@ def update_profile(
         if existing:
             raise HTTPException(status_code=400, detail="This Employee ID is already in use.")
 
+    # capture the "before" values for exactly the fields being changed,
+    # before setattr() overwrites them
+    old_data = {field: getattr(current_user, field, None) for field in update_data}
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
 
@@ -108,6 +112,7 @@ def update_profile(
             target_table="users",
             target_id=current_user.user_id,
             target_reference=f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email,
+            old_value=old_data,
             new_value=update_data,
             request=http_request,
             region_code=get_user_region_code(db, current_user),
@@ -161,3 +166,78 @@ def change_password(
     )
 
     return {"message": "Password updated successfully"}
+
+
+PERSONNEL_EDITABLE_FIELDS = {
+    "first_name", "middle_name", "last_name",
+    "employee_id", "contact_number", "department", "position",
+}
+SUPERADMIN_EDITABLE_FIELDS = {"first_name", "middle_name", "last_name"}
+
+
+@router.put("/update", response_model=ProfileResponse)
+def update_profile(
+    payload: ProfileUpdateRequest,
+    http_request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    update_data = payload.model_dump(exclude_unset=True)
+
+    allowed_fields = (
+        SUPERADMIN_EDITABLE_FIELDS
+        if current_user.role == "superadmin"
+        else PERSONNEL_EDITABLE_FIELDS
+    )
+    disallowed = set(update_data.keys()) - allowed_fields
+    if disallowed:
+        raise HTTPException(
+            status_code=403,
+            detail=f"You are not permitted to update: {', '.join(sorted(disallowed))}",
+        )
+
+    if "employee_id" in update_data and update_data["employee_id"]:
+        existing = (
+            db.query(User)
+            .filter(
+                User.employee_id == update_data["employee_id"],
+                User.user_id != current_user.user_id,
+            )
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="This Employee ID is already in use.")
+
+    # capture the "before" values for exactly the fields being changed,
+    # before setattr() overwrites them
+    old_data = {field: getattr(current_user, field, None) for field in update_data}
+
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+
+    db.commit()
+    db.refresh(current_user)
+
+    if update_data:
+        notification_service.create_notification_for_all_superadmins(
+            db=db,
+            event_type=NotificationEventType.ACCOUNT_INFO_UPDATED,
+            title="Profile information updated",
+            message=f"{current_user.email} updated their profile information.",
+            related_user_id=current_user.user_id,
+        )
+
+        write_audit_log(
+            db,
+            user=current_user,
+            action=AuditAction.UPDATE_USER_PROFILE,
+            target_table="users",
+            target_id=current_user.user_id,
+            target_reference=f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email,
+            old_value=old_data,
+            new_value=update_data,
+            request=http_request,
+            region_code=get_user_region_code(db, current_user),
+        )
+
+    return build_profile_response(db, current_user)

@@ -11,7 +11,12 @@ const allConsumerReports = [
     status: "Pending Verification",
     region: "Region IV-A",
     dateReceived: "2026-05-17 10:42",
-    description: "Complainant claims no CPR or LTO is displayed on the product packaging, and there is no record of registration in the FDA database for this manufacturer."
+    description: "Complainant claims no CPR or LTO is displayed on the product packaging, and there is no record of registration in the FDA database for this manufacturer.",
+    documents: [
+      { id: 'doc-1', name: 'Packaging_Front.jpg', size: '1.8 MB', type: 'image/jpeg', uploadedBy: 'Walk-in Complainant', url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800' },
+      { id: 'doc-2', name: 'Intake_Receipt_Details.pdf', size: '420 KB', type: 'application/pdf', uploadedBy: 'LEA Officer', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+      { id: 'doc-3', name: 'Investigation_Notes.docx', size: '210 KB', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', uploadedBy: 'LEA Officer', url: '/sample-evidence.docx' }
+    ]
   },
   {
     id: 2,
@@ -23,7 +28,10 @@ const allConsumerReports = [
     status: "Under Review",
     region: "NCR",
     dateReceived: "2026-06-01 09:15",
-    description: "Advertised on social media with extreme therapeutic claims. Preliminary check shows incomplete registration papers."
+    description: "Advertised on social media with extreme therapeutic claims. Preliminary check shows incomplete registration papers.",
+    documents: [
+      { id: 'doc-4', name: 'Online_Ad_Screenshot.png', size: '2.4 MB', type: 'image/png', uploadedBy: 'Extension User', url: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800' }
+    ]
   },
   {
     id: 3,

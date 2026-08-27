@@ -4,6 +4,7 @@ import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import mammoth from 'mammoth'
 import { Eye, MoreVertical, Pencil, Trash2, X, Paperclip, FileText, Image as ImageIcon, Download } from 'lucide-react'
 
 const API_BASE = 'http://127.0.0.1:8000';
@@ -98,19 +99,73 @@ function LeaWalkinComplaints() {
     const [docPreviewUrl, setDocPreviewUrl] = useState(null)
     const [docPreviewLoading, setDocPreviewLoading] = useState(false)
     const [docPreviewError, setDocPreviewError] = useState(false)
+    const [docxHtml, setDocxHtml] = useState('')
+    const [docxLoading, setDocxLoading] = useState(false)
+    const [docxError, setDocxError] = useState(false)
 
     // Fetches inline preview when docPreviewModal is set
     useEffect(() => {
         if (!docPreviewModal) {
             setDocPreviewUrl(null)
             setDocPreviewError(false)
+            setDocxHtml('')
+            setDocxLoading(false)
+            setDocxError(false)
             return
         }
 
         const mime = docPreviewModal.mime_type || docPreviewModal.type || ''
-        const isImage = mime.startsWith('image/')
-        const isPdf = mime === 'application/pdf'
-        if (!isImage && !isPdf) return
+        const name = docPreviewModal.file_name || docPreviewModal.name || ''
+        const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(name)
+        const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(name)
+        const isDocx = mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(name)
+
+        if (!isImage && !isPdf && !isDocx) return
+
+        if (isDocx) {
+            setDocxLoading(true)
+            setDocxError(false)
+
+            if (docPreviewModal.url) {
+                fetch(docPreviewModal.url)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                        return res.arrayBuffer()
+                    })
+                    .then(arrayBuffer => mammoth.convertToHtml({ arrayBuffer }))
+                    .then(result => { setDocxHtml(result.value) })
+                    .catch(err => {
+                        console.error('Docx preview error:', err)
+                        setDocxError(true)
+                    })
+                    .finally(() => setDocxLoading(false))
+                return
+            }
+
+            const fileId = docPreviewModal.file_id || docPreviewModal.id
+            if (!fileId) {
+                setDocxLoading(false)
+                setDocxError(true)
+                return
+            }
+
+            const token = localStorage.getItem('access_token')
+            fetch(`${API_BASE}/shared-files/${fileId}/preview`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                    return res.arrayBuffer()
+                })
+                .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                .then((result) => { setDocxHtml(result.value) })
+                .catch((err) => {
+                    console.error('Docx preview error:', err)
+                    setDocxError(true)
+                })
+                .finally(() => setDocxLoading(false))
+            return
+        }
 
         if (docPreviewModal.url) {
             setDocPreviewUrl(docPreviewModal.url)
@@ -149,10 +204,11 @@ function LeaWalkinComplaints() {
     const filtered = complaints.filter((c) => {
         const matchesSearch = (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
             (c.product || '').toLowerCase().includes(search.toLowerCase()) ||
-            (c.complainant || '').toLowerCase().includes(search.toLowerCase());
+            (c.complainant || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.manufacturer || '').toLowerCase().includes(search.toLowerCase());
 
-        const matchesStatus = selectedStatus === 'All' || 
-            c.status === selectedStatus || 
+        const matchesStatus = selectedStatus === 'All' ||
+            c.status === selectedStatus ||
             (selectedStatus === 'rejected' && c.status === 'recalled');
         const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;
 
@@ -277,12 +333,12 @@ function LeaWalkinComplaints() {
             <div className='LeaContentContainer'>
                 <TopBar topbarType="LEA" />
                 <div className='LeaMainfeed LeaWalkinComplaintsFeed'>
-                      <div className='LeaHeader'>
-                            <div>
-                                <p>LEA-CIDG: Walk-in Complaints</p>
-                                <p>CITIZEN-REPORTED COMPLAINTS</p>
-                            </div>
+                    <div className='LeaHeader'>
+                        <div>
+                            <p>LEA-CIDG: Walk-in Complaints</p>
+                            <p>CITIZEN-REPORTED COMPLAINTS</p>
                         </div>
+                    </div>
 
                         {/* Buttons now on their own row below the title, right-aligned */}
                         <div className='WalkinButtonActionsRow'>
@@ -324,7 +380,7 @@ function LeaWalkinComplaints() {
                                     <option value="All">All Categories</option>
                                     <option value="Cosmetics">Cosmetics</option>
                                     <option value="Food">Food</option>
-                                    <option value="Medical Devices">Medical Devices</option>
+                                    <option value="Devices">Medical Devices</option>
                                     <option value="Drugs">Drugs</option>
                                 </select>
 
@@ -375,71 +431,71 @@ function LeaWalkinComplaints() {
                                     const paginatedComplaints = filtered.slice(startIndex, endIndex);
 
                                     return paginatedComplaints.map((complaint) => (
-                                    <tr key={complaint.id}>
-                                        <td className='ClassId'>{complaint.id}</td>
-                                        <td>
-                                            <p className='WcProductName'>{complaint.product}</p>
-                                        </td>
-                                        <td>
-                                            <p className='WcManufacturerName'>{complaint.manufacturer}</p>
-                                        </td>
-                                        <td>{complaint.complainant}</td>
-                                        <td>
-                                            <span className={`WcStatusBadge ${WcGetStatusClass(complaint.status)}`}>
-                                                {WcGetStatusLabel(complaint.status)}
-                                            </span>
-                                        </td>
-                                        <td className='WcCategoryCell'>{complaint.category}</td>
-                                        <td>{complaint.logged}</td>
-                                        <td>
-                                            <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
-                                                <span className='WcActionTooltipWrap'>
-                                                    <button
-                                                        className='WcBtnIconView'
-                                                        onClick={() => handleViewButton(complaint)}
-                                                        aria-label='View complaint'
-                                                    >
-                                                        <Eye size={16} />
-                                                    </button>
-                                                    <span className='WcTooltip'>View</span>
+                                        <tr key={complaint.id}>
+                                            <td className='ClassId'>{complaint.id}</td>
+                                            <td>
+                                                <p className='WcProductName'>{complaint.product}</p>
+                                            </td>
+                                            <td>
+                                                <p className='WcManufacturerName'>{complaint.manufacturer}</p>
+                                            </td>
+                                            <td>{complaint.complainant}</td>
+                                            <td>
+                                                <span className={`WcStatusBadge ${WcGetStatusClass(complaint.status)}`}>
+                                                    {WcGetStatusLabel(complaint.status)}
                                                 </span>
-
-                                                {complaint.status === 'queued' && (
-                                                    <div className='WcMenuWrapper'>
+                                            </td>
+                                            <td className='WcCategoryCell'>{complaint.category}</td>
+                                            <td>{complaint.logged}</td>
+                                            <td>
+                                                <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
+                                                    <span className='WcActionTooltipWrap'>
                                                         <button
-                                                            className='WcBtnIconMore'
-                                                            onClick={() => handleToggleMenu(complaint.id)}
-                                                            aria-label='More actions'
+                                                            className='WcBtnIconView'
+                                                            onClick={() => handleViewButton(complaint)}
+                                                            aria-label='View complaint'
                                                         >
-                                                            <MoreVertical size={16} />
+                                                            <Eye size={16} />
                                                         </button>
-                                                        {openMenuId === complaint.id && (
-                                                            <div className='WcDropdownMenu'>
-                                                                <button
-                                                                    className='WcDropdownItem WcDropdownItem--edit'
-                                                                    onClick={() => {
-                                                                        setOpenMenuId(null)
-                                                                        handleEditComplaint(complaint)
-                                                                    }}
-                                                                >
-                                                                    <Pencil size={14} />
-                                                                    Edit Complaint
-                                                                </button>
-                                                                <button
-                                                                    className='WcDropdownItem WcDropdownItem--delete'
-                                                                    onClick={() => handleDropdownDeleteClick(complaint)}
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                    Delete Complaint
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ));
+                                                        <span className='WcTooltip'>View</span>
+                                                    </span>
+
+                                                    {complaint.status === 'queued' && (
+                                                        <div className='WcMenuWrapper'>
+                                                            <button
+                                                                className='WcBtnIconMore'
+                                                                onClick={() => handleToggleMenu(complaint.id)}
+                                                                aria-label='More actions'
+                                                            >
+                                                                <MoreVertical size={16} />
+                                                            </button>
+                                                            {openMenuId === complaint.id && (
+                                                                <div className='WcDropdownMenu'>
+                                                                    <button
+                                                                        className='WcDropdownItem WcDropdownItem--edit'
+                                                                        onClick={() => {
+                                                                            setOpenMenuId(null)
+                                                                            handleEditComplaint(complaint)
+                                                                        }}
+                                                                    >
+                                                                        <Pencil size={14} />
+                                                                        Edit Complaint
+                                                                    </button>
+                                                                    <button
+                                                                        className='WcDropdownItem WcDropdownItem--delete'
+                                                                        onClick={() => handleDropdownDeleteClick(complaint)}
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                        Delete Complaint
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ));
                                 })()}
                             </tbody>
                         </table>
@@ -575,8 +631,13 @@ function LeaWalkinComplaints() {
                                     </div>
 
                                     <div className="LeaVerifDocModalBody">
-                                        {((docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) || 
-                                          (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf')) ? (
+                                        {(docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            <img
+                                                src={docPreviewUrl}
+                                                alt={docPreviewModal.file_name || docPreviewModal.name}
+                                                className="LeaVerifDocImagePreview"
+                                            />
+                                        ) : (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf' || /\.pdf$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
                                             docPreviewLoading ? (
                                                 <div className="LeaVerifDocPlaceholderPreview">
                                                     <p className="LeaVerifPreviewText">Loading preview&hellip;</p>
@@ -587,18 +648,31 @@ function LeaWalkinComplaints() {
                                                     <p className="LeaVerifPreviewTitle">Preview unavailable</p>
                                                     <p className="LeaVerifPreviewText">Try downloading the file instead.</p>
                                                 </div>
-                                            ) : (docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/')) ? (
-                                                <img
-                                                    src={docPreviewUrl}
-                                                    alt={docPreviewModal.file_name || docPreviewModal.name}
-                                                    className="LeaVerifDocImagePreview"
-                                                />
                                             ) : (
                                                 <iframe
                                                     src={docPreviewUrl}
                                                     title={docPreviewModal.file_name || docPreviewModal.name}
                                                     className="LeaVerifDocPdfPreview"
                                                 />
+                                            )
+                                        ) : (docPreviewModal.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            docxLoading ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <p className="LeaVerifPreviewText">Converting Word document for preview&hellip;</p>
+                                                </div>
+                                            ) : docxError ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                                                    <p className="LeaVerifPreviewTitle">Could not render Word preview</p>
+                                                    <p className="LeaVerifPreviewText">Try downloading the document to view its full contents.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="LeaVerifDocDocxPreview">
+                                                    <div
+                                                        className="LeaVerifDocxContent"
+                                                        dangerouslySetInnerHTML={{ __html: docxHtml }}
+                                                    />
+                                                </div>
                                             )
                                         ) : (
                                             <div className="LeaVerifDocPlaceholderPreview">
