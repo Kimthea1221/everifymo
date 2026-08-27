@@ -1,4 +1,8 @@
 // report.js
+import { whenSessionReady, isUserLoggedIn, getCurrentUser, submitComplaint } from "../scripts/session.js";
+
+let currentVerificationResult = 'unregistered';
+
 function showReportView(viewId) {
   const views = document.querySelectorAll('.report-view, .report-view-guest');
   views.forEach(view => {
@@ -7,14 +11,12 @@ function showReportView(viewId) {
 }
 
 function populateDetectedProduct(title, url) {
-  ['report-form-view', 'report-form-view-guest'].forEach(containerId => {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const nameEl = container.querySelector('#complaint-product-name');
-    const urlEl = container.querySelector('#complaint-product-url');
-    if (nameEl) nameEl.value = title;
-    if (urlEl) urlEl.value = url;
-  });
+  const suffix = isUserLoggedIn() ? '-user' : '-guest';
+  const nameEl = document.getElementById('complaint-product-name' + suffix);
+  const urlEl = document.getElementById('complaint-product-url' + suffix);
+
+  if (nameEl) nameEl.value = title || '';
+  if (urlEl) urlEl.value = url || '';
 }
 
 function initAttachBoxes() {
@@ -51,28 +53,45 @@ function initAttachBoxes() {
   });
 }
 
-function collectReportFormData(containerId) {
+function getActiveAttachment() {
+  const isGuest = !isUserLoggedIn();
+  const containerId = isGuest ? 'report-form-view-guest' : 'report-form-view';
   const container = document.getElementById(containerId);
-  if (!container) return null;
+  if (!container) return { data: null, name: null };
 
-  const productName = container.querySelector('#complaint-product-name')?.value.trim() || '';
-  const link = container.querySelector('#complaint-product-url')?.value.trim() || '';
-  const storeName = container.querySelector('#store-name')?.value.trim() || '';
-  const description = container.querySelector('#complaint-description')?.value.trim() || '';
   const previewImg = container.querySelector('.attach-preview-img');
-  const attachment = previewImg ? previewImg.src : null; // demo-only object URL; not persisted past this session
+  const attachInput = container.querySelector('.report-attach-input');
+  const file = attachInput?.files?.[0];
 
-  return { productName, link, storeName, description, attachment };
+  return {
+    data: previewImg ? previewImg.src : null,
+    name: file ? file.name : null
+  };
 }
+
+// function collectReportFormData(containerId) {
+//   const container = document.getElementById(containerId);
+//   if (!container) return null;
+
+//   const productName = container.querySelector('#complaint-product-name')?.value.trim() || '';
+//   const link = container.querySelector('#complaint-product-url')?.value.trim() || '';
+//   const storeName = container.querySelector('#store-name')?.value.trim() || '';
+//   const description = container.querySelector('#complaint-description')?.value.trim() || '';
+//   const previewImg = container.querySelector('.attach-preview-img');
+//   const attachment = previewImg ? previewImg.src : null; // demo-only object URL; not persisted past this session
+
+//   return { productName, link, storeName, description, attachment };
+// }
 
 function clearReportForm(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const nameEl = container.querySelector('#complaint-product-name');
-  const urlEl = container.querySelector('#complaint-product-url');
-  const storeEl = container.querySelector('#store-name');
-  const descEl = container.querySelector('#complaint-description');
+  const suffix = containerId.endsWith('-guest') ? '-guest' : '-user';
+  const nameEl = document.getElementById('complaint-product-name' + suffix);
+  const urlEl = document.getElementById('complaint-product-url' + suffix);
+  const storeEl = document.getElementById('store-name' + suffix);
+  const descEl = document.getElementById('complaint-description' + suffix);
   if (nameEl) nameEl.value = '';
   if (urlEl) urlEl.value = '';
   if (storeEl) storeEl.value = '';
@@ -108,17 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.report-submit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const isGuest = !isUserLoggedIn();
-
-        // if (!isGuest) {
-        //   const reportData = collectReportFormData('report-form-view');
-        //   if (reportData && reportData.productName) {
-        //     addComplaintToStatus(reportData, () => {
-        //       showReportView('report-success-view');
-        //     });
-        //     return;
-        //   }
-        // }
-
         showReportView(isGuest ? 'report-success-view-guest' : 'report-success-view');
 
         let productNameInput = isActive('complaint-product-name');
@@ -127,19 +135,22 @@ document.addEventListener('DOMContentLoaded', () => {
         let descriptionInput = isActive('complaint-description');
 
         let url = sanitizeUrl(productUrlInput.value);
+        const attachment = getActiveAttachment();
 
         submitComplaint({ 
             productName: productNameInput.value, 
             productUrl: url, 
             storeName: storeNameInput.value, 
             platform: platform(url),
-            description: descriptionInput.value 
+            description: descriptionInput.value, 
+            verificationResult: currentVerificationResult,
+            attachmentData: attachment.data,      
+            attachmentName: attachment.name
           }, (success, e) => {
             if (!success) {
               console.error("Complaint submission failed:", e);
             }
-          }
-        );
+          });
       });
     });
 
@@ -169,10 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     //babalikan 2
     chrome.storage.local.get(
-      ['productTitle', 'productUrl', 'productStatus'],
+      ['productTitle', 'productStatus', 'productUrl'],
       (data) => {
         const isGuest = !isUserLoggedIn();
         const status = data.productStatus;
+        currentVerificationResult = status || 'unregistered';
 
         if (status === 'unregistered' || status === 'registered' || status === 'suspicious') {
           populateDetectedProduct(data.productTitle, data.productUrl);
@@ -184,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   });
 
-  autoFillUrl();
+  // autoFillUrl();
 });
 
 //babalikan 1
@@ -211,7 +223,7 @@ function platform(url) {
   return "no platform detected";
 }
 
-//auto-fill url
+// auto-fill url
 function autoFillUrl() {
   let params = new URLSearchParams(window.location.search);
   let productUrl = params.get('productUrl');
@@ -222,16 +234,16 @@ function autoFillUrl() {
 }
 
 function sanitizeUrl(rawUrl) {
-    try {
-        let url = new URL(rawUrl);
-        let suspiciousPatterns = /token|session|auth|sp_atk|spm/i;
-        [...url.searchParams.keys()].forEach(key => {
-            if (suspiciousPatterns.test(key)) {
-                url.searchParams.delete(key);
-            }
-        });
-        return url.toString();
-    } catch {
-        return rawUrl;
-    }
+  try {
+    let url = new URL(rawUrl);
+    let suspiciousPatterns = /token|session|auth|sp_atk|spm/i;
+    [...url.searchParams.keys()].forEach(key => {
+        if (suspiciousPatterns.test(key)) {
+            url.searchParams.delete(key);
+        }
+    });
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
 }
