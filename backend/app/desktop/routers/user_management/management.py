@@ -173,6 +173,8 @@ async def activate_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    previous_status = user.status
+
     temp_password = generate_temp_password()
     user.password_hash = hash_password(temp_password)
     user.force_password_change = True
@@ -201,10 +203,12 @@ async def activate_user(
         user=current_user,
         action=AuditAction.APPROVE_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user_id_val,
-        target_reference=user_email,
+        target_id=user.user_id,
+        target_reference=user.email,
+        old_value={"status": previous_status},
+        new_value={"status": "active"},
         request=http_request,
-        region_code=region_code,
+        region_code=get_user_region_code(db, user),
     )
 
     return {"message": "User account activated successfully"}
@@ -242,10 +246,12 @@ def suspend_user(
         user=current_user,
         action=AuditAction.SUSPEND_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user_id_val,
-        target_reference=user_email,
+        target_id=user.user_id,
+        target_reference=user.email,
+        old_value={"status": "active"},
+        new_value={"status": "suspended"},
         request=http_request,
-        region_code=region_code,
+        region_code=get_user_region_code(db, user),
     )
 
     return {"message": "User account suspended successfully"}
@@ -283,10 +289,12 @@ def reactivate_user(
         user=current_user,
         action=AuditAction.REACTIVATE_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user_id_val,
-        target_reference=user_email,
+        target_id=user.user_id,
+        target_reference=user.email,
+        old_value={"status": "suspended"},
+        new_value={"status": "active"},
         request=http_request,
-        region_code=region_code,
+        region_code=get_user_region_code(db, user),
     )
 
     return {"message": "User account reactivated successfully"}
@@ -343,10 +351,12 @@ async def resend_invitation(
         user=current_user,
         action=AuditAction.INVITE_PERSONNEL_RESENT,
         target_table="users",
-        target_id=user_id_val,
-        target_reference=user_email,
+        target_id=user.user_id,
+        target_reference=user.email,
+        old_value={"status": "invited"},
+        new_value={"status": "resend requested"},
         request=http_request,
-        region_code=region_code,
+        region_code=get_user_region_code(db, user),
     )
 
     return {"message": "Invitation resent successfully"}
@@ -370,6 +380,7 @@ def delete_user(
     deleted_user_id = user.user_id
     deleted_user_email = user.email
     deleted_user_region_code = get_user_region_code(db, user)
+    deleted_user_previous_status = "suspended" if (user.status == UserStatus.ACTIVE and not user.is_active) else "invited"
 
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == user_id).delete()
     db.delete(user)
@@ -382,6 +393,8 @@ def delete_user(
         target_table="users",
         target_id=deleted_user_id,
         target_reference=deleted_user_email,
+        old_value={"status": deleted_user_previous_status},
+        new_value={"status": "deleted"},
         request=http_request,
         region_code=deleted_user_region_code,
     )
@@ -414,10 +427,12 @@ def unlock_user(
         user=current_user,
         action=AuditAction.UNLOCK_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user_id_val,
-        target_reference=user_email,
+        target_id=user.user_id,
+        target_reference=user.email,
+        old_value={"status": "locked"},
+        new_value={"status": "active"},
         request=http_request,
-        region_code=region_code,
+        region_code=get_user_region_code(db, user),
     )
 
     return {"message": "User account unlocked successfully"}
