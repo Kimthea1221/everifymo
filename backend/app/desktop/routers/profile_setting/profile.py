@@ -86,6 +86,10 @@ def update_profile(
         if existing:
             raise HTTPException(status_code=400, detail="This Employee ID is already in use.")
 
+    # capture the "before" values for exactly the fields being changed,
+    # before setattr() overwrites them
+    old_data = {field: getattr(current_user, field, None) for field in update_data}
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
 
@@ -108,6 +112,7 @@ def update_profile(
             target_table="users",
             target_id=current_user.user_id,
             target_reference=f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email,
+            old_value=old_data,
             new_value=update_data,
             request=http_request,
             region_code=get_user_region_code(db, current_user),
@@ -203,6 +208,10 @@ def update_profile(
         if existing:
             raise HTTPException(status_code=400, detail="This Employee ID is already in use.")
 
+    # capture the "before" values for exactly the fields being changed,
+    # before setattr() overwrites them
+    old_data = {field: getattr(current_user, field, None) for field in update_data}
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
 
@@ -225,6 +234,7 @@ def update_profile(
             target_table="users",
             target_id=current_user.user_id,
             target_reference=f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.email,
+            old_value=old_data,
             new_value=update_data,
             request=http_request,
             region_code=get_user_region_code(db, current_user),
