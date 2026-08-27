@@ -1,8 +1,13 @@
+# backend/app/desktop/services/verification/fda_verification_response.py
 from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.models.verification_requests import VerificationRequest
 from app.models.complaints import Complaint
@@ -53,6 +58,7 @@ def submit_fda_verification_response(
     request_id: UUID,
     current_user,
     data: FdaVerificationSubmitRequest,
+    request: Request = None,
 ) -> tuple[VerificationRequest, Complaint]:
     verification_request, complaint = _get_request_and_complaint_in_region(db, request_id, current_user)
 
@@ -64,6 +70,11 @@ def submit_fda_verification_response(
             status_code=400,
             detail="This verification request has already been responded to.",
         )
+
+    old_status = verification_request.verification_request_status
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
 
     if data.verification_status == FdaVerificationStatusChoice.registered:
         if not data.cpr_number or not data.cpr_number.strip() or not data.response_notes or not data.response_notes.strip():
@@ -111,6 +122,26 @@ def submit_fda_verification_response(
     db.refresh(verification_request)
     db.refresh(complaint)
 
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.UPDATE_VERIFICATION_STATUS,
+        target_table="verification_requests",
+        target_id=verification_request.request_id,
+        target_reference=complaint.case_reference,
+        old_value={"verification_request_status": old_status},
+        new_value={
+            "verification_request_status": new_verification_status,
+            "cpr_number": verification_request.cpr_number,
+            "response_notes": verification_request.response_notes,
+            "unregistered_reason": verification_request.unregistered_reason,
+        },
+        request=request,
+        region_code=region_code,
+    )
+
     return verification_request, complaint
 
 
@@ -125,6 +156,7 @@ def reject_fda_verification_response(
     request_id: UUID,
     current_user,
     data: FdaVerificationRejectRequest,
+    request: Request = None,
 ) -> tuple[VerificationRequest, Complaint]:
     verification_request, complaint = _get_request_and_complaint_in_region(db, request_id, current_user)
 
@@ -133,6 +165,11 @@ def reject_fda_verification_response(
             status_code=400,
             detail="This verification request has already been responded to.",
         )
+
+    old_status = verification_request.verification_request_status
+    region_code = get_user_region_code(db, current_user)
+    current_user_id = current_user.user_id
+    current_user_role = current_user.role
 
     verification_request.verification_request_status = "rejected"
     verification_request.rejection_reason = data.rejection_reason
@@ -151,6 +188,24 @@ def reject_fda_verification_response(
     db.commit()
     db.refresh(verification_request)
     db.refresh(complaint)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=current_user_id,
+        user_role_override=current_user_role,
+        action=AuditAction.UPDATE_VERIFICATION_STATUS,
+        target_table="verification_requests",
+        target_id=verification_request.request_id,
+        target_reference=complaint.case_reference,
+        old_value={"verification_request_status": old_status},
+        new_value={
+            "verification_request_status": "rejected",
+            "rejection_reason": verification_request.rejection_reason,
+        },
+        request=request,
+        region_code=region_code,
+    )
 
     return verification_request, complaint
 

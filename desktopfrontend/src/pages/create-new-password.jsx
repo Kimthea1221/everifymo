@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/create-new-password.jsx
 import { useState } from 'react';
 //import { useNavigate } from 'react-router-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -6,6 +7,9 @@ function CreateNewPassword() {
   const navigate = useNavigate();
   const location = useLocation(); 
 
+
+  // add near the top, after location is defined:
+  const inviteToken = location.state?.token;
   const [form, setForm] = useState({
     newPassword: '',
     confirmPassword: '',
@@ -63,8 +67,11 @@ function CreateNewPassword() {
     const response = await fetch('http://127.0.0.1:8000/auth/password/create-from-invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      // inside handleSubmit, replace the line:
+      // const token = location.state?.token;
+      // with just using inviteToken directly:
       body: JSON.stringify({
-        token: token,
+        token: inviteToken,
         new_password: form.newPassword,
       }),
     });
@@ -87,6 +94,26 @@ function CreateNewPassword() {
 
   function handleGoToLogin() {
     navigate('/superadmin-login');
+  }
+
+
+  // add this block BEFORE the `if (saved)` block:
+  if (!inviteToken) {
+    return (
+      <>
+        <style>{styles}</style>
+        <div className="CNPPageContainer">
+          <div className="CNPCard">
+            <div className="CNPSuccessScreen">
+              <h2 className="CNPSuccessTitle">Link Not Recognized</h2>
+              <p className="CNPSuccessDesc">
+                We couldn't find your invitation details. Please use the link from your invitation email.
+              </p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
   }
 
   if (saved) {

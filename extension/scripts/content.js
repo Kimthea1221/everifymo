@@ -16,6 +16,7 @@ verifyBtn.style.cursor = "pointer";
 document.body.appendChild(verifyBtn);
 
 let debounceTimer;
+let pendingSelection = '';
 
 document.addEventListener("mouseup", () => {
     clearTimeout(debounceTimer);
@@ -24,6 +25,7 @@ document.addEventListener("mouseup", () => {
         const selectedText = window.getSelection().toString();
  
         if (selectedText.length > 0) {
+            pendingSelection = selectedText;
             const range = window.getSelection().getRangeAt(0).getBoundingClientRect();
  
             verifyBtn.style.left = range.left + "px";
@@ -35,59 +37,6 @@ document.addEventListener("mouseup", () => {
     }, 100);
 });
 
-// verifyBtn.addEventListener("click", () => {
-//     const selectedText = window.getSelection().toString();
-    
-//     // Remove any existing modal first
-//     document.getElementById('everifymo-modal')?.remove();
-
-//     const modal = document.createElement('div');
-//     modal.id = 'everifymo-modal';
-//     modal.style.position = 'fixed';
-//     modal.style.top = '20px';
-//     modal.style.right = '20px';
-//     modal.style.zIndex = '999999';
-//     modal.style.background = 'white';
-//     modal.style.padding = '16px';
-//     modal.style.borderRadius = '8px';
-//     modal.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-//     modal.innerHTML = `
-//         <div>✅ FDA REGISTERED</div>
-//         <div><strong>Product:</strong> ${selectedText}</div>
-//         <div id="fda-close-btn" style="
-//             position: absolute;
-//             top: 8px;
-//             right: 10px;
-//             cursor: pointer;
-//             font-size: 16px;
-//             opacity: 0.8;
-//         ">✕</div>
-//     `;
-    
-//     document.body.appendChild(modal);
-
-//     document.getElementById('fda-close-btn').addEventListener('click', () => {
-//         modal.remove();
-//     });
-        
-//     setTimeout(() => {
-//         if (modal.parentElement) modal.remove();
-//     }, 8001);
-
-//     verifyBtn.style.display = "none";
-  
-    
-//    // Send the selected text to the background script
-//     chrome.runtime.sendMessage({
-//         action: "extractedTitle",
-//         title: selectedText,
-//         platform: platform(location.href),
-//         url: location.href
-//     }, (response) => {
-//         console.log("Response from background:", response);
-//     });
-// });
-
 function platform(url) {
   if (url.includes("shopee")) return "shopee";
   if (url.includes("lazada")) return "lazada";
@@ -97,10 +46,15 @@ function platform(url) {
 }
 
 let modal = null;
+let lastProductTitle = '';
+let lastProductUrl = '';
+let lastVerificationStatus;
+let lastAttachmentPath = null; // base64 data URL
+let lastAttachmentName = null;
 
 function createModal() {
   if (modal) return modal;
- 
+
   modal = document.createElement('div');
   modal.id = 'everifymo-modal';
   modal.style.display = 'none';
@@ -119,6 +73,7 @@ function createModal() {
   modal.innerHTML = `
     <main class="main-content">
  
+      <!-- loading ui -->
       <div class="state hidden" id="state-loading">
         <div class="loading-copy">
           <div class="spinner"></div>
@@ -126,10 +81,7 @@ function createModal() {
         </div>
       </div>
  
-      <div class="state hidden" id="state-idle">
-        <p class="state-message">Open a product page on Shopee, Lazada, TikTok Shop, or Facebook Marketplace to verify.</p>
-      </div>
- 
+      <!-- ui results for registered products -->
       <div class="state hidden" id="state-registered">
         <div class="registered-banner">
           <div class="registered-copy">
@@ -138,6 +90,7 @@ function createModal() {
           </div>
         </div>
  
+      <!-- ui top matches result -->
         <div class="top-matches">
           <div class="top-matches-title">Top Matches</div>
           <div class="match-list">
@@ -182,13 +135,15 @@ function createModal() {
               <div class="match-score"><span class="match-percent"></span></div>
             </div>
           </div>
- 
+
+          <!-- close button -->
           <div class="action-buttons-green action-buttons">
-            <button class="btn-skip-green btn-skip" type="button">Skip</button>
+            <button class="btn-skip-green btn-skip" type="button">Close</button>
           </div>
         </div>
       </div>
- 
+  
+      <!-- ui result for suspicious product -->
       <div class="state hidden" id="state-suspicious">
         <div class="not-found-banner">
           <div class="not-found-copy">
@@ -204,12 +159,14 @@ function createModal() {
             can't be guaranteed — manual verification is recommended.</div>
         </div>
  
+        <!-- report and close btn for suspicious product -->
         <div class="action-buttons-orange action-buttons">
             <button class="btn-report-orange btn-report" type="button">Report</button>
-            <button class="btn-skip-orange btn-skip" type="button">Skip</button>
+            <button class="btn-skip-orange btn-skip" type="button">Close</button>
         </div>
       </div>
- 
+  
+      <!-- ui result for unregistered products -->
       <div class="state hidden" id="state-unregistered">
         <div class="unregistered-banner">
           <div class="unregistered-copy">
@@ -262,24 +219,147 @@ function createModal() {
               <div class="match-score-red"><span class="match-percent-red"></span></div>
             </div>
           </div>
- 
+  
+          <!-- report and close button for unregistered result -->
           <div class="action-buttons-red action-buttons">
             <button class="btn-report-red btn-report" type="button">Report</button>
-            <button class="btn-skip-red btn-skip" type="button">Skip</button>
+            <button class="btn-skip-red btn-skip" type="button">Close</button>
           </div>
         </div>
       </div>
  
+      <!-- report complaint ui(form) -->
+      <div class="state hidden" id="state-report-form">
+        <div class="field">
+          <label>Product Name/Title</label>
+          <textarea id="rf-product-name"></textarea>
+        </div>
+        <div class="field">
+          <label>Link/URL</label>
+          <textarea id="rf-product-url" readonly></textarea>
+        </div>
+        <div class="field">
+          <label>Store Name</label>
+          <textarea id="rf-store-name" placeholder="Enter Store Name"></textarea>
+        </div>
+        <div class="field">
+          <label>Description (optional)</label>
+          <textarea id="rf-description" placeholder="What made this product look suspicious..."></textarea>
+        </div>
+        <div class="field attach-box" id="rf-attach-box">
+          <input type="file" id="rf-attach-input" accept="image/*" class="hidden" />
+          <span id="rf-attach-text">Attach screenshot (optional)</span>
+          <img id="rf-attach-preview" style="display:none; max-width:100%; margin-top:8px;" />
+        </div>
+
+        <div class="action-buttons">
+          <button id="rf-cancel" type="button">Cancel</button>
+          <button id="rf-submit" type="button">Submit Report</button>
+        </div>
+      </div>
+
+      <div class="state hidden" id="state-report-success">
+        <p class="state-message">✅ Complaint submitted. You can track it in your account.</p>
+      </div>
+
     </main>
   `;
  
   document.body.appendChild(modal);
+
+  const attachBox = modal.querySelector('#rf-attach-box');
+  const attachInput = modal.querySelector('#rf-attach-input');
+  const attachPreview = modal.querySelector('#rf-attach-preview');
+  const attachText = modal.querySelector('#rf-attach-text');
+  
+  attachBox.addEventListener('click', () => attachInput.click());
+
+  attachInput.addEventListener('change', () => {
+    const file = attachInput.files[0];
+    if (!file) return;
+
+    lastAttachmentName = file.name;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      lastAttachmentPath = reader.result; // e.g. "data:image/png;base64,...."
+      attachPreview.src = lastAttachmentPath;
+      attachPreview.style.display = 'block';
+      attachText.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+
  
   modal.querySelectorAll('.btn-skip').forEach(btn => {
     btn.addEventListener('click', () => { modal.style.display = 'none'; });
   });
- 
+
+  modal.querySelectorAll('.btn-report').forEach(btn => {
+    btn.addEventListener('click', () => {  
+      const productName = modal.querySelector('#rf-product-name');
+      const url = modal.querySelector('#rf-product-url');
+
+      if (productName) productName.value = lastProductTitle;
+      if (url) url.value = sanitizeUrl(lastProductUrl);
+
+      modal.querySelector('#rf-store-name').value = '';
+      modal.querySelector('#rf-description').value = '';
+
+      showState('state-report-form');
+    });
+  });
+
+  modal.querySelector('#rf-cancel').addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+
+  modal.querySelector('#rf-submit').addEventListener('click', () => {
+    const complaint = {
+      productName: modal.querySelector('#rf-product-name').value,
+      productUrl: sanitizeUrl(lastProductUrl),
+      storeName: modal.querySelector('#rf-store-name').value,
+      description: modal.querySelector('#rf-description').value,
+      platform: platform(lastProductUrl),
+      verificationResult: lastVerificationStatus,
+      attachmentData: lastAttachmentPath,
+      attachmentName: lastAttachmentName
+    };
+
+    chrome.runtime.sendMessage(
+      { action: "submitComplaint", data: complaint },
+      (response) => {
+        if (response?.success) {
+          showState('state-report-success');
+        } else {
+          console.error("Complaint submission failed:", response?.error);
+        }
+        // reset AFTER sending, not before
+        lastAttachmentPath = null;
+        lastAttachmentName = null;
+        attachPreview.style.display = 'none';
+        attachText.style.display = 'block';
+        attachInput.value = '';
+      }
+    );
+  });
+
   return modal;
+}
+
+function sanitizeUrl(rawUrl) {
+  try {
+    let url = new URL(rawUrl);
+    let suspiciousPatterns = /token|session|auth|sp_atk|spm/i;
+    [...url.searchParams.keys()].forEach(key => {
+        if (suspiciousPatterns.test(key)) {
+            url.searchParams.delete(key);
+        }
+    });
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
 }
 
 function showState(stateId) {
@@ -324,7 +404,8 @@ function populateMatches(stateId, results) {
 }
 
 verifyBtn.addEventListener("click", () => {
-  const selectedText = window.getSelection().toString();
+  lastProductTitle = pendingSelection;  
+  lastProductUrl = location.href;
   verifyBtn.style.display = "none";
  
   createModal();
@@ -332,14 +413,16 @@ verifyBtn.addEventListener("click", () => {
  
   chrome.runtime.sendMessage({
     action: "extractedTitle",
-    title: selectedText,
+    title: lastProductTitle,
     platform: platform(location.href),
     url: location.href
   }, (response) => {
     console.log("Response from background:", response);
  
     const status = response?.data?.status || 'unregistered';
+    lastVerificationStatus = status;
     const results = response?.data?.results || [];
-    renderResult(status, selectedText, results);
+    
+    renderResult(status, lastProductTitle, results);
   });
 });

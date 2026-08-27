@@ -1,22 +1,24 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
+{/* for universal login*/}
+import UniversalLogin from './pages/universal-login.jsx';
 
-{/* LEA-CIDG PAGES */}
+{/* LEA-CIDG PAGES */ }
 import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
 import LeaWalkinComplaints from './pages/leacidgfolder/lea-walkin-complaints.jsx';
 import LeaVerificationRequest from './pages/leacidgfolder/lea-verification-request.jsx';
 import LeaNewIntake from './pages/leacidgfolder/lea-new-intake.jsx';
 import LeaSavedDraft from './pages/leacidgfolder/lea-saved-draft.jsx';
 
-{/* OTP EMAIL TEMPLATE */}
+{/* OTP EMAIL TEMPLATE */ }
 import OtpEmailTemplate from './pages/emailtemplates/otp-email-template.jsx';
 import SuperadminOtpEmail from './pages/emailtemplates/superadmin-otp-email.jsx';
 
 import DeepLinkStatus from './pages/emailtemplates/invitation-status.jsx'
 import ProfileSetting from './pages/profile-setting.jsx';
 
-{/* SUPERADMIN PAGES */}
+{/* SUPERADMIN PAGES */ }
 import SuperAdminLogin from './pages/superadminfolder/superadmin-login.jsx';
 import ForgotPassword from './pages/forgot-password.jsx';
 import SuperAdminUserManagement from './pages/superadminfolder/superadmin-user-management.jsx';
@@ -30,13 +32,14 @@ import UserEmailActivation from './pages/emailtemplates/user-email-activation.js
 import SuperadminEmailAddAdmin from './pages/emailtemplates/superadmin-email-add-admin.jsx';
 import SuperadminInviteStatus from './pages/emailtemplates/superadmin-invite-status.jsx';
 
-{/* FDA PAGES */}
+{/* FDA PAGES */ }
 import FDADashboard from './pages/fdafolder/fda-dashboard.jsx';
 import FDAViewReports from './pages/fdafolder/fda-view-reports.jsx';
 import FDAVerification from './pages/fdafolder/fda-verification.jsx';
 import FDAStatus from './pages/fdafolder/fda-status.jsx';
 import FDAProductDB from './pages/fdafolder/fda-product-db.jsx';
 import FDASavedDraft from './pages/fdafolder/fda-saved-draft.jsx';
+
 
 
 function DeepLinkListener() {
@@ -54,9 +57,13 @@ function DeepLinkListener() {
           console.log('Validate response:', data);
 
           if (data.role === 'superadmin') {
-            navigate('/superadmin-invite-status', {
-              state: { status: data.status, token },
-            });
+            if (data.status === 'valid') {
+              navigate('/create-new-password', { state: { token } });
+            } else {
+              navigate('/superadmin-invite-status', {
+                state: { status: data.status, token },
+              });
+            }
             return;
           }
 
@@ -77,7 +84,7 @@ export default function App() {
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<LeaDashboard />} />
+        <Route path='/' element={<Login />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
@@ -86,6 +93,9 @@ export default function App() {
         <Route path='/change-password' element={<ChangePassword />} />
         <Route path='/create-new-password' element={<CreateNewPassword />} />
         <Route path='/user-registration' element={<UserRegistration />} />
+
+        {/* for universal login*/}
+        <Route path='/universal-login' element={<UniversalLogin />} />
 
         {/* LEA-CIDG ROUTES */}
         <Route path='/leacidgfolder/lea-dashboard' element={<LeaDashboard />} />

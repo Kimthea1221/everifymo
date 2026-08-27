@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/fdafolder/fda-status.jsx   
 import { useState, useEffect } from "react";
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
@@ -10,108 +11,111 @@ import {
   BellRing,
   ShieldCheck,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  XCircle,
+  X
 } from 'lucide-react';
+import { apiFetch } from "../../utils/apiFetch";
 
 /* ============================================================
    MOCK DATA
    ============================================================ */
 
-const initialComplaints = [
-  {
-    complaintId: "c1",
-    caseReference: "ICM-2025-00184",
-    productTitle: "GlowMax Whitening Cream",
-    manufacturer: "BrightSkin Co.",
-    region: "NCR",
-    status: "under_review",
-    reporterUsername: "ext_user_4421",
-    reporterEmail: "jdelacruz@gmail.com",
-  },
-  {
-    complaintId: "c2",
-    caseReference: "ICM-2025-00185",
-    productTitle: "HerbalSlim Capsules",
-    manufacturer: "NatureFit Labs",
-    region: "Region IV-A",
-    status: "open",
-    reporterUsername: "ext_user_7790",
-    reporterEmail: "m.santos@gmail.com",
-  },
-  {
-    complaintId: "c3",
-    caseReference: "ICM-2025-00186",
-    productTitle: "PainAway Patch",
-    manufacturer: "Unknown",
-    region: "Region VII",
-    status: "takedown_requested",
-    reporterUsername: "ext_user_2210",
-    reporterEmail: "a.reyes@yahoo.com",
-  },
-  {
-    complaintId: "c4",
-    caseReference: "ICM-2025-00189",
-    productTitle: "QuickHeal Antibiotic Ointment",
-    manufacturer: "MediQuick",
-    region: "Region VI",
-    status: "completed",
-    reporterUsername: "ext_user_5541",
-    reporterEmail: "kristine.p@gmail.com",
-  },
-  {
-    complaintId: "c5",
-    caseReference: "ICM-2025-00190",
-    productTitle: "Miracle Hair Tonic",
-    manufacturer: "GlowLabs LLC",
-    region: "Region IV-B",
-    status: "dismissed",
-    reporterUsername: "ext_user_3387",
-    reporterEmail: "d.cruz@gmail.com",
-  },
-];
+// const initialComplaints = [
+//   {
+//     complaintId: "c1",
+//     caseReference: "ICM-2025-00184",
+//     productTitle: "GlowMax Whitening Cream",
+//     manufacturer: "BrightSkin Co.",
+//     region: "NCR",
+//     status: "under_review",
+//     reporterUsername: "ext_user_4421",
+//     reporterEmail: "jdelacruz@gmail.com",
+//   },
+//   {
+//     complaintId: "c2",
+//     caseReference: "ICM-2025-00185",
+//     productTitle: "HerbalSlim Capsules",
+//     manufacturer: "NatureFit Labs",
+//     region: "Region IV-A",
+//     status: "open",
+//     reporterUsername: "ext_user_7790",
+//     reporterEmail: "m.santos@gmail.com",
+//   },
+//   {
+//     complaintId: "c3",
+//     caseReference: "ICM-2025-00186",
+//     productTitle: "PainAway Patch",
+//     manufacturer: "Unknown",
+//     region: "Region VII",
+//     status: "takedown_requested",
+//     reporterUsername: "ext_user_2210",
+//     reporterEmail: "a.reyes@yahoo.com",
+//   },
+//   {
+//     complaintId: "c4",
+//     caseReference: "ICM-2025-00189",
+//     productTitle: "QuickHeal Antibiotic Ointment",
+//     manufacturer: "MediQuick",
+//     region: "Region VI",
+//     status: "completed",
+//     reporterUsername: "ext_user_5541",
+//     reporterEmail: "kristine.p@gmail.com",
+//   },
+//   {
+//     complaintId: "c5",
+//     caseReference: "ICM-2025-00190",
+//     productTitle: "Miracle Hair Tonic",
+//     manufacturer: "GlowLabs LLC",
+//     region: "Region IV-B",
+//     status: "dismissed",
+//     reporterUsername: "ext_user_3387",
+//     reporterEmail: "d.cruz@gmail.com",
+//   },
+// ];
 
-const initialStatusHistory = [
-  {
-    historyId: "h1",
-    caseReference: "ICM-2025-00190",
-    productTitle: "Miracle Hair Tonic",
-    previousStatus: "under_review",
-    newStatus: "dismissed",
-    changeNote: "Product found to be registered under a different FDA record.",
-    changedBy: "fda.juan",
-    changedAt: "2026-05-18 13:20",
-  },
-  {
-    historyId: "h2",
-    caseReference: "ICM-2025-00189",
-    productTitle: "QuickHeal Antibiotic Ointment",
-    previousStatus: "takedown_requested",
-    newStatus: "completed",
-    changeNote: "This complaint has been completed. The seller listing was taken down following FDA enforcement action.",
-    changedBy: "fda.maria",
-    changedAt: "2026-05-18 09:12",
-  },
-  {
-    historyId: "h3",
-    caseReference: "ICM-2025-00186",
-    productTitle: "PainAway Patch",
-    previousStatus: "under_review",
-    newStatus: "takedown_requested",
-    changeNote: "Forwarded to platform compliance for removal.",
-    changedBy: "fda.juan",
-    changedAt: "2026-05-17 16:40",
-  },
-  {
-    historyId: "h4",
-    caseReference: "ICM-2025-00184",
-    productTitle: "GlowMax Whitening Cream",
-    previousStatus: "open",
-    newStatus: "under_review",
-    changeNote: "Evidence acknowledged. Under FDA review.",
-    changedBy: "fda.maria",
-    changedAt: "2026-05-17 11:05",
-  },
-];
+// const initialStatusHistory = [
+//   {
+//     historyId: "h1",
+//     caseReference: "ICM-2025-00190",
+//     productTitle: "Miracle Hair Tonic",
+//     previousStatus: "under_review",
+//     newStatus: "dismissed",
+//     changeNote: "Product found to be registered under a different FDA record.",
+//     changedBy: "fda.juan",
+//     changedAt: "2026-05-18 13:20",
+//   },
+//   {
+//     historyId: "h2",
+//     caseReference: "ICM-2025-00189",
+//     productTitle: "QuickHeal Antibiotic Ointment",
+//     previousStatus: "takedown_requested",
+//     newStatus: "completed",
+//     changeNote: "This complaint has been completed. The seller listing was taken down following FDA enforcement action.",
+//     changedBy: "fda.maria",
+//     changedAt: "2026-05-18 09:12",
+//   },
+//   {
+//     historyId: "h3",
+//     caseReference: "ICM-2025-00186",
+//     productTitle: "PainAway Patch",
+//     previousStatus: "under_review",
+//     newStatus: "takedown_requested",
+//     changeNote: "Forwarded to platform compliance for removal.",
+//     changedBy: "fda.juan",
+//     changedAt: "2026-05-17 16:40",
+//   },
+//   {
+//     historyId: "h4",
+//     caseReference: "ICM-2025-00184",
+//     productTitle: "GlowMax Whitening Cream",
+//     previousStatus: "open",
+//     newStatus: "under_review",
+//     changeNote: "Evidence acknowledged. Under FDA review.",
+//     changedBy: "fda.maria",
+//     changedAt: "2026-05-17 11:05",
+//   },
+// ];
 
 // Options for the "New status" dropdown on the right panel — what FDA
 // personnel can manually set a complaint TO.
@@ -150,7 +154,7 @@ const DISMISS_PRESETS = [
   "Insufficient evidence to proceed.",
 ];
 
-const CASES_PER_PAGE = 25;
+const CASES_PER_PAGE = 10;
 const HISTORY_PER_PAGE = 25;
 
 function getStatusBadgeStyle(status) {
@@ -169,8 +173,9 @@ function getStatusBadgeStyle(status) {
 }
 
 function FdaStatus() {
-  const [complaints, setComplaints] = useState(initialComplaints);
-  const [statusHistory, setStatusHistory] = useState(initialStatusHistory);
+  const [complaints, setComplaints] = useState([]);
+  const [statusHistory, setStatusHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Left panel: search + filter + pagination
   const [searchQuery, setSearchQuery] = useState("");
@@ -178,9 +183,7 @@ function FdaStatus() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [casePage, setCasePage] = useState(1);
 
-  const [selectedComplaintId, setSelectedComplaintId] = useState(
-    initialComplaints[0].complaintId
-  );
+  const [selectedComplaintId, setSelectedComplaintId] = useState(null);
 
   // Draft form state (right panel)
   const [newStatus, setNewStatus] = useState("");
@@ -188,9 +191,37 @@ function FdaStatus() {
   const [dismissNote, setDismissNote] = useState("");
 
   const [historyPage, setHistoryPage] = useState(1);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [toastError, setToastError] = useState(null);
+
+  useEffect(() => {
+    if (!toastError) return;
+    const timer = setTimeout(() => {
+      setToastError(null);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [toastError]);
 
   const selectedComplaint =
     complaints.find((c) => c.complaintId === selectedComplaintId) || null;
+
+  // Fetch complaints from the backend 
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      try {
+        const res = await apiFetch("/complaints");
+        if (!res.ok) throw new Error("Failed to load complaints");
+        const data = await res.json();
+        setComplaints(data);
+        if (data.length > 0) setSelectedComplaintId(data[0].complaintId);
+      } catch (err) {
+        alert("Could not load complaints. Please refresh.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchComplaints();
+  }, []);
 
   useEffect(() => {
     if (!selectedComplaint) return;
@@ -225,51 +256,114 @@ function FdaStatus() {
     return null;
   };
 
-  const handlePushUpdate = () => {
+  const handlePushUpdate = async () => {
     if (!selectedComplaint) return;
 
     const outgoingMessage = getOutgoingMessage();
     if (newStatus === "dismissed" && !outgoingMessage) {
-      alert("Please choose or write a reason for dismissing this complaint.");
+      setToastError("Please choose or write a reason for dismissing this complaint.");
       return;
     }
 
-    const previousStatus = selectedComplaint.status;
+    // const previousStatus = selectedComplaint.status;
 
-    setComplaints((prev) =>
-      prev.map((c) =>
-        c.complaintId === selectedComplaint.complaintId
-          ? { ...c, status: newStatus }
-          : c
-      )
-    );
+    // setComplaints((prev) =>
+    //   prev.map((c) =>
+    //     c.complaintId === selectedComplaint.complaintId
+    //       ? { ...c, status: newStatus }
+    //       : c
+    //   )
+    // );
 
-    const entry = {
-      historyId: `h${Date.now()}`,
-      caseReference: selectedComplaint.caseReference,
-      productTitle: selectedComplaint.productTitle,
-      previousStatus,
-      newStatus,
-      changeNote: outgoingMessage || "",
-      changedBy: "fda.admin", // TODO: replace once auth is wired up
-      changedAt: new Date().toLocaleString(),
+    // const entry = {
+    //   historyId: `h${Date.now()}`,
+    //   caseReference: selectedComplaint.caseReference,
+    //   productTitle: selectedComplaint.productTitle,
+    //   previousStatus,
+    //   newStatus,
+    //   changeNote: outgoingMessage || "",
+    //   changedBy: "fda.admin", // TODO: replace once auth is wired up
+    //   changedAt: new Date().toLocaleString(),
+    // };
+    // setStatusHistory((prev) => [entry, ...prev]);
+    // setHistoryPage(1);
+
+      // send update status to the backend
+    try {
+        const res = await apiFetch(`/complaints/${selectedComplaint.complaintId}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: newStatus, change_note: outgoingMessage }),
+        });
+  
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.detail || "Failed to update status. Please try again.");
+          return;
+        }
+  
+        const updatedComplaint = await res.json();
+        const previousStatus = selectedComplaint.status;
+  
+        setComplaints((prev) =>
+          prev.map((c) =>
+            c.complaintId === selectedComplaint.complaintId
+              ? { ...c, status: updatedComplaint.status }
+              : c
+          )
+        );
+  
+        const entry = {
+          historyId: `h${Date.now()}`,
+          caseReference: selectedComplaint.caseReference,
+          productTitle: selectedComplaint.productTitle,
+          previousStatus,
+          newStatus,
+          changeNote: outgoingMessage || "",
+          changedBy: "current desktop user", // TODO: pull from decoded auth token / user context
+          changedAt: new Date().toLocaleString(),
+        };
+        setStatusHistory((prev) => [entry, ...prev]);
+        setHistoryPage(1);
+      } catch (err) {
+        alert("Network error — please check your connection and try again.");
+      }
     };
-    setStatusHistory((prev) => [entry, ...prev]);
-    setHistoryPage(1);
 
-    /*
-      BACKEND INTEGRATION (later):
-      await fetch(`/api/complaints/${selectedComplaint.complaintId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: newStatus, change_note: outgoingMessage }),
-      });
-    */
-  };
+  // useEffect(() => {
+  //   const fetchComplaints = async () => {
+  //     try {
+  //       const res = await fetch(`YOUR_API_BASE/complaints`, {
+  //         headers: { "Authorization": `Bearer ${yourStoredDesktopToken}` },
+  //       });
+  //       if (!res.ok) throw new Error("Failed to load complaints");
+  //       const data = await res.json();
+  //       setComplaints(data);
+  //       if (data.length > 0) setSelectedComplaintId(data[0].complaintId);
+  //     } catch (err) {
+  //       alert("Could not load complaints. Please refresh.");
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   fetchComplaints();
+  // }, []);
 
   const totalHistoryPages = Math.ceil(statusHistory.length / HISTORY_PER_PAGE) || 1;
   const safeHistoryPage = Math.min(Math.max(1, historyPage), totalHistoryPages);
   const historyStart = (safeHistoryPage - 1) * HISTORY_PER_PAGE;
   const pagedHistory = statusHistory.slice(historyStart, historyStart + HISTORY_PER_PAGE);
+ 
+  if (isLoading) {
+    return (
+      <div className="FdaDashboardMain">
+        <Sidebar sidebarType="FDA" />
+        <div className="FdaContentContainer">
+          <TopBar topbarType="FDA" />
+          <div className="FdaMainFeed">Loading complaints...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="FdaDashboardMain">
@@ -357,28 +451,40 @@ function FdaStatus() {
                 )}
               </div>
 
-              <div className="FdaCaseListFooter">
-                <span className="FdaFooterInfo">
-                  {filteredComplaints.length === 0 ? 0 : caseStart + 1}-
-                  {Math.min(caseStart + CASES_PER_PAGE, filteredComplaints.length)} of {filteredComplaints.length}
-                </span>
-                <div className="FdaPagination">
-                  <button
-                    className="BtnPageNav"
-                    disabled={safeCasePage === 1}
-                    onClick={() => setCasePage(safeCasePage - 1)}
-                  >
-                    <ChevronLeft size={14} />
-                  </button>
-                  <button
-                    className="BtnPageNav"
-                    disabled={safeCasePage === totalCasePages}
-                    onClick={() => setCasePage(safeCasePage + 1)}
-                  >
-                    <ChevronRight size={14} />
-                  </button>
+              {filteredComplaints.length > 0 && (
+                <div className="FdaCaseListFooter">
+                  <span className="FdaFooterInfo">
+                    Showing {caseStart + 1}–{Math.min(caseStart + CASES_PER_PAGE, filteredComplaints.length)} of {filteredComplaints.length}
+                  </span>
+                  <div className="FdaPagination">
+                    <button
+                      className="BtnPageNav"
+                      disabled={safeCasePage === 1}
+                      onClick={() => setCasePage(safeCasePage - 1)}
+                    >
+                      <ChevronLeft size={14} />
+                      Prev
+                    </button>
+                    {Array.from({ length: totalCasePages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        className={`FdaPageNumber ${safeCasePage === page ? "active" : ""}`}
+                        onClick={() => setCasePage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      className="BtnPageNav"
+                      disabled={safeCasePage === totalCasePages}
+                      onClick={() => setCasePage(safeCasePage + 1)}
+                    >
+                      Next
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* RIGHT: selected complaint detail + form */}
@@ -481,7 +587,19 @@ function FdaStatus() {
                 </div>
 
                 <div className="FdaPushRow">
-                  <button className="BtnPushUpdate" onClick={handlePushUpdate}>
+                  <button
+                    className="BtnPushUpdate"
+                    onClick={() => {
+                      if (!selectedComplaint) return;
+                      const outgoingMessage = getOutgoingMessage();
+                      if (newStatus === "dismissed" && !outgoingMessage) {
+                        setToastError("Please choose or write a reason for dismissing this complaint.");
+                        return;
+                      }
+                      setToastError(null);
+                      setShowConfirmModal(true);
+                    }}
+                  >
                     <Send size={15} />
                     Push update
                   </button>
@@ -546,6 +664,88 @@ function FdaStatus() {
               </div>
             </div>
           </div>
+
+          {/* CONFIRMATION MODAL */}
+          {showConfirmModal && selectedComplaint && (
+            <div className="FdaVerifModalOverlay" role="dialog" aria-modal="true">
+              <div className="FdaVerifModalContainer" style={{ maxWidth: "480px" }}>
+                <div className="FdaVerifModalHeader">
+                  <div className="FdaVerifModalIconWrap FdaVerifModalIcon_submit">
+                    <Send size={20} />
+                  </div>
+                  <div>
+                    <h3 className="FdaVerifModalTitle">Confirm Status Update</h3>
+                    <p className="FdaVerifModalDesc">
+                      Please review the details before pushing this update.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ margin: "16px 0", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #EDEDED", paddingBottom: "8px" }}>
+                    <span style={{ color: "#6B7280", fontWeight: 500 }}>Case ID</span>
+                    <span style={{ fontWeight: 600, color: "#111827" }}>{selectedComplaint.caseReference}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #EDEDED", paddingBottom: "8px" }}>
+                    <span style={{ color: "#6B7280", fontWeight: 500 }}>Product Name</span>
+                    <span style={{ fontWeight: 600, color: "#111827" }}>{selectedComplaint.productTitle}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #EDEDED", paddingBottom: "8px" }}>
+                    <span style={{ color: "#6B7280", fontWeight: 500 }}>New Status</span>
+                    <span className="FdaBadge" style={getStatusBadgeStyle(newStatus)}>
+                      {STATUS_LABELS[newStatus] || newStatus}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="FdaNoticeBanner" style={{ marginBottom: "16px" }}>
+                  <BellRing size={16} />
+                  <div className="FdaNoticeBannerText" style={{ fontSize: "12px" }}>
+                    Pushing this update will sync it to the consumer's email notification.
+                  </div>
+                </div>
+
+                <div className="FdaVerifModalFooter">
+                  <button
+                    type="button"
+                    className="FdaVerifBtnModalCancel"
+                    onClick={() => setShowConfirmModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="FdaVerifBtnModalConfirm FdaVerifBtnModal_primary"
+                    onClick={() => {
+                      setShowConfirmModal(false);
+                      handlePushUpdate();
+                    }}
+                  >
+                    Confirm / Push Update
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FLOATING TOAST ALERT NOTIFICATION */}
+          {toastError && (
+            <div className="FdaVerifToastAlert FdaVerifToast_danger" role="alert">
+              <div className="FdaVerifToastIconWrap">
+                <XCircle size={18} />
+              </div>
+              <div className="FdaVerifToastBody">
+                <p className="FdaVerifToastMessage">{toastError}</p>
+              </div>
+              <button
+                className="FdaVerifToastCloseBtn"
+                onClick={() => setToastError(null)}
+                aria-label="Close notification"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
         </div>
       </div>

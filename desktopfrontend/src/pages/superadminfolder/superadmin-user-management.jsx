@@ -1,6 +1,7 @@
+// desktopfrontend/src/pages/superadminfolder/superadmin-user-management.jsx
 import './superadmin-css.css';
 import { useState, useEffect, useRef } from 'react';
-import { Send, UserCheck, UserX, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, UserCheck, UserX, TriangleAlert, CircleCheckBig, Mail, Eye, Trash2, MoreVertical, RotateCcw, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 import { apiFetch } from '../../utils/apiFetch';
@@ -14,7 +15,7 @@ const STATUS_META = {
   Suspended: { label: 'Suspended', className: 'badge-suspended' },
   'Resend Requested': { label: 'Resend Requested', className: 'badge-pending' },
   'Link Expired': { label: 'Link Expired', className: 'badge-expired' },
-  'Locked Account': { label: 'Locked Account', className: 'badge-suspended' },
+  Locked: { label: 'Locked', className: 'badge-suspended' },
 };
 
 function StatusBadge({ status }) {
@@ -102,14 +103,20 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
               </button>
             </>
           )}
-
           {['Resend Requested', 'Link Expired'].includes(displayStatus) && (
             <button className="UserMgmtDropdownItem" onClick={() => { onAction('resend'); setIsOpen(false); }}>
               <Send size={14} /> Resend Link
             </button>
           )}
-
-          {displayStatus === 'Locked Account' && (
+          {displayStatus === 'Link Expired' && (
+            <>
+              <div className="UserMgmtDropdownDivider" />
+              <button className="UserMgmtDropdownItem danger" onClick={() => { onAction('delete'); setIsOpen(false); }}>
+                <Trash2 size={14} /> Delete Invitation
+              </button>
+            </>
+          )}
+          {displayStatus === 'Locked' && (
             <button className="UserMgmtDropdownItem" onClick={() => { onAction('unlock'); setIsOpen(false); }}>
               <UserCheck size={14} /> Unlock Account
             </button>
@@ -144,7 +151,7 @@ const CONFIRM_MESSAGES = {
   },
   delete: {
     title: 'Delete Account',
-    message: 'Are you sure you want to delete this account? The suspended account will be permanently deleted and this action cannot be undone.',
+    message: 'Are you sure you want to delete this account entry? This action cannot be undone.',
     confirmLabel: 'Delete',
   },
   unlock: {
@@ -618,7 +625,6 @@ function SuperAdminUserManagement() {
             {/* Stats Row */}
             <div className="UMStatsRow">
               {[
-                { label: 'Total Users', value: users.length, className: 'stat-total' },
                 {
                   label: 'Active',
                   value: users.filter((u) => (u.display_status || u.status) === 'Active').length,
@@ -631,17 +637,17 @@ function SuperAdminUserManagement() {
                 },
                 {
                   label: 'Invited',
-                  value: users.filter((u) => ['Invited', 'Resend Requested', 'Link Expired'].includes(u.display_status || u.status)).length,
+                  value: users.filter((u) => ['Invited', 'Resend Requested'].includes(u.display_status || u.status)).length,
                   className: 'stat-pending',
                 },
                 {
-                  label: 'Suspended',
-                  value: users.filter((u) => (u.display_status || u.status) === 'Suspended').length,
+                  label: 'Link Expired',
+                  value: users.filter((u) => (u.display_status || u.status) === 'Link Expired').length,
                   className: 'stat-suspended',
                 },
                 {
                   label: 'Locked',
-                  value: users.filter((u) => (u.display_status || u.status) === 'Locked Account').length,
+                  value: users.filter((u) => (u.display_status || u.status) === 'Locked').length,
                   className: 'stat-suspended',
                 },
               ].map((s) => (
@@ -654,26 +660,41 @@ function SuperAdminUserManagement() {
 
             {/* Filter Bar */}
             <div className="UserMgmtFiltersContainer">
-              <span className="UserMgmtFilterLabel">Filter by Status:</span>
-              <select
-                className="UserMgmtSelectFilter"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="All">All</option>
-                <option value="Invited">Invited</option>
-                <option value="Resend Requested">Resend Requested</option>
-                <option value="Link Expired">Link Expired</option>
-                <option value="Pending Approval">Pending Approval</option>
-                <option value="Active">Active</option>
-                <option value="Suspended">Suspended</option>
-                <option value="Locked Account">Locked Account</option>
-              </select>
-            </div>
+              <div className="UserMgmtFilterRowContainer">
+                <span className="UserMgmtFilterLabel">STATUS</span>
+                <select
+                  className="UserMgmtSelectFilter"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="All">All</option>
+                  <option value="Invited">Invited</option>
+                  <option value="Resend Requested">Resend Requested</option>
+                  <option value="Link Expired">Link Expired</option>
+                  <option value="Pending Approval">Pending Approval</option>
+                  <option value="Active">Active</option>
+                  <option value="Suspended">Suspended</option>
+                  <option value="Locked">Locked </option>
+                </select>
+              </div>
 
+              {statusFilter !== 'All' && (
+                <button
+                  className="BtnClearFiltersIcon"
+                  aria-label="Clear Filters"
+                  title="Clear Filters"
+                  onClick={() => {
+                    setStatusFilter('All');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
             {/* Table */}
             <div className="UMTableWrapper">
               <table className="UMTable">

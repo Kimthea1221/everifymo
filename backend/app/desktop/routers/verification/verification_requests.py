@@ -1,40 +1,42 @@
 from uuid import UUID
+from datetime import date
+import io
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
-import io
 from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
 from app.core.dependencies import get_current_user
+
 from app.desktop.schemas.verification.verification import (
-    LeaVerificationQueueCounts,
     VerificationRequestCreate,
     VerificationRequestResponse,
-)
-from app.desktop.services.verification.verification_submit_service import (
-    submit_verification_draft,
-    create_verification_request_direct,
-)
-
-from app.models.complaints import Complaint
-from app.models.walkin_complainants import WalkinComplainant
-from app.desktop.schemas.verification.verification import VerificationRequestAwaitingFDAResponse
-
-from app.models.verification_requests import VerificationRequest
-
-from app.desktop.schemas.verification.verification import FdaVerificationRequestDetailResponse
-from app.desktop.services.verification.fda_verification_response import get_fda_verification_request_detail
-
-from datetime import date
-from app.desktop.schemas.verification.verification import (
+    VerificationRequestAwaitingFDAResponse,
+    FdaVerificationRequestDetailResponse,
     FdaVerificationCompletedListResponse,
     FdaVerificationCompletedDetailResponse,
     FdaVerificationRejectedListResponse,
     FdaVerificationRejectedDetailResponse,
     FdaVerificationQueueCounts,
     LeaVerificationQueueCounts,
+    LeaFdaResponseListItem,
+    LeaFdaResponseDetailResponse,
+    LeaClosedCaseListResponse,
 )
+
+from app.desktop.services.verification.verification_submit_service import (
+    submit_verification_draft,
+    create_verification_request_direct,
+    recall_verification_request,   # ADD BY MHAE
+    resend_reminder,   # ADD BY MHAE
+)
+
+from app.models.complaints import Complaint
+from app.models.walkin_complainants import WalkinComplainant
+from app.models.verification_requests import VerificationRequest
+
+from app.desktop.services.verification.fda_verification_response import get_fda_verification_request_detail
 
 from app.desktop.services.verification.fda_verification_lists import (
     list_fda_verification_completed,
@@ -51,6 +53,9 @@ from app.desktop.services.verification.fda_verification_export import (
 
 from app.desktop.services.verification.lea_verification_lists import (
     get_lea_verification_queue_counts,
+    list_lea_fda_response,
+    get_lea_fda_response_detail,
+    list_lea_closed_cases,
 )
 
 
@@ -95,6 +100,40 @@ def create_request_direct(
         priority=data.priority,
         notes_to_fda=data.notes_to_fda,
     )
+
+
+    #
+    #
+    #
+    # Ashanti code starts here
+    #
+    #
+    # POST /verification-requests/{request_id}/recall
+@direct_request_router.post("/{request_id}/recall", response_model=VerificationRequestResponse)
+def recall_request_endpoint(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return recall_verification_request(db, request_id, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # POST /verification-requests/{request_id}/resend-reminder
+@direct_request_router.post("/{request_id}/resend-reminder", response_model=VerificationRequestResponse)
+def resend_reminder_endpoint(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return resend_reminder(db, request_id, current_user)
+
+# Ashanti code ends here
 
 
 # Third router in this file — listing/browsing, separate from the
@@ -319,6 +358,61 @@ def get_lea_verification_queue_counts_endpoint(
 ):
     return get_lea_verification_queue_counts(db, current_user)
 
+
+    # added by Darlene --start
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/fda-response
+@list_router.get("/fda-response", response_model=list[LeaFdaResponseListItem])
+def list_lea_fda_response_endpoint(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return list_lea_fda_response(db, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/fda-response/{request_id}
+@list_router.get("/fda-response/{request_id}", response_model=LeaFdaResponseDetailResponse)
+def get_lea_fda_response_detail_endpoint(
+    request_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_lea_fda_response_detail(db, request_id, current_user)
+
+
+    #
+    #
+    #
+    #
+    #
+    #
+    # GET /verification-requests/closed-cases
+@list_router.get("/closed-cases", response_model=LeaClosedCaseListResponse)
+def list_lea_closed_cases_endpoint(
+    search: str | None = Query(None),
+    category: str | None = Query(None),
+    reason_closed: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return list_lea_closed_cases(
+        db, current_user, search, category, reason_closed, date_from, date_to, page, page_size
+    )
+    # added by Darlene --end
 
     #
     #

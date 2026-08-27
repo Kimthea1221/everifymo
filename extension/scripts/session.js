@@ -159,7 +159,10 @@ export function submitComplaint(complaints, callback) {
     product_url: complaints.productUrl, 
     store_name: complaints.storeName, 
     consumer_description: complaints.description, 
-    platform: complaints.platform 
+    platform: complaints.platform,
+    verification_result: complaints.verificationResult,
+    attachment_data: complaints.attachmentData,    
+    attachment_name: complaints.attachmentName  
   }, token)
       .then(() => callback(true))
       .catch(e => {
