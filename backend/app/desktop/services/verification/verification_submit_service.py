@@ -8,6 +8,10 @@ from app.models.verification_request_drafts import VerificationRequestDraft
 from app.models.verification_requests import VerificationRequest
 from app.models.complaints import Complaint
 
+from app.desktop.services.notifications.notification_service import notify_fda_new_verification_request
+from app.desktop.services.notifications.notification_service import notify_fda_reminder_sent
+from app.desktop.services.notifications.notification_service import notify_fda_request_recalled
+
 from app.core.complaint_status import transition_complaint_status
 
 
@@ -43,6 +47,8 @@ def _create_verification_request(
     )
     db.add(new_request)
     db.flush()
+
+    notify_fda_new_verification_request(db, complaint, priority)   # ADDED for notification to FDA personnel that a new verification request has been submitted
 
     return new_request
 
@@ -134,11 +140,7 @@ def recall_verification_request(db: Session, request_id: UUID, current_user) -> 
     request.recalled_at = datetime.now(timezone.utc)
     request.recalled_by = current_user.user_id
 
-    # TODO: notify FDA that LEA recalled this request. Not built yet —
-    # no notification system exists in the project as of this task.
-    # Whoever builds notifications should hook in here: fire an event
-    # or call a notify_fda(...) service right after this comment,
-    # using request.request_id / complaint.case_reference as context.
+    notify_fda_request_recalled(db, complaint) #Added for notification to FDA personnel that the verification request has been recalled
 
     db.commit()
     db.refresh(request)
@@ -191,7 +193,8 @@ def resend_reminder(db: Session, request_id: UUID, current_user) -> Verification
     request.reminder_sent_at = now
     request.reminder_sent_by = current_user.user_id
 
-    # TODO: notify FDA that LEA sent a reminder on this request.
+    complaint = db.query(Complaint).filter(Complaint.complaint_id == request.complaint_id).first()
+    notify_fda_reminder_sent(db, complaint, request.priority)  # ADDED for notification to FDA personnel that a reminder has been sent for the verification request
 
     db.commit()
     db.refresh(request)
@@ -199,3 +202,4 @@ def resend_reminder(db: Session, request_id: UUID, current_user) -> Verification
     return request
 
 #ashanti  end
+

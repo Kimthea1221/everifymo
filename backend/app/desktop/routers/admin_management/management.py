@@ -210,8 +210,10 @@ async def resend_superadmin_invitation(
         user=current_user,
         action=AuditAction.INVITE_SUPERADMIN_RESENT,
         target_table="users",
-        target_id=admin_id_val,
-        target_reference=admin_email,
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        old_value={"status": "invited"},
+        new_value={"status": "resend requested"},
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
@@ -235,18 +237,14 @@ def suspend_superadmin(
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_active = False
-
-    admin_id_val = admin.user_id
-    admin_email = admin.email
-
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.ACCOUNT_SUSPENDED,
         title="Superadmin suspended",
-        message=f"{admin_email}'s superadmin account has been suspended.",
-        related_user_id=admin_id_val,
+        message=f"{admin.email}'s superadmin account has been suspended.",
+        related_user_id=admin.user_id,
     )
 
     write_audit_log(
@@ -254,8 +252,10 @@ def suspend_superadmin(
         user=current_user,
         action=AuditAction.SUSPEND_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin_id_val,
-        target_reference=admin_email,
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        old_value={"status": "active"},
+        new_value={"status": "suspended"},
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
@@ -276,18 +276,14 @@ def reactivate_superadmin(
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_active = True
-
-    admin_id_val = admin.user_id
-    admin_email = admin.email
-
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.ACCOUNT_REACTIVATED,
         title="Superadmin reactivated",
-        message=f"{admin_email}'s superadmin account has been reactivated.",
-        related_user_id=admin_id_val,
+        message=f"{admin.email}'s superadmin account has been reactivated.",
+        related_user_id=admin.user_id,
     )
 
     write_audit_log(
@@ -295,8 +291,10 @@ def reactivate_superadmin(
         user=current_user,
         action=AuditAction.REACTIVATE_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin_id_val,
-        target_reference=admin_email,
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        old_value={"status": "suspended"},
+        new_value={"status": "active"},
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
@@ -338,6 +336,8 @@ def delete_superadmin(
         target_table="users",
         target_id=deleted_admin_id,
         target_reference=deleted_admin_email,
+        old_value={"status": "suspended"},
+        new_value={"status": "deleted"},
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
@@ -373,10 +373,6 @@ def unlock_superadmin(
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_locked = False
     admin.failed_login_attempts = 0
-
-    admin_id_val = admin.user_id
-    admin_email = admin.email
-
     db.commit()
 
     write_audit_log(
@@ -384,8 +380,10 @@ def unlock_superadmin(
         user=current_user,
         action=AuditAction.UNLOCK_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin_id_val,
-        target_reference=admin_email,
+        target_id=admin.user_id,
+        target_reference=admin.email,
+        old_value={"status": "locked"},
+        new_value={"status": "active"},
         request=http_request,
         region_code=None,
         user_role_override="superadmin",
