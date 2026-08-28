@@ -14,6 +14,7 @@ from app.desktop.schemas.complaints.complaints import (
     LeaCloseCaseResponse,
 )
 
+from app.desktop.services.notifications.notification_service import notify_fda_case_closed  # ADDED
 
 # Left panel list — active takedown operations, region-scoped. No
 # search/category params, same client-side-filter pattern as the
@@ -90,6 +91,8 @@ def close_case(
 
     transition_complaint_status(complaint, "completed")
 
+    notify_fda_case_closed(db, complaint) #Added for notification to FDA personnel that the takedown operation has been closed
+    
     db.commit()
     db.refresh(complaint)
 

@@ -1,7 +1,8 @@
+# backend/app/desktop/routers/auth/invite.py
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/admin/users", tags=["admin-users"])
 async def invite_personnel(
     payload: InvitePersonnelRequest,
     background_tasks: BackgroundTasks,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superadmin),
 ):
@@ -34,7 +36,7 @@ async def invite_personnel(
 
     user_id, token = create_invited_user(
         db, payload.email, payload.region_id, db_role,
-        created_by=current_user.user_id,
+        created_by=current_user.user_id, request=http_request,
     )
 
     # use payload.email, not user.email — avoids touching the expired ORM object
