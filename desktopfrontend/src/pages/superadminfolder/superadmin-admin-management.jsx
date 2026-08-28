@@ -131,7 +131,7 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
                   toggleDropdown();
                 }}
               >
-                <Trash2 size={14} /> Delete Invitation
+                <Trash2 size={14} /> Delete Account
               </button>
             </>
           )}
