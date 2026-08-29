@@ -1,8 +1,9 @@
+# backend/app/desktop/routers/verification/verification_requests.py
 from uuid import UUID
 from datetime import date
 import io
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -74,10 +75,11 @@ direct_request_router = APIRouter(prefix="/verification-requests", tags=["Verifi
 @draft_submit_router.post("/{draft_id}/submit", response_model=VerificationRequestResponse)
 def submit_draft(
     draft_id: UUID,
+    request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return submit_verification_draft(db, draft_id, current_user)
+    return submit_verification_draft(db, draft_id, current_user, request)
 
 
     #
@@ -90,6 +92,7 @@ def submit_draft(
 @direct_request_router.post("/", response_model=VerificationRequestResponse)
 def create_request_direct(
     data: VerificationRequestCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -99,6 +102,7 @@ def create_request_direct(
         product_code=data.product_code,
         priority=data.priority,
         notes_to_fda=data.notes_to_fda,
+        request=request,
     )
 
 
@@ -112,10 +116,11 @@ def create_request_direct(
 @direct_request_router.post("/{request_id}/recall", response_model=VerificationRequestResponse)
 def recall_request_endpoint(
     request_id: UUID,
+    request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return recall_verification_request(db, request_id, current_user)
+    return recall_verification_request(db, request_id, current_user, request)
 
 
     #

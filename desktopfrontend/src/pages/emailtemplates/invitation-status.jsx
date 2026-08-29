@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ClockAlert, Link, CircleCheckBig } from 'lucide-react'
+import { API_BASE_URL } from '../../utils/apiConfig'
 
 function DeepLinkStatus() {
     const location = useLocation()
@@ -15,7 +16,7 @@ function DeepLinkStatus() {
 
     function handleRequestResend() {
         setResendSending(true)
-        fetch('http://localhost:8000/registration/request-resend', {
+        fetch(`${API_BASE_URL}/registration/request-resend`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ invite_token }),
