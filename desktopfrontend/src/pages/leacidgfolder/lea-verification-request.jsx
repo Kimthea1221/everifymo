@@ -301,6 +301,11 @@ function LeaVerificationRequest() {
   // CHANGED — no longer blanks right panel on every card click (BUG 2 fix)
   const fetchComplaintDetail = async (complaintId) => {
     const token = localStorage.getItem('access_token');
+    // FIXXX: Reset the compose form — these are fresh inputs per complaint,
+    // never returned by this endpoint, so nothing else clears them.
+    setProductCode('');
+    setPriority('standard');
+    setComplaintStatement('');
     // Only show the loading message if nothing is currently displayed —
     // otherwise keep the previous case visible while this one loads.
     if (!selectedComplaint) {
