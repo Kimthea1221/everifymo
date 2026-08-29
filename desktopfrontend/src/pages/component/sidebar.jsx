@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { API_BASE_URL } from '../../utils/apiConfig'
 import {
   LayoutDashboard, //dashboard icon
   ClipboardList, //complaints menu icon
@@ -14,6 +15,7 @@ import {
   ScrollText, // audit logs icon
   Menu, // hamburger icon (NEW - responsive sidebar)
 } from "lucide-react";
+
 
 // Images
 import CIDGLogo from '../../images/pnp-cidg.jpg'
@@ -709,7 +711,7 @@ function Sidebar({ sidebarType, role, agency }) {
 
         try {
             if (refreshToken) {
-                await fetch('http://127.0.0.1:8000/auth/token/revoke', {
+                await fetch(`${API_BASE_URL}/auth/token/revoke`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ refresh_token: refreshToken }),

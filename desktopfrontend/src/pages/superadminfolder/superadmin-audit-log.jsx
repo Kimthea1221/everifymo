@@ -419,6 +419,21 @@ const FDA_ACTION_OPTIONS = [
   'UPDATE_USER_PASSWORD',
 ];
 
+// Finalized LEA-CIDG action codes. PERSONNEL_REQUEST_INVITE is
+// deliberately excluded — those rows are redirected to the
+// Superadmin tab for review, same as FDA's equivalent requests.
+const LEA_ACTION_OPTIONS = [
+  'LOGIN',
+  'LOGOUT',
+  'LOGIN_FAILED',
+  'CREATE_COMPLAINT_LOG',
+  'UPDATE_COMPLAINT_LOG',
+  'DELETE_COMPLAINT_LOG',
+  'CREATE_VERIFICATION_REQUEST',
+  'DELETE_VERIFICATION_REQUEST',
+  'UPDATE_COMPLAINT_STATUS',
+];
+
 // Finalized Superadmin action codes (excludes actions destined for the
 // future System tab: PERSONNEL_PENDING_APPROVAL, SUPERADMIN_PENDING_APPROVAL,
 // LOCK_SUPERADMIN_ACCOUNT, LOCK_PERSONNEL_ACCOUNT).
@@ -594,11 +609,19 @@ function SuperAdminAuditLog() {
   const [superadminLoading, setSuperadminLoading] = useState(false);
   const [superadminError, setSuperadminError] = useState(null);
 
+  // Real backend state (LEA-CIDG tab only)
+  const [leaLogs, setLeaLogs] = useState([]);
+  const [leaTotalItems, setLeaTotalItems] = useState(0);
+  const [leaTotalPages, setLeaTotalPages] = useState(1);
+  const [leaLoading, setLeaLoading] = useState(false);
+  const [leaError, setLeaError] = useState(null);
+
   // Detail Drawer State
   const [selectedLog, setSelectedLog] = useState(null);
 
   const isFdaTab = activeTab === 'FDA';
   const isSuperadminTab = activeTab === 'Superadmin';
+  const isLeaTab = activeTab === 'LEA-CIDG';
 
   // Reset filters that don't make sense across tabs (FDA action codes vs.
   // mock create/update/delete/login, FDA region_code vs. mock region names)
@@ -723,10 +746,58 @@ function SuperAdminAuditLog() {
     return () => { cancelled = true; };
   }, [isSuperadminTab, actionFilter, dateFrom, dateTo, searchQuery, currentPage, limit]);
 
+    // ---- LEA-CIDG tab: real backend fetch ----
+  // GET /admin/audit-logs/lea — superadmin-only, region-scoped same as FDA
+  useEffect(() => {
+    if (!isLeaTab) return;
+
+    let cancelled = false;
+    setLeaLoading(true);
+    setLeaError(null);
+
+    const params = new URLSearchParams();
+    params.set('page', String(currentPage));
+    params.set('limit', String(limit));
+    if (actionFilter !== 'All') params.set('action', actionFilter);
+    if (regionFilter !== 'All') params.set('region_code', regionFilter);
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    if (searchQuery.trim()) params.set('search', searchQuery.trim());
+
+    apiFetch(`/admin/audit-logs/lea?${params.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          if (res.status === 403) {
+            throw new Error('You do not have permission to view LEA-CIDG audit logs.');
+          }
+          throw new Error(`Failed to load audit logs (${res.status})`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setLeaLogs((data.items || []).map(normalizeFdaLog));
+        setLeaTotalItems(data.total ?? 0);
+        setLeaTotalPages(data.total_pages ?? 1);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLeaError(err.message || 'Failed to load audit logs.');
+        setLeaLogs([]);
+        setLeaTotalItems(0);
+        setLeaTotalPages(1);
+      })
+      .finally(() => {
+        if (!cancelled) setLeaLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [isLeaTab, actionFilter, regionFilter, dateFrom, dateTo, searchQuery, currentPage, limit]);
+
   // ---- Mock tabs (LEA-CIDG / System / All): unchanged mock filtering ----
   // Superadmin tab now uses real backend data (see effect above)
   useEffect(() => {
-    if (isFdaTab || isSuperadminTab) return;
+    if (isFdaTab || isSuperadminTab || isLeaTab) return;
 
     setLoading(true);
     const timer = setTimeout(() => {
@@ -791,6 +862,7 @@ function SuperAdminAuditLog() {
   const getTabCount = (tabName) => {
     if (tabName === 'FDA') return isFdaTab ? fdaTotalItems : null;
     if (tabName === 'Superadmin') return isSuperadminTab ? superadminTotalItems : null;
+    if (tabName === 'LEA-CIDG') return isLeaTab ? leaTotalItems : null;
 
     let result = [...MOCK_AUDIT_LOGS];
 
@@ -824,10 +896,10 @@ function SuperAdminAuditLog() {
   };
 
     // ---- Unified view of "what to render" regardless of data source ----
-  const displayLogs = isFdaTab ? fdaLogs : isSuperadminTab ? superadminLogs : logs;
-  const displayLoading = isFdaTab ? fdaLoading : isSuperadminTab ? superadminLoading : loading;
-  const displayTotalItems = isFdaTab ? fdaTotalItems : isSuperadminTab ? superadminTotalItems : totalItems;
-  const displayTotalPages = isFdaTab ? fdaTotalPages : isSuperadminTab ? superadminTotalPages : totalPages;
+  const displayLogs = isFdaTab ? fdaLogs : isSuperadminTab ? superadminLogs : isLeaTab ? leaLogs : logs;
+  const displayLoading = isFdaTab ? fdaLoading : isSuperadminTab ? superadminLoading : isLeaTab ? leaLoading : loading;
+  const displayTotalItems = isFdaTab ? fdaTotalItems : isSuperadminTab ? superadminTotalItems : isLeaTab ? leaTotalItems : totalItems;
+  const displayTotalPages = isFdaTab ? fdaTotalPages : isSuperadminTab ? superadminTotalPages : isLeaTab ? leaTotalPages : totalPages;
 
   const startIndex = (currentPage - 1) * limit;
   const endIndex = Math.min(startIndex + limit, displayTotalItems);
@@ -904,6 +976,10 @@ function SuperAdminAuditLog() {
                     SUPERADMIN_ACTION_OPTIONS.map(code => (
                       <option key={code} value={code}>{code.replaceAll('_', ' ')}</option>
                     ))
+                  ) : isLeaTab ? (
+                    LEA_ACTION_OPTIONS.map(code => (
+                      <option key={code} value={code}>{code.replaceAll('_', ' ')}</option>
+                    ))
                   ) : (
                     <>
                       <option value="create">Create</option>
@@ -927,7 +1003,7 @@ function SuperAdminAuditLog() {
                       }}
                     >
                       <option value="All">All Regions</option>
-                      {isFdaTab ? (
+                      {isFdaTab || isLeaTab ? (
                         FDA_REGION_OPTIONS.map(({ code, label }) => (
                           <option key={code} value={code}>{label}</option>
                         ))
@@ -975,6 +1051,10 @@ function SuperAdminAuditLog() {
               ) : superadminError && isSuperadminTab ? (
                 <div className="UMEmpty" style={{ padding: '40px', textAlign: 'center', color: '#b91c1c' }}>
                   {superadminError}
+                </div>
+              ) : leaError && isLeaTab ? (
+                <div className="UMEmpty" style={{ padding: '40px', textAlign: 'center', color: '#b91c1c' }}>
+                  {leaError}
                 </div>
               ) : displayLoading ? (
                 <div className="UMEmpty" style={{ padding: '40px', textAlign: 'center' }}>
@@ -1175,7 +1255,7 @@ function SuperAdminAuditLog() {
                     <span className="AuditLogDetailsLabel">Target Table</span>
                     <span className="AuditLogDetailsValue">{selectedLog.target_table}</span>
                   </div>
-                  {selectedLog._isFdaRow && selectedLog.target_reference && (
+                  {selectedLog.target_reference && (
                     <div className="AuditLogDetailsRow">
                       <span className="AuditLogDetailsLabel">Target Reference</span>
                       <span className="AuditLogDetailsValue">{selectedLog.target_reference}</span>
