@@ -5,13 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database.sessions import get_db  # adjust if your get_db lives elsewhere
-from app.models.complaints import Complaint  # adjust to your actual model import paths
+from app.database.sessions import get_db  
+from app.models.complaints import Complaint
 from app.models.complaints_status_history import ComplaintStatusHistory
 from app.models.consumer_accounts import ConsumerAccount
 from app.models.walkin_complainants import WalkinComplainant
 from app.desktop.services.status.send_email import send_status_update_email
-from app.core.security import get_current_personnel  # uncomment once desktop auth is confirmed
+from app.core.security import get_current_personnel  
 from app.models.regions import Region
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ async def update_complaint_status(
     complaint_id: UUID,
     payload: StatusUpdateRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_personnel),  # uncomment once desktop auth is confirmed
+    current_user = Depends(get_current_personnel), 
 ):
     complaint = db.query(Complaint).filter(Complaint.complaint_id == complaint_id).first()
     if not complaint:
@@ -48,14 +48,14 @@ async def update_complaint_status(
 
     previous_status = complaint.status
     complaint.status = payload.status
-    complaint.updated_by = current_user["user_id"]  # uncomment once desktop auth is confirmed
+    complaint.updated_by = current_user["user_id"]
 
     if complaint.source == "extension":
         db.add(ComplaintStatusHistory(
             complaint_id=complaint.complaint_id,
             previous_status=previous_status,
             new_status=payload.status,
-            changed_by=current_user["user_id"],  # uncomment once desktop auth is confirmed
+            changed_by=current_user["user_id"], 
             change_note=payload.change_note,
         ))
 
@@ -85,7 +85,7 @@ async def update_complaint_status(
     return complaint
 
 
-@router.get("/complaints")
+@router.get("/complaints-status-update")
 def list_complaints(db: Session = Depends(get_db), current_user = Depends(get_current_personnel),):
     complaints = (
         db.query(Complaint)

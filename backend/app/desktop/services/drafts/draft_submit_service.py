@@ -11,6 +11,8 @@ from app.models.walkin_complainants import WalkinComplainant
 from app.models.complaints import Complaint
 from app.models.shared_files import SharedFile
 from app.core.case_reference import generate_case_reference
+from app.desktop.services.notifications.notification_service import notify_lea_new_walkin_complaint  # ADDED
+
 
 
 SHARED_FILES_DIR = "uploads/shared_files"
@@ -138,6 +140,8 @@ def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
             mime_type=attachment.mime_type,
         ))
 
+    notify_lea_new_walkin_complaint(db, new_complaint, current_user)
+
     db.commit()
     db.refresh(new_complaint)
 
@@ -176,6 +180,8 @@ def create_walkin_complaint_direct(
             **file_info,
         ))
 
+    notify_lea_new_walkin_complaint(db, new_complaint, current_user)
+    
     db.commit()
     db.refresh(new_complaint)
     return new_complaint
