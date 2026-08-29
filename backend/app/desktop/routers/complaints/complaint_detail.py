@@ -1,10 +1,10 @@
+# backend/app/desktop/routers/complaints/complaint_detail.py
 from uuid import UUID
 from datetime import datetime, timedelta, timezone, date
 from typing import List
 from pydantic import BaseModel
 
-from fastapi import APIRouter, Depends, Query, HTTPException
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
@@ -361,10 +361,11 @@ def get_initiated_case_detail_endpoint(
 def close_case_endpoint(
     complaint_id: UUID,
     data: LeaCloseCaseRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return close_case(db, complaint_id, current_user, data)
+    return close_case(db, complaint_id, current_user, data, http_request)
 #added by darlene --end 
 
 
