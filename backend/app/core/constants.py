@@ -1,3 +1,4 @@
+# backend/app/core/constants.py
 class Role:
     SUPERADMIN = "superadmin"
     FDA_PERSONNEL = "fda_personnel"
@@ -77,3 +78,14 @@ class AuditAction:
     UNLOCK_SUPERADMIN_ACCOUNT = "UNLOCK_SUPERADMIN_ACCOUNT"
 
     # SUPERADMIN_PENDING_APPROVAL is used when a superadmin account is created and is awaiting approval from another superadmin. This action is logged when the account is created and set to pending approval status.
+
+    # LEA-CIDG actions
+    LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
+    LOGIN_FAILED = "LOGIN_FAILED"
+    CREATE_COMPLAINT_LOG = "CREATE_COMPLAINT_LOG"
+    DELETE_COMPLAINT_LOG = "DELETE_COMPLAINT_LOG"
+    UPDATE_COMPLAINT_LOG = "UPDATE_COMPLAINT_LOG"
+    DELETE_VERIFICATION_REQUEST = "DELETE_VERIFICATION_REQUEST"
+    CREATE_VERIFICATION_REQUEST = "CREATE_VERIFICATION_REQUEST"
+    UPDATE_COMPLAINT_STATUS = "UPDATE_COMPLAINT_STATUS"
