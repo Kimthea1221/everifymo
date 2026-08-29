@@ -1,3 +1,4 @@
+//desktopfrontend/src/pages/emailtemplates/invitation-status.jsx
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ClockAlert, Link, CircleCheckBig } from 'lucide-react'

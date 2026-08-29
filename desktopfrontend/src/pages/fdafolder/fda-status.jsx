@@ -15,106 +15,7 @@ import {
   XCircle,
   X
 } from 'lucide-react';
-
-/* ============================================================
-   MOCK DATA
-   ============================================================ */
-
-const initialComplaints = [
-  {
-    complaintId: "c1",
-    caseReference: "ICM-2025-00184",
-    productTitle: "GlowMax Whitening Cream",
-    manufacturer: "BrightSkin Co.",
-    region: "NCR",
-    status: "under_review",
-    reporterUsername: "ext_user_4421",
-    reporterEmail: "jdelacruz@gmail.com",
-  },
-  {
-    complaintId: "c2",
-    caseReference: "ICM-2025-00185",
-    productTitle: "HerbalSlim Capsules",
-    manufacturer: "NatureFit Labs",
-    region: "Region IV-A",
-    status: "open",
-    reporterUsername: "ext_user_7790",
-    reporterEmail: "m.santos@gmail.com",
-  },
-  {
-    complaintId: "c3",
-    caseReference: "ICM-2025-00186",
-    productTitle: "PainAway Patch",
-    manufacturer: "Unknown",
-    region: "Region VII",
-    status: "takedown_requested",
-    reporterUsername: "ext_user_2210",
-    reporterEmail: "a.reyes@yahoo.com",
-  },
-  {
-    complaintId: "c4",
-    caseReference: "ICM-2025-00189",
-    productTitle: "QuickHeal Antibiotic Ointment",
-    manufacturer: "MediQuick",
-    region: "Region VI",
-    status: "completed",
-    reporterUsername: "ext_user_5541",
-    reporterEmail: "kristine.p@gmail.com",
-  },
-  {
-    complaintId: "c5",
-    caseReference: "ICM-2025-00190",
-    productTitle: "Miracle Hair Tonic",
-    manufacturer: "GlowLabs LLC",
-    region: "Region IV-B",
-    status: "dismissed",
-    reporterUsername: "ext_user_3387",
-    reporterEmail: "d.cruz@gmail.com",
-  },
-];
-
-const initialStatusHistory = [
-  {
-    historyId: "h1",
-    caseReference: "ICM-2025-00190",
-    productTitle: "Miracle Hair Tonic",
-    previousStatus: "under_review",
-    newStatus: "dismissed",
-    changeNote: "Product found to be registered under a different FDA record.",
-    changedBy: "fda.juan",
-    changedAt: "2026-05-18 13:20",
-  },
-  {
-    historyId: "h2",
-    caseReference: "ICM-2025-00189",
-    productTitle: "QuickHeal Antibiotic Ointment",
-    previousStatus: "takedown_requested",
-    newStatus: "completed",
-    changeNote: "This complaint has been completed. The seller listing was taken down following FDA enforcement action.",
-    changedBy: "fda.maria",
-    changedAt: "2026-05-18 09:12",
-  },
-  {
-    historyId: "h3",
-    caseReference: "ICM-2025-00186",
-    productTitle: "PainAway Patch",
-    previousStatus: "under_review",
-    newStatus: "takedown_requested",
-    changeNote: "Forwarded to platform compliance for removal.",
-    changedBy: "fda.juan",
-    changedAt: "2026-05-17 16:40",
-  },
-  {
-    historyId: "h4",
-    caseReference: "ICM-2025-00184",
-    productTitle: "GlowMax Whitening Cream",
-    previousStatus: "open",
-    newStatus: "under_review",
-    changeNote: "Evidence acknowledged. Under FDA review.",
-    changedBy: "fda.maria",
-    changedAt: "2026-05-17 11:05",
-  },
-];
+import { apiFetch } from "../../utils/apiFetch";
 
 // Options for the "New status" dropdown on the right panel — what FDA
 // personnel can manually set a complaint TO.
@@ -172,8 +73,9 @@ function getStatusBadgeStyle(status) {
 }
 
 function FdaStatus() {
-  const [complaints, setComplaints] = useState(initialComplaints);
-  const [statusHistory, setStatusHistory] = useState(initialStatusHistory);
+  const [complaints, setComplaints] = useState([]);
+  const [statusHistory, setStatusHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Left panel: search + filter + pagination
   const [searchQuery, setSearchQuery] = useState("");
@@ -181,9 +83,7 @@ function FdaStatus() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [casePage, setCasePage] = useState(1);
 
-  const [selectedComplaintId, setSelectedComplaintId] = useState(
-    initialComplaints[0].complaintId
-  );
+  const [selectedComplaintId, setSelectedComplaintId] = useState(null);
 
   // Draft form state (right panel)
   const [newStatus, setNewStatus] = useState("");
@@ -204,6 +104,24 @@ function FdaStatus() {
 
   const selectedComplaint =
     complaints.find((c) => c.complaintId === selectedComplaintId) || null;
+
+  // Fetch complaints from the backend 
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      try {
+        const res = await apiFetch("/complaints-status-update");
+        if (!res.ok) throw new Error("Failed to load complaints");
+        const data = await res.json();
+        setComplaints(data);
+        if (data.length > 0) setSelectedComplaintId(data[0].complaintId);
+      } catch (err) {
+        alert("Could not load complaints. Please refresh.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchComplaints();
+  }, []);
 
   useEffect(() => {
     if (!selectedComplaint) return;
@@ -238,7 +156,7 @@ function FdaStatus() {
     return null;
   };
 
-  const handlePushUpdate = () => {
+  const handlePushUpdate = async () => {
     if (!selectedComplaint) return;
 
     const outgoingMessage = getOutgoingMessage();
@@ -247,42 +165,86 @@ function FdaStatus() {
       return;
     }
 
-    const previousStatus = selectedComplaint.status;
+    // const previousStatus = selectedComplaint.status;
 
-    setComplaints((prev) =>
-      prev.map((c) =>
-        c.complaintId === selectedComplaint.complaintId
-          ? { ...c, status: newStatus }
-          : c
-      )
-    );
+    // setComplaints((prev) =>
+    //   prev.map((c) =>
+    //     c.complaintId === selectedComplaint.complaintId
+    //       ? { ...c, status: newStatus }
+    //       : c
+    //   )
+    // );
 
-    const entry = {
-      historyId: `h${Date.now()}`,
-      caseReference: selectedComplaint.caseReference,
-      productTitle: selectedComplaint.productTitle,
-      previousStatus,
-      newStatus,
-      changeNote: outgoingMessage || "",
-      changedBy: "fda.admin", // TODO: replace once auth is wired up
-      changedAt: new Date().toLocaleString(),
+    // const entry = {
+    //   historyId: `h${Date.now()}`,
+    //   caseReference: selectedComplaint.caseReference,
+    //   productTitle: selectedComplaint.productTitle,
+    //   previousStatus,
+    //   newStatus,
+    //   changeNote: outgoingMessage || "",
+    //   changedBy: "fda.admin", // TODO: replace once auth is wired up
+    //   changedAt: new Date().toLocaleString(),
+    // };
+    // setStatusHistory((prev) => [entry, ...prev]);
+    // setHistoryPage(1);
+
+      // send update status to the backend
+    try {
+        const res = await apiFetch(`/complaints/${selectedComplaint.complaintId}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: newStatus, change_note: outgoingMessage }),
+        });
+  
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.detail || "Failed to update status. Please try again.");
+          return;
+        }
+  
+        const updatedComplaint = await res.json();
+        const previousStatus = selectedComplaint.status;
+  
+        setComplaints((prev) =>
+          prev.map((c) =>
+            c.complaintId === selectedComplaint.complaintId
+              ? { ...c, status: updatedComplaint.status }
+              : c
+          )
+        );
+  
+        const entry = {
+          historyId: `h${Date.now()}`,
+          caseReference: selectedComplaint.caseReference,
+          productTitle: selectedComplaint.productTitle,
+          previousStatus,
+          newStatus,
+          changeNote: outgoingMessage || "",
+          changedBy: "current desktop user", 
+          changedAt: new Date().toLocaleString(),
+        };
+        setStatusHistory((prev) => [entry, ...prev]);
+        setHistoryPage(1);
+      } catch (err) {
+        alert("Network error — please check your connection and try again.");
+      }
     };
-    setStatusHistory((prev) => [entry, ...prev]);
-    setHistoryPage(1);
-
-    /*
-      BACKEND INTEGRATION (later):
-      await fetch(`/api/complaints/${selectedComplaint.complaintId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: newStatus, change_note: outgoingMessage }),
-      });
-    */
-  };
 
   const totalHistoryPages = Math.ceil(statusHistory.length / HISTORY_PER_PAGE) || 1;
   const safeHistoryPage = Math.min(Math.max(1, historyPage), totalHistoryPages);
   const historyStart = (safeHistoryPage - 1) * HISTORY_PER_PAGE;
   const pagedHistory = statusHistory.slice(historyStart, historyStart + HISTORY_PER_PAGE);
+ 
+  if (isLoading) {
+    return (
+      <div className="FdaDashboardMain">
+        <Sidebar sidebarType="FDA" />
+        <div className="FdaContentContainer">
+          <TopBar topbarType="FDA" />
+          <div className="FdaMainFeed">Loading complaints...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="FdaDashboardMain">

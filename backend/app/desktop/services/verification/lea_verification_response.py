@@ -12,6 +12,11 @@ from app.desktop.schemas.verification.verification import (
     LeaFdaResponseActionResponse,
 )
 
+from app.desktop.services.notifications.notification_service import (
+    notify_fda_lea_acknowledged,
+    notify_fda_takedown_initiated,  # ADDED
+)
+
 
 # Shared lookup for both actions below — region-scoped, 404s the same
 # way whether the request truly doesn't exist or belongs to another region.
@@ -50,6 +55,8 @@ def acknowledge_fda_response(
     verification_request.lea_acknowledged_at = datetime.now(timezone.utc)
     verification_request.lea_acknowledged_by = current_user.user_id
 
+    notify_fda_lea_acknowledged(db, complaint)  # ADDED for notification to FDA personnel that LEA has acknowledged the FDA response
+
     db.commit()
     db.refresh(verification_request)
     db.refresh(complaint)
@@ -86,6 +93,8 @@ def initiate_takedown(
     # Reads complaint.source internally — always 'walk_in' here.
     transition_complaint_status(complaint, "takedown_initiated")
 
+    notify_fda_takedown_initiated(db, complaint) #Added for notification to FDA personnel that a takedown operation has been initiated
+    
     db.commit()
     db.refresh(verification_request)
     db.refresh(complaint)

@@ -419,6 +419,32 @@ const FDA_ACTION_OPTIONS = [
   'UPDATE_USER_PASSWORD',
 ];
 
+// Finalized Superadmin action codes (excludes actions destined for the
+// future System tab: PERSONNEL_PENDING_APPROVAL, SUPERADMIN_PENDING_APPROVAL,
+// LOCK_SUPERADMIN_ACCOUNT, LOCK_PERSONNEL_ACCOUNT).
+const SUPERADMIN_ACTION_OPTIONS = [
+  'LOGIN',
+  'LOGOUT',
+  'LOGIN_FAILED',
+  'UPDATE_SUPERADMIN_PASSWORD',
+  'INVITE_PERSONNEL',
+  'PERSONNEL_REQUEST_INVITE',
+  'INVITE_PERSONNEL_RESENT',
+  'APPROVE_PERSONNEL_ACCOUNT',
+  'SUSPEND_PERSONNEL_ACCOUNT',
+  'REACTIVATE_PERSONNEL_ACCOUNT',
+  'DELETE_PERSONNEL_ACCOUNT',
+  'UNLOCK_PERSONNEL_ACCOUNT',
+  'INVITE_SUPERADMIN',
+  'INVITE_SUPERADMIN_RESENT',
+  'SUPERADMIN_REQUEST_INVITE',
+  'APPROVE_SUPERADMIN_ACCOUNT',
+  'SUSPEND_SUPERADMIN_ACCOUNT',
+  'REACTIVATE_SUPERADMIN_ACCOUNT',
+  'DELETE_SUPERADMIN_ACCOUNT',
+  'UNLOCK_SUPERADMIN_ACCOUNT',
+];
+
 function getFdaActionCategory(actionCode) {
   if (!actionCode) return 'login';
   if (actionCode.startsWith('CREATE_')) return 'create';
@@ -561,10 +587,18 @@ function SuperAdminAuditLog() {
   const [fdaLoading, setFdaLoading] = useState(false);
   const [fdaError, setFdaError] = useState(null);
 
+  // Real backend state (Superadmin tab only)
+  const [superadminLogs, setSuperadminLogs] = useState([]);
+  const [superadminTotalItems, setSuperadminTotalItems] = useState(0);
+  const [superadminTotalPages, setSuperadminTotalPages] = useState(1);
+  const [superadminLoading, setSuperadminLoading] = useState(false);
+  const [superadminError, setSuperadminError] = useState(null);
+
   // Detail Drawer State
   const [selectedLog, setSelectedLog] = useState(null);
 
   const isFdaTab = activeTab === 'FDA';
+  const isSuperadminTab = activeTab === 'Superadmin';
 
   // Reset filters that don't make sense across tabs (FDA action codes vs.
   // mock create/update/delete/login, FDA region_code vs. mock region names)
@@ -642,11 +676,57 @@ function SuperAdminAuditLog() {
     return () => { cancelled = true; };
   }, [isFdaTab, actionFilter, regionFilter, dateFrom, dateTo, searchQuery, currentPage, limit]);
 
-  // ---- Mock tabs (LEA-CIDG / Superadmin / System / All): unchanged mock filtering ----
-  // TODO(backend): fetch function - Note expected endpoint: GET /api/superadmin/audit-logs
-  // Expected query params: page, limit, agency, action, dateFrom, dateTo, region, search
+    // ---- Superadmin tab: real backend fetch ----
+  // GET /admin/audit-logs/superadmin — superadmin-only; no region filter (superadmins have no region)
   useEffect(() => {
-    if (isFdaTab) return;
+    if (!isSuperadminTab) return;
+
+    let cancelled = false;
+    setSuperadminLoading(true);
+    setSuperadminError(null);
+
+    const params = new URLSearchParams();
+    params.set('page', String(currentPage));
+    params.set('limit', String(limit));
+    if (actionFilter !== 'All') params.set('action', actionFilter);
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    if (searchQuery.trim()) params.set('search', searchQuery.trim());
+
+    apiFetch(`/admin/audit-logs/superadmin?${params.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          if (res.status === 403) {
+            throw new Error('You do not have permission to view Superadmin audit logs.');
+          }
+          throw new Error(`Failed to load audit logs (${res.status})`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setSuperadminLogs((data.items || []).map(normalizeFdaLog));
+        setSuperadminTotalItems(data.total ?? 0);
+        setSuperadminTotalPages(data.total_pages ?? 1);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setSuperadminError(err.message || 'Failed to load audit logs.');
+        setSuperadminLogs([]);
+        setSuperadminTotalItems(0);
+        setSuperadminTotalPages(1);
+      })
+      .finally(() => {
+        if (!cancelled) setSuperadminLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [isSuperadminTab, actionFilter, dateFrom, dateTo, searchQuery, currentPage, limit]);
+
+  // ---- Mock tabs (LEA-CIDG / System / All): unchanged mock filtering ----
+  // Superadmin tab now uses real backend data (see effect above)
+  useEffect(() => {
+    if (isFdaTab || isSuperadminTab) return;
 
     setLoading(true);
     const timer = setTimeout(() => {
@@ -710,6 +790,7 @@ function SuperAdminAuditLog() {
   // and only applies while the FDA tab itself is active).
   const getTabCount = (tabName) => {
     if (tabName === 'FDA') return isFdaTab ? fdaTotalItems : null;
+    if (tabName === 'Superadmin') return isSuperadminTab ? superadminTotalItems : null;
 
     let result = [...MOCK_AUDIT_LOGS];
 
@@ -742,11 +823,11 @@ function SuperAdminAuditLog() {
     }).length;
   };
 
-  // ---- Unified view of "what to render" regardless of data source ----
-  const displayLogs = isFdaTab ? fdaLogs : logs;
-  const displayLoading = isFdaTab ? fdaLoading : loading;
-  const displayTotalItems = isFdaTab ? fdaTotalItems : totalItems;
-  const displayTotalPages = isFdaTab ? fdaTotalPages : totalPages;
+    // ---- Unified view of "what to render" regardless of data source ----
+  const displayLogs = isFdaTab ? fdaLogs : isSuperadminTab ? superadminLogs : logs;
+  const displayLoading = isFdaTab ? fdaLoading : isSuperadminTab ? superadminLoading : loading;
+  const displayTotalItems = isFdaTab ? fdaTotalItems : isSuperadminTab ? superadminTotalItems : totalItems;
+  const displayTotalPages = isFdaTab ? fdaTotalPages : isSuperadminTab ? superadminTotalPages : totalPages;
 
   const startIndex = (currentPage - 1) * limit;
   const endIndex = Math.min(startIndex + limit, displayTotalItems);
@@ -806,52 +887,58 @@ function SuperAdminAuditLog() {
     <div className="AuditFiltersGroup">
   <div className="AuditFilterItem">
     <span className="AuditFilterLabel">ACTION</span>
-    <select
-      className="AuditSelectFilter"
-      value={actionFilter}
-      onChange={(e) => {
-        setActionFilter(e.target.value);
-        setCurrentPage(1);
-      }}
-    >
-      <option value="All">All Actions</option>
-      {isFdaTab ? (
-        FDA_ACTION_OPTIONS.map(code => (
-          <option key={code} value={code}>{code.replaceAll('_', ' ')}</option>
-        ))
-      ) : (
-        <>
-          <option value="create">Create</option>
-          <option value="update">Update</option>
-          <option value="delete">Delete</option>
-          <option value="login">Login</option>
-        </>
-      )}
-    </select>
+                <select
+                  className="AuditSelectFilter"
+                  value={actionFilter}
+                  onChange={(e) => {
+                    setActionFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="All">All Actions</option>
+                  {isFdaTab ? (
+                    FDA_ACTION_OPTIONS.map(code => (
+                      <option key={code} value={code}>{code.replaceAll('_', ' ')}</option>
+                    ))
+                  ) : isSuperadminTab ? (
+                    SUPERADMIN_ACTION_OPTIONS.map(code => (
+                      <option key={code} value={code}>{code.replaceAll('_', ' ')}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="create">Create</option>
+                      <option value="update">Update</option>
+                      <option value="delete">Delete</option>
+                      <option value="login">Login</option>
+                    </>
+                  )}
+                </select>
   </div>
 
-  <div className="AuditFilterItem">
-    <span className="AuditFilterLabel">REGION</span>
-    <select
-      className="AuditSelectFilter"
-      value={regionFilter}
-      onChange={(e) => {
-        setRegionFilter(e.target.value);
-        setCurrentPage(1);
-      }}
-    >
-      <option value="All">All Regions</option>
-      {isFdaTab ? (
-        FDA_REGION_OPTIONS.map(({ code, label }) => (
-          <option key={code} value={code}>{label}</option>
-        ))
-      ) : (
-        REGION_OPTIONS.map(reg => (
-          <option key={reg} value={reg}>{reg}</option>
-        ))
-      )}
-    </select>
-  </div>
+                  {!isSuperadminTab && (
+                  <div className="AuditFilterItem">
+                    <span className="AuditFilterLabel">REGION</span>
+                    <select
+                      className="AuditSelectFilter"
+                      value={regionFilter}
+                      onChange={(e) => {
+                        setRegionFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value="All">All Regions</option>
+                      {isFdaTab ? (
+                        FDA_REGION_OPTIONS.map(({ code, label }) => (
+                          <option key={code} value={code}>{label}</option>
+                        ))
+                      ) : (
+                        REGION_OPTIONS.map(reg => (
+                          <option key={reg} value={reg}>{reg}</option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                )}
 
   <div className="AuditDateGroup">
                   <span className="AuditDateLabel">TO</span>
@@ -884,6 +971,10 @@ function SuperAdminAuditLog() {
               {fdaError && isFdaTab ? (
                 <div className="UMEmpty" style={{ padding: '40px', textAlign: 'center', color: '#b91c1c' }}>
                   {fdaError}
+                </div>
+              ) : superadminError && isSuperadminTab ? (
+                <div className="UMEmpty" style={{ padding: '40px', textAlign: 'center', color: '#b91c1c' }}>
+                  {superadminError}
                 </div>
               ) : displayLoading ? (
                 <div className="UMEmpty" style={{ padding: '40px', textAlign: 'center' }}>
