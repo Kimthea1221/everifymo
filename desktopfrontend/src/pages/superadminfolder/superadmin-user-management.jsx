@@ -112,7 +112,7 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
             <>
               <div className="UserMgmtDropdownDivider" />
               <button className="UserMgmtDropdownItem danger" onClick={() => { onAction('delete'); setIsOpen(false); }}>
-                <Trash2 size={14} /> Delete Invitation
+                <Trash2 size={14} /> Delete Account
               </button>
             </>
           )}
@@ -209,7 +209,7 @@ function AddPersonnelModal({ open, onClose }) {
 
   useEffect(() => {
     if (open) {
-      fetch('http://127.0.0.1:8000/regions')
+      apiFetch('/regions')
         .then((res) => res.json())
         .then((data) => setRegions(data))
         .catch((err) => console.error('Failed to load regions', err));

@@ -17,106 +17,6 @@ import {
 } from 'lucide-react';
 import { apiFetch } from "../../utils/apiFetch";
 
-/* ============================================================
-   MOCK DATA
-   ============================================================ */
-
-// const initialComplaints = [
-//   {
-//     complaintId: "c1",
-//     caseReference: "ICM-2025-00184",
-//     productTitle: "GlowMax Whitening Cream",
-//     manufacturer: "BrightSkin Co.",
-//     region: "NCR",
-//     status: "under_review",
-//     reporterUsername: "ext_user_4421",
-//     reporterEmail: "jdelacruz@gmail.com",
-//   },
-//   {
-//     complaintId: "c2",
-//     caseReference: "ICM-2025-00185",
-//     productTitle: "HerbalSlim Capsules",
-//     manufacturer: "NatureFit Labs",
-//     region: "Region IV-A",
-//     status: "open",
-//     reporterUsername: "ext_user_7790",
-//     reporterEmail: "m.santos@gmail.com",
-//   },
-//   {
-//     complaintId: "c3",
-//     caseReference: "ICM-2025-00186",
-//     productTitle: "PainAway Patch",
-//     manufacturer: "Unknown",
-//     region: "Region VII",
-//     status: "takedown_requested",
-//     reporterUsername: "ext_user_2210",
-//     reporterEmail: "a.reyes@yahoo.com",
-//   },
-//   {
-//     complaintId: "c4",
-//     caseReference: "ICM-2025-00189",
-//     productTitle: "QuickHeal Antibiotic Ointment",
-//     manufacturer: "MediQuick",
-//     region: "Region VI",
-//     status: "completed",
-//     reporterUsername: "ext_user_5541",
-//     reporterEmail: "kristine.p@gmail.com",
-//   },
-//   {
-//     complaintId: "c5",
-//     caseReference: "ICM-2025-00190",
-//     productTitle: "Miracle Hair Tonic",
-//     manufacturer: "GlowLabs LLC",
-//     region: "Region IV-B",
-//     status: "dismissed",
-//     reporterUsername: "ext_user_3387",
-//     reporterEmail: "d.cruz@gmail.com",
-//   },
-// ];
-
-// const initialStatusHistory = [
-//   {
-//     historyId: "h1",
-//     caseReference: "ICM-2025-00190",
-//     productTitle: "Miracle Hair Tonic",
-//     previousStatus: "under_review",
-//     newStatus: "dismissed",
-//     changeNote: "Product found to be registered under a different FDA record.",
-//     changedBy: "fda.juan",
-//     changedAt: "2026-05-18 13:20",
-//   },
-//   {
-//     historyId: "h2",
-//     caseReference: "ICM-2025-00189",
-//     productTitle: "QuickHeal Antibiotic Ointment",
-//     previousStatus: "takedown_requested",
-//     newStatus: "completed",
-//     changeNote: "This complaint has been completed. The seller listing was taken down following FDA enforcement action.",
-//     changedBy: "fda.maria",
-//     changedAt: "2026-05-18 09:12",
-//   },
-//   {
-//     historyId: "h3",
-//     caseReference: "ICM-2025-00186",
-//     productTitle: "PainAway Patch",
-//     previousStatus: "under_review",
-//     newStatus: "takedown_requested",
-//     changeNote: "Forwarded to platform compliance for removal.",
-//     changedBy: "fda.juan",
-//     changedAt: "2026-05-17 16:40",
-//   },
-//   {
-//     historyId: "h4",
-//     caseReference: "ICM-2025-00184",
-//     productTitle: "GlowMax Whitening Cream",
-//     previousStatus: "open",
-//     newStatus: "under_review",
-//     changeNote: "Evidence acknowledged. Under FDA review.",
-//     changedBy: "fda.maria",
-//     changedAt: "2026-05-17 11:05",
-//   },
-// ];
-
 // Options for the "New status" dropdown on the right panel — what FDA
 // personnel can manually set a complaint TO.
 const STATUS_OPTIONS = [
@@ -209,7 +109,7 @@ function FdaStatus() {
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
-        const res = await apiFetch("/complaints");
+        const res = await apiFetch("/complaints-status-update");
         if (!res.ok) throw new Error("Failed to load complaints");
         const data = await res.json();
         setComplaints(data);
@@ -319,7 +219,7 @@ function FdaStatus() {
           previousStatus,
           newStatus,
           changeNote: outgoingMessage || "",
-          changedBy: "current desktop user", // TODO: pull from decoded auth token / user context
+          changedBy: "current desktop user", 
           changedAt: new Date().toLocaleString(),
         };
         setStatusHistory((prev) => [entry, ...prev]);
@@ -328,25 +228,6 @@ function FdaStatus() {
         alert("Network error — please check your connection and try again.");
       }
     };
-
-  // useEffect(() => {
-  //   const fetchComplaints = async () => {
-  //     try {
-  //       const res = await fetch(`YOUR_API_BASE/complaints`, {
-  //         headers: { "Authorization": `Bearer ${yourStoredDesktopToken}` },
-  //       });
-  //       if (!res.ok) throw new Error("Failed to load complaints");
-  //       const data = await res.json();
-  //       setComplaints(data);
-  //       if (data.length > 0) setSelectedComplaintId(data[0].complaintId);
-  //     } catch (err) {
-  //       alert("Could not load complaints. Please refresh.");
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-  //   fetchComplaints();
-  // }, []);
 
   const totalHistoryPages = Math.ceil(statusHistory.length / HISTORY_PER_PAGE) || 1;
   const safeHistoryPage = Math.min(Math.max(1, historyPage), totalHistoryPages);
