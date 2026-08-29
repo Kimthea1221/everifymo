@@ -77,6 +77,9 @@ class VerificationRequest(Base):
 
     requested_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     responded_at = Column(DateTime(timezone=True), nullable=True)
+    sla_reminder_1_sent_at = Column(DateTime(timezone=True), nullable=True)
+    sla_reminder_2_sent_at = Column(DateTime(timezone=True), nullable=True)
+    sla_breach_notified_at = Column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint(

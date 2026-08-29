@@ -20,7 +20,8 @@ from app.desktop.routers.auth.password_change import router as password_change_r
 from app.desktop.routers.profile_setting import profile as profile_router
 from app.desktop.routers.auth.superadmin_invite_public import router as superadmin_invite_public_router
 from app.desktop.routers.superadmin_notifications.superadmin_notifications import router as superadmin_notifications_router
-from app.desktop.routers.audit_logs.audit_logs import router as audit_logs_router       
+from app.desktop.routers.audit_logs.audit_logs import router as audit_logs_router  
+from app.desktop.routers.notifications.notifications import router as notifications_router  # ADDED     
 
 
 from app.database.base import Base
@@ -71,6 +72,12 @@ from app.desktop.routers.verification.verification_response import fda_response_
 
 # Title Extaction Retrieved from the Chrome Extension to NLP
 from app.extension.routers.retrieval import router as retrieval_router
+
+#for verification history in extension
+from app.extension.routers import verification
+
+#for update status in desktop
+from app.desktop.routers.complaints import complaint_status
 
 app = FastAPI()
 # Base.metadata.create_all(bind=engine) wag na iuuncomment this line, since we are using alembic for migrations
@@ -135,6 +142,7 @@ app.include_router(profile_router.router)
 app.include_router(superadmin_invite_public_router)
 app.include_router(superadmin_notifications_router)
 app.include_router(audit_logs_router)
+app.include_router(notifications_router)  # ADDED
 
 @app.get("/", status_code=status.HTTP_200_OK)
 async def user(consumer: consumer_dependency):
@@ -147,3 +155,7 @@ async def user(consumer: consumer_dependency):
 
 
 app.include_router(retrieval_router)
+
+app.include_router(verification.router)
+
+app.include_router(complaint_status.router)

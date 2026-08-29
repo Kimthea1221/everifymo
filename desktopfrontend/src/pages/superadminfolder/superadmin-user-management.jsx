@@ -112,7 +112,7 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
             <>
               <div className="UserMgmtDropdownDivider" />
               <button className="UserMgmtDropdownItem danger" onClick={() => { onAction('delete'); setIsOpen(false); }}>
-                <Trash2 size={14} /> Delete Invitation
+                <Trash2 size={14} /> Delete Account
               </button>
             </>
           )}

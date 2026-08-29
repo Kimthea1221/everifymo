@@ -1,4 +1,7 @@
 // header.js
+import { whenSessionReady, isUserLoggedIn, getCurrentUser, logoutUser, updateUsername, deleteAccount } from "../scripts/session.js";
+import { loadPartial } from "./partial-loader.js";
+
 document.addEventListener('DOMContentLoaded', async () => {
   whenSessionReady(async () => {
     const headerSlot = document.getElementById('header-slot');

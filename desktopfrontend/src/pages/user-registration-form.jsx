@@ -168,9 +168,7 @@ if (!hasValidInviteData) {
               </div>
 
               {/* in the success screen, add the Back to Login button after RegSuccessTag: */}
-              <div className="RegSuccessTag">
-                <span className='RegTimeIcon'><img src={ImgTime} alt="Hour glass icon" /></span> Pending Administrator Approval
-              </div>
+
               <button
                 className="RegSubmitBtn"
                 style={{ marginTop: 20, maxWidth: 220 }}
