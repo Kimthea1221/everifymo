@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import FDALogo from '../../images/FDA.png'
 import PNPLogo from '../../images/pnp-cidg.jpg'
+import { API_BASE_URL } from '../../utils/apiConfig'
 
 //LOGIN PAGE EXCLUSIVELY FOR SUPERADMIN
 
@@ -24,6 +25,7 @@ function SuperAdminLogin() {
     // ADDED — per-field validation errors, same pattern as login-user.jsx
     const [errors, setErrors] = useState({});
     const REMEMBERED_EMAIL_KEY = 'remembered_email_superadmin';
+    const [lockoutSeconds, setLockoutSeconds] = useState(0);   // ← ADD THIS LINE
 
     // ADDED — Load remembered email on mount
     // on mount
@@ -37,6 +39,21 @@ function SuperAdminLogin() {
             setRememberMe(true);
         }
     }, []);
+
+    // ADD THIS NEW useEffect right after it:
+    useEffect(() => {
+        if (lockoutSeconds <= 0) return;
+        const interval = setInterval(() => {
+            setLockoutSeconds((prev) => {
+                if (prev <= 1) {
+                    setAdminLoginError('');
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [lockoutSeconds]);
 
 
     // OTP verification states
@@ -110,14 +127,19 @@ function SuperAdminLogin() {
     async function handleResendOtp() {
     setAdminLoginError('');
     try {
-        const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
+        const response = await fetch(`${API_BASE_URL}/auth/superadmin/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
 
+        // NEW
         if (!response.ok) {
             const errorData = await response.json();
+            if (errorData.detail && typeof errorData.detail === 'object') {
+                setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
+                throw new Error(errorData.detail.message || 'Failed to resend code.');
+            }
             throw new Error(errorData.detail || 'Failed to resend code.');
         }
 
@@ -135,6 +157,7 @@ function SuperAdminLogin() {
         setOtp(new Array(6).fill(''));
         setAdminLoginError('');
         setPassword('');
+        setLockoutSeconds(0);   // ← ADD THIS LINE
     }
 
     // ADDED — masks an email for display on the OTP screen so the full
@@ -199,17 +222,22 @@ function SuperAdminLogin() {
         }
         setErrors({});
 
-        try {
-            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/superadmin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Invalid email or password.');
-            }
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (errorData.detail && typeof errorData.detail === 'object') {
+                        setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
+                        throw new Error(errorData.detail.message || 'Too many failed attempts.');
+                    }
+                    setLockoutSeconds(0);
+                    throw new Error(errorData.detail || 'Invalid email or password.');
+                }
 
             // ADDED — remember/forget email in localStorage, frontend-only
             // after successful login
@@ -223,6 +251,7 @@ function SuperAdminLogin() {
             setIsOtpSent(true);
             setTimer(300);
             setAdminLoginError('');
+            setLockoutSeconds(0); 
         } catch (err) {
             setAdminLoginError(err.message);
         }
@@ -237,14 +266,21 @@ function SuperAdminLogin() {
         }
 
                 try {
-            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/verify-otp', {
+            const response = await fetch(`${API_BASE_URL}/auth/superadmin/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp: otpCode }),
             });
 
+            // ADDED — same structured-429 handling as the password-login branch,
+            // since a throttled last-active-superadmin can now also come back
+            // from verify-otp (failed OTP attempts), not just from /login.
             if (!response.ok) {
                 const errorData = await response.json();
+                if (errorData.detail && typeof errorData.detail === 'object') {
+                    setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
+                    throw new Error(errorData.detail.message || 'Too many failed attempts.');
+                }
                 throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
             }
 
@@ -272,6 +308,10 @@ function SuperAdminLogin() {
     }
 }
     const formatTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+    const displayedError = lockoutSeconds > 0
+        ? `Too many failed attempts. Try again in ${lockoutSeconds} second${lockoutSeconds === 1 ? '' : 's'}.`
+        : adminLoginError;
 
     return (
         <div className="AdminLoginContainer">
@@ -380,7 +420,7 @@ function SuperAdminLogin() {
                                 </div>
                                 
 
-                                <button type="submit">Login</button>
+                                <button type="submit" disabled={lockoutSeconds > 0}>Login</button>
                             </>
                         ) : (
                             <>
@@ -428,7 +468,9 @@ function SuperAdminLogin() {
 
                                     
 
-                                    <button type="submit" style={{ marginTop: '20px' }}>
+                                     {/* ADDED — disable verify button while a throttle from too many
+                                        failed OTP attempts is active, same pattern as the login button */}
+                                    <button type="submit" style={{ marginTop: '20px' }} disabled={lockoutSeconds > 0}>
                                         Verify &amp; Login
                                     </button>
                                     <button type="button" className="BackToLoginBtn" onClick={handleBackToLogin}>
@@ -436,13 +478,17 @@ function SuperAdminLogin() {
                                     </button>
                                 </div>
 
-                                {adminLoginError && (
-                                    <div className="AdminLoginErrorMsgContainer" style={{ marginTop: '15px' }}>
-                                        <p className="AdminLoginErrorMsg">{adminLoginError}</p>
-                                    </div>
-                                )}
+                                
                             </>
                         )}
+
+                        {displayedError && (
+                            <div className="AdminLoginErrorMsgContainer" style={{ marginTop: '15px' }}>
+                                <p className="AdminLoginErrorMsg">{displayedError}</p>
+                            </div>
+                        )}
+
+
                     </form>
                 </div>
                 

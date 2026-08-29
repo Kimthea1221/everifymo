@@ -12,6 +12,7 @@ from app.core.constants import AuditAction
 
 from app.database.sessions import get_db
 from app.models.users import User
+from app.models.user_sessions import UserSession
 from app.models.account_invitation_tokens import AccountInvitationToken
 from app.desktop.schemas.admin_management.management import (
     SuperadminListItem,
@@ -27,6 +28,7 @@ from app.desktop.services.admin_management.invite import activate_superadmin
 from app.desktop.services.auth.email import send_superadmin_activation_email
 from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
 from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+
 
 router = APIRouter(prefix="/admin/superadmins", tags=["superadmin-management"])
 
@@ -236,7 +238,47 @@ def suspend_superadmin(
     admin = db.query(User).filter(User.user_id == admin_id, User.role == "superadmin").first()
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
-    admin.is_active = False
+
+    # Ashanti code starts here
+    # Atomic check-and-write: the WHERE clause's subquery and the SET happen
+    # as one indivisible DB operation, so two concurrent suspend requests
+    # (e.g. A suspending B and B suspending A at the same instant) can't both
+    # read "safe" before either write lands. Same pattern as the SLA reminder
+    # service's atomic claim UPDATE. If the subquery finds zero OTHER active,
+    # unlocked, ACTIVE-status superadmins at the moment this statement
+    # actually runs, the UPDATE matches no rows and RETURNING gives back
+    # nothing. The status = 'active' clause (matching UserStatus.ACTIVE)
+    # excludes an INVITED-but-not-yet-activated admin from being miscounted
+    # as "another admin who can actually log in."
+    result = db.execute(
+        text("""
+            UPDATE users
+            SET is_active = false
+            WHERE user_id = :admin_id
+              AND role = 'superadmin'
+              AND (
+                SELECT COUNT(*) FROM users AS others
+                WHERE others.role = 'superadmin'
+                  AND others.is_active = true
+                  AND others.is_locked = false
+                  AND others.status = 'active'
+                  AND others.user_id != :admin_id
+              ) > 0
+            RETURNING user_id
+        """),
+        {"admin_id": str(admin_id)},
+    )
+    if not result.fetchone():
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot suspend the only remaining active superadmin.",
+        )
+    # Ashanti code ends here
+
+    db.refresh(admin)  # local ORM object is stale after the raw UPDATE — resync it
+
+    db.query(UserSession).filter(UserSession.user_id == admin.user_id).delete()
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
@@ -373,6 +415,8 @@ def unlock_superadmin(
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_locked = False
     admin.failed_login_attempts = 0
+    admin.locked_until = None
+    admin.failed_otp_attempts = 0
     db.commit()
 
     write_audit_log(

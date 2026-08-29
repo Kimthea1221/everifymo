@@ -415,6 +415,8 @@ def unlock_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.is_locked = False
     user.failed_login_attempts = 0
+    user.locked_until = None
+    user.failed_otp_attempts = 0
 
     user_id_val = user.user_id
     user_email = user.email
