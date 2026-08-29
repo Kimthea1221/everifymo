@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CircleCheckBig, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 function ForgotPassword() {
     const navigate = useNavigate();
@@ -69,7 +70,7 @@ function ForgotPassword() {
     setForgotError('');
 
       try {
-          const response = await fetch('http://127.0.0.1:8000/auth/password/forgot', {
+          const response = await fetch(`${API_BASE_URL}/auth/password/forgot`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -97,7 +98,7 @@ function ForgotPassword() {
     const handleResendOtp = async () => {
         setForgotError('');
         try {
-            const response = await fetch('http://127.0.0.1:8000/auth/password/forgot', {
+            const response = await fetch(`${API_BASE_URL}/auth/password/forgot`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -131,7 +132,7 @@ function ForgotPassword() {
       setForgotError('');
 
       try {
-          const response = await fetch('http://127.0.0.1:8000/auth/password/verify-otp', {
+          const response = await fetch(`${API_BASE_URL}/auth/password/verify-otp`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -183,7 +184,7 @@ function ForgotPassword() {
       setForgotError('');
 
       try {
-          const response = await fetch('http://127.0.0.1:8000/auth/password/reset', {
+          const response = await fetch(`${API_BASE_URL}/auth/password/reset`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

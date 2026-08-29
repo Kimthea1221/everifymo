@@ -19,7 +19,7 @@ function createWindow() {
   })
 
   // Open DevTools
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   // Stash the token here if it arrives before React has finished loading and
   // listening — we'll deliver it below, once did-finish-load confirms React is ready.
@@ -76,7 +76,7 @@ if (!gotLock) {
   createWindow()
 
   setTimeout(() => {
-    handleDeepLink('everifymo://complete-registration?token=dNZ-PGoHXRjKN1zdG78nwTriZ6mV84GXbJ_r4JVgbdg')
+    handleDeepLink('everifymo://complete-registration?token=EcPq1fqtWgzsHGzoslG_71rue-OzKgkn9WBvrooQ2Ac')
   }, 2000)
 }) */
 
