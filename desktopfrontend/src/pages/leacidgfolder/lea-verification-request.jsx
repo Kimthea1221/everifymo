@@ -89,7 +89,7 @@ function getReasonClosedClass(reason) {
 }
 
 // Frontend queue pagination helper — matches the existing project .Pagination / .BtnPage design
-function QueuePagination({ currentPage, totalPages, totalItems, onPageChange }) {
+function QueuePagination({ currentPage, totalPages, onPageChange }) {
   const safeTotalPages = Math.max(1, totalPages || 1);
   const safeCurrentPage = Math.min(Math.max(1, currentPage || 1), safeTotalPages);
   // Build page number list (max 5 visible)
@@ -142,7 +142,22 @@ function LeaVerificationRequest() {
   const [activeTab, setActiveTab] = useState(
     location.state?.activeTab || 'Ready to Send'
   );
-  const [selectedResponse, setSelectedResponse] = useState(responseCases[0]);
+  const [selectedResponse, setSelectedResponse] = useState(null);
+
+  // FDA Response States
+  const [fdaResponseList, setFdaResponseList] = useState([]);
+  const [fdaResponseLoading, setFdaResponseLoading] = useState(false);
+  const [selectedResponseId, setSelectedResponseId] = useState(null);
+  const [responseDetailLoading, setResponseDetailLoading] = useState(false);
+  const [hasLoadedFdaResponseOnce, setHasLoadedFdaResponseOnce] = useState(false);
+
+  // Initiated Cases States
+  const [initiatedList, setInitiatedList] = useState([]);
+  const [initiatedLoading, setInitiatedLoading] = useState(false);
+  const [selectedInitiatedId, setSelectedInitiatedId] = useState(null);
+  const [selectedInitiatedCase, setSelectedInitiatedCase] = useState(null);
+  const [initiatedDetailLoading, setInitiatedDetailLoading] = useState(false);
+  const [hasLoadedInitiatedOnce, setHasLoadedInitiatedOnce] = useState(false);
   const tabs = ['Ready to Send', 'Awaiting FDA', 'FDA Response', 'Initiated Cases', 'Closed Cases'];
   const handleTabClick = (tabName) => {
     if (activeTab === tabName) return;
@@ -190,7 +205,7 @@ function LeaVerificationRequest() {
   const [closedList, setClosedList] = useState([]);
   const [closedTotal, setClosedTotal] = useState(0);
   const [closedLoading, setClosedLoading] = useState(false);
-  const hasLoadedClosedOnce = useRef(false);
+  const [hasLoadedClosedOnce, setHasLoadedClosedOnce] = useState(false);
   const CLOSED_PAGE_SIZE = 25;
 
   // Reset to page 1 whenever search, category, or active tab changes
@@ -254,12 +269,12 @@ function LeaVerificationRequest() {
   // ADDED — GET /complaints/awaiting-verification-request
   //Fetch: Ready to Send list 
   // ADDED — ref tracks first successful load so re-visits skip the skeleton (BUG 1 fix)
-  const hasLoadedReadyOnce = useRef(false);
+  const [hasLoadedReadyOnce, setHasLoadedReadyOnce] = useState(false);
 
   // CHANGED — only shows skeleton loading on first load, not every tab revisit (BUG 1 fix)
   const fetchReadyList = async () => {
     const token = localStorage.getItem('access_token');
-    if (!hasLoadedReadyOnce.current) {
+    if (!hasLoadedReadyOnce) {
       setReadyLoading(true);
     }
     try {
@@ -273,7 +288,7 @@ function LeaVerificationRequest() {
       }
       const data = await res.json();
       setReadyList(data);
-      hasLoadedReadyOnce.current = true;
+      setHasLoadedReadyOnce(true);
     } catch {
       showError('Could not load the ready-to-send list.');
     } finally {
@@ -339,7 +354,7 @@ function LeaVerificationRequest() {
   // Fetch: FDA Response list — replaces the old dummy responseCases array
   const fetchFdaResponseList = async () => {
     const token = localStorage.getItem('access_token');
-    if (!hasLoadedFdaResponseOnce.current) {
+    if (!hasLoadedFdaResponseOnce) {
       setFdaResponseLoading(true);
     }
     try {
@@ -353,7 +368,7 @@ function LeaVerificationRequest() {
       }
       const data = await res.json();
       setFdaResponseList(data);
-      hasLoadedFdaResponseOnce.current = true;
+      setHasLoadedFdaResponseOnce(true);
       // Auto-select the first item if nothing is currently selected, or if
       // the currently selected item no longer exists in the refreshed list.
       if (data.length > 0 && !data.some((item) => item.request_id === selectedResponseId)) {
@@ -420,7 +435,7 @@ function LeaVerificationRequest() {
   // Fetch: Initiated Cases list — replaces the old dummy initiatedCases array
   const fetchInitiatedList = async () => {
     const token = localStorage.getItem('access_token');
-    if (!hasLoadedInitiatedOnce.current) {
+    if (!hasLoadedInitiatedOnce) {
       setInitiatedLoading(true);
     }
     try {
@@ -434,7 +449,7 @@ function LeaVerificationRequest() {
       }
       const data = await res.json();
       setInitiatedList(data);
-      hasLoadedInitiatedOnce.current = true;
+      setHasLoadedInitiatedOnce(true);
       if (data.length > 0 && !data.some((item) => item.complaint_id === selectedInitiatedId)) {
         setSelectedInitiatedId(data[0].complaint_id);
       } else if (data.length === 0) {
@@ -536,7 +551,7 @@ function LeaVerificationRequest() {
     const token = localStorage.getItem('access_token');
 
     const timer = setTimeout(() => {
-      if (!hasLoadedClosedOnce.current) {
+      if (!hasLoadedClosedOnce) {
         setClosedLoading(true);
       }
 
@@ -560,7 +575,7 @@ function LeaVerificationRequest() {
         .then((data) => {
           setClosedList(data.items);
           setClosedTotal(data.total);
-          hasLoadedClosedOnce.current = true;
+          setHasLoadedClosedOnce(true);
         })
         .catch(() => showError('Could not load closed cases.'))
         .finally(() => setClosedLoading(false));
@@ -967,7 +982,7 @@ function LeaVerificationRequest() {
               return;
             }
 
-            const updated = await res.json();
+            await res.json();
 
             if (actionType === 'Recall Request') {
               // Recalled — this request no longer belongs in Awaiting FDA at all
@@ -1648,7 +1663,7 @@ function LeaVerificationRequest() {
 
 
                     {/* ADDED — first-load skeleton; skipped on subsequent refreshes (no flickering) */}
-                    {fdaResponseLoading && !hasLoadedFdaResponseOnce.current && (
+                    {fdaResponseLoading && !hasLoadedFdaResponseOnce && (
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
                     )}
                     {/* ADDED — empty list state when the backend returns 0 items */}
@@ -1953,7 +1968,7 @@ function LeaVerificationRequest() {
 
 
                     {/* ADDED — first-load skeleton; skipped on subsequent refreshes (no flickering) */}
-                    {initiatedLoading && !hasLoadedInitiatedOnce.current && (
+                    {initiatedLoading && !hasLoadedInitiatedOnce && (
                       <p style={{ padding: '12px', color: '#7a8796', fontSize: '13px' }}>Loading...</p>
                     )}
                     {/* ADDED — empty list state when the backend returns 0 items */}
@@ -2190,7 +2205,7 @@ function LeaVerificationRequest() {
                       </thead>
                       <tbody>
                         {/* CHANGED (Part 1) — replaced local-paginated dummy data with server-returned closedList */}
-                        {closedLoading && !hasLoadedClosedOnce.current ? (
+                        {closedLoading && !hasLoadedClosedOnce ? (
                           <tr>
                             <td colSpan="9" style={{ textAlign: 'center', padding: '24px', color: '#7a8796' }}>
                               Loading closed cases...

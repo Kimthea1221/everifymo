@@ -1,3 +1,4 @@
+# backend/app/desktop/schemas/auth/registration.py
 from uuid import UUID
 
 from pydantic import BaseModel, Field
