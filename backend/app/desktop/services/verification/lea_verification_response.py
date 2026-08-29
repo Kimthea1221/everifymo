@@ -1,15 +1,23 @@
+# backend/app/desktop/services/verification/lea_verification_response.py
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.models.verification_requests import VerificationRequest
 from app.models.complaints import Complaint
 from app.core.complaint_status import transition_complaint_status
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 from app.desktop.schemas.verification.verification import (
     LeaInitiateTakedownRequest,
     LeaFdaResponseActionResponse,
+)
+
+from app.desktop.services.notifications.notification_service import (
+    notify_fda_lea_acknowledged,
+    notify_fda_takedown_initiated,  # ADDED
 )
 
 
@@ -34,7 +42,7 @@ def _get_fda_response_in_region(db: Session, request_id: UUID, current_user):
 # status is already dismissed from FDA's submit; this just marks that
 # LEA has reviewed it, so it drops out of FDA Response into Closed.
 def acknowledge_fda_response(
-    db: Session, request_id: UUID, current_user
+    db: Session, request_id: UUID, current_user, http_request: Request | None = None
 ) -> LeaFdaResponseActionResponse:
     verification_request, complaint = _get_fda_response_in_region(db, request_id, current_user)
 
@@ -50,9 +58,39 @@ def acknowledge_fda_response(
     verification_request.lea_acknowledged_at = datetime.now(timezone.utc)
     verification_request.lea_acknowledged_by = current_user.user_id
 
+    notify_fda_lea_acknowledged(db, complaint)  # ADDED for notification to FDA personnel that LEA has acknowledged the FDA response
+
+    # Captured before commit — commit() expires session objects.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+    case_reference = complaint.case_reference
+    verification_result = verification_request.verification_request_status
+
     db.commit()
     db.refresh(verification_request)
     db.refresh(complaint)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.UPDATE_COMPLAINT_STATUS,
+        target_table="complaints",
+        target_id=complaint.complaint_id,
+        target_reference=case_reference,
+        old_value={
+            "verification_request_status": verification_result,
+            "lea_acknowledged_at": None,
+        },
+        new_value={
+            "verification_request_status": verification_result,
+            "lea_acknowledged_at": verification_request.lea_acknowledged_at.isoformat(),
+        },
+        request=http_request,
+        region_code=audit_region_code,
+    )
 
     return LeaFdaResponseActionResponse(
         request_id=verification_request.request_id,
@@ -65,7 +103,7 @@ def acknowledge_fda_response(
 # "Initiate Takedown" (unregistered) — the one real status transition
 # on this tab: takedown_requested -> takedown_initiated.
 def initiate_takedown(
-    db: Session, request_id: UUID, current_user, data: LeaInitiateTakedownRequest
+    db: Session, request_id: UUID, current_user, data: LeaInitiateTakedownRequest, http_request: Request | None = None
 ) -> LeaFdaResponseActionResponse:
     verification_request, complaint = _get_fda_response_in_region(db, request_id, current_user)
 
@@ -74,6 +112,8 @@ def initiate_takedown(
             status_code=400,
             detail="Only unregistered FDA responses can be moved to takedown.",
         )
+
+    old_complaint_status = complaint.status
 
     # Notes stay optional, but the timestamp/officer always stamp —
     # the Initiated Cases list needs a reliable "activity" date even
@@ -86,9 +126,32 @@ def initiate_takedown(
     # Reads complaint.source internally — always 'walk_in' here.
     transition_complaint_status(complaint, "takedown_initiated")
 
+    notify_fda_takedown_initiated(db, complaint) #Added for notification to FDA personnel that a takedown operation has been initiated
+
+    # Captured before commit — commit() expires session objects.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+    case_reference = complaint.case_reference
+
     db.commit()
     db.refresh(verification_request)
     db.refresh(complaint)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.UPDATE_COMPLAINT_STATUS,
+        target_table="complaints",
+        target_id=complaint.complaint_id,
+        target_reference=case_reference,
+        old_value={"status": old_complaint_status},
+        new_value={"status": complaint.status},
+        request=http_request,
+        region_code=audit_region_code,
+    )
 
     return LeaFdaResponseActionResponse(
         request_id=verification_request.request_id,

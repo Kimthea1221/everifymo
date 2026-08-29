@@ -23,51 +23,6 @@ function timeAgo(dateString) {
     return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
 }
 
-const allNotifications = [
-    // CIDG notifications
-    { 
-        id: 1,
-        agency: 'lea',
-        title: 'New Complaint Logged', 
-        message: 'Walk-in intake case #2026-0412 has been successfully created.', 
-        time: 'Just now', 
-        isRead: false 
-    },
-    { 
-        id: 2,
-        agency: 'lea',
-        title: 'Verification Approved', 
-        message: 'FDA approved the verification request for "Brand A Pharmacy".', 
-        time: '2 hours ago', 
-        isRead: false 
-    },
-    { 
-        id: 3,
-        agency: 'lea',
-        title: 'Takedown Request Sent', 
-        message: 'Takedown notice forwarded to platforms for verification ID #1049.', 
-        time: '1 day ago', 
-        isRead: true 
-    },
-    // FDA notifications
-    { 
-        id: 4,
-        agency: 'fda',
-        title: 'New Verification Request', 
-        message: 'LEA-CIDG submitted a verification request for product ID #5521.', 
-        time: 'Just now', 
-        isRead: false 
-    },
-    { 
-        id: 5,
-        agency: 'fda',
-        title: 'Product Database Updated', 
-        message: 'Product database has been updated with 12 new entries.', 
-        time: '3 hours ago', 
-        isRead: true 
-    },
-]
-
 /**
  * Helper function to retrieve and normalize the authenticated agency role from localStorage.
  * Standardizes agency/role values into 'fda', 'lea', or 'superadmin'.
@@ -85,6 +40,7 @@ const getAuthenticatedRole = () => {
     if (raw === 'lea' || raw === 'cidg' || raw.includes('lea') || raw.includes('cidg')) return 'lea';
     return 'fda';
 };
+
 
 function TopBar({ topbarType, role, agency }) {
     const navigate = useNavigate();
@@ -109,7 +65,8 @@ function TopBar({ topbarType, role, agency }) {
     };
 
     const normalizedAgency = getNormalizedAgency();
-    const isSuperadmin = normalizedAgency === 'superadmin';
+    const isSuperadmin = normalizedAgency === 'superadmin';  
+    const notificationsBasePath = isSuperadmin ? '/notifications' : '/personnel-notifications';
 
     // dropdown open/close states
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -119,26 +76,18 @@ function TopBar({ topbarType, role, agency }) {
     const notifRef = useRef(null);
     const profileRef = useRef(null);
 
-    // notifications filtered by agency (FDA/LEA - mock data, unchanged)
+    // CHANGED — notifications now always come from the real backend,
+    // for every personnel role (fda, lea, superadmin alike). The old
+    // FDA/LEA mock-data branch has been removed entirely.
     const [notifications, setNotifications] = useState([]);
-
-    // Superadmin - real backend state
     const [unreadCount, setUnreadCount] = useState(0);
     const [notifLoading, setNotifLoading] = useState(false);
 
+    // ---- fetch unread count on mount + poll every 30s ----
     useEffect(() => {
-        if (!isSuperadmin) {
-            setNotifications(allNotifications.filter(n => n.agency === normalizedAgency));
-        }
-    }, [normalizedAgency, isSuperadmin]);
-
-    // ---- Superadmin: fetch unread count on mount + poll every 30s ----
-    useEffect(() => {
-        if (!isSuperadmin) return;
-
         const fetchUnreadCount = async () => {
             try {
-                const res = await apiFetch('/notifications/unread-count');
+                const res = await apiFetch(`${notificationsBasePath}/unread-count`);
                 if (!res.ok) return;
                 const data = await res.json();
                 setUnreadCount(data.unread_count);
@@ -150,16 +99,16 @@ function TopBar({ topbarType, role, agency }) {
         fetchUnreadCount();
         const interval = setInterval(fetchUnreadCount, 30000);
         return () => clearInterval(interval);
-    }, [isSuperadmin]);
+    }, []);
 
-    // ---- Superadmin: fetch full list when dropdown opens ----
+    // ---- fetch full list when dropdown opens ----
     useEffect(() => {
-        if (!isSuperadmin || !isNotifOpen) return;
+        if (!isNotifOpen) return;
 
         const fetchNotifications = async () => {
             setNotifLoading(true);
             try {
-                const res = await apiFetch('/notifications?limit=20&offset=0');
+                const res = await apiFetch(`${notificationsBasePath}?limit=20&offset=0`);
                 if (!res.ok) return;
                 const data = await res.json();
                 setNotifications(
@@ -181,7 +130,7 @@ function TopBar({ topbarType, role, agency }) {
         };
 
         fetchNotifications();
-    }, [isSuperadmin, isNotifOpen]);
+    }, [isNotifOpen]);
 
     // close dropdowns when clicking outside
     useEffect(() => {
@@ -197,17 +146,13 @@ function TopBar({ topbarType, role, agency }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // FDA/LEA still compute unread count from local mock state, same as before
-    const displayUnreadCount = isSuperadmin ? unreadCount : notifications.filter(n => !n.isRead).length;
+    // CHANGED — unread count now always comes from backend state,
+    // for every role. No more local-mock-derived count.
+    const displayUnreadCount = unreadCount;
 
     const handleMarkAllAsRead = async () => {
-        if (!isSuperadmin) {
-            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-            return;
-        }
-
         try {
-            const res = await apiFetch('/notifications/read-all', { method: 'PATCH' });
+            const res = await apiFetch(`${notificationsBasePath}/read-all`, { method: 'PATCH' });
             if (!res.ok) return;
             const data = await res.json();
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
@@ -218,18 +163,13 @@ function TopBar({ topbarType, role, agency }) {
     };
 
     const handleNotificationClick = async (notif) => {
-        if (!isSuperadmin) {
-            setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
-            return;
-        }
-
         // Computed entries (invite_not_activated / invite_expired) have no
         // real DB row - nothing to mark read, they resolve on their own.
         if (COMPUTED_EVENT_TYPES.includes(notif.eventType)) return;
         if (notif.isRead) return;
 
         try {
-            const res = await apiFetch(`/notifications/${notif.id}/read`, { method: 'PATCH' });
+            const res = await apiFetch(`${notificationsBasePath}/${notif.id}/read`, { method: 'PATCH' });
             if (!res.ok) return;
             const data = await res.json();
             setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));

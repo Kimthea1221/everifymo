@@ -1,12 +1,15 @@
+# backend/app/desktop/services/complaints/lea_initiated_cases.py
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session, aliased
 
 from app.models.complaints import Complaint
 from app.models.walkin_complainants import WalkinComplainant
 from app.core.complaint_status import transition_complaint_status
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 from app.desktop.schemas.complaints.complaints import (
     LeaInitiatedCaseListItem,
     LeaInitiatedCaseDetailResponse,
@@ -14,6 +17,7 @@ from app.desktop.schemas.complaints.complaints import (
     LeaCloseCaseResponse,
 )
 
+from app.desktop.services.notifications.notification_service import notify_fda_case_closed  # ADDED
 
 # Left panel list — active takedown operations, region-scoped. No
 # search/category params, same client-side-filter pattern as the
@@ -66,7 +70,7 @@ def get_lea_initiated_case_detail(
 # Notes are optional here too; if provided, they overwrite the
 # existing field_operation_notes as the final status before closing.
 def close_case(
-    db: Session, complaint_id: UUID, current_user, data: LeaCloseCaseRequest
+    db: Session, complaint_id: UUID, current_user, data: LeaCloseCaseRequest, http_request: Request | None = None
 ) -> LeaCloseCaseResponse:
     complaint = (
         db.query(Complaint)
@@ -82,6 +86,8 @@ def close_case(
     if complaint.status != "takedown_initiated":
         raise HTTPException(status_code=400, detail="Only an active takedown operation can be closed.")
 
+    old_complaint_status = complaint.status
+
     if data.field_operation_notes is not None:
         complaint.field_operation_notes = data.field_operation_notes
 
@@ -90,8 +96,31 @@ def close_case(
 
     transition_complaint_status(complaint, "completed")
 
+    notify_fda_case_closed(db, complaint) #Added for notification to FDA personnel that the takedown operation has been closed
+
+    # Captured before commit — commit() expires session objects.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+    case_reference = complaint.case_reference
+
     db.commit()
     db.refresh(complaint)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.UPDATE_COMPLAINT_STATUS,
+        target_table="complaints",
+        target_id=complaint.complaint_id,
+        target_reference=case_reference,
+        old_value={"status": old_complaint_status},
+        new_value={"status": complaint.status},
+        request=http_request,
+        region_code=audit_region_code,
+    )
 
     return LeaCloseCaseResponse(
         complaint_id=complaint.complaint_id,
