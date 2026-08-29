@@ -48,7 +48,7 @@ function DeepLinkListener() {
   useEffect(() => {
     console.log('DeepLinkListener mounted, waiting for token...');
 
-    window.electronAPI.onDeepLinkToken((token) => {
+    const handleToken = (token) => {
       console.log('Token received:', token);
 
       fetch(`http://localhost:8000/registration/validate/${token}`)
@@ -73,7 +73,13 @@ function DeepLinkListener() {
             navigate('/invitation-status', { state: { status: data.status, invite_token: token } });
           }
         });
-    });
+    };
+
+    window.electronAPI.onDeepLinkToken(handleToken);
+
+    return () => {
+      window.electronAPI.removeDeepLinkToken(handleToken);
+    };
   }, [navigate]);
 
   return null;
@@ -84,7 +90,7 @@ export default function App() {
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<Login />} />
+        <Route path='/' element={<SuperAdminLogin />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
