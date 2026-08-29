@@ -1,8 +1,12 @@
+# backend/app/desktop/services/verification/verification_submit_service.py
 from uuid import UUID
 from datetime import datetime, timezone, timedelta
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
+
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.models.verification_request_drafts import VerificationRequestDraft
 from app.models.verification_requests import VerificationRequest
@@ -23,6 +27,7 @@ def _create_verification_request(
     priority: str,
     complaint_statement: str,
     region_id: UUID,   # region parameter added to ensure the request is created within the correct region
+    request: Request | None = None,
 ) -> VerificationRequest:
     complaint = db.query(Complaint).filter(
         Complaint.complaint_id == complaint_id,
@@ -50,10 +55,10 @@ def _create_verification_request(
 
     notify_fda_new_verification_request(db, complaint, priority)   # ADDED for notification to FDA personnel that a new verification request has been submitted
 
-    return new_request
+    return new_request, complaint
 
 
-def submit_verification_draft(db: Session, draft_id: UUID, current_user) -> VerificationRequest:
+def submit_verification_draft(db: Session, draft_id: UUID, current_user, request: Request | None = None) -> VerificationRequest:
     draft = db.query(VerificationRequestDraft).filter(
         VerificationRequestDraft.draft_id == draft_id,
         VerificationRequestDraft.saved_by == current_user.user_id,
@@ -66,7 +71,7 @@ def submit_verification_draft(db: Session, draft_id: UUID, current_user) -> Veri
     if draft.draft_status != "draft":
         raise HTTPException(status_code=400, detail="This draft is still incomplete and cannot be submitted yet.")
 
-    new_request = _create_verification_request(
+    new_request, complaint = _create_verification_request(
         db, current_user,
         complaint_id=draft.complaint_id,
         product_code=draft.product_code,
@@ -75,9 +80,33 @@ def submit_verification_draft(db: Session, draft_id: UUID, current_user) -> Veri
         region_id=draft.region_id,   # region parameter passed to ensure the request is created within the correct region
     )
 
+    # Captured before commit — commit() expires session objects.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+
     # Point of no return — the real verification_requests row exists now
     db.commit()
     db.refresh(new_request)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.CREATE_VERIFICATION_REQUEST,
+        target_table="verification_requests",
+        target_id=new_request.request_id,
+        target_reference=complaint.case_reference,
+        new_value={
+            "product_name": new_request.product_name,
+            "product_code": new_request.product_code,
+            "priority": new_request.priority,
+            "verification_request_status": new_request.verification_request_status,
+        },
+        request=request,
+        region_code=audit_region_code,
+    )
 
     # Only now delete the draft — no files to clean up for this
     # draft type, so no disk-cleanup step needed unlike walk-in submit
@@ -94,8 +123,9 @@ def create_verification_request_direct(
     product_code: str | None,
     priority: str,
     notes_to_fda: str,
+    request: Request | None = None,
 ) -> VerificationRequest:
-    new_request = _create_verification_request(
+    new_request, complaint = _create_verification_request(
         db, current_user,
         complaint_id=complaint_id,
         product_code=product_code,
@@ -103,14 +133,39 @@ def create_verification_request_direct(
         complaint_statement=notes_to_fda,
         region_id=current_user.region_id,   # region parameter passed to ensure the request is created within the correct region
     )
+
+    # Captured before commit — commit() expires session objects.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+
     db.commit()
     db.refresh(new_request)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.CREATE_VERIFICATION_REQUEST,
+        target_table="verification_requests",
+        target_id=new_request.request_id,
+        target_reference=complaint.case_reference,
+        new_value={
+            "product_name": new_request.product_name,
+            "product_code": new_request.product_code,
+            "priority": new_request.priority,
+            "verification_request_status": new_request.verification_request_status,
+        },
+        request=request,
+        region_code=audit_region_code,
+    )
     return new_request
 
 
 #ashanti start
 
-def recall_verification_request(db: Session, request_id: UUID, current_user) -> VerificationRequest:
+def recall_verification_request(db: Session, request_id: UUID, current_user, http_request: Request | None = None) -> VerificationRequest:
     request = db.query(VerificationRequest).join(
         Complaint, VerificationRequest.complaint_id == Complaint.complaint_id
     ).filter(
@@ -131,6 +186,9 @@ def recall_verification_request(db: Session, request_id: UUID, current_user) -> 
         Complaint.complaint_id == request.complaint_id
     ).first()
 
+    old_verification_status = request.verification_request_status
+    old_complaint_status = complaint.status
+
     # Send the complaint back to Ready to Send — raises a clear 400
     # itself if this transition somehow isn't allowed, so no need to
     # duplicate that check here.
@@ -142,8 +200,35 @@ def recall_verification_request(db: Session, request_id: UUID, current_user) -> 
 
     notify_fda_request_recalled(db, complaint) #Added for notification to FDA personnel that the verification request has been recalled
 
+    # Captured before commit — commit() expires session objects.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+    case_reference = complaint.case_reference
+
     db.commit()
     db.refresh(request)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.DELETE_VERIFICATION_REQUEST,
+        target_table="verification_requests",
+        target_id=request.request_id,
+        target_reference=case_reference,
+        old_value={
+            "verification_request_status": old_verification_status,
+            "complaint_status": old_complaint_status,
+        },
+        new_value={
+            "verification_request_status": request.verification_request_status,
+            "complaint_status": complaint.status,
+        },
+        request=http_request,
+        region_code=audit_region_code,
+    )
 
     return request
 

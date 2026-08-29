@@ -108,12 +108,13 @@ def reject_fda_response(
 @fda_response_router.post("/{request_id}/acknowledge", response_model=LeaFdaResponseActionResponse)
 def acknowledge_fda_response_endpoint(
     request_id: UUID,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     if current_user.role != Role.LEA_PERSONNEL:
         raise HTTPException(status_code=403, detail="Only LEA personnel can acknowledge an FDA response.")
-    return acknowledge_fda_response(db, request_id, current_user)
+    return acknowledge_fda_response(db, request_id, current_user, http_request)
 
 
     #
@@ -127,10 +128,11 @@ def acknowledge_fda_response_endpoint(
 def initiate_takedown_endpoint(
     request_id: UUID,
     data: LeaInitiateTakedownRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     if current_user.role != Role.LEA_PERSONNEL:
         raise HTTPException(status_code=403, detail="Only LEA personnel can initiate a takedown.")
-    return initiate_takedown(db, request_id, current_user, data)
+    return initiate_takedown(db, request_id, current_user, data, http_request)
     # added by Darlene --end
