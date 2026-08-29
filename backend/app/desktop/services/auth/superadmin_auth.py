@@ -4,9 +4,11 @@ from sqlalchemy import update
 from datetime import datetime, timedelta, timezone
 
 
+from fastapi import Request
 from app.models.users import User
 from app.core.security import verify_password, hash_password
-from app.core.constants import UserStatus
+from app.core.constants import UserStatus, AuditAction
+from app.core.audit import write_audit_log
 from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
 from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
 
@@ -84,7 +86,7 @@ def _record_failed_attempt_atomic(db: Session, user: User) -> int:
 
 
 
-def authenticate_superadmin(db: Session, email: str, password: str) -> User:
+def authenticate_superadmin(db: Session, email: str, password: str, http_request: Request | None = None) -> User:
     user = db.query(User).filter(User.email == email).first()
 
 
@@ -122,7 +124,7 @@ def authenticate_superadmin(db: Session, email: str, password: str) -> User:
 
 
     if not password_ok:
-        _handle_failed_attempt(db, user)
+        _handle_failed_attempt(db, user, http_request)
         raise ValueError("Invalid credentials")
 
 
@@ -148,7 +150,7 @@ def authenticate_superadmin(db: Session, email: str, password: str) -> User:
 
 
 
-def _handle_failed_attempt(db: Session, user: User) -> None:
+def _handle_failed_attempt(db: Session, user: User, http_request: Request | None = None) -> None:
     attempts = _record_failed_attempt_atomic(db, user)
 
 
@@ -179,13 +181,33 @@ def _handle_failed_attempt(db: Session, user: User) -> None:
             # message that expires while is_locked still blocks them, which
             # is misleading. They need a real admin to unlock the account.
             user.is_locked = True
+
+            # Capture before commit — same ObjectDeletedError reason as
+            # everywhere else in this codebase.
+            user_id = user.user_id
+            user_email = user.email
+
             db.commit()
             notification_service.create_notification_for_all_superadmins(
                 db=db,
                 event_type=NotificationEventType.ACCOUNT_LOCKED,
                 title="Account locked out",
-                message=f"{user.email} has been locked out after {attempts} failed login attempts.",
-                related_user_id=user.user_id,
+                message=f"{user_email} has been locked out after {attempts} failed login attempts.",
+                related_user_id=user_id,
+            )
+            write_audit_log(
+                db,
+                user=None,
+                action=AuditAction.LOCK_SUPERADMIN_ACCOUNT,
+                target_table="users",
+                target_id=user_id,
+                target_reference=user_email,
+                old_value={"is_locked": False},
+                new_value={"is_locked": True, "failed_login_attempts": attempts},
+                request=http_request,
+                region_code=None,
+                user_role_override="superadmin",
+                user_id_override=user_id,
             )
     elif attempts == 3:
         db.commit()
