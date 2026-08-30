@@ -86,7 +86,11 @@ def verify_personnel_otp(request: PersonnelOTPVerifyRequest, http_request: Reque
     otp_token.is_used = True
     db.commit()
 
-    access_token = create_desktop_access_token({"sub": str(user.user_id), "role": user.role})
+    access_token = create_desktop_access_token({
+        "sub": str(user.user_id), 
+        "role": user.role,
+        "region_id": str(user.region_id),
+    })
 
     refresh_token = generate_refresh_token()
     refresh_hash = hash_refresh_token(refresh_token)

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.complaints import Complaint
 from app.models.complaints_status_history import ComplaintStatusHistory
 from app.extension.schemas.complaints import CreateComplaint
+from app.models.regions import Region
 
 from pathlib import Path
 from app.core.config import settings
@@ -42,7 +43,7 @@ def create_complaints(db: Session, create_consumer_request: CreateComplaint, con
     complaint = Complaint(
         case_reference=f"CMP-{uuid.uuid4().hex[:8].upper()}",
         source="extension",
-        region_id = settings.DEFAULT_EXTENSION_REGION_ID,
+        region_id = get_region(db).region_id,
         product_title = create_consumer_request.product_title,
         store_name = create_consumer_request.store_name,
         product_url = str(create_consumer_request.product_url),
@@ -58,3 +59,9 @@ def create_complaints(db: Session, create_consumer_request: CreateComplaint, con
     db.refresh(complaint)
     return complaint
 
+def get_region(db: Session) -> Region:
+    region = db.query(Region).filter(Region.region_code == "RO3").first()
+
+    if not region:
+        raise ValueError("No region found.")
+    return region
