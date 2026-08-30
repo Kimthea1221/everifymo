@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ClockAlert, Link, CircleCheckBig, ArrowRight } from 'lucide-react';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 function SuperadminInviteStatus() {
   const location = useLocation();
@@ -19,7 +20,7 @@ function SuperadminInviteStatus() {
   const handleRequestNewInvite = async () => {
     setResendSending(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/registration/request-resend', {
+      const response = await fetch(`${API_BASE_URL}/registration/request-resend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invite_token: inviteToken }),

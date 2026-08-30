@@ -16,7 +16,6 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi import Request
 from app.core.audit import write_audit_log, get_user_region_code
-from app.core.constants import AuditAction
 from app.core.constants import AuditAction, Role
 
 router = APIRouter(prefix="/auth", tags=["personnel-auth"])
@@ -30,7 +29,7 @@ async def personnel_login(
     db: Session = Depends(get_db),
 ):
     try:
-        user = authenticate_personnel(db, request.email, request.password, request.agency)
+        user = authenticate_personnel(db, request.email, request.password, request.agency, http_request)
     except ValueError as exc:
         # Attribute to the agency the person selected, even if the email
         # doesn't match a real user — so a bad-credentials attempt still
@@ -65,7 +64,7 @@ def verify_personnel_otp(request: PersonnelOTPVerifyRequest, http_request: Reque
         raise HTTPException(status_code=400, detail="User not found")
 
     try:
-        otp_token = verify_otp_for_user(db, user, request.otp)
+        otp_token = verify_otp_for_user(db, user, request.otp, http_request)
     except ValueError as exc:
         # A wrong/expired OTP after the password already checked out is
         # still a failed login attempt — target is otp_tokens here since
