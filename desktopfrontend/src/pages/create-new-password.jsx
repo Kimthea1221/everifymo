@@ -2,6 +2,7 @@
 import { useState } from 'react';
 //import { useNavigate } from 'react-router-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 function CreateNewPassword() {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ function CreateNewPassword() {
     try {
     const token = location.state?.token; // make sure token is passed in via navigate() state
 
-    const response = await fetch('http://127.0.0.1:8000/auth/password/create-from-invite', {
+    const response = await fetch(`${API_BASE_URL}/auth/password/create-from-invite`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // inside handleSubmit, replace the line:

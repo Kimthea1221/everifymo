@@ -1,3 +1,4 @@
+// desktopfrontend/src/pages/leacidgfolder/lea-new-intake.jsx
 import './lea-css.css'
 import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'

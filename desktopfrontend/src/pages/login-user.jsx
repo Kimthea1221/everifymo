@@ -5,6 +5,7 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle  } from 'lucide-react'
 import '../App.css'
 import FDALogo from '../images/FDA.png'
 import PNPLogo from '../images/pnp-cidg.jpg'
+import { API_BASE_URL } from '../utils/apiConfig'
 
 function Login(){
     const navigate = useNavigate();
@@ -113,7 +114,7 @@ function Login(){
     async function handleResendOtp() {
       setLoginError('');
       try {
-        const response = await fetch('http://127.0.0.1:8000/auth/login', {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password, agency }),
@@ -218,7 +219,7 @@ function Login(){
         setErrors({});
 
         try {
-          const response = await fetch('http://127.0.0.1:8000/auth/login', {
+          const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password, agency }),
@@ -255,7 +256,7 @@ function Login(){
         }
 
         try {
-          const response = await fetch('http://127.0.0.1:8000/auth/verify-otp', {
+          const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, otp: otpCode }),

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import ImgSuccess from '../images/success_img.png'
 import ImgTime from '../images/time_img.png'
+import { API_BASE_URL } from '../utils/apiConfig'
 import { 
   User, 
   Mail, 
@@ -102,7 +103,7 @@ function UserRegistration() {
     }
 
     // Submit the form data to the backend
-  fetch('http://localhost:8000/registration/complete', {
+  fetch(`${API_BASE_URL}/registration/complete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -168,9 +169,7 @@ if (!hasValidInviteData) {
               </div>
 
               {/* in the success screen, add the Back to Login button after RegSuccessTag: */}
-              <div className="RegSuccessTag">
-                <span className='RegTimeIcon'><img src={ImgTime} alt="Hour glass icon" /></span> Pending Administrator Approval
-              </div>
+
               <button
                 className="RegSubmitBtn"
                 style={{ marginTop: 20, maxWidth: 220 }}
