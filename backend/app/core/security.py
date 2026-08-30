@@ -54,11 +54,13 @@ def get_current_personnel(token: Annotated[str | None, Depends(oauth2_bearer)]):
         payload = decode_access_token(token)
         user_id = payload.get("sub")
         role = payload.get("role")
+        region_id = payload.get("region_id")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Could not validate user")
         return {
             "user_id": UUID(user_id),
-            "role": role
+            "role": role,
+            "region_id": UUID(region_id) if region_id else None,
         }
     except JWTError:
         raise HTTPException(status_code=401, detail="Unauthorized access")
