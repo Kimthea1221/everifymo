@@ -381,7 +381,7 @@ def list_fda_reports_endpoint(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return list_all_complaints_for_fda(db, search, category, status, source)
+    return list_all_complaints_for_fda(db, current_user, search, category, status, source)
 
 
 
@@ -392,6 +392,5 @@ def get_fda_complaint_detail_endpoint(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return get_fda_complaint_detail(db, complaint_id)
-
+    return get_fda_complaint_detail(db, current_user, complaint_id)
 #Ashanti code ends here
