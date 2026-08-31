@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import './superadmin-css.css';
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import FDALogo from '../../images/FDA.png'
+import PNPLogo from '../../images/pnp-cidg.jpg'
+import { API_BASE_URL } from '../../utils/apiConfig'
 
 //LOGIN PAGE EXCLUSIVELY FOR SUPERADMIN
 
@@ -17,6 +20,41 @@ function SuperAdminLogin() {
     //toggle password visibility states
     const [showPassword, setShowPassword] = useState(false);
     const [adminLoginError, setAdminLoginError] = useState('');
+    // ADDED — "remember my email" state, same pattern as login-user.jsx
+    const [rememberMe, setRememberMe] = useState(false);
+    // ADDED — per-field validation errors, same pattern as login-user.jsx
+    const [errors, setErrors] = useState({});
+    const REMEMBERED_EMAIL_KEY = 'remembered_email_superadmin';
+    const [lockoutSeconds, setLockoutSeconds] = useState(0);   // ← ADD THIS LINE
+
+    // ADDED — Load remembered email on mount
+    // on mount
+    // builds the per-agency localStorage key so FDA and LEA-CIDG
+    // "remember me" emails never overwrite each other
+    // new
+    useEffect(() => {
+        const savedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+        if (savedEmail) {
+            setEmail(savedEmail);
+            setRememberMe(true);
+        }
+    }, []);
+
+    // ADD THIS NEW useEffect right after it:
+    useEffect(() => {
+        if (lockoutSeconds <= 0) return;
+        const interval = setInterval(() => {
+            setLockoutSeconds((prev) => {
+                if (prev <= 1) {
+                    setAdminLoginError('');
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [lockoutSeconds]);
+
 
     // OTP verification states
     //controls if show ba otp screen or credentials form
@@ -89,14 +127,19 @@ function SuperAdminLogin() {
     async function handleResendOtp() {
     setAdminLoginError('');
     try {
-        const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
+        const response = await fetch(`${API_BASE_URL}/auth/superadmin/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
 
+        // NEW
         if (!response.ok) {
             const errorData = await response.json();
+            if (errorData.detail && typeof errorData.detail === 'object') {
+                setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
+                throw new Error(errorData.detail.message || 'Failed to resend code.');
+            }
             throw new Error(errorData.detail || 'Failed to resend code.');
         }
 
@@ -113,43 +156,102 @@ function SuperAdminLogin() {
         setIsOtpSent(false);
         setOtp(new Array(6).fill(''));
         setAdminLoginError('');
+        setPassword('');
+        setLockoutSeconds(0);   // ← ADD THIS LINE
     }
 
+    // ADDED — masks an email for display on the OTP screen so the full
+    // address isn't shown in plain text (e.g. "admin@gmail.com" -> "ad***@gmail.com")
+    function maskEmail(rawEmail) {
+        if (!rawEmail || !rawEmail.includes('@')) return rawEmail
 
+        const [localPart, domain] = rawEmail.split('@')
+
+        // Keep the first 2 characters of the local part visible, mask the rest
+        const visibleChars = Math.min(2, localPart.length)
+        const maskedLocal =
+            localPart.slice(0, visibleChars) + '*'.repeat(Math.max(localPart.length - visibleChars, 3))
+
+        return `${maskedLocal}@${domain}`
+    }
+
+    // ADDED — field change handlers, clear that field's error the moment the user edits it
+    function handleEmailChange(e) {
+        const val = e.target.value;
+        setEmail(val);
+        if (!val.trim()) {
+            setErrors((prev) => ({ ...prev, email: '' }));
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(val.trim())) {
+                setErrors((prev) => ({ ...prev, email: 'Please enter a valid email address.' }));
+            } else {
+                setErrors((prev) => ({ ...prev, email: '' }));
+            }
+        }
+    }
+
+    function handlePasswordChange(e) {
+        setPassword(e.target.value);
+        if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
+    }
 
     async function handleLogin() {
     if (!isOtpSent) {
 
-        // Check if fields are empty
-        if (!email || !password) {
-            setAdminLoginError('Please input your credentials to continue.');
-            return;
+        // CHANGED — per-field validation (same pattern as login-user.jsx)
+        // instead of a single generic "please input your credentials" message
+        const newErrors = {};
+
+        if (!email.trim()) {
+            newErrors.email = 'Email is required.';
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                newErrors.email = 'Please enter a valid email address.';
+            }
         }
 
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            setAdminLoginError('Please enter a valid email address.');
-            return;
+        if (!password.trim()) {
+            newErrors.password = 'Password is required.';
         }
 
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+        setErrors({});
 
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/superadmin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
 
-        try {
-            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    if (errorData.detail && typeof errorData.detail === 'object') {
+                        setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
+                        throw new Error(errorData.detail.message || 'Too many failed attempts.');
+                    }
+                    setLockoutSeconds(0);
+                    throw new Error(errorData.detail || 'Invalid email or password.');
+                }
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Invalid email or password.');
+            // ADDED — remember/forget email in localStorage, frontend-only
+            // after successful login
+            // new
+            if (rememberMe) {
+                localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+            } else {
+                localStorage.removeItem(REMEMBERED_EMAIL_KEY);
             }
 
             setIsOtpSent(true);
             setTimer(300);
             setAdminLoginError('');
+            setLockoutSeconds(0); 
         } catch (err) {
             setAdminLoginError(err.message);
         }
@@ -163,15 +265,22 @@ function SuperAdminLogin() {
             return;
         }
 
-        try {
-            const response = await fetch('http://127.0.0.1:8000/auth/superadmin/verify-otp', {
+                try {
+            const response = await fetch(`${API_BASE_URL}/auth/superadmin/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp: otpCode }),
             });
 
+            // ADDED — same structured-429 handling as the password-login branch,
+            // since a throttled last-active-superadmin can now also come back
+            // from verify-otp (failed OTP attempts), not just from /login.
             if (!response.ok) {
                 const errorData = await response.json();
+                if (errorData.detail && typeof errorData.detail === 'object') {
+                    setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
+                    throw new Error(errorData.detail.message || 'Too many failed attempts.');
+                }
                 throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
             }
 
@@ -182,71 +291,99 @@ function SuperAdminLogin() {
             navigate('/superadminfolder/superadmin-user-management');
         } catch (err) {
             setAdminLoginError(err.message);
+
+             // Always clear the OTP boxes and refocus box 1 on any invalid code
+            setOtp(new Array(6).fill(''));
+            setTimeout(() => {
+                otpRefs.current[0]?.focus();
+            }, 0);
+
+            // OTP exhausted its per-code attempts (backend's 3-try cap) —
+            // surface Resend immediately instead of waiting for the timer,
+            // and refocus box 1 so the user can jump straight to Resend/retry.
+            if (/request a new otp/i.test(err.message)) {
+                setTimer(0);
+            }
         }
     }
 }
     const formatTimer = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+    const displayedError = lockoutSeconds > 0
+        ? `Too many failed attempts. Try again in ${lockoutSeconds} second${lockoutSeconds === 1 ? '' : 's'}.`
+        : adminLoginError;
+
     return (
         <div className="AdminLoginContainer">
             <div className="AdminLoginWrapper">
                  {/* LEFT PANEL */}
-                <div className="AdminLoginLeftPanel">
-                    <div className="AdminLoginTextWrapper">
-                        <h1 className="AdminLoginWelcomeText">Welcome to</h1>
-                        <p className="AdminLoginSubtitleText">ICMDA Super Admin log in page.</p>
+                 <div className="AdminLoginLeftPanel">
+                    <div className="Agency AgencyTop">
+                        <img src={FDALogo} alt="FDA AGENCY LOGO" className='FdaLogo'/>
+                    <div>
+                        <p>REPUBLIC OF THE PHILIPPINES</p>
+                        <h3>FOOD AND DRUGS ADMINISTRATION</h3>
                     </div>
-                    <div className="AdminLoginLogoContainer">
-                        <img src="src/images/fda_desktop.png" alt="FDA Philippines" />
-                        <img src="src/images/cidg_desktop.png" alt="CIDG PNP" />
+                    </div>
+                 
+                    <div className="Hero">
+                        <h1>WELCOME to ICMDA!    <br /> </h1>
+                        <h4>This is Super Admin <span>Complaint Management System</span> </h4>
+                    </div>
+                 
+                    <div className="Agency AgencyBottom">
+                        <img src={PNPLogo} alt="PNP-CIDG AGENCY LOGO" />
+                        <div>
+                            <p>REPUBLIC OF THE PHILIPPINES</p>
+                            <h3>CRIMINAL INVESTIGATION AND DETECTION GROUP</h3>
+                        </div>
                     </div>
                 </div>
+                 
 
                 {/* RIGHT PANEL */}
                 <div className={`AdminLoginRightPanel ${isOtpSent ? 'OtpPanelActive' : ''}`}>
                     <form 
+                        noValidate
                         className={isOtpSent ? 'OtpFormActive' : ''}
                         onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
 
                         {!isOtpSent ? (
                             <>
                                 <div className="AdminLoginHeader">
-                                    <p>Please login to your account.</p>
+                                    <small>AUTHORIZED LOGIN</small>
+                                    <h2>Please log in to continue</h2>
                                 </div>
-
+                            <div className="AdminLoginform">
                                 <div>
                                     <label htmlFor="email">Email <span>*</span></label>
-                                    <div className="LoginInputWrapper">
-                                        <Mail className="LoginInputIcon" size={16} />
+                                    <div className="AdminLoginInputWrapper">
+                                        <Mail className="AdminLoginInputIcon" size={16} />
                                         <input
                                             id="email"
                                             type="email" 
                                             placeholder="youremail@gmail.com"
                                             value={email}
-                                            onChange={(e) => { setEmail(e.target.value); setAdminLoginError(''); }}
+                                            onChange={handleEmailChange}
                                             required
                                         />
                                     </div>
+                                    {errors.email && <span className="AdminLoginFieldError"><AlertCircle size={12} /> {errors.email}</span>}
                                 </div>
 
                                 <div style={{ marginTop: '15px' }}>
                                     <div className="PasswordLabelRow">
                                         <label htmlFor="password">Password <span>*</span></label>
-                                        
-                                         <a   onClick={() => navigate('/forgot-password?from=superadmin')}
-                                            className="ForgotPasswordLink">
-                                            Forgot?
-                                        </a>
                                     </div>
 
-                                    <div className="PasswordInputWrapper">
+                                    <div className="AdminPasswordInputWrapper">
                                         <Lock className="LoginInputIcon" size={16} />
                                         <input
                                             id="password"
                                             type={showPassword ? 'text' : 'password'}
                                             placeholder="Enter your password"
                                             value={password}
-                                            onChange={(e) => { setPassword(e.target.value); setAdminLoginError(''); }}
+                                            onChange={handlePasswordChange}
                                             required
                                         />
                                         
@@ -259,13 +396,31 @@ function SuperAdminLogin() {
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
+                                    {errors.password && <span className="AdminLoginFieldError"><AlertCircle size={12} /> {errors.password}</span>}
 
-                                    {!isOtpSent && adminLoginError && (
-                                        <p className="AdminLoginErrorMsg" style={{ marginTop: '8px' }}>{adminLoginError}</p>
-                                    )}
+                                    <div className="AdminRememberMeRow">
+                                        <label htmlFor="admin-remember-me">
+                                            <input
+                                                type="checkbox"
+                                                id="admin-remember-me"
+                                                checked={rememberMe}
+                                                onChange={(e) => setRememberMe(e.target.checked)}
+                                            />
+                                            Remember my email
+                                        </label>
+                                        <a
+                                            onClick={() => navigate('/forgot-password?from=superadmin')}
+                                            className="ForgotPasswordLink"
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            Forgot Password?
+                                        </a>
+                                    </div>
                                 </div>
+                                </div>
+                                
 
-                                <button type="submit">Login</button>
+                                <button type="submit" disabled={lockoutSeconds > 0}>Login</button>
                             </>
                         ) : (
                             <>
@@ -276,7 +431,7 @@ function SuperAdminLogin() {
 
                                 <div className="OtpContainer">
                                     <div className="OtpInstructions">
-                                        Enter the code sent to <span>{email}</span>.
+                                        Enter the code sent to <span>{maskEmail(email)}</span>.
                                     </div>
 
                                     <div className="OtpInputGrid">
@@ -311,22 +466,29 @@ function SuperAdminLogin() {
                                         )}
                                     </div>
 
+                                    
+
+                                     {/* ADDED — disable verify button while a throttle from too many
+                                        failed OTP attempts is active, same pattern as the login button */}
+                                    <button type="submit" style={{ marginTop: '20px' }} disabled={lockoutSeconds > 0}>
+                                        Verify &amp; Login
+                                    </button>
                                     <button type="button" className="BackToLoginBtn" onClick={handleBackToLogin}>
                                         ← Back to login
                                     </button>
-
-                                    <button type="submit" style={{ marginTop: '20px' }}>
-                                        Verify &amp; Login
-                                    </button>
                                 </div>
 
-                                {adminLoginError && (
-                                    <div className="AdminLoginErrorMsgContainer" style={{ marginTop: '15px' }}>
-                                        <p className="AdminLoginErrorMsg">{adminLoginError}</p>
-                                    </div>
-                                )}
+                                
                             </>
                         )}
+
+                        {displayedError && (
+                            <div className="AdminLoginErrorMsgContainer" style={{ marginTop: '15px' }}>
+                                <p className="AdminLoginErrorMsg">{displayedError}</p>
+                            </div>
+                        )}
+
+
                     </form>
                 </div>
                 

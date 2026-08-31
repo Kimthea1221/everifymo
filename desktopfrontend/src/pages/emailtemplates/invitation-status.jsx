@@ -1,49 +1,62 @@
-// ============================================================
-// DEEP LINK STATUS PAGE
-// This page handles three invalid deep link states:
-// 1. Invitation link expired
-// 2. Invalid invitation link
-// 3. Registration already used/completed ***CHINANGE KO YUNG NAMING NG STATUS INTO "used" PARA HINDI MAGKA-CONFLICT SA "completed" STATUS NA GINAGAMIT SA BACKEND
-
+//desktopfrontend/src/pages/emailtemplates/invitation-status.jsx
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import {ClockAlert, Link, CircleCheckBig} from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { ClockAlert, Link, CircleCheckBig } from 'lucide-react'
+import { API_BASE_URL } from '../../utils/apiConfig'
 
 function DeepLinkStatus() {
     const location = useLocation()
+    const navigate = useNavigate()
 
-   {/*CHANGE LANG TO PARA MAKITA YUNG STATUS
-    const [linkStatus, setLinkStatus] = useState('expired')    
-    const [linkStatus, setLinkStatus] = useState('invalid')    
-    const [linkStatus, setLinkStatus] = useState('used')
-    */}
     const { status: linkStatus, invite_token } = location.state || {}
 
     const [requested, setRequested] = useState(false)
-    // content config for each status
+    const [resendNotice, setResendNotice] = useState('')
+    const [resendSending, setResendSending] = useState(false)
+
+    function handleRequestResend() {
+        setResendSending(true)
+        fetch(`${API_BASE_URL}/registration/request-resend`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invite_token }),
+        })
+            .then(async (res) => {
+                const data = await res.json().catch(() => ({}))
+                setResendSending(false)
+
+                if (res.status === 409) {
+                    // Already requested (or otherwise already handled) — still show as "sent" so
+                    // the user isn't stuck clicking a button that will never succeed.
+                    setRequested(true)
+                    setResendNotice(data.detail || 'A resend has already been requested for this invitation.')
+                    return
+                }
+
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Request failed')
+                }
+
+                setRequested(true)
+                setResendNotice('Your request has been sent. Please wait for your administrator.')
+            })
+            .catch(() => {
+                setResendSending(false)
+                alert('Something went wrong. Please contact your administrator directly.')
+            })
+    }
+
     const statusContent = {
         expired: {
-        icon: <ClockAlert size={32} color="#D97706" />,
-        iconBg: '#FEF3C7',
-        title: 'Invitation Link Expired',
-        message: 'Your registration link has expired. Invitation links are only valid for a limited time. Please request a new invitation from your administrator.',
-        showButton: !requested,
-        buttonLabel: 'Request New Invitation',
-        buttonAction: () => {
-            fetch('http://localhost:8000/registration/request-resend', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ invite_token }),
-            })
-                .then((res) => {
-                    if (!res.ok) throw new Error('Request failed')
-                    return res.json()
-                })
-                .then(() => setRequested(true))
-                .catch(() => alert('Something went wrong. Please contact your administrator directly.'))
+            icon: <ClockAlert size={32} color="#D97706" />,
+            iconBg: '#FEF3C7',
+            title: 'Invitation Link Expired',
+            message: 'Your registration link has expired. Invitation links are only valid for a limited time. Please request a new invitation from your administrator.',
+            showButton: !requested,
+            buttonLabel: resendSending ? 'Sending Request…' : 'Request New Invitation',
+            buttonAction: handleRequestResend,
+            accentColor: '#D97706',
         },
-        accentColor: '#D97706',
-    },
         invalid: {
             icon: <Link size={32} color="#B91C1C" />,
             iconBg: '#FEE2E2',
@@ -57,14 +70,16 @@ function DeepLinkStatus() {
             iconBg: '#D1FAE5',
             title: 'Registration Already Complete',
             message: 'Your registration has already been completed. You do not need to register again. Please wait for your administrator to activate your account, or login if your account is already active.',
-            showButton: false,
+            showButton: true,
+            buttonLabel: 'Go to Login',
+            buttonAction: () => navigate('/login'),
             accentColor: '#0D9488',
         },
     }
 
     const content = statusContent[linkStatus]
 
-    if (!content) return <p>Something went wrong.</p>   // safety fallback
+    if (!content) return <p>Something went wrong.</p>
 
     return (
         <>
@@ -152,6 +167,11 @@ function DeepLinkStatus() {
                     opacity: 0.88;
                 }
 
+                .DeepLinkBtn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+
                 .DeepLinkSystemName {
                     margin-top: 40px;
                     font-size: 11px;
@@ -184,6 +204,7 @@ function DeepLinkStatus() {
                     font-weight: 500;
                     margin: 0;
                 }
+
             `}</style>
 
             <div className='DeepLinkPage'>
@@ -191,7 +212,6 @@ function DeepLinkStatus() {
                     className='DeepLinkCard'
                     style={{ borderTopColor: content.accentColor }}
                 >
-                    {/* icon */}
                     <div
                         className='DeepLinkIconBox'
                         style={{ backgroundColor: content.iconBg }}
@@ -199,38 +219,35 @@ function DeepLinkStatus() {
                         {content.icon}
                     </div>
 
-                    {/* title */}
                     <h2 className='DeepLinkTitle'>{content.title}</h2>
 
-                    {/* special alert box for completed status only */}
                     {linkStatus === 'used' && (
                         <div className='DeepLinkAlertBox'>
                             <p>✓ Your registration details have been received.</p>
                         </div>
                     )}
 
-                    {/* message */}
                     <p className='DeepLinkMessage'>{content.message}</p>
 
                     <div className='DeepLinkDivider' />
 
-                    {/* button — only shows for 'expired' status */}
                     {content.showButton && (
                         <button
                             className='DeepLinkBtn'
                             style={{ backgroundColor: content.accentColor }}
                             onClick={content.buttonAction}
+                            disabled={resendSending}
                         >
                             {content.buttonLabel}
                         </button>
                     )}
 
-                    {/* shown after a successful resend request */}
                     {linkStatus === 'expired' && requested && (
-                        <p className='DeepLinkMessage'>Your request has been sent. Please wait for your administrator.</p>
+                        <p className='DeepLinkMessage' style={{ marginTop: 16, marginBottom: 0 }}>
+                            {resendNotice}
+                        </p>
                     )}
 
-                    {/* system name at bottom */}
                     <p className='DeepLinkSystemName'>
                         ICMDA · Interagency Complaint Management
                     </p>

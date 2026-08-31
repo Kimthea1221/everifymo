@@ -1,6 +1,9 @@
+// desktopfrontend/src/pages/leacidgfolder/lea-new-intake.jsx
 import './lea-css.css'
 import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
+import { AlertCircle, CheckCircle, AlertTriangle, Info, XCircle, X, Image as ImageIcon, FileText, Eye, Download, Paperclip } from 'lucide-react'
+import mammoth from 'mammoth'
 
 import { useState, useEffect } from 'react' // ADDED useEffect: runs code on page load
 import { useLocation, useNavigate } from 'react-router-dom' // ADDED: read nav data + redirect
@@ -15,8 +18,100 @@ function LeaNewIntake() {
   // ADDED — draftId passed in from Saved Drafts "Edit Draft" click.
   // null = brand new intake, no draft involved.
   const editingDraftId = location.state?.draftId ?? null
+  const editingComplaintId = location.state?.complaintId ?? null
+  // ADDED — on page load, if editing an already-submitted complaint,
+  // fetch its full detail and fill every field
+  useEffect(() => {
+    if (!editingComplaintId) return  // brand new intake or draft edit — nothing to fetch
+
+    const token = localStorage.getItem('access_token')
+    setLoading(true)
+
+    fetch(`${API_BASE}/complaints/${editingComplaintId}/walkin-detail`, {
+      headers: { authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((data) => {
+        setFullName(data.full_name ?? '')
+        setContactNumber(data.contact_number ?? '')
+        setEmail(data.email ?? '')
+        setIdType(data.id_type ?? '')
+        setAddress(data.address ?? '')
+        setProductName(data.product_title ?? '')
+        setManufacturer(data.manufacturer ?? '')
+        setProductCategory(data.product_category ?? '')
+        setPlaceOfPurchase(data.place_of_purchase ?? '')
+        setDateOfPurchase(data.date_of_purchase ?? '')
+        setAmountPaid(data.amount_paid ?? '')
+        setNatureOfComplaint(data.nature_of_complaint ?? '')
+        setExistingAttachments(
+          (data.attached_files ?? []).map((f) => ({
+            attachment_id: f.file_id,
+            file_name: f.file_name,
+          }))
+        )
+      })
+      .catch(() => showToast('Could not load this complaint.'))
+      .finally(() => setLoading(false))
+  }, [editingComplaintId])
+
+
 
   const [files, setFiles] = useState([])
+  const [previewFile, setPreviewFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [docxHtml, setDocxHtml] = useState('')
+  const [docxLoading, setDocxLoading] = useState(false)
+  const [docxError, setDocxError] = useState(false)
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+  }
+
+  useEffect(() => {
+    if (!previewFile) {
+      setPreviewUrl(null)
+      setDocxHtml('')
+      setDocxLoading(false)
+      setDocxError(false)
+      return
+    }
+
+    const isDocx = previewFile.name?.toLowerCase().endsWith('.docx') ||
+                   previewFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+    if (isDocx) {
+      setPreviewUrl(null)
+      setDocxLoading(true)
+      setDocxError(false)
+      previewFile.arrayBuffer()
+        .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+        .then((result) => {
+          setDocxHtml(result.value)
+        })
+        .catch((err) => {
+          console.error('Docx conversion error:', err)
+          setDocxError(true)
+        })
+        .finally(() => {
+          setDocxLoading(false)
+        })
+    } else {
+      setDocxHtml('')
+      const url = URL.createObjectURL(previewFile)
+      setPreviewUrl(url)
+      return () => {
+        URL.revokeObjectURL(url)
+      }
+    }
+  }, [previewFile])
 
   // ADDED — files already saved on the draft (from backend), separate
   // from `files` (new uploads picked just now)
@@ -44,6 +139,213 @@ function LeaNewIntake() {
   const [amountPaid, setAmountPaid] = useState('')
   const [natureOfComplaint, setNatureOfComplaint] = useState('')
 
+  // ADDED — Frontend field validation state
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
+
+  // Helper to get current value for a given field name
+  const getFieldValue = (field) => {
+    switch (field) {
+      case 'fullName': return fullName
+      case 'contactNumber': return contactNumber
+      case 'email': return email
+      case 'productName': return productName
+      case 'manufacturer': return manufacturer
+      case 'productCategory': return productCategory
+      case 'placeOfPurchase': return placeOfPurchase
+      case 'dateOfPurchase': return dateOfPurchase
+      case 'amountPaid': return amountPaid
+      case 'natureOfComplaint': return natureOfComplaint
+      case 'attachments': return { files, existingAttachments }
+      default: return ''
+    }
+  }
+
+  // Validate an individual field and return its error string (if any)
+  const validateSingleField = (field, value) => {
+    if (field === 'fullName') {
+      if (value && value.trim()) {
+        const nameRegex = /^[a-zA-Z\s.'\-]+$/
+        if (!nameRegex.test(value.trim())) {
+          return 'Please enter a valid full name (letters only).'
+        }
+      }
+      return ''
+    }
+
+    if (field === 'contactNumber') {
+      if (value && value.trim()) {
+        const val = value.trim()
+        if (/[a-zA-Z]/.test(val) || /[^0-9+]/.test(val)) {
+          return 'Please enter a valid contact number.'
+        }
+        const phPhoneRegex = /^(09|\+?639)\d{9}$/
+        if (!phPhoneRegex.test(val)) {
+          return 'Please enter a valid Philippine contact number (e.g. 09123456789).'
+        }
+      }
+      return ''
+    }
+
+    if (field === 'email') {
+      if (value && value.trim()) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value.trim())) {
+          return 'Please enter a valid email address.'
+        }
+      }
+      return ''
+    }
+
+    if (field === 'productName') {
+      if (!value || !value.trim()) {
+        return 'Product Name is required.'
+      }
+      return ''
+    }
+
+    if (field === 'manufacturer') {
+      if (!value || !value.trim()) {
+        return 'Manufacturer/Seller is required.'
+      }
+      return ''
+    }
+
+    if (field === 'productCategory') {
+      if (!value || !value.trim()) {
+        return 'Category is required.'
+      }
+      return ''
+    }
+
+    if (field === 'placeOfPurchase') {
+      if (!value || !value.trim()) {
+        return 'Place of Purchase is required.'
+      }
+      return ''
+    }
+
+    if (field === 'dateOfPurchase') {
+      if (!value || !value.trim()) {
+        return 'Date of Purchase is required.'
+      }
+      const selectedDate = new Date(value)
+      const today = new Date()
+      today.setHours(23, 59, 59, 999)
+      if (selectedDate > today) {
+        return 'Date of Purchase cannot be in the future.'
+      }
+      return ''
+    }
+
+    if (field === 'amountPaid') {
+      if (value !== '' && value !== null && value !== undefined) {
+        if (Number(value) < 0) {
+          return 'Amount Paid cannot be negative.'
+        }
+      }
+      return ''
+    }
+
+    if (field === 'natureOfComplaint') {
+      if (!value || !value.trim()) {
+        return 'Nature of Complaint is required.'
+      }
+      return ''
+    }
+
+    if (field === 'attachments') {
+      const { files: fList, existingAttachments: eList } = value || {}
+      const isEditingWithExisting = (editingDraftId || editingComplaintId)
+      if ((!fList || fList.length === 0) && (!isEditingWithExisting || !eList || eList.length === 0)) {
+        return 'Please attach at least one supporting document or photo.'
+      }
+      return ''
+    }
+
+    return ''
+  }
+
+  // Optional fields list for real-time format validation
+  const optionalFields = ['fullName', 'contactNumber', 'email', 'amountPaid']
+
+  // Handles blurring an input — marks field as touched and computes error
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+    const fieldError = validateSingleField(field, getFieldValue(field))
+    setErrors((prev) => ({ ...prev, [field]: fieldError }))
+  }
+
+  // Handles value changes — updates state & performs real-time format validation on typing
+  const handleChangeField = (field, setter, val) => {
+    setter(val)
+    const err = validateSingleField(field, val)
+
+    if (optionalFields.includes(field)) {
+      setErrors((prev) => ({ ...prev, [field]: err }))
+      return
+    }
+
+    if (touched[field] || (err && err.includes('future'))) {
+      setErrors((prev) => ({ ...prev, [field]: err }))
+    }
+  }
+
+  // Validate entire form for submission
+  const validateForm = () => {
+    const fieldsToValidate = [
+      'fullName',
+      'contactNumber',
+      'email',
+      'productName',
+      'manufacturer',
+      'productCategory',
+      'placeOfPurchase',
+      'dateOfPurchase',
+      'amountPaid',
+      'natureOfComplaint',
+      'attachments'
+    ]
+
+    const newErrors = {}
+    const newTouched = {}
+
+    fieldsToValidate.forEach((field) => {
+      newTouched[field] = true
+      const err = validateSingleField(field, getFieldValue(field))
+      if (err) {
+        newErrors[field] = err
+      }
+    })
+
+    setTouched(newTouched)
+    setErrors(newErrors)
+
+    return Object.keys(newErrors).length === 0
+  }
+
+  // Validate format of filled fields when saving a draft
+  const validateFormatForDraft = () => {
+    const fieldsToValidate = ['fullName', 'contactNumber', 'email', 'dateOfPurchase', 'amountPaid']
+    const newErrors = { ...errors }
+    const newTouched = { ...touched }
+    let isValid = true
+
+    fieldsToValidate.forEach((field) => {
+      const val = getFieldValue(field)
+      const err = validateSingleField(field, val)
+      if (err) {
+        newErrors[field] = err
+        newTouched[field] = true
+        isValid = false
+      }
+    })
+
+    setTouched(newTouched)
+    setErrors(newErrors)
+    return isValid
+  }
+
   // ADDED — shows a toast for 3 seconds then auto-clears
   const showToast = (message, type = 'error') => {
     setToast({ message, type })
@@ -62,7 +364,6 @@ function LeaNewIntake() {
     })
       .then((res) => res.json())
       .then((data) => {
-        // ?? '' = use backend value, or empty string if null/missing
         setFullName(data.full_name ?? '')
         setContactNumber(data.contact_number ?? '')
         setEmail(data.email ?? '')
@@ -76,35 +377,76 @@ function LeaNewIntake() {
         setAmountPaid(data.amount_paid ?? '')
         setNatureOfComplaint(data.nature_of_complaint ?? '')
         setExistingAttachments(data.attachments ?? [])
-        // NOTE: existingAttachments not set here yet — endpoint
-        // doesn't return file data yet, flagged separately below
       })
-      .catch(() => setErrorMessage('Could not load this draft.'))
+      .catch(() => showToast('Could not load this draft.'))
       .finally(() => setLoading(false))
-  }, [editingDraftId])  // re-run only if editingDraftId changes
+  }, [editingDraftId])
 
-  // UNCHANGED
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFiles([...files, ...Array.from(e.target.files)])
+      const updated = [...files, ...Array.from(e.target.files)]
+      setFiles(updated)
+      if (touched.attachments) {
+        const err = validateSingleField('attachments', { files: updated, existingAttachments })
+        setErrors((prev) => ({ ...prev, attachments: err }))
+      }
       e.target.value = ""
     }
   }
 
-  // UNCHANGED
   const handleRemoveFile = (indexToRemove) => {
-    setFiles(files.filter((_, index) => index !== indexToRemove))
+    const fileToRemove = files[indexToRemove]
+    if (previewFile && previewFile === fileToRemove) {
+      setPreviewFile(null)
+    }
+    const updated = files.filter((_, index) => index !== indexToRemove)
+    setFiles(updated)
+    if (touched.attachments) {
+      const err = validateSingleField('attachments', { files: updated, existingAttachments })
+      setErrors((prev) => ({ ...prev, attachments: err }))
+    }
   }
 
-  // ADDED — same idea as handleRemoveFile, but for already-saved files
   const handleRemoveExistingAttachment = (attachmentId) => {
-    setExistingAttachments(existingAttachments.filter((a) => a.attachment_id !== attachmentId))
+    const updatedExisting = existingAttachments.filter((a) => a.attachment_id !== attachmentId)
+    setExistingAttachments(updatedExisting)
     setAttachmentIdsToRemove([...attachmentIdsToRemove, attachmentId])
+    if (touched.attachments) {
+      const err = validateSingleField('attachments', { files, existingAttachments: updatedExisting })
+      setErrors((prev) => ({ ...prev, attachments: err }))
+    }
   }
 
+  const [isDragActive, setIsDragActive] = useState(false)
 
-  // ADDED — shared by Save-as-Draft and Log-Complaint-Direct, since
-  // both send the same fields, just to different URLs
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const updated = [...files, ...Array.from(e.dataTransfer.files)]
+      setFiles(updated)
+      if (touched.attachments) {
+        const err = validateSingleField('attachments', { files: updated, existingAttachments })
+        setErrors((prev) => ({ ...prev, attachments: err }))
+      }
+      e.dataTransfer.clearData()
+    }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+  }
+
   const buildFormData = () => {
     const formData = new FormData()
     formData.append('full_name', fullName)
@@ -117,16 +459,14 @@ function LeaNewIntake() {
     formData.append('product_category', productCategory)
     formData.append('place_of_purchase', placeOfPurchase)
     formData.append('date_of_purchase', dateOfPurchase)
-    formData.append('amount_paid', amountPaid)
+    if (amountPaid !== '' && amountPaid !== null && amountPaid !== undefined) {
+      formData.append('amount_paid', amountPaid)
+    }
     formData.append('nature_of_complaint', natureOfComplaint)
     files.forEach((file) => formData.append('files', file))
     return formData
   }
 
-  // ADDED — turns FastAPI's 422 error shape into a readable sentence.
-  // FastAPI sends back { detail: [{ loc: [...], msg: "...", ... }, ...] }
-  // for validation errors — this reads that array and builds a plain
-  // message instead of showing raw JSON or a vague generic string.
   const parseBackendError = async (res) => {
     try {
       const errorData = await res.json()
@@ -139,10 +479,18 @@ function LeaNewIntake() {
     }
   }
 
-  // ADDED — POST if new draft, PUT if editing an existing one
   const handleSaveAsDraft = async () => {
+    if (editingComplaintId) {
+      showToast('This complaint is already submitted and cannot be saved as a draft.')
+      return
+    }
+
+    if (!validateFormatForDraft()) {
+      showToast('Please fix the validation errors before saving.')
+      return
+    }
+
     setLoading(true)
-    // setErrorMessage('')
     const token = localStorage.getItem('access_token')
     const formData = buildFormData()
 
@@ -174,14 +522,11 @@ function LeaNewIntake() {
     }
   }
 
-
-  // ADDED — submit endpoint if editing a draft, direct-create endpoint if not
   const handleLogComplaint = async (e) => {
     e.preventDefault()
 
-    // Validate attachments for both new complaints and existing drafts
-    if (files.length === 0 && (!editingDraftId || existingAttachments.length === 0)) {
-      showToast('Please attach at least one file.')
+    if (!validateForm()) {
+      showToast('Please fix the validation errors before submitting.')
       return
     }
 
@@ -190,8 +535,16 @@ function LeaNewIntake() {
 
     try {
       let res
-      if (editingDraftId) {
-        // First update the draft with any changes
+      if (editingComplaintId) {
+        const formData = buildFormData()
+        attachmentIdsToRemove.forEach((id) => formData.append('remove_attachment_ids', id))
+
+        res = await fetch(`${API_BASE}/complaints/walkin/${editingComplaintId}`, {
+          method: 'PUT',
+          headers: { authorization: `Bearer ${token}` },
+          body: formData,
+        })
+      } else if (editingDraftId) {
         const formData = buildFormData()
         attachmentIdsToRemove.forEach((id) => formData.append('remove_attachment_ids', id))
 
@@ -207,7 +560,6 @@ function LeaNewIntake() {
           return
         }
 
-        // finishing a draft needs no body — backend already has everything
         res = await fetch(`${API_BASE}/drafts/walkin/${editingDraftId}/submit`, {
           method: 'POST',
           headers: { authorization: `Bearer ${token}` },
@@ -232,10 +584,10 @@ function LeaNewIntake() {
     } finally {
       setLoading(false)
     }
+
   }
 
-
-  return (
+  return ( 
     <div className='LeaDashboardMain'>
       <Sidebar sidebarType="LEA" />
       <div className='LeaContentContainer'>
@@ -249,37 +601,71 @@ function LeaNewIntake() {
           </div>
 
           <div className='FormForWalkin'>
-            {/* CHANGED — real onSubmit, fires only when "Log Complaint" is clicked */}
-            <form onSubmit={handleLogComplaint}>
+            <form onSubmit={handleLogComplaint} noValidate>
               <div className='FormSection'>
                 <h3>COMPLAINANT DETAILS</h3>
                 <div className='col'>
                   <div>
-                    <label htmlFor="">Full Name (OPTIONAL)</label>
-                    <input type="text" placeholder='Ex. Juan Dela cruz'
-                      value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                    <label htmlFor="fullName">Full Name (OPTIONAL)</label>
+                    <input
+                      id="fullName"
+                      type="text"
+                      placeholder='Ex. Juan Dela cruz'
+                      value={fullName}
+                      onChange={(e) => handleChangeField('fullName', setFullName, e.target.value)}
+                      onBlur={() => handleBlur('fullName')}
+                      className={errors.fullName ? 'InputErrorBorder' : ''}
+                    />
+                    {errors.fullName && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.fullName}
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <label htmlFor="">Contact (OPTIONAL)</label>
-                    <input type="text" placeholder='Ex. 09XXXXXXXXX'
+                    <label htmlFor="contactNumber">Contact (OPTIONAL)</label>
+                    <input
+                      id="contactNumber"
+                      type="text"
+                      placeholder='Ex. 09XXXXXXXXX'
                       value={contactNumber}
-                      onChange={(e) => {
-                        const digitsOnly = e.target.value.replace(/\D/g, '')  // strip anything that's not 0-9
-                        setContactNumber(digitsOnly.slice(0, 11))  // cap at 11 characters
-                      }} />
+                      onChange={(e) => handleChangeField('contactNumber', setContactNumber, e.target.value)}
+                      onBlur={() => handleBlur('contactNumber')}
+                      className={errors.contactNumber ? 'InputErrorBorder' : ''}
+                    />
+                    {errors.contactNumber && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.contactNumber}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className='col'>
                   <div>
-                    <label htmlFor="">Email (OPTIONAL)</label>
-                    <input type="text" placeholder='consumer@gmail.com'
-                      value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <label htmlFor="email">Email (OPTIONAL)</label>
+                    <input
+                      id="email"
+                      type="text"
+                      placeholder='consumer@gmail.com'
+                      value={email}
+                      onChange={(e) => handleChangeField('email', setEmail, e.target.value)}
+                      onBlur={() => handleBlur('email')}
+                      className={errors.email ? 'InputErrorBorder' : ''}
+                    />
+                    {errors.email && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.email}
+                      </span>
+                    )}
                   </div>
 
                   <div>
-                    <label htmlFor="">ID Presented (OPTIONAL)</label>
-                    {/* ADDED real option values matching backend's IdType enum */}
-                    <select value={idType} onChange={(e) => setIdType(e.target.value)}>
+                    <label htmlFor="idType">ID Presented (OPTIONAL)</label>
+                    <select
+                      id="idType"
+                      value={idType}
+                      onChange={(e) => setIdType(e.target.value)}
+                    >
                       <option value="">Select ID Type</option>
                       <option value="philsys">PhilSys</option>
                       <option value="passport">Passport</option>
@@ -289,66 +675,152 @@ function LeaNewIntake() {
                   </div>
                 </div>
 
-                <label htmlFor="">Address (OPTIONAL)</label>
-                <input type="text" placeholder='Ex. Florida'
-                  value={address} onChange={(e) => setAddress(e.target.value)} />
+                <label htmlFor="address">Address (OPTIONAL)</label>
+                <input
+                  id="address"
+                  type="text"
+                  placeholder='Ex. Florida'
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
               </div>
 
               <div className='FormSection'>
                 <h3>REPORTED PRODUCT</h3>
                 <div className='col'>
                   <div>
-                    <label htmlFor="">Product Name</label>
-                    <input type="text" placeholder='Ex. Herbal Slim' required
-                      value={productName} onChange={(e) => setProductName(e.target.value)} />
+                    <label htmlFor="productName">Product Name</label>
+                    <input
+                      id="productName"
+                      type="text"
+                      placeholder='Ex. Herbal Slim'
+                      value={productName}
+                      onChange={(e) => handleChangeField('productName', setProductName, e.target.value)}
+                      onBlur={() => handleBlur('productName')}
+                      className={errors.productName ? 'InputErrorBorder' : ''}
+                    />
+                    {errors.productName && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.productName}
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <label htmlFor="">Manufacturer/Seller</label>
-                    <input type="text" placeholder='Ex. Naturefit labs' required
-                      value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} />
+                    <label htmlFor="manufacturer">Manufacturer/Seller</label>
+                    <input
+                      id="manufacturer"
+                      type="text"
+                      placeholder='Ex. Naturefit labs'
+                      value={manufacturer}
+                      onChange={(e) => handleChangeField('manufacturer', setManufacturer, e.target.value)}
+                      onBlur={() => handleBlur('manufacturer')}
+                      className={errors.manufacturer ? 'InputErrorBorder' : ''}
+                    />
+                    {errors.manufacturer && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.manufacturer}
+                      </span>
+                    )}
                   </div>
-
                 </div>
+
                 <div className='col'>
                   <div>
-                    <label htmlFor="">Category</label>
-                    <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)} required >
+                    <label htmlFor="productCategory">Category</label>
+                    <select
+                      id="productCategory"
+                      value={productCategory}
+                      onChange={(e) => handleChangeField('productCategory', setProductCategory, e.target.value)}
+                      onBlur={() => handleBlur('productCategory')}
+                      className={errors.productCategory ? 'InputErrorBorder' : ''}
+                    >
                       <option value="">Select Category</option>
                       <option value="Food">Food</option>
                       <option value="Cosmetics">Cosmetics</option>
                       <option value="Drugs">Drugs</option>
                       <option value="Devices">Medical Devices</option>
                     </select>
+                    {errors.productCategory && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.productCategory}
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <label htmlFor="">Place of Purchase</label>
-                    <input type="text" placeholder='Public market, online seller etc.' required
-                      value={placeOfPurchase} onChange={(e) => setPlaceOfPurchase(e.target.value)} />
+                    <label htmlFor="placeOfPurchase">Place of Purchase</label>
+                    <input
+                      id="placeOfPurchase"
+                      type="text"
+                      placeholder='Public market, online seller etc.'
+                      value={placeOfPurchase}
+                      onChange={(e) => handleChangeField('placeOfPurchase', setPlaceOfPurchase, e.target.value)}
+                      onBlur={() => handleBlur('placeOfPurchase')}
+                      className={errors.placeOfPurchase ? 'InputErrorBorder' : ''}
+                    />
+                    {errors.placeOfPurchase && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.placeOfPurchase}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className='col'>
                   <div>
-                    <label htmlFor="">Date of Purchase</label>
-                    <input type="date" placeholder='' required
-                      value={dateOfPurchase} onChange={(e) => setDateOfPurchase(e.target.value)} />
+                    <label htmlFor="dateOfPurchase">Date of Purchase</label>
+                    <input
+                      id="dateOfPurchase"
+                      type="date"
+                      value={dateOfPurchase}
+                      onChange={(e) => handleChangeField('dateOfPurchase', setDateOfPurchase, e.target.value)}
+                      onBlur={() => handleBlur('dateOfPurchase')}
+                      className={errors.dateOfPurchase ? 'InputErrorBorder' : ''}
+                    />
+                    {errors.dateOfPurchase && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.dateOfPurchase}
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <label htmlFor="">Amount Paid (OPTIONAL)</label>
-                    <input type="number" placeholder='500.00'
-                      step="0.01" // Allows decimal values up to 2 decimal places
-                      min="0" // Optional: Prevents negative amounts
-                      value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} />
+                    <label htmlFor="amountPaid">Amount Paid (OPTIONAL)</label>
+                    <input
+                      id="amountPaid"
+                      type="number"
+                      placeholder='500.00'
+                      step="0.01"
+                      min="0"
+                      value={amountPaid}
+                      onChange={(e) => handleChangeField('amountPaid', setAmountPaid, e.target.value)}
+                      onBlur={() => handleBlur('amountPaid')}
+                      className={errors.amountPaid ? 'InputErrorBorder' : ''}
+                    />
+                    {errors.amountPaid && (
+                      <span className="LoginErrorMsg">
+                        <AlertCircle size={12} /> {errors.amountPaid}
+                      </span>
+                    )}
                   </div>
-
                 </div>
               </div>
 
               <div className='FormSection'>
                 <h3>Complainant Statement</h3>
-                <label htmlFor="">Nature Of Complaint</label>
-                <textarea rows='5' placeholder='Statement of the complainant.' required
-                  value={natureOfComplaint} onChange={(e) => setNatureOfComplaint(e.target.value)}></textarea>
+                <label htmlFor="natureOfComplaint">Nature Of Complaint</label>
+                <textarea
+                  id="natureOfComplaint"
+                  rows='5'
+                  placeholder='Statement of the complainant.'
+                  value={natureOfComplaint}
+                  onChange={(e) => handleChangeField('natureOfComplaint', setNatureOfComplaint, e.target.value)}
+                  onBlur={() => handleBlur('natureOfComplaint')}
+                  className={errors.natureOfComplaint ? 'InputErrorBorder' : ''}
+                ></textarea>
+                {errors.natureOfComplaint && (
+                  <span className="LoginErrorMsg">
+                    <AlertCircle size={12} /> {errors.natureOfComplaint}
+                  </span>
+                )}
               </div>
 
               <div className='FormSectionAttach'>
@@ -364,7 +836,13 @@ function LeaNewIntake() {
                     hidden
                   />
 
-                  <label htmlFor="evidenceUpload" className="UploadBox">
+                  <label
+                    htmlFor="evidenceUpload"
+                    className={`UploadBox ${isDragActive ? 'UploadBoxDragActive' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     <div className="UploadContent">
                       <span className="UploadIcon">☁</span>
                       <h4>Drop files or click to upload</h4>
@@ -372,72 +850,204 @@ function LeaNewIntake() {
                     </div>
                   </label>
 
-                  {/* ADDED — shows already-saved files when editing a draft */}
+                  {errors.attachments && (
+                    <span className="LoginErrorMsg" style={{ marginTop: '8px' }}>
+                      <AlertCircle size={12} /> {errors.attachments}
+                    </span>
+                  )}
+
                   {existingAttachments.length > 0 && (
-                    <div className="UploadedFiles">
-                      {existingAttachments.map((attachment) => (
-                        <div key={attachment.attachment_id} className="FileItem">
-                          <span>📄 {attachment.file_name}</span>
-                          <button type="button" className="BtnRemoveFile"
-                            onClick={() => handleRemoveExistingAttachment(attachment.attachment_id)}>
-                            ✕
-                          </button>
-                        </div>
-                      ))}
+                    <div className="LeaVerifDocsGrid" style={{ marginTop: '12px' }}>
+                      {existingAttachments.map((attachment) => {
+                        const isImage = attachment.mime_type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.file_name)
+                        return (
+                          <div key={attachment.attachment_id} className="LeaVerifDocCard">
+                            <div className="LeaVerifDocIcon">
+                              {isImage ? <ImageIcon size={18} /> : <FileText size={18} />}
+                            </div>
+                            <div className="LeaVerifDocInfo">
+                              <p className="LeaVerifDocName" title={attachment.file_name}>{attachment.file_name}</p>
+                              <span className="LeaVerifDocMeta">{attachment.file_size_display || (attachment.file_size ? formatFileSize(attachment.file_size) : '')}</span>
+                            </div>
+                            <div className="LeaVerifDocActions" style={{ display: 'flex', gap: '4px' }}>
+                              <button
+                                type="button"
+                                className="LeaVerifDocActionBtn"
+                                title="Remove File"
+                                onClick={() => handleRemoveExistingAttachment(attachment.attachment_id)}
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
 
                   {files.length > 0 && (
-                    <div className="UploadedFiles">
-
-                      {files.map((file, index) => (
-                        <div
-                          key={index}
-                          className="FileItem"
-                        >
-                          <span>📄 {file.name}</span>
-                          <button
-                            type="button"
-                            className="BtnRemoveFile"
-                            onClick={() => handleRemoveFile(index)}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-
+                    <div className="LeaVerifDocsGrid" style={{ marginTop: '12px' }}>
+                      {files.map((file, index) => {
+                        const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
+                        return (
+                          <div key={index} className="LeaVerifDocCard">
+                            <div className="LeaVerifDocIcon">
+                              {isImage ? <ImageIcon size={18} /> : <FileText size={18} />}
+                            </div>
+                            <div className="LeaVerifDocInfo">
+                              <p className="LeaVerifDocName" title={file.name}>{file.name}</p>
+                              <span className="LeaVerifDocMeta">{formatFileSize(file.size)}</span>
+                            </div>
+                            <div className="LeaVerifDocActions" style={{ display: 'flex', gap: '4px' }}>
+                              <button
+                                type="button"
+                                className="LeaVerifDocActionBtn"
+                                title="Inspect Attachment"
+                                onClick={() => setPreviewFile(file)}
+                              >
+                                <Eye size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="LeaVerifDocActionBtn"
+                                title="Remove File"
+                                onClick={() => handleRemoveFile(index)}
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
               </div>
+
               <div>
                 <button type="button" className='CancelButton' onClick={() => navigate(-1)}>Cancel</button>
-                {/* CHANGED — back to type="button", no required check applies here */}
+                {!editingComplaintId && (
                 <button type="button" className='DraftButton' disabled={loading} onClick={handleSaveAsDraft}>
                   {loading ? 'Saving...' : 'Save as Draft'}
-                </button>
-                {/* CHANGED — real type="submit", triggers handleLogComplaint via form onSubmit */}
+                </button> 
+                )}
                 <button type="submit" className='LogButton' disabled={loading}>
                   {loading ? 'Submitting...' : 'Log Complaint & Queue for FDA'}
                 </button>
               </div>
-
             </form>
           </div>
         </div>
+
       </div>
 
-      {/* ADDED — toast notification, matches SuccessAlert style from verification request page */}
+      {/* LOCAL ATTACHMENT PREVIEW MODAL */}
+      {previewFile && (
+        <div className="ModalOverlay">
+          <div className="LeaVerifDocModalContainer">
+            <div className="LeaVerifDocModalHeader">
+              <div className="LeaVerifDocModalTitleGroup">
+                <Paperclip size={16} className="LeaVerifBlueIcon" />
+                <div>
+                  <h3>{previewFile.name}</h3>
+                  <p className="LeaVerifDocModalMeta">
+                    {previewFile.type || 'Document'} &bull; {formatFileSize(previewFile.size)}
+                  </p>
+                </div>
+              </div>
+              <button type="button" className="LeaVerifIconButton" onClick={() => setPreviewFile(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="LeaVerifDocModalBody">
+              {(previewFile.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(previewFile.name)) ? (
+                <img
+                  src={previewUrl}
+                  alt={previewFile.name}
+                  className="LeaVerifDocImagePreview"
+                />
+              ) : (previewFile.type === 'application/pdf' || /\.pdf$/i.test(previewFile.name)) ? (
+                <iframe
+                  src={previewUrl}
+                  title={previewFile.name}
+                  className="LeaVerifDocPdfPreview"
+                />
+              ) : (previewFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(previewFile.name)) ? (
+                docxLoading ? (
+                  <div className="LeaVerifDocPlaceholderPreview">
+                    <p className="LeaVerifPreviewText">Converting Word document for preview&hellip;</p>
+                  </div>
+                ) : docxError ? (
+                  <div className="LeaVerifDocPlaceholderPreview">
+                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                    <p className="LeaVerifPreviewTitle">Could not render Word preview</p>
+                    <p className="LeaVerifPreviewText">Try downloading the document to view its full contents.</p>
+                  </div>
+                ) : (
+                  <div className="LeaVerifDocDocxPreview">
+                    <div
+                      className="LeaVerifDocxContent"
+                      dangerouslySetInnerHTML={{ __html: docxHtml }}
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="LeaVerifDocPlaceholderPreview">
+                  <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                  <p className="LeaVerifPreviewTitle">Preview not supported</p>
+                  <p className="LeaVerifPreviewText">
+                    <strong>{previewFile.name}</strong> can't be previewed inline &mdash; use download instead.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="LeaVerifModalFooter">
+              <button type="button" className="LeaVerifBtnOutline" onClick={() => setPreviewFile(null)}>
+                Close Preview
+              </button>
+              <button
+                type="button"
+                className="LeaVerifBtnPrimary"
+                onClick={() => {
+                  if (!previewFile) return
+                  const url = previewUrl || URL.createObjectURL(previewFile)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = previewFile.name
+                  a.click()
+                  if (!previewUrl) URL.revokeObjectURL(url)
+                }}
+              >
+                <Download size={14} />
+                <span>Download Attachment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FDA-STYLE FLOATING TOAST NOTIFICATION ALERT */}
       {toast && (
-        toast.type === 'error' ? (
-          <div className="SuccessAlert" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444', color: '#b91c1c' }}>
-            <p>{toast.message}</p>
+        <div className={`LeaToastAlert LeaToast_${toast.type === 'error' ? 'danger' : toast.type || 'info'}`} role="alert">
+          <div className="LeaToastIconWrap">
+            {toast.type === 'success' && <CheckCircle size={18} />}
+            {toast.type === 'info' && <Info size={18} />}
+            {toast.type === 'warning' && <AlertTriangle size={18} />}
+            {(toast.type === 'error' || toast.type === 'danger') && <XCircle size={18} />}
           </div>
-        ) : (
-          <div className="SuccessAlert">
-            <p>{toast.message}</p>
+          <div className="LeaToastBody">
+            <p className="LeaToastMessage">{toast.message}</p>
           </div>
-        )
+          <button
+            className="LeaToastCloseBtn"
+            onClick={() => setToast(null)}
+            aria-label="Close notification"
+          >
+            <X size={14} />
+          </button>
+        </div>
       )}
     </div>
   )

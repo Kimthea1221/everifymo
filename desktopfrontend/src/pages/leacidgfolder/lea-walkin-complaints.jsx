@@ -4,7 +4,10 @@ import Sidebar from '../component/sidebar'
 import TopBar from '../component/top-bar'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import mammoth from 'mammoth'
+import { Eye, MoreVertical, Pencil, Trash2, X, Paperclip, FileText, Image as ImageIcon, Download } from 'lucide-react'
+
+const API_BASE = 'http://127.0.0.1:8000';
 
 // BACKEND: Status values must match the backend complaint workflow states exactly.
 function WcGetStatusClass(status) {
@@ -24,13 +27,11 @@ function WcGetStatusClass(status) {
         case 'rejected':
             return 'WcStatus-rejected';
 
-        case 'recalled':
-            return 'WcStatus-recalled';
-
         default:
             return '';
     }
 }
+
 function WcGetStatusLabel(status) {
     switch (status) {
         case 'queued':
@@ -48,9 +49,6 @@ function WcGetStatusLabel(status) {
         case 'rejected':
             return 'Verification Rejected';
 
-        case 'recalled':
-            return 'Request Recalled';
-
         default:
             return status;
     }
@@ -59,68 +57,36 @@ function WcGetStatusLabel(status) {
 function LeaWalkinComplaints() {
     // BACKEND:
     // Load complaints from API.
-    const [complaints, setComplaints] = useState([
-        {
-            id: 'ICM-2025-00185',
-            product: 'HerbalSlim Capsules',
-            manufacturer: 'NatureFit Labs',
-            complainant: 'M. Reyes',
-            status: 'queued',
-            category: 'Drugs',
-            logged: '2026-05-17 10:42',
-        },
-        {
-            id: 'ICM-2025-00186',
-            product: 'BioGlow Serum',
-            manufacturer: 'Aura Cosmetics',
-            complainant: 'L. Dela Cruz',
-            status: 'pending',
-            category: 'Cosmetics',
-            logged: '2026-05-17 11:15',
-        },
-        {
-            id: 'ICM-2025-00187',
-            product: 'ChocoMax Cereal',
-            manufacturer: 'GrainGood Foods',
-            complainant: 'J. Santos',
-            status: 'confirmed_registered',
-            category: 'Food',
-            logged: '2026-05-18 09:30',
-        },
-        {
-            id: 'ICM-2025-00188',
-            product: 'GlucoMeter Pro',
-            manufacturer: 'MedTech Solutions',
-            complainant: 'A. Ramos',
-            status: 'confirmed_unregistered',
-            category: 'Medical Devices',
-            logged: '2026-05-18 14:45',
-        },
-        {
-            id: 'ICM-2025-00189',
-            product: 'Vitamin C Plus',
-            manufacturer: 'NutriVital',
-            complainant: 'P. Alcantara',
-            status: 'rejected',
-            category: 'Drugs',
-            logged: '2026-05-19 10:00',
-        },
-        {
-            id: 'ICM-2025-00190',
-            product: 'YouthCream Anti-Aging',
-            manufacturer: 'GlowSkin Co.',
-            complainant: 'S. Lopez',
-            status: 'recalled',
-            category: 'Cosmetics',
-            logged: '2026-05-19 16:20',
-        }
-    ])
+    const [complaints, setComplaints] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const token = localStorage.getItem('access_token')
+        setLoading(true)
+        fetch(`${API_BASE}/complaints/walkin/`, {
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setComplaints(data.map((c) => ({
+                    id: c.case_reference,
+                    complaintId: c.complaint_id,
+                    product: c.product_title,
+                    manufacturer: c.manufacturer,
+                    complainant: c.complainant_name,
+                    status: c.status,
+                    category: c.product_category,
+                    logged: new Date(c.created_at).toLocaleString(),
+                })))
+            })
+            .finally(() => setLoading(false))
+    }, [])
     const [search, setSearch] = useState('')
     const [selectedStatus, setSelectedStatus] = useState('All')
     const [selectedCategory, setSelectedCategory] = useState('All')
-    const [selected, setSelected] = useState([])
-    const [selectAll, setSelectAll] = useState(false)
-    const [showModal, setShowModal] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
+    const WALKIN_PAGE_SIZE = 25
+    useEffect(() => { setCurrentPage(1); }, [search, selectedStatus, selectedCategory]);
     const [viewModal, setViewModal] = useState(false)
     const [selectedComplaint, setSelectedComplaint] = useState(null)
     const [openMenuId, setOpenMenuId] = useState(null)
@@ -128,55 +94,152 @@ function LeaWalkinComplaints() {
     const [showSingleDeleteModal, setShowSingleDeleteModal] = useState(false)
     const menuRef = useRef(null)
 
+    // Document preview modal state
+    const [docPreviewModal, setDocPreviewModal] = useState(null)
+    const [docPreviewUrl, setDocPreviewUrl] = useState(null)
+    const [docPreviewLoading, setDocPreviewLoading] = useState(false)
+    const [docPreviewError, setDocPreviewError] = useState(false)
+    const [docxHtml, setDocxHtml] = useState('')
+    const [docxLoading, setDocxLoading] = useState(false)
+    const [docxError, setDocxError] = useState(false)
+
+    // Fetches inline preview when docPreviewModal is set
+    useEffect(() => {
+        if (!docPreviewModal) {
+            setDocPreviewUrl(null)
+            setDocPreviewError(false)
+            setDocxHtml('')
+            setDocxLoading(false)
+            setDocxError(false)
+            return
+        }
+
+        const mime = docPreviewModal.mime_type || docPreviewModal.type || ''
+        const name = docPreviewModal.file_name || docPreviewModal.name || ''
+        const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(name)
+        const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(name)
+        const isDocx = mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(name)
+
+        if (!isImage && !isPdf && !isDocx) return
+
+        if (isDocx) {
+            setDocxLoading(true)
+            setDocxError(false)
+
+            if (docPreviewModal.url) {
+                fetch(docPreviewModal.url)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                        return res.arrayBuffer()
+                    })
+                    .then(arrayBuffer => mammoth.convertToHtml({ arrayBuffer }))
+                    .then(result => { setDocxHtml(result.value) })
+                    .catch(err => {
+                        console.error('Docx preview error:', err)
+                        setDocxError(true)
+                    })
+                    .finally(() => setDocxLoading(false))
+                return
+            }
+
+            const fileId = docPreviewModal.file_id || docPreviewModal.id
+            if (!fileId) {
+                setDocxLoading(false)
+                setDocxError(true)
+                return
+            }
+
+            const token = localStorage.getItem('access_token')
+            fetch(`${API_BASE}/shared-files/${fileId}/preview`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                    return res.arrayBuffer()
+                })
+                .then((arrayBuffer) => mammoth.convertToHtml({ arrayBuffer }))
+                .then((result) => { setDocxHtml(result.value) })
+                .catch((err) => {
+                    console.error('Docx preview error:', err)
+                    setDocxError(true)
+                })
+                .finally(() => setDocxLoading(false))
+            return
+        }
+
+        if (docPreviewModal.url) {
+            setDocPreviewUrl(docPreviewModal.url)
+            return
+        }
+
+        const fileId = docPreviewModal.file_id || docPreviewModal.id
+        if (!fileId) return
+
+        let objectUrl = null
+        setDocPreviewLoading(true)
+        setDocPreviewError(false)
+
+        const token = localStorage.getItem('access_token')
+        fetch(`${API_BASE}/shared-files/${fileId}/preview`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.blob()
+            })
+            .then((blob) => {
+                objectUrl = URL.createObjectURL(blob)
+                setDocPreviewUrl(objectUrl)
+            })
+            .catch(() => setDocPreviewError(true))
+            .finally(() => setDocPreviewLoading(false))
+
+        return () => {
+            if (objectUrl) URL.revokeObjectURL(objectUrl)
+        }
+    }, [docPreviewModal])
+
     // BACKEND:
     // Filter using API query parameters if server-side filtering is implemented.
     const filtered = complaints.filter((c) => {
-        const matchesSearch = c.id.toLowerCase().includes(search.toLowerCase()) ||
-            c.product.toLowerCase().includes(search.toLowerCase()) ||
-            c.complainant.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.product || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.complainant || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.manufacturer || '').toLowerCase().includes(search.toLowerCase());
 
-        const matchesStatus = selectedStatus === 'All' || c.status === selectedStatus;
+        const matchesStatus = selectedStatus === 'All' ||
+            c.status === selectedStatus ||
+            (selectedStatus === 'rejected' && c.status === 'recalled');
         const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory;
 
         return matchesSearch && matchesStatus && matchesCategory;
     })
 
-    const handleSelectAll = () => {
-        if (selectAll) {
-            setSelected([])
-        } else {
-            setSelected(filtered.map(c => c.id))
-        }
-        setSelectAll(!selectAll)
-    }
-
-    const handleSelect = (id) => {
-        if (selected.includes(id)) {
-            setSelected(selected.filter((s) => s !== id))
-        } else {
-            setSelected([...selected, id])
-        }
-    }
-
-    const handleDeleteClick = () => {
-        if (selected.length === 0) return
-        setShowModal(true)
-    }
-
-    const handleConfirmDelete = () => {
-        setComplaints(complaints.filter((c) => !selected.includes(c.id)))
-        setSelected([])
-        setSelectAll(false)
-        setShowModal(false)
-    }
-
-    const handleCancelDelete = () => {
-        setShowModal(false)
-    }
+    const [detailLoading, setDetailLoading] = useState(false)
 
     const handleViewButton = (complaint) => {
         setSelectedComplaint(complaint)
         setViewModal(true)
+
+        const token = localStorage.getItem('access_token')
+        setDetailLoading(true)
+        fetch(`${API_BASE}/complaints/${complaint.complaintId}/walkin-detail`, {
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.json()
+            })
+            .then((data) => {
+                setSelectedComplaint((prev) => (prev && prev.id === complaint.id ? {
+                    ...prev,
+                    statement: data.nature_of_complaint,
+                    attached_files: data.attached_files,
+                    status: data.status,
+                } : prev))
+            })
+            .catch((err) => console.error('Failed to load complaint detail:', err))
+            .finally(() => setDetailLoading(false))
     }
     const handleCloseViewbutton = () => {
         setViewModal(false)
@@ -196,11 +259,20 @@ function LeaWalkinComplaints() {
     }
 
     const handleConfirmSingleDelete = () => {
-        // BACKEND: call delete API for singleDeleteTarget.id
-        setComplaints(complaints.filter((c) => c.id !== singleDeleteTarget.id))
-        setSelected(selected.filter((id) => id !== singleDeleteTarget.id))
-        setSingleDeleteTarget(null)
-        setShowSingleDeleteModal(false)
+        const token = localStorage.getItem('access_token')
+        fetch(`${API_BASE}/complaints/walkin/${singleDeleteTarget.complaintId}`, {
+            method: 'DELETE',
+            headers: { authorization: `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                setComplaints((prev) => prev.filter((c) => c.id !== singleDeleteTarget.id))
+            })
+            .catch((err) => console.error('Failed to delete complaint:', err))
+            .finally(() => {
+                setSingleDeleteTarget(null)
+                setShowSingleDeleteModal(false)
+            })
     }
 
     const handleCancelSingleDelete = () => {
@@ -225,22 +297,35 @@ function LeaWalkinComplaints() {
     const OpenNewIntakePageButton = () => {
         navigate('/leacidgfolder/lea-new-intake');
     };
+    
     const handleEditComplaint = (complaint) => {
-        // BACKEND:
-        // The selected complaint data should be passed back from the API
-        // so the New Intake page opens in Edit Mode.
-        // All existing field values must automatically populate
-        // their corresponding inputs.
-
-        // BACKEND:
-        // When opening Edit mode,
-        // return all complaint fields so inputs are automatically pre-filled.
         navigate('/leacidgfolder/lea-new-intake', {
-            state: {
-                complaint
-            }
+            state: { complaintId: complaint.complaintId }
         });
     };
+
+    const handleExportCSV = () => {
+        const headers = ['Case ID', 'Product', 'Manufacturer', 'Complainant', 'Status', 'Category', 'Logged']
+        const rows = filtered.map((c) => [
+            c.id,
+            c.product,
+            c.manufacturer,
+            c.complainant,
+            WcGetStatusLabel(c.status),
+            c.category,
+            c.logged,
+        ])
+        const escapeCell = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`
+        const csvContent = [headers, ...rows].map((row) => row.map(escapeCell).join(',')).join('\r\n')
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `walkin-complaints-${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
 
     return (
         <div className='LeaDashboardMain LeaWalkinComplaintsMain'>
@@ -253,16 +338,13 @@ function LeaWalkinComplaints() {
                             <p>LEA-CIDG: Walk-in Complaints</p>
                             <p>CITIZEN-REPORTED COMPLAINTS</p>
                         </div>
-                        <div className='WalkinButtonActions'>
-                            {selected.length > 0 && (
-                                <button className='BtnDelete' onClick={handleDeleteClick}>
-                                    🗑 Delete ({selected.length})
-                                </button>
-                            )}
-                            <button className='BtnExportCSV'>Export CSV</button>
+                    </div>
+
+                        {/* Buttons now on their own row below the title, right-aligned */}
+                        <div className='WalkinButtonActionsRow'>
+                            <button className='BtnExportCSV' onClick={handleExportCSV}>Export CSV</button>
                             <button className='BtnNewComplaint' onClick={OpenNewIntakePageButton}>New Complaint</button>
                         </div>
-                    </div>
 
                     {/* Filter & Search Section */}
                     <div className="DraftsFilterSection">
@@ -288,7 +370,6 @@ function LeaWalkinComplaints() {
                                     <option value="confirmed_registered">Confirmed Registered</option>
                                     <option value="confirmed_unregistered">Confirmed Unregistered</option>
                                     <option value="rejected">Verification Rejected</option>
-                                    <option value="recalled">Request Recalled</option>
                                 </select>
 
                                 <select
@@ -299,9 +380,30 @@ function LeaWalkinComplaints() {
                                     <option value="All">All Categories</option>
                                     <option value="Cosmetics">Cosmetics</option>
                                     <option value="Food">Food</option>
-                                    <option value="Medical Devices">Medical Devices</option>
+                                    <option value="Devices">Medical Devices</option>
                                     <option value="Drugs">Drugs</option>
                                 </select>
+
+                                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
+                                {(() => {
+                                    const hasWalkinFilters = Boolean(search || selectedStatus !== 'All' || selectedCategory !== 'All');
+                                    return (
+                                        <button
+                                            className="BtnClearFiltersIcon"
+                                            aria-label="Clear Filters"
+                                            title="Clear Filters"
+                                            disabled={!hasWalkinFilters}
+                                            style={{ display: hasWalkinFilters ? 'inline-flex' : 'none' }}
+                                            onClick={() => {
+                                                setSearch('');
+                                                setSelectedStatus('All');
+                                                setSelectedCategory('All');
+                                            }}
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -310,11 +412,6 @@ function LeaWalkinComplaints() {
                         <table className='ComplaintsTable WcComplaintsTable'>
                             <thead>
                                 <tr>
-                                    <th>
-                                        <input type='checkbox'
-                                            checked={selectAll}
-                                            onChange={handleSelectAll} />
-                                    </th>
                                     <th>CASE ID</th>
                                     <th>PRODUCT</th>
                                     <th>MANUFACTURER</th>
@@ -326,91 +423,119 @@ function LeaWalkinComplaints() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map((complaint) => (
-                                    <tr key={complaint.id} className={selected.includes(complaint.id) ? 'row-selected' : ''}>
-                                        <td>
-                                            <input type='checkbox'
-                                                checked={selected.includes(complaint.id)}
-                                                onChange={() => handleSelect(complaint.id)} />
-                                        </td>
-                                        <td className='ClassId'>{complaint.id}</td>
-                                        <td>
-                                            {/* BACKEND: maps to complaint.product field */}
-                                            <p className='WcProductName'>{complaint.product}</p>
-                                        </td>
-                                        <td>
-                                            {/* BACKEND: maps to complaint.manufacturer field */}
-                                            <p className='WcManufacturerName'>{complaint.manufacturer}</p>
-                                        </td>
-                                        <td>{complaint.complainant}</td>
-                                        <td>
-                                            <span className={`WcStatusBadge ${WcGetStatusClass(complaint.status)}`}>
-                                                {WcGetStatusLabel(complaint.status)}
-                                            </span>
-                                        </td>
-                                        <td className='WcCategoryCell'>{complaint.category}</td>
-                                        <td>{complaint.logged}</td>
-                                        <td>
-                                            <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
-                                                {/* View button — always visible */}
-                                                <span className='WcActionTooltipWrap'>
-                                                    <button
-                                                        className='WcBtnIconView'
-                                                        onClick={() => handleViewButton(complaint)}
-                                                        aria-label='View complaint'
-                                                    >
-                                                        <Eye size={16} />
-                                                    </button>
-                                                    <span className='WcTooltip'>View</span>
-                                                </span>
+                                {(() => {
+                                    const totalPages = Math.ceil(filtered.length / WALKIN_PAGE_SIZE) || 1;
+                                    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+                                    const startIndex = (safePage - 1) * WALKIN_PAGE_SIZE;
+                                    const endIndex = Math.min(startIndex + WALKIN_PAGE_SIZE, filtered.length);
+                                    const paginatedComplaints = filtered.slice(startIndex, endIndex);
 
-                                                {/* Three-dot dropdown — only for queued (Ready to Send) */}
-                                                {complaint.status === 'queued' && (
-                                                    <div className='WcMenuWrapper'>
+                                    return paginatedComplaints.map((complaint) => (
+                                        <tr key={complaint.id}>
+                                            <td className='ClassId'>{complaint.id}</td>
+                                            <td>
+                                                <p className='WcProductName'>{complaint.product}</p>
+                                            </td>
+                                            <td>
+                                                <p className='WcManufacturerName'>{complaint.manufacturer}</p>
+                                            </td>
+                                            <td>{complaint.complainant}</td>
+                                            <td>
+                                                <span className={`WcStatusBadge ${WcGetStatusClass(complaint.status)}`}>
+                                                    {WcGetStatusLabel(complaint.status)}
+                                                </span>
+                                            </td>
+                                            <td className='WcCategoryCell'>{complaint.category}</td>
+                                            <td>{complaint.logged}</td>
+                                            <td>
+                                                <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
+                                                    <span className='WcActionTooltipWrap'>
                                                         <button
-                                                            className='WcBtnIconMore'
-                                                            onClick={() => handleToggleMenu(complaint.id)}
-                                                            aria-label='More actions'
+                                                            className='WcBtnIconView'
+                                                            onClick={() => handleViewButton(complaint)}
+                                                            aria-label='View complaint'
                                                         >
-                                                            <MoreVertical size={16} />
+                                                            <Eye size={16} />
                                                         </button>
-                                                        {openMenuId === complaint.id && (
-                                                            <div className='WcDropdownMenu'>
-                                                                <button
-                                                                    className='WcDropdownItem WcDropdownItem--edit'
-                                                                    onClick={() => {
-                                                                        setOpenMenuId(null)
-                                                                        handleEditComplaint(complaint)
-                                                                    }}
-                                                                >
-                                                                    <Pencil size={14} />
-                                                                    Edit Complaint
-                                                                </button>
-                                                                <button
-                                                                    className='WcDropdownItem WcDropdownItem--delete'
-                                                                    onClick={() => handleDropdownDeleteClick(complaint)}
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                    Delete Complaint
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                        <span className='WcTooltip'>View</span>
+                                                    </span>
+
+                                                    {complaint.status === 'queued' && (
+                                                        <div className='WcMenuWrapper'>
+                                                            <button
+                                                                className='WcBtnIconMore'
+                                                                onClick={() => handleToggleMenu(complaint.id)}
+                                                                aria-label='More actions'
+                                                            >
+                                                                <MoreVertical size={16} />
+                                                            </button>
+                                                            {openMenuId === complaint.id && (
+                                                                <div className='WcDropdownMenu'>
+                                                                    <button
+                                                                        className='WcDropdownItem WcDropdownItem--edit'
+                                                                        onClick={() => {
+                                                                            setOpenMenuId(null)
+                                                                            handleEditComplaint(complaint)
+                                                                        }}
+                                                                    >
+                                                                        <Pencil size={14} />
+                                                                        Edit Complaint
+                                                                    </button>
+                                                                    <button
+                                                                        className='WcDropdownItem WcDropdownItem--delete'
+                                                                        onClick={() => handleDropdownDeleteClick(complaint)}
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                        Delete Complaint
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ));
+                                })()}
                             </tbody>
                         </table>
 
-                        <div className='Pagination'>
-                            <p>Showing {filtered.length} of {complaints.length}</p>
-                            <div className='PaginationBtn'>
-                                <button className='BtnPage'>Previous</button>
-                                <button className='BtnPage'>Next</button>
-                            </div>
-                        </div>
+                        {(() => {
+                            const totalPages = Math.ceil(filtered.length / WALKIN_PAGE_SIZE) || 1;
+                            const safePage = Math.min(Math.max(1, currentPage), totalPages);
+                            const startIndex = (safePage - 1) * WALKIN_PAGE_SIZE;
+                            const endIndex = Math.min(startIndex + WALKIN_PAGE_SIZE, filtered.length);
+                            return (
+                                <div className='Pagination'>
+                                    <p>Showing {filtered.length === 0 ? 0 : startIndex + 1}–{endIndex} of {filtered.length}</p>
+                                    <div className='PaginationBtn'>
+                                        <button
+                                            className='BtnPage'
+                                            disabled={safePage === 1}
+                                            onClick={() => setCurrentPage(safePage - 1)}
+                                        >
+                                            Previous
+                                        </button>
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                className={`BtnPage ${safePage === p ? 'active' : ''}`}
+                                                onClick={() => setCurrentPage(p)}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                        <button
+                                            className='BtnPage'
+                                            disabled={safePage === totalPages}
+                                            onClick={() => setCurrentPage(safePage + 1)}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         {viewModal && selectedComplaint && (
                             <div className='ModalOverlay'>
                                 <div className='ModalViewButton'>
@@ -433,8 +558,52 @@ function LeaWalkinComplaints() {
                                     </div>
                                     <h6 className='Statementcomp'>COMPLAINANT STATEMENT</h6>
                                     <div className='StatementBox'>
-                                        <p>Example statement....</p>
+                                        <p>{detailLoading ? 'Loading…' : (selectedComplaint.statement || selectedComplaint.complainant_statement || selectedComplaint.description || 'Example statement....')}</p>
                                     </div>
+
+                                    {/* Auto-Attached Evidence & Request Documents */}
+                                    <div className="LeaVerifSectionCard" style={{ marginTop: '16px', marginBottom: '16px' }}>
+                                        <div className="LeaVerifSectionHeader">
+                                            <Paperclip size={16} className="LeaVerifBlueIcon" />
+                                            <h3>Auto-Attached Evidence &amp; Request Documents</h3>
+                                        </div>
+                                        <div className="LeaVerifDocsGrid">
+                                            {(() => {
+                                                const attachedFiles = selectedComplaint?.attached_files || selectedComplaint?.attachedFiles || selectedComplaint?.evidence || selectedComplaint?.files || selectedComplaint?.attachments || [];
+                                                if (attachedFiles.length > 0) {
+                                                    return attachedFiles.map((f, idx) => (
+                                                        <div key={f.file_id || f.id || idx} className="LeaVerifDocCard">
+                                                            <div className="LeaVerifDocIcon">
+                                                                {(f.mime_type?.startsWith('image/') || f.type?.startsWith('image/')) ? (
+                                                                    <ImageIcon size={18} />
+                                                                ) : (
+                                                                    <FileText size={18} />
+                                                                )}
+                                                            </div>
+                                                            <div className="LeaVerifDocInfo">
+                                                                <p className="LeaVerifDocName">{f.file_name || f.name}</p>
+                                                                <span className="LeaVerifDocMeta">{f.file_size_display || f.size}</span>
+                                                            </div>
+                                                            <div className="LeaVerifDocActions">
+                                                                <button
+                                                                    type="button"
+                                                                    className="LeaVerifDocActionBtn"
+                                                                    title="Inspect Attachment"
+                                                                    onClick={() => setDocPreviewModal(f)}
+                                                                >
+                                                                    <Eye size={13} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ));
+                                                }
+                                                return (
+                                                    <p className="LeaVerifNoDocsText">No evidence documents attached to this complaint.</p>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+
                                     <div className='ModalActions'>
                                         <button className='BtnCancelModal' onClick={handleCloseViewbutton}>Close</button>
                                     </div>
@@ -442,14 +611,120 @@ function LeaWalkinComplaints() {
                             </div>
                         )}
 
-                        {showModal && (
-                            <div className='ModalOverlay'>
-                                <div className='ModalBox'>
-                                    <h3>Confirm Delete</h3>
-                                    <p>Are you sure you want to delete <strong>{selected.length}</strong> selected complaint{selected.length > 1 ? 's' : ''}? This action cannot be undone.</p>
-                                    <div className='ModalActions'>
-                                        <button className='BtnCancelModal' onClick={handleCancelDelete}>Cancel</button>
-                                        <button className='BtnConfirmDelete' onClick={handleConfirmDelete}>Yes, Delete</button>
+                        {/* Attachment Preview Modal */}
+                        {docPreviewModal && (
+                            <div className="ModalOverlay" style={{ zIndex: 1000 }}>
+                                <div className="LeaVerifDocModalContainer">
+                                    <div className="LeaVerifDocModalHeader">
+                                        <div className="LeaVerifDocModalTitleGroup">
+                                            <Paperclip size={16} className="LeaVerifBlueIcon" />
+                                            <div>
+                                                <h3>{docPreviewModal.file_name || docPreviewModal.name}</h3>
+                                                <p className="LeaVerifDocModalMeta">
+                                                    {docPreviewModal.mime_type || docPreviewModal.type || 'Document'} &bull; {docPreviewModal.file_size_display || docPreviewModal.size || ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button className="LeaVerifIconButton" onClick={() => setDocPreviewModal(null)}>
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+
+                                    <div className="LeaVerifDocModalBody">
+                                        {(docPreviewModal.mime_type?.startsWith('image/') || docPreviewModal.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            <img
+                                                src={docPreviewUrl}
+                                                alt={docPreviewModal.file_name || docPreviewModal.name}
+                                                className="LeaVerifDocImagePreview"
+                                            />
+                                        ) : (docPreviewModal.mime_type === 'application/pdf' || docPreviewModal.type === 'application/pdf' || /\.pdf$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            docPreviewLoading ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <p className="LeaVerifPreviewText">Loading preview&hellip;</p>
+                                                </div>
+                                            ) : docPreviewError ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                                                    <p className="LeaVerifPreviewTitle">Preview unavailable</p>
+                                                    <p className="LeaVerifPreviewText">Try downloading the file instead.</p>
+                                                </div>
+                                            ) : (
+                                                <iframe
+                                                    src={docPreviewUrl}
+                                                    title={docPreviewModal.file_name || docPreviewModal.name}
+                                                    className="LeaVerifDocPdfPreview"
+                                                />
+                                            )
+                                        ) : (docPreviewModal.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(docPreviewModal.file_name || docPreviewModal.name)) ? (
+                                            docxLoading ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <p className="LeaVerifPreviewText">Converting Word document for preview&hellip;</p>
+                                                </div>
+                                            ) : docxError ? (
+                                                <div className="LeaVerifDocPlaceholderPreview">
+                                                    <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                                                    <p className="LeaVerifPreviewTitle">Could not render Word preview</p>
+                                                    <p className="LeaVerifPreviewText">Try downloading the document to view its full contents.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="LeaVerifDocDocxPreview">
+                                                    <div
+                                                        className="LeaVerifDocxContent"
+                                                        dangerouslySetInnerHTML={{ __html: docxHtml }}
+                                                    />
+                                                </div>
+                                            )
+                                        ) : (
+                                            <div className="LeaVerifDocPlaceholderPreview">
+                                                <FileText size={48} className="LeaVerifDocPreviewIcon" />
+                                                <p className="LeaVerifPreviewTitle">Preview not supported</p>
+                                                <p className="LeaVerifPreviewText">
+                                                    <strong>{docPreviewModal.file_name || docPreviewModal.name}</strong> can't be previewed inline &mdash; use download instead.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="LeaVerifModalFooter">
+                                        <button className="LeaVerifBtnOutline" onClick={() => setDocPreviewModal(null)}>
+                                            Close Preview
+                                        </button>
+                                        <button
+                                            className="LeaVerifBtnPrimary"
+                                            onClick={() => {
+                                                const fileId = docPreviewModal.file_id || docPreviewModal.id;
+                                                if (!fileId && docPreviewModal.url) {
+                                                    const a = document.createElement('a');
+                                                    a.href = docPreviewModal.url;
+                                                    a.download = docPreviewModal.file_name || docPreviewModal.name || 'download';
+                                                    a.click();
+                                                    return;
+                                                }
+                                                if (!fileId) return;
+                                                const token = localStorage.getItem('access_token');
+                                                fetch(`${API_BASE}/shared-files/${fileId}/download`, {
+                                                    headers: { Authorization: `Bearer ${token}` },
+                                                })
+                                                    .then((res) => {
+                                                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                                        return res.blob();
+                                                    })
+                                                    .then((blob) => {
+                                                        const url = URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = docPreviewModal.file_name || docPreviewModal.name;
+                                                        a.click();
+                                                        URL.revokeObjectURL(url);
+                                                    })
+                                                    .catch((err) => {
+                                                        console.error('Download failed:', err);
+                                                    });
+                                            }}
+                                        >
+                                            <Download size={14} />
+                                            <span>Download Attachment</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>

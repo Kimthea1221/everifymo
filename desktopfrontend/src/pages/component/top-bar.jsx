@@ -1,68 +1,27 @@
+// desktopfrontend/src/pages/component/top-bar.jsx
 import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { apiFetch } from '../../utils/apiFetch'  
 
-const allNotifications = [
-    // CIDG notifications
-    { 
-        id: 1,
-        agency: 'lea',
-        title: 'New Complaint Logged', 
-        message: 'Walk-in intake case #2026-0412 has been successfully created.', 
-        time: 'Just now', 
-        isRead: false 
-    },
-    { 
-        id: 2,
-        agency: 'lea',
-        title: 'Verification Approved', 
-        message: 'FDA approved the verification request for "Brand A Pharmacy".', 
-        time: '2 hours ago', 
-        isRead: false 
-    },
-    { 
-        id: 3,
-        agency: 'lea',
-        title: 'Takedown Request Sent', 
-        message: 'Takedown notice forwarded to platforms for verification ID #1049.', 
-        time: '1 day ago', 
-        isRead: true 
-    },
-    // FDA notifications
-    { 
-        id: 4,
-        agency: 'fda',
-        title: 'New Verification Request', 
-        message: 'LEA-CIDG submitted a verification request for product ID #5521.', 
-        time: 'Just now', 
-        isRead: false 
-    },
-    { 
-        id: 5,
-        agency: 'fda',
-        title: 'Product Database Updated', 
-        message: 'Product database has been updated with 12 new entries.', 
-        time: '3 hours ago', 
-        isRead: true 
-    },
-    // Superadmin notifications
-    { 
-        id: 6,
-        agency: 'superadmin',
-        title: 'New User Registered', 
-        message: 'A new personnel completed registration and is awaiting activation.', 
-        time: 'Just now', 
-        isRead: false 
-    },
-    { 
-        id: 7,
-        agency: 'superadmin',
-        title: 'Account Activated', 
-        message: 'Personnel account for juan@cidg.gov.ph has been activated.', 
-        time: '1 hour ago', 
-        isRead: true 
-    },
-]
+// Event types that are computed at read-time on the backend (not real
+// stored rows) - clicking these can't call the mark-as-read endpoint,
+// since there's no real notification_id to update.
+const COMPUTED_EVENT_TYPES = ['invite_not_activated', 'invite_expired'];
+
+function timeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffSec = Math.floor((now - date) / 1000);
+
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour} hour${diffHour !== 1 ? 's' : ''} ago`;
+    const diffDay = Math.floor(diffHour / 24);
+    return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
+}
 
 /**
  * Helper function to retrieve and normalize the authenticated agency role from localStorage.
@@ -81,6 +40,7 @@ const getAuthenticatedRole = () => {
     if (raw === 'lea' || raw === 'cidg' || raw.includes('lea') || raw.includes('cidg')) return 'lea';
     return 'fda';
 };
+
 
 function TopBar({ topbarType, role, agency }) {
     const navigate = useNavigate();
@@ -105,6 +65,8 @@ function TopBar({ topbarType, role, agency }) {
     };
 
     const normalizedAgency = getNormalizedAgency();
+    const isSuperadmin = normalizedAgency === 'superadmin';  
+    const notificationsBasePath = isSuperadmin ? '/notifications' : '/personnel-notifications';
 
     // dropdown open/close states
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -114,12 +76,61 @@ function TopBar({ topbarType, role, agency }) {
     const notifRef = useRef(null);
     const profileRef = useRef(null);
 
-    // notifications filtered by agency
+    // CHANGED — notifications now always come from the real backend,
+    // for every personnel role (fda, lea, superadmin alike). The old
+    // FDA/LEA mock-data branch has been removed entirely.
     const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [notifLoading, setNotifLoading] = useState(false);
 
+    // ---- fetch unread count on mount + poll every 30s ----
     useEffect(() => {
-        setNotifications(allNotifications.filter(n => n.agency === normalizedAgency));
-    }, [normalizedAgency]);
+        const fetchUnreadCount = async () => {
+            try {
+                const res = await apiFetch(`${notificationsBasePath}/unread-count`);
+                if (!res.ok) return;
+                const data = await res.json();
+                setUnreadCount(data.unread_count);
+            } catch (err) {
+                console.error('Failed to fetch unread count:', err);
+            }
+        };
+
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // ---- fetch full list when dropdown opens ----
+    useEffect(() => {
+        if (!isNotifOpen) return;
+
+        const fetchNotifications = async () => {
+            setNotifLoading(true);
+            try {
+                const res = await apiFetch(`${notificationsBasePath}?limit=20&offset=0`);
+                if (!res.ok) return;
+                const data = await res.json();
+                setNotifications(
+                    data.notifications.map(n => ({
+                        id: n.notification_id,
+                        title: n.title,
+                        message: n.message,
+                        time: timeAgo(n.created_at),
+                        isRead: n.is_read,
+                        eventType: n.event_type,
+                    }))
+                );
+                setUnreadCount(data.unread_count);
+            } catch (err) {
+                console.error('Failed to fetch notifications:', err);
+            } finally {
+                setNotifLoading(false);
+            }
+        };
+
+        fetchNotifications();
+    }, [isNotifOpen]);
 
     // close dropdowns when clicking outside
     useEffect(() => {
@@ -135,14 +146,37 @@ function TopBar({ topbarType, role, agency }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    // CHANGED — unread count now always comes from backend state,
+    // for every role. No more local-mock-derived count.
+    const displayUnreadCount = unreadCount;
 
-    const handleMarkAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    const handleMarkAllAsRead = async () => {
+        try {
+            const res = await apiFetch(`${notificationsBasePath}/read-all`, { method: 'PATCH' });
+            if (!res.ok) return;
+            const data = await res.json();
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+            setUnreadCount(data.unread_count);
+        } catch (err) {
+            console.error('Failed to mark all as read:', err);
+        }
     };
 
-    const handleNotificationClick = (id) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    const handleNotificationClick = async (notif) => {
+        // Computed entries (invite_not_activated / invite_expired) have no
+        // real DB row - nothing to mark read, they resolve on their own.
+        if (COMPUTED_EVENT_TYPES.includes(notif.eventType)) return;
+        if (notif.isRead) return;
+
+        try {
+            const res = await apiFetch(`${notificationsBasePath}/${notif.id}/read`, { method: 'PATCH' });
+            if (!res.ok) return;
+            const data = await res.json();
+            setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+            setUnreadCount(data.unread_count);
+        } catch (err) {
+            console.error('Failed to mark notification as read:', err);
+        }
     };
 
     // Profile Settings — only for FDA and LEA, NOT superadmin
@@ -152,33 +186,35 @@ function TopBar({ topbarType, role, agency }) {
     };
 
     // Logout — redirects to correct login page based on agency
-    const handleLogoutClick = () => {
-        setIsProfileOpen(false);
+    const handleLogoutClick = async () => {
+    setIsProfileOpen(false);
 
-        /*
-          🔌 BACKEND: clear session token and call logout endpoint:
-          try {
-            await fetch('/api/auth/logout', { method: 'POST' });
-          } catch(err) {
-            console.error("Logout failed:", err);
-          }
-          localStorage.removeItem('token');
-          sessionStorage.clear();
-        */
+    const refreshToken = localStorage.getItem('refresh_token');
 
-        // clear agency from localStorage
-        localStorage.removeItem('agency');
-        localStorage.removeItem('role');
-
-        // redirect to correct login page based on agency
-        // superadmin goes to superadmin login
-        // fda and lea go to interagency login
-        if (normalizedAgency === 'superadmin') {
-            navigate('/superadmin-login');
-        } else {
-            navigate('/login');
+    try {
+        if (refreshToken) {
+            await apiFetch('/auth/token/revoke', {
+                method: 'POST',
+                body: JSON.stringify({ refresh_token: refreshToken }),
+            });
         }
-    };
+    } catch (err) {
+        console.error('Logout failed:', err);
+        // proceed with local cleanup regardless — don't trap the user in a logged-in UI
+        // just because the network call failed
+    }
+
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('agency');
+    localStorage.removeItem('role');
+
+    if (normalizedAgency === 'superadmin') {
+        navigate('/superadmin-login');
+    } else {
+        navigate('/login');
+    }
+};
 
     return (
         <>
@@ -629,8 +665,8 @@ function TopBar({ topbarType, role, agency }) {
                             onClick={() => setIsNotifOpen(!isNotifOpen)}
                         >
                             <Bell />
-                            {unreadCount > 0 && (
-                                <span className='BellBadge'>{unreadCount}</span>
+                            {displayUnreadCount > 0 && (
+                                <span className='BellBadge'>{displayUnreadCount}</span>
                             )}
                         </div>
 
@@ -638,7 +674,7 @@ function TopBar({ topbarType, role, agency }) {
                             <div className='TopbarDropdown'>
                                 <div className='TopNotifTitle'>
                                     <h5>Notifications</h5>
-                                    {unreadCount > 0 && (
+                                    {displayUnreadCount > 0 && (
                                         <button
                                             className='MarkAllReadBtn'
                                             onClick={handleMarkAllAsRead}
@@ -648,14 +684,16 @@ function TopBar({ topbarType, role, agency }) {
                                     )}
                                 </div>
                                 <div className='NotifList'>
-                                    {notifications.length === 0 ? (
+                                    {notifLoading ? (
+                                        <div className='EmptyNotif'>Loading...</div>
+                                    ) : notifications.length === 0 ? (
                                         <div className='EmptyNotif'>No notifications</div>
                                     ) : (
                                         notifications.map((notif) => (
                                             <div
                                                 key={notif.id}
                                                 className={`NotifItem ${notif.isRead ? '' : 'unread'}`}
-                                                onClick={() => handleNotificationClick(notif.id)}
+                                                onClick={() => handleNotificationClick(notif)}
                                             >
                                                 <div className='NotifContent'>
                                                     <div className='NotifItemTitle'>{notif.title}</div>

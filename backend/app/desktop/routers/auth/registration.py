@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+# backend/app/desktop/routers/auth/registration.py
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime, timezone, timedelta
@@ -13,13 +14,16 @@ from app.desktop.schemas.auth.registration import (
     RegistrationCompleteRequest, RegistrationCompleteResponse,
 )
 
-from app.core.constants import UserStatus
+from app.core.constants import UserStatus, AuditAction
 
 from app.desktop.schemas.auth.registration import ResendInviteRequest, ResendInviteResponse
 import secrets
 
 from app.desktop.schemas.auth.registration import RequestResendRequest, RequestResendResponse
 
+from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
+from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+from app.core.audit import write_audit_log, get_user_region_code
 
 # All registration-related endpoints will start with /registration
 router = APIRouter(prefix="/registration", tags=["Registration"])
@@ -77,7 +81,7 @@ def validate_token(invite_token: str, db: Session = Depends(get_db)):
     #
     # POST /registration/complete
 @router.post("/complete", response_model=RegistrationCompleteResponse)
-def complete_registration(data: RegistrationCompleteRequest, db: Session = Depends(get_db)):
+def complete_registration(data: RegistrationCompleteRequest, http_request: Request, db: Session = Depends(get_db)):
 
     # Same as before — officer isn't logged in yet, so we need this
     # to be allowed to look at the users table at all
@@ -124,6 +128,26 @@ def complete_registration(data: RegistrationCompleteRequest, db: Session = Depen
     # Save both changes together — either both go through, or neither does
     db.commit()   
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.REGISTRATION_ACCOMPLISHED,
+        title="Registration completed",
+        message=f"{user_row.email} completed registration and is now awaiting approval.",
+        related_user_id=user_row.user_id,
+    )
+
+    write_audit_log(
+        db,
+        user=user_row,
+        action=AuditAction.PERSONNEL_PENDING_APPROVAL,
+        target_table="users",
+        target_id=user_row.user_id,
+        target_reference=user_row.email,
+        request=http_request,
+        region_code=get_user_region_code(db, user_row),
+    )
+
+
     return RegistrationCompleteResponse(
         message="Registration submitted successfully.",
         status=UserStatus.PENDING_APPROVAL,   
@@ -137,7 +161,7 @@ def complete_registration(data: RegistrationCompleteRequest, db: Session = Depen
     #
     # POST /registration/resend-invite
 @router.post("/resend-invite", response_model=ResendInviteResponse)
-def resend_invite(data: ResendInviteRequest, db: Session = Depends(get_db)):
+def resend_invite(data: ResendInviteRequest, http_request: Request, db: Session = Depends(get_db)):
 
     # Same as the other two endpoints — officer isn't logged in,
     # so we need this to be allowed to look at these tables at all
@@ -175,6 +199,32 @@ def resend_invite(data: ResendInviteRequest, db: Session = Depends(get_db)):
     db.add(new_token)   
     db.commit()
 
+    user_row = db.query(User).filter(User.user_id == old_token_row.user_id).first()
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Invitation link resent",
+        message=f"{user_row.email if user_row else 'A user'} generated a new invitation link after theirs expired.",
+        related_user_id=old_token_row.user_id,
+    )
+
+    if user_row:
+        request_invite_action = (
+            AuditAction.SUPERADMIN_REQUEST_INVITE
+            if user_row.role == "superadmin"
+            else AuditAction.PERSONNEL_REQUEST_INVITE
+        )
+        write_audit_log(
+            db,
+            user=user_row,
+            action=request_invite_action,
+            target_table="account_invitation_tokens",
+            target_id=user_row.user_id,
+            target_reference=user_row.email,
+            request=http_request,
+            region_code=get_user_region_code(db, user_row),
+        )
+
     return ResendInviteResponse(
         message="A new invitation has been generated.",
     )
@@ -187,7 +237,7 @@ def resend_invite(data: ResendInviteRequest, db: Session = Depends(get_db)):
   #
   # POST /registration/request-resend
 @router.post("/request-resend", response_model=RequestResendResponse)
-def request_resend(data: RequestResendRequest, db: Session = Depends(get_db)):
+def request_resend(data: RequestResendRequest, http_request: Request, db: Session = Depends(get_db)):
     # Officer isn't logged in, same bypass as every other registration endpoint
     db.execute(text("SET app.bypass_rls = 'true'"))
 
@@ -213,6 +263,32 @@ def request_resend(data: RequestResendRequest, db: Session = Depends(get_db)):
     # Just flag the request — SuperAdmin decides whether to actually resend
     token_row.resend_requested_at = datetime.now(timezone.utc)
     db.commit()
+
+    user_row = db.query(User).filter(User.user_id == token_row.user_id).first()
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.RESEND_LINK_REQUESTED,
+        title="Resend requested",
+        message=f"{user_row.email if user_row else 'A user'} requested a new invitation link.",
+        related_user_id=token_row.user_id,
+    )
+
+    if user_row:
+        request_invite_action = (
+            AuditAction.SUPERADMIN_REQUEST_INVITE
+            if user_row.role == "superadmin"
+            else AuditAction.PERSONNEL_REQUEST_INVITE
+        )
+        write_audit_log(
+            db,
+            user=user_row,
+            action=request_invite_action,
+            target_table="account_invitation_tokens",
+            target_id=user_row.user_id,
+            target_reference=user_row.email,
+            request=http_request,
+            region_code=get_user_region_code(db, user_row),
+        )
 
     return RequestResendResponse(
         message="Your request has been sent to the administrator.",

@@ -1,3 +1,4 @@
+# backend/app/desktop/services/complaints/complaint_detail_service.py
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -23,7 +24,8 @@ def get_complaint_verification_detail(db: Session, complaint_id: UUID, region_id
         WalkinComplainant, Complaint.complainant_id == WalkinComplainant.complainant_id
     ).filter(
         Complaint.complaint_id == complaint_id,
-        Complaint.region_id == region_id,   # ADD THIS LINE
+        Complaint.region_id == region_id,
+        Complaint.deleted_at.is_(None),  #Add
     ).first()
 
     if not result:

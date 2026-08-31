@@ -1,9 +1,16 @@
+# backend/app/desktop/services/drafts/draft_submit_service.py
 import os
 import shutil
 from uuid import uuid4, UUID
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
+from datetime import date
+from decimal import Decimal
+
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.models.walkin_intake_drafts import WalkinIntakeDraft
 from app.models.draft_attachments import DraftAttachment
@@ -11,6 +18,8 @@ from app.models.walkin_complainants import WalkinComplainant
 from app.models.complaints import Complaint
 from app.models.shared_files import SharedFile
 from app.core.case_reference import generate_case_reference
+from app.desktop.services.notifications.notification_service import notify_lea_new_walkin_complaint  # ADDED
+
 
 
 SHARED_FILES_DIR = "uploads/shared_files"
@@ -25,12 +34,6 @@ def _create_complainant_and_complaint(
     complainant_fields: dict,
     complaint_fields: dict,
 ) -> Complaint:
-    """
-    Shared logic for both submit paths — builds and flushes a
-    WalkinComplainant, then a Complaint linked to it. Both the
-    draft-submit path and the direct-submit path funnel through
-    this, so this insert logic only exists in ONE place.
-    """
     case_reference = generate_case_reference(db, region_id=region_id)
 
     new_complainant = WalkinComplainant(
@@ -47,7 +50,7 @@ def _create_complainant_and_complaint(
         source="walk_in",
         status="open",
         complainant_id=new_complainant.complainant_id,
-        created_by=current_user.user_id, 
+        created_by=current_user.user_id,
     )
     db.add(new_complaint)
     db.flush()
@@ -75,12 +78,6 @@ def _save_new_upload_to_shared_files(file: UploadFile, complaint_id) -> dict:
             status_code=400,
             detail=f"File type '{file_extension}' is not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
         )
-    """
-    Used ONLY by the direct-submit path — the officer's files here
-    were never saved anywhere before (unlike a draft's, which were
-    already sitting in draft_attachments). So this saves them
-    straight to their permanent location in one step, no copying.
-    """
     os.makedirs(SHARED_FILES_DIR, exist_ok=True)
     unique_name = f"{uuid4()}_{file.filename}"
     destination_path = os.path.join(SHARED_FILES_DIR, str(complaint_id), unique_name)
@@ -92,7 +89,7 @@ def _save_new_upload_to_shared_files(file: UploadFile, complaint_id) -> dict:
     if actual_size > MAX_FILE_SIZE_BYTES:
         os.remove(destination_path)
         raise HTTPException(status_code=400, detail="File exceeds the 25 MB limit.")
-    
+
     return {
         "file_name": file.filename,
         "file_path": destination_path,
@@ -101,7 +98,7 @@ def _save_new_upload_to_shared_files(file: UploadFile, complaint_id) -> dict:
     }
 
 
-def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
+def submit_walkin_draft(db: Session, draft_id: UUID, current_user, request: Request | None = None) -> Complaint:
     draft = db.query(WalkinIntakeDraft).filter(
         WalkinIntakeDraft.draft_id == draft_id,
         WalkinIntakeDraft.saved_by == current_user.user_id,
@@ -109,9 +106,7 @@ def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
 
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found.")
-    
-    # ADDED — defense in depth. Frontend should already prevent this,
-    # but the backend must never trust that alone.
+
     if draft.draft_status != "draft":
         raise HTTPException(status_code=400, detail="This draft is still incomplete and cannot be submitted yet.")
 
@@ -152,8 +147,37 @@ def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
             mime_type=attachment.mime_type,
         ))
 
+    notify_lea_new_walkin_complaint(db, new_complaint, current_user)
+
+    # Captured before commit — commit() expires session objects.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+
     db.commit()
     db.refresh(new_complaint)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.CREATE_COMPLAINT_LOG,
+        target_table="complaints",
+        target_id=new_complaint.complaint_id,
+        target_reference=new_complaint.case_reference,
+        new_value={
+            "product_title": new_complaint.product_title,
+            "manufacturer": new_complaint.manufacturer,
+            "product_category": new_complaint.product_category,
+            "place_of_purchase": new_complaint.place_of_purchase,
+            "date_of_purchase": new_complaint.date_of_purchase.isoformat() if new_complaint.date_of_purchase else None,
+            "amount_paid": float(new_complaint.amount_paid) if new_complaint.amount_paid is not None else None,
+            "nature_of_complaint": new_complaint.nature_of_complaint,
+        },
+        request=request,
+        region_code=audit_region_code,
+    )
 
     db.delete(draft)
     db.commit()
@@ -171,15 +195,11 @@ def create_walkin_complaint_direct(
     complainant_fields: dict,
     complaint_fields: dict,
     files: list[UploadFile],
+    request: Request | None = None,
 ) -> Complaint:
-    """
-    The NO-DRAFT path — officer filled the New Walk-in Intake form
-    and clicked "Log Complaint & Queue for FDA" directly, without
-    ever saving a draft first (Image 1/2).
-    """
     if len(files) == 0:
-            raise HTTPException(status_code=400, detail="At least one file attachment is required.")
-    
+        raise HTTPException(status_code=400, detail="At least one file attachment is required.")
+
     new_complaint = _create_complainant_and_complaint(
         db, current_user, current_user.region_id,
         complainant_fields=complainant_fields,
@@ -195,6 +215,158 @@ def create_walkin_complaint_direct(
             **file_info,
         ))
 
+    notify_lea_new_walkin_complaint(db, new_complaint, current_user)
+
+    # Captured before commit — commit() expires session objects, and
+    # touching current_user's attributes afterward (even just
+    # user.user_id / user.role inside write_audit_log) can fail.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+
     db.commit()
     db.refresh(new_complaint)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.CREATE_COMPLAINT_LOG,
+        target_table="complaints",
+        target_id=new_complaint.complaint_id,
+        target_reference=new_complaint.case_reference,
+        new_value={
+            "product_title": new_complaint.product_title,
+            "manufacturer": new_complaint.manufacturer,
+            "product_category": new_complaint.product_category,
+            "place_of_purchase": new_complaint.place_of_purchase,
+            "date_of_purchase": new_complaint.date_of_purchase.isoformat() if new_complaint.date_of_purchase else None,
+                        "amount_paid": float(new_complaint.amount_paid) if new_complaint.amount_paid is not None else None,
+            "nature_of_complaint": new_complaint.nature_of_complaint,
+        },
+        request=request,
+        region_code=audit_region_code,
+    )
     return new_complaint
+
+# Ashanti code starts here
+
+def update_walkin_complaint_direct(
+    db: Session,
+    current_user,
+    complaint_id: UUID,
+    complainant_fields: dict,
+    complaint_fields: dict,
+    files: list[UploadFile],
+    remove_attachment_ids: list[UUID],
+    request: Request | None = None,
+) -> Complaint:
+    """
+    Edit path for an already-submitted walk-in complaint. Only
+    allowed while the complaint is still 'open' (Ready to Send) —
+    same rule as delete, since anything past that point has a
+    verification request genuinely in flight or FDA has already
+    responded, and editing those would be misleading.
+    """
+    complaint = db.query(Complaint).filter(
+        Complaint.complaint_id == complaint_id,
+        Complaint.region_id == current_user.region_id,
+        Complaint.source == "walk_in",
+        Complaint.deleted_at.is_(None),
+    ).first()
+
+    if not complaint:
+        raise HTTPException(status_code=404, detail="Complaint not found.")
+
+    if complaint.status != "open":
+        raise HTTPException(
+            status_code=400,
+            detail="Only complaints in Ready to Send status can be edited.",
+        )
+
+    # A complaint must always have at least one supporting attachment.
+    # Existing files not being removed still count — only check that
+    # after removals + no new uploads, we wouldn't end up at zero.
+
+    existing_query = db.query(SharedFile).filter(SharedFile.complaint_id == complaint_id)
+    if remove_attachment_ids:
+        existing_query = existing_query.filter(SharedFile.file_id.notin_(remove_attachment_ids))
+    existing_count = existing_query.count()
+
+    if existing_count == 0 and len(files) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one file attachment is required.",
+        )
+
+    if complaint.complainant_id:
+        complainant = db.query(WalkinComplainant).filter(
+            WalkinComplainant.complainant_id == complaint.complainant_id
+        ).first()
+        if complainant:
+            for field, value in complainant_fields.items():
+                setattr(complainant, field, value)
+
+    old_complaint_values = {
+        field: (
+            getattr(complaint, field).isoformat() if isinstance(getattr(complaint, field), date)
+            else float(getattr(complaint, field)) if isinstance(getattr(complaint, field), Decimal)
+            else getattr(complaint, field)
+        )
+        for field in complaint_fields
+    }
+
+    for field, value in complaint_fields.items():
+        setattr(complaint, field, value)
+    complaint.updated_by = current_user.user_id
+
+    if remove_attachment_ids:
+        files_to_remove = db.query(SharedFile).filter(
+            SharedFile.file_id.in_(remove_attachment_ids),
+            SharedFile.complaint_id == complaint_id,
+        ).all()
+        for f in files_to_remove:
+            if os.path.exists(f.file_path):
+                os.remove(f.file_path)
+            db.delete(f)
+
+    for uploaded_file in files:
+        file_info = _save_new_upload_to_shared_files(uploaded_file, complaint.complaint_id)
+        db.add(SharedFile(
+            complaint_id=complaint.complaint_id,
+            region_id=complaint.region_id,
+            uploaded_by=current_user.user_id,
+            **file_info,
+        ))
+
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+    db.commit()
+    db.refresh(complaint)
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.UPDATE_COMPLAINT_LOG,
+        target_table="complaints",
+        target_id=complaint.complaint_id,
+        target_reference=complaint.case_reference,
+        old_value=old_complaint_values,
+        new_value={
+            "product_title": complaint.product_title,
+            "manufacturer": complaint.manufacturer,
+            "product_category": complaint.product_category,
+            "place_of_purchase": complaint.place_of_purchase,
+            "date_of_purchase": complaint.date_of_purchase.isoformat() if complaint.date_of_purchase else None,
+                        "amount_paid": float(complaint.amount_paid) if complaint.amount_paid is not None else None,
+            "nature_of_complaint": complaint.nature_of_complaint,
+        },
+        request=request,
+        region_code=audit_region_code,
+    )
+    return complaint
+
+#Ashanti code ends here

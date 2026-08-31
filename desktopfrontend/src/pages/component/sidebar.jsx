@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { API_BASE_URL } from '../../utils/apiConfig'
 import {
   LayoutDashboard, //dashboard icon
   ClipboardList, //complaints menu icon
@@ -14,6 +15,7 @@ import {
   ScrollText, // audit logs icon
   Menu, // hamburger icon (NEW - responsive sidebar)
 } from "lucide-react";
+
 
 // Images
 import CIDGLogo from '../../images/pnp-cidg.jpg'
@@ -52,10 +54,12 @@ const sidebarStyles = `
   display: flex;
   flex-direction: column;
   position: relative;
+  box-sizing: border-box;
 }
 
 .SuperAdminSidebarTop {
   width: 280px;
+  min-height: 70px;
   height: fit-content;
   display: flex;
   justify-content: center;
@@ -66,6 +70,7 @@ const sidebarStyles = `
   font-size: small;
   font-weight: 600;
   border-bottom: 1px solid rgba(253, 253, 253, 0.2);
+  box-sizing: border-box;
 }
 
 .SuperAdminSidebarMenu {
@@ -109,10 +114,15 @@ const sidebarStyles = `
   width: 280px;
   height: 100vh;
   background: #1B4332;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
 }
 
 .FdaSidebarTop {
   width: 280px;
+  min-height: 70px;
   height: fit-content;
   display: flex;
   justify-content: center;
@@ -122,12 +132,15 @@ const sidebarStyles = `
   color: #fdfdfd;
   font-size: small;
   border-bottom: 1px solid rgba(253, 253, 253, 0.2);
+  box-sizing: border-box;
 }
 
 .FdaSidebarTop img {
   width: 50px;
   height: 50px;
   border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 
 .FdaSidebarMenu {
@@ -136,6 +149,7 @@ const sidebarStyles = `
   padding: 12px 8px;
   gap: 4px;
   align-items: center;
+  flex: 1;
 }
 
 .FdaMenuBtn {
@@ -145,7 +159,7 @@ const sidebarStyles = `
   color: #ffffff;
   border: none;
   border-radius: 8px;
-  text-align: center;
+  text-align: left;
   font-size: 14px;
   cursor: pointer;
   transition: background 0.2s;
@@ -166,6 +180,7 @@ const sidebarStyles = `
 .FdaMenuIcons svg {
   width: 21px;
   height: 21px;
+  display: block;
 }
 
 /* ========================================== */
@@ -175,10 +190,15 @@ const sidebarStyles = `
   width: 250px;
   height: 100vh;
   background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
 }
 
 .LeaSidebarTop {
   width: 250px;
+  min-height: 70px;
   height: fit-content;
   display: flex;
   justify-content: center;
@@ -188,12 +208,15 @@ const sidebarStyles = `
   color: #fdfdfd;
   font-size: small;
   border-bottom: 1px solid rgba(253, 253, 253, 0.2);
+  box-sizing: border-box;
 }
 
 .LeaSidebarTop img {
   width: 50px;
   height: 50px;
   border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 
 .LeaSidebarMenu {
@@ -202,6 +225,7 @@ const sidebarStyles = `
   padding: 12px 8px;
   gap: 4px;
   align-items: center;
+  flex: 1;
 }
 
 .LeaSidebarMain .MenuBtn {
@@ -211,7 +235,7 @@ const sidebarStyles = `
   color: #ffffff;
   border: none;
   border-radius: 8px;
-  text-align: center;
+  text-align: left;
   font-size: 14px;
   cursor: pointer;
   transition: background 0.2s;
@@ -232,11 +256,26 @@ const sidebarStyles = `
 .LeaSidebarMain .MenuIcons svg {
   width: 21px;
   height: 21px;
+  display: block;
 }
 
 /* ========================================================== */
-/* RESPONSIVE SIDEBAR STYLES (NEW - shared across all workspaces) */
+/* RESPONSIVE SIDEBAR STYLES (shared across all workspaces)   */
 /* ========================================================== */
+
+.SidebarLogoWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.SidebarWorkspaceTitle {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
 
 .SidebarOverlay {
   display: none;
@@ -257,8 +296,11 @@ const sidebarStyles = `
   padding: 10px 0;
   color: #ffffff;
   border-bottom: 1px solid rgba(253, 253, 253, 0.15);
+  box-sizing: border-box;
+  transition: background 0.2s;
 }
-  .SidebarMobileTrigger.IsOpen {
+
+.SidebarMobileTrigger.IsOpen {
   color: #ffffff;
 }
 
@@ -270,7 +312,7 @@ const sidebarStyles = `
 .SuperAdminSidebarMain,
 .FdaSidebarMain,
 .LeaSidebarMain {
-  transition: width 0.25s ease, transform 0.28s ease;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
 }
 
 /* TABLET: 768px - 1199px -> icon-only collapse */
@@ -282,28 +324,72 @@ const sidebarStyles = `
     overflow: visible;
   }
 
+  /* Hamburger at TOP of sidebar when collapsed */
+  .SidebarHamburgerBtn {
+    display: flex;
+    order: 1;
+    height: 52px;
+    padding: 0;
+    z-index: 15;
+  }
+
+  /* Navigation menu in the MIDDLE */
+  .SuperAdminSidebarMenu,
+  .FdaSidebarMenu,
+  .LeaSidebarMenu {
+    order: 2;
+    flex: 1;
+    padding: 12px 8px;
+    margin-bottom: 64px;
+    transition: margin-bottom 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
   .SuperAdminSidebarTop,
   .FdaSidebarTop,
   .LeaSidebarTop {
     width: 76px;
-    flex-direction: column;
-    padding: 14px 6px;
+    min-height: 0;
+    height: 0;
+    padding: 0;
+    border-bottom: none;
+    position: static;
+    display: flex;
+    align-items: center;
   }
 
   .SuperAdminSidebarTop p,
   .FdaSidebarTop p,
-  .LeaSidebarTop p {
+  .LeaSidebarTop p,
+  .SidebarWorkspaceTitle {
     display: none;
+    opacity: 0;
   }
 
+  /* Logo positioned at the BOTTOM when collapsed, with smooth transition */
+  .SidebarLogoWrapper {
+    position: absolute;
+    top: calc(100% - 58px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
+    z-index: 10;
+    transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s ease,
+                height 0.3s ease;
+  }
+
+  .SidebarLogoWrapper img,
   .FdaSidebarTop img,
   .LeaSidebarTop img {
-    width: 32px;
-    height: 32px;
-  }
-
-  .SidebarHamburgerBtn {
-    display: flex;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transition: width 0.3s ease, height 0.3s ease;
   }
 
   .SuperAdminSidebarMenu .MenuLabels,
@@ -362,20 +448,69 @@ const sidebarStyles = `
   .FdaSidebarMain.MenuOpen .FdaSidebarTop,
   .LeaSidebarMain.MenuOpen .LeaSidebarTop {
     width: 280px;
+    min-height: 70px;
+    height: fit-content;
+    display: flex;
     flex-direction: row;
-    padding: 20px 10px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(253, 253, 253, 0.2);
+    order: 1;
+    position: relative;
+  }
+
+  .SuperAdminSidebarMain.MenuOpen .SidebarHamburgerBtn,
+  .FdaSidebarMain.MenuOpen .SidebarHamburgerBtn,
+  .LeaSidebarMain.MenuOpen .SidebarHamburgerBtn {
+    position: absolute;
+    top: 16px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-bottom: none;
+    border-radius: 6px;
+    z-index: 20;
+  }
+
+  .SuperAdminSidebarMain.MenuOpen .SidebarLogoWrapper,
+  .FdaSidebarMain.MenuOpen .SidebarLogoWrapper,
+  .LeaSidebarMain.MenuOpen .SidebarLogoWrapper {
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .SuperAdminSidebarMain.MenuOpen .SidebarLogoWrapper img,
+  .FdaSidebarMain.MenuOpen .SidebarLogoWrapper img,
+  .LeaSidebarMain.MenuOpen .SidebarLogoWrapper img {
+    width: 44px;
+    height: 44px;
   }
 
   .SuperAdminSidebarMain.MenuOpen .SuperAdminSidebarTop p,
   .FdaSidebarMain.MenuOpen .FdaSidebarTop p,
-  .LeaSidebarMain.MenuOpen .LeaSidebarTop p {
+  .LeaSidebarMain.MenuOpen .LeaSidebarTop p,
+  .SuperAdminSidebarMain.MenuOpen .SidebarWorkspaceTitle,
+  .FdaSidebarMain.MenuOpen .SidebarWorkspaceTitle,
+  .LeaSidebarMain.MenuOpen .SidebarWorkspaceTitle {
     display: block;
+    opacity: 1;
+    color: #fdfdfd;
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 0;
   }
 
-  .FdaSidebarMain.MenuOpen .FdaSidebarTop img,
-  .LeaSidebarMain.MenuOpen .LeaSidebarTop img {
-    width: 50px;
-    height: 50px;
+  .SuperAdminSidebarMain.MenuOpen .SuperAdminSidebarMenu,
+  .FdaSidebarMain.MenuOpen .FdaSidebarMenu,
+  .LeaSidebarMain.MenuOpen .LeaSidebarMenu {
+    margin-bottom: 0;
   }
 
   .SuperAdminSidebarMain.MenuOpen .MenuLabels,
@@ -410,10 +545,14 @@ const sidebarStyles = `
     align-items: center;
     justify-content: center;
     background: none;
-  color: #111827;
+    color: #111827;
     border: none;
     cursor: pointer;
     z-index: 120;
+  }
+
+  .SidebarMobileTrigger.IsOpen {
+    display: none;
   }
 
   .SuperAdminSidebarMain,
@@ -440,8 +579,74 @@ const sidebarStyles = `
     width: 280px;
   }
 
+  .SuperAdminSidebarMain.MenuOpen .SuperAdminSidebarTop,
+  .FdaSidebarMain.MenuOpen .FdaSidebarTop,
+  .LeaSidebarMain.MenuOpen .LeaSidebarTop {
+    width: 280px;
+    min-height: 70px;
+    height: fit-content;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px 48px 10px 12px;
+    border-bottom: 1px solid rgba(253, 253, 253, 0.2);
+    position: relative;
+    box-sizing: border-box;
+  }
+
   .SidebarHamburgerBtn {
     display: none;
+  }
+
+  .SuperAdminSidebarMain.MenuOpen .SidebarHamburgerBtn,
+  .FdaSidebarMain.MenuOpen .SidebarHamburgerBtn,
+  .LeaSidebarMain.MenuOpen .SidebarHamburgerBtn {
+    display: flex;
+    position: absolute;
+    top: 17px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-bottom: none;
+    border-radius: 6px;
+    z-index: 20;
+  }
+
+  .SuperAdminSidebarMain.MenuOpen .SidebarLogoWrapper,
+  .FdaSidebarMain.MenuOpen .SidebarLogoWrapper,
+  .LeaSidebarMain.MenuOpen .SidebarLogoWrapper {
+    position: static;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .SuperAdminSidebarMain.MenuOpen .SidebarLogoWrapper img,
+  .FdaSidebarMain.MenuOpen .SidebarLogoWrapper img,
+  .LeaSidebarMain.MenuOpen .SidebarLogoWrapper img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .SuperAdminSidebarMain.MenuOpen .SidebarWorkspaceTitle,
+  .FdaSidebarMain.MenuOpen .SidebarWorkspaceTitle,
+  .LeaSidebarMain.MenuOpen .SidebarWorkspaceTitle {
+    flex: 1;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fdfdfd;
+    margin: 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .SidebarOverlay.MenuOpen {
@@ -462,10 +667,10 @@ function Sidebar({ sidebarType, role, agency }) {
     const location = useLocation()
     const sidebarRef = useRef(null)
 
-    // NEW: controls tablet temporary expand AND mobile off-canvas open (same state, CSS decides the visual meaning per breakpoint)
+    // Controls tablet temporary expand AND mobile off-canvas open
     const [menuOpen, setMenuOpen] = useState(false)
 
-    // NEW: close the expanded/drawer sidebar when clicking outside it (ignores clicks on the toggle buttons themselves)
+    // Close the expanded/drawer sidebar when clicking outside it
     useEffect(() => {
         function handleClickOutside(e) {
             if (!menuOpen) return
@@ -477,7 +682,7 @@ function Sidebar({ sidebarType, role, agency }) {
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [menuOpen])
 
-    // NEW: auto-close the expanded/drawer sidebar after navigating
+    // Auto-close the expanded/drawer sidebar after navigating
     useEffect(() => {
         setMenuOpen(false)
     }, [location.pathname])
@@ -500,14 +705,13 @@ function Sidebar({ sidebarType, role, agency }) {
         }
     }
 
-    //added this for end session button to redirect to login page
-
+    // End session / logout handler
     async function handleLogout() {
-    const refreshToken = localStorage.getItem('refresh_token');
+        const refreshToken = localStorage.getItem('refresh_token');
 
         try {
             if (refreshToken) {
-                await fetch('http://127.0.0.1:8000/auth/token/revoke', {
+                await fetch(`${API_BASE_URL}/auth/token/revoke`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ refresh_token: refreshToken }),
@@ -515,7 +719,6 @@ function Sidebar({ sidebarType, role, agency }) {
             }
         } catch (err) {
             console.error('Failed to revoke session:', err);
-            // proceed with logout locally even if the server call fails
         }
 
         localStorage.removeItem('access_token');
@@ -527,8 +730,6 @@ function Sidebar({ sidebarType, role, agency }) {
             navigate('/login');
         }
     }
-
-
 
     const renderStyles = () => (
         <style dangerouslySetInnerHTML={{ __html: sidebarStyles }} />
@@ -551,7 +752,7 @@ function Sidebar({ sidebarType, role, agency }) {
                 />
                 <div className={`SuperAdminSidebarMain ${menuOpen ? 'MenuOpen' : ''}`} ref={sidebarRef}>
                     <div className='SuperAdminSidebarTop'>
-                        <p>ICMDA: Superadmin Workspace</p>
+                        <p className='SidebarWorkspaceTitle'>ICMDA: Superadmin Workspace</p>
                     </div>
                     <button
                         className='SidebarHamburgerBtn'
@@ -585,7 +786,7 @@ function Sidebar({ sidebarType, role, agency }) {
         return (
             <>
                 {renderStyles()}
-              <button
+                <button
                     className={`SidebarMobileTrigger ${menuOpen ? 'IsOpen' : ''}`}
                     aria-label={menuOpen ? 'Close sidebar menu' : 'Open sidebar menu'}
                     onClick={toggleMenu}
@@ -598,8 +799,8 @@ function Sidebar({ sidebarType, role, agency }) {
                 />
                 <div className={`FdaSidebarMain ${menuOpen ? 'MenuOpen' : ''}`} ref={sidebarRef}>
                     <div className='FdaSidebarTop'>
-                        <div><img src={FDALogo} alt="" /></div>
-                        <p>FDA Workspace</p>
+                        <div className='SidebarLogoWrapper'><img src={FDALogo} alt="FDA Logo" /></div>
+                        <p className='SidebarWorkspaceTitle'>FDA Workspace</p>
                     </div>
                     <button
                         className='SidebarHamburgerBtn'
@@ -632,7 +833,7 @@ function Sidebar({ sidebarType, role, agency }) {
         return (
             <>
                 {renderStyles()}
-          <button
+                <button
                     className={`SidebarMobileTrigger ${menuOpen ? 'IsOpen' : ''}`}
                     aria-label={menuOpen ? 'Close sidebar menu' : 'Open sidebar menu'}
                     onClick={toggleMenu}
@@ -645,8 +846,8 @@ function Sidebar({ sidebarType, role, agency }) {
                 />
                 <div className={`LeaSidebarMain ${menuOpen ? 'MenuOpen' : ''}`} ref={sidebarRef}>
                     <div className='LeaSidebarTop'>
-                        <div><img src={CIDGLogo} alt="CIDG LOGO" /></div>
-                        <p>LEA-CIDG Workspace</p>
+                        <div className='SidebarLogoWrapper'><img src={CIDGLogo} alt="CIDG LOGO" /></div>
+                        <p className='SidebarWorkspaceTitle'>LEA-CIDG Workspace</p>
                     </div>
                     <button
                         className='SidebarHamburgerBtn'

@@ -3,6 +3,7 @@ import hashlib
 import secrets
 import re
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -46,6 +47,24 @@ def generate_refresh_token() -> str:
 def hash_refresh_token(refresh_token: str) -> str:
     return hashlib.sha256(refresh_token.encode("utf-8")).hexdigest()
 
+def get_current_personnel(token: Annotated[str | None, Depends(oauth2_bearer)]):
+    if token is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = decode_access_token(token)
+        user_id = payload.get("sub")
+        role = payload.get("role")
+        region_id = payload.get("region_id")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Could not validate user")
+        return {
+            "user_id": UUID(user_id),
+            "role": role,
+            "region_id": UUID(region_id) if region_id else None,
+        }
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Unauthorized access")
+    
 #extension
 def authenticate_consumer(email:str, password:str, db:Session):
     user = db.query(ConsumerAccount).filter(ConsumerAccount.email == email).first()

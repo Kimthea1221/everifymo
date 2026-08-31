@@ -16,8 +16,6 @@ import {
   ChevronLeft,
   AlertTriangle,
   X,
-  // ADDED — Clock icon used in the initial-load skeleton row, matching the
-  // pattern used in fda-verification.jsx's Completed/Rejected loading rows.
   Clock,
 } from "lucide-react";
 
@@ -27,7 +25,7 @@ const API_BASE = "http://localhost:8000";
 
 // CHANGED — was a client-side page size of 5; now 10 to match the server's
 // default page_size sent in every GET /drafts/fda-verification/ request.
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 25;
 
 function FDASavedDraft() {
 
@@ -391,9 +389,7 @@ function FDASavedDraft() {
               <div className="FdaFilterGroup">
                 <label>Category</label>
                 {/* FIXED — option values now match real backend category strings
-                                    exactly: "Food" (not "Foods"), and "Supplements" added.
-                                    Same correction applied to Completed/Rejected tabs in
-                                    fda-verification.jsx. Default value "" omits the param when
+                                    exactly: "Food" (not "Foods"). Default value "" omits the param when
                                     "All Categories" is selected, matching the backend contract. */}
                 <select
                   value={categoryFilter}
@@ -403,10 +399,10 @@ function FDASavedDraft() {
                   }}
                   id="fda-drafts-category-filter"
                 >
-                  <option value="All">All Categories</option>
+                  <option value="">All Categories</option>
                   <option value="Cosmetics">Cosmetics</option>
                   <option value="Food">Food</option>
-                  <option value="Medical Devices">Medical Devices</option>
+                  <option value="Devices">Medical Devices</option>
                   <option value="Drugs">Drugs</option>
                 </select>
               </div>
@@ -433,18 +429,16 @@ function FDASavedDraft() {
                 />
               </div>
 
-              {/* CHANGED — was always rendered; now always mounted but uses
-                                visibility:hidden when no filters are active so the flex
-                                layout never shifts when it toggles (matching the pattern
-                                used in fda-verification.jsx's Completed/Rejected filter panels).
-                                disabled prevents accidental clicks while visually hidden. */}
+              {/* Fix 2 — display:none when inactive so button takes 0px width and controls sit flush right */}
               <button
-                className="BtnFilters"
+                className="BtnFiltersIcon"
                 onClick={handleClearFilters}
                 disabled={!hasActiveFilters}
-                style={{ visibility: hasActiveFilters ? "visible" : "hidden" }}
+                aria-label="Clear Filters"
+                title="Clear Filters"
+                style={{ display: hasActiveFilters ? "inline-flex" : "none" }}
               >
-                Clear Filters
+                <X size={16} />
               </button>
             </div>
           </div>

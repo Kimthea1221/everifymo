@@ -1,7 +1,9 @@
+// desktopfrontend/src/pages/user-registration-form.jsx
 import { useState } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import ImgSuccess from '../images/success_img.png'
 import ImgTime from '../images/time_img.png'
+import { API_BASE_URL } from '../utils/apiConfig'
 import { 
   User, 
   Mail, 
@@ -26,6 +28,8 @@ function UserRegistration() {
   const navigate = useNavigate();
   const location = useLocation()
   const officerData = location.state || {}   // fallback in case someone visits this page directly
+  // add this to the top-level of the component, right after officerData is defined:
+  const hasValidInviteData = Boolean(officerData.invite_token && officerData.email);
 
   const [form, setForm] = useState({
     firstName: '',
@@ -99,7 +103,7 @@ function UserRegistration() {
     }
 
     // Submit the form data to the backend
-  fetch('http://localhost:8000/registration/complete', {
+  fetch(`${API_BASE_URL}/registration/complete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -127,6 +131,25 @@ function UserRegistration() {
   })
 }
 
+// add this block BEFORE the `if (submitted)` block:
+if (!hasValidInviteData) {
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="RegPageContainer">
+        <div className="RegCard">
+          <div className="RegSuccessScreen">
+            <h2 className="RegSuccessTitle">Link Not Recognized</h2>
+            <p className="RegSuccessDesc">
+              We couldn't find your registration details. Please use the invitation link from your email, or contact your administrator.
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
   /*Success Screen*/
   if (submitted) {
     return (
@@ -144,6 +167,16 @@ function UserRegistration() {
               <div className="RegSuccessTag">
                 <span className='RegTimeIcon'><img src={ImgTime} alt="Hour glass icon" /></span> Pending Administrator Approval
               </div>
+
+              {/* in the success screen, add the Back to Login button after RegSuccessTag: */}
+
+              <button
+                className="RegSubmitBtn"
+                style={{ marginTop: 20, maxWidth: 220 }}
+                onClick={() => navigate('/login')}
+              >
+                Back to Login
+              </button>
               
             </div>
           </div>
