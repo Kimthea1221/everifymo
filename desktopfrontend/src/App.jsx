@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
-{/* for universal login*/}
+{/* for universal login*/ }
 import UniversalLogin from './pages/universal-login.jsx';
 
 {/* LEA-CIDG PAGES */ }
@@ -48,7 +48,7 @@ function DeepLinkListener() {
   useEffect(() => {
     console.log('DeepLinkListener mounted, waiting for token...');
 
-    window.electronAPI.onDeepLinkToken((token) => {
+    const handleToken = (token) => {
       console.log('Token received:', token);
 
       fetch(`http://localhost:8000/registration/validate/${token}`)
@@ -73,7 +73,13 @@ function DeepLinkListener() {
             navigate('/invitation-status', { state: { status: data.status, invite_token: token } });
           }
         });
-    });
+    };
+
+    window.electronAPI.onDeepLinkToken(handleToken);
+
+    return () => {
+      window.electronAPI.removeDeepLinkToken(handleToken);
+    };
   }, [navigate]);
 
   return null;

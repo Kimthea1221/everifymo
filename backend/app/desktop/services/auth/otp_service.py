@@ -9,6 +9,16 @@ from app.models.otp_tokens import OTPToken
 from app.models.users import User
 from app.desktop.services.superadmin_notifications import superadmin_notification_service as notification_service
 from app.desktop.schemas.superadmin_notifications.notification_enums import NotificationEventType
+# Ashanti code starts here
+# Reuse the exact same throttle machinery the password-login path uses, so a
+# superadmin can't be permanently locked out via OTP failures either. This is
+# the same class/helpers imported by superadmin_login.py's exception handler.
+from app.desktop.services.auth.superadmin_auth import (
+    SuperadminThrottledError,
+    _is_last_active_superadmin,
+    _backoff_seconds_for,
+)
+# Ashanti code ends here
 
 
 def generate_otp() -> str:
@@ -42,18 +52,36 @@ def create_otp_for_user(db: Session, user: User) -> str:
 
 def verify_otp_for_user(db: Session, user: User, otp: str) -> OTPToken:
     """
-    Returns the matching OTPToken if valid, else raises ValueError with a reason.
-    Caller is responsible for marking it used once fully consumed (e.g. after password reset).
+    Returns the matching OTPToken if valid, else raises ValueError with a reason,
+    or SuperadminThrottledError (see below) with structured retry_after_seconds.
 
     Two independent, non-interfering thresholds:
       - Per-token: after settings.OTP_MAX_ATTEMPTS wrong guesses against THIS code,
         the code is expired and the user must request a new one. This is a pure UX
         nudge and does NOT affect the account-level counter or lockout.
       - Per-account: user.failed_otp_attempts is cumulative, persists across OTP
-        re-requests, and only resets to 0 on a correct OTP. Once it reaches 5, the
-        account is locked (is_locked=True), mirroring the password-auth lockout
-        threshold exactly.
+        re-requests, and only resets to 0 on a correct OTP. Once it reaches 5:
+          * superadmin, NOT the last active one -> permanently locked (is_locked=True),
+            same as before, mirroring the password-auth lockout threshold exactly.
+          * superadmin, IS the last active one -> throttled instead (locked_until
+            set with the same growing backoff as the password path), never
+            permanently locked, so the last admin is never bricked out.
+          * any other role -> unchanged, permanently locked (is_locked=True).
+
+    # Ashanti code starts here
+    Raises SuperadminThrottledError instead of ValueError for the throttled case,
+    same as authenticate_superadmin, so the caller can return 429 + retry_after_seconds
+    the same way the password-login route already does.
+    # Ashanti code ends here
     """
+    # Ashanti code starts here
+    # Mirror the password path: surface an active throttle immediately, before
+    # even looking at the submitted OTP, so the frontend can run its countdown.
+    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+        remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds())
+        raise SuperadminThrottledError(retry_after_seconds=remaining)
+    # Ashanti code ends here
+
     if user.is_locked:
         raise ValueError("Account is locked. Please contact your administrator.")
 
@@ -81,22 +109,43 @@ def verify_otp_for_user(db: Session, user: User, otp: str) -> OTPToken:
         otp_token.attempt_count += 1
         user.failed_otp_attempts += 1
 
-        just_locked = False
-        if user.failed_otp_attempts >= 5 and not user.is_locked:
-            user.is_locked = True
-            just_locked = True
+        # Ashanti code starts here
+        if user.failed_otp_attempts >= 5 and not user.is_locked and not (
+            user.locked_until and user.locked_until > datetime.now(timezone.utc)
+        ):
+            if user.role == "superadmin" and _is_last_active_superadmin(db, user):
+                # Never permanently lock the only active superadmin — throttle
+                # with the same growing backoff as the password-auth path.
+                backoff = _backoff_seconds_for(user.failed_otp_attempts)
+                user.locked_until = datetime.now(timezone.utc) + timedelta(seconds=backoff)
+                db.commit()
+                notification_service.create_notification_for_all_superadmins(
+                    db=db,
+                    event_type=NotificationEventType.FAILED_LOGIN_WARNING,
+                    title="Last superadmin under repeated attack",
+                    message=(
+                        f"{user.email} has hit {user.failed_otp_attempts} failed OTP attempts and is "
+                        f"the only active superadmin. Account was throttled (locked out for "
+                        f"{backoff}s) rather than permanently locked. Investigate immediately."
+                    ),
+                    related_user_id=user.user_id,
+                )
+                raise SuperadminThrottledError(retry_after_seconds=backoff)
+            else:
+                user.is_locked = True
+                db.commit()
+                notification_service.create_notification_for_all_superadmins(
+                    db=db,
+                    event_type=NotificationEventType.ACCOUNT_LOCKED,
+                    title="Account locked out",
+                    message=f"{user.email} has been locked out after {user.failed_otp_attempts} failed OTP attempts.",
+                    related_user_id=user.user_id,
+                )
+                raise ValueError("Too many failed OTP attempts. Your account has been locked. Please contact your administrator.")
+        # Ashanti code ends here
+
 
         db.commit()
-
-        if just_locked:
-            notification_service.create_notification_for_all_superadmins(
-                db=db,
-                event_type=NotificationEventType.ACCOUNT_LOCKED,
-                title="Account locked out",
-                message=f"{user.email} has been locked out after {user.failed_otp_attempts} failed OTP attempts.",
-                related_user_id=user.user_id,
-            )
-            raise ValueError("Too many failed OTP attempts. Your account has been locked. Please contact your administrator.")
 
         if user.failed_otp_attempts == 3:
             notification_service.create_notification_for_all_superadmins(

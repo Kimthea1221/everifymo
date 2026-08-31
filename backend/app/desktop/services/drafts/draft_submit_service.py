@@ -1,9 +1,16 @@
+# backend/app/desktop/services/drafts/draft_submit_service.py
 import os
 import shutil
 from uuid import uuid4, UUID
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
+from datetime import date
+from decimal import Decimal
+
+from fastapi import Request
+from app.core.audit import write_audit_log, get_user_region_code
+from app.core.constants import AuditAction
 
 from app.models.walkin_intake_drafts import WalkinIntakeDraft
 from app.models.draft_attachments import DraftAttachment
@@ -91,7 +98,7 @@ def _save_new_upload_to_shared_files(file: UploadFile, complaint_id) -> dict:
     }
 
 
-def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
+def submit_walkin_draft(db: Session, draft_id: UUID, current_user, request: Request | None = None) -> Complaint:
     draft = db.query(WalkinIntakeDraft).filter(
         WalkinIntakeDraft.draft_id == draft_id,
         WalkinIntakeDraft.saved_by == current_user.user_id,
@@ -142,8 +149,35 @@ def submit_walkin_draft(db: Session, draft_id: UUID, current_user) -> Complaint:
 
     notify_lea_new_walkin_complaint(db, new_complaint, current_user)
 
+    # Captured before commit — commit() expires session objects.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+
     db.commit()
     db.refresh(new_complaint)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.CREATE_COMPLAINT_LOG,
+        target_table="complaints",
+        target_id=new_complaint.complaint_id,
+        target_reference=new_complaint.case_reference,
+        new_value={
+            "product_title": new_complaint.product_title,
+            "manufacturer": new_complaint.manufacturer,
+            "product_category": new_complaint.product_category,
+            "place_of_purchase": new_complaint.place_of_purchase,
+            "date_of_purchase": new_complaint.date_of_purchase.isoformat() if new_complaint.date_of_purchase else None,
+            "amount_paid": float(new_complaint.amount_paid) if new_complaint.amount_paid is not None else None,
+            "nature_of_complaint": new_complaint.nature_of_complaint,
+        },
+        request=request,
+        region_code=audit_region_code,
+    )
 
     db.delete(draft)
     db.commit()
@@ -161,6 +195,7 @@ def create_walkin_complaint_direct(
     complainant_fields: dict,
     complaint_fields: dict,
     files: list[UploadFile],
+    request: Request | None = None,
 ) -> Complaint:
     if len(files) == 0:
         raise HTTPException(status_code=400, detail="At least one file attachment is required.")
@@ -181,9 +216,38 @@ def create_walkin_complaint_direct(
         ))
 
     notify_lea_new_walkin_complaint(db, new_complaint, current_user)
-    
+
+    # Captured before commit — commit() expires session objects, and
+    # touching current_user's attributes afterward (even just
+    # user.user_id / user.role inside write_audit_log) can fail.
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
+
     db.commit()
     db.refresh(new_complaint)
+
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.CREATE_COMPLAINT_LOG,
+        target_table="complaints",
+        target_id=new_complaint.complaint_id,
+        target_reference=new_complaint.case_reference,
+        new_value={
+            "product_title": new_complaint.product_title,
+            "manufacturer": new_complaint.manufacturer,
+            "product_category": new_complaint.product_category,
+            "place_of_purchase": new_complaint.place_of_purchase,
+            "date_of_purchase": new_complaint.date_of_purchase.isoformat() if new_complaint.date_of_purchase else None,
+                        "amount_paid": float(new_complaint.amount_paid) if new_complaint.amount_paid is not None else None,
+            "nature_of_complaint": new_complaint.nature_of_complaint,
+        },
+        request=request,
+        region_code=audit_region_code,
+    )
     return new_complaint
 
 # Ashanti code starts here
@@ -196,6 +260,7 @@ def update_walkin_complaint_direct(
     complaint_fields: dict,
     files: list[UploadFile],
     remove_attachment_ids: list[UUID],
+    request: Request | None = None,
 ) -> Complaint:
     """
     Edit path for an already-submitted walk-in complaint. Only
@@ -243,6 +308,15 @@ def update_walkin_complaint_direct(
             for field, value in complainant_fields.items():
                 setattr(complainant, field, value)
 
+    old_complaint_values = {
+        field: (
+            getattr(complaint, field).isoformat() if isinstance(getattr(complaint, field), date)
+            else float(getattr(complaint, field)) if isinstance(getattr(complaint, field), Decimal)
+            else getattr(complaint, field)
+        )
+        for field in complaint_fields
+    }
+
     for field, value in complaint_fields.items():
         setattr(complaint, field, value)
     complaint.updated_by = current_user.user_id
@@ -266,8 +340,33 @@ def update_walkin_complaint_direct(
             **file_info,
         ))
 
+    audit_region_code = get_user_region_code(db, current_user)
+    audit_user_id = current_user.user_id
+    audit_user_role = current_user.role
     db.commit()
     db.refresh(complaint)
+    write_audit_log(
+        db,
+        user=None,
+        user_id_override=audit_user_id,
+        user_role_override=audit_user_role,
+        action=AuditAction.UPDATE_COMPLAINT_LOG,
+        target_table="complaints",
+        target_id=complaint.complaint_id,
+        target_reference=complaint.case_reference,
+        old_value=old_complaint_values,
+        new_value={
+            "product_title": complaint.product_title,
+            "manufacturer": complaint.manufacturer,
+            "product_category": complaint.product_category,
+            "place_of_purchase": complaint.place_of_purchase,
+            "date_of_purchase": complaint.date_of_purchase.isoformat() if complaint.date_of_purchase else None,
+                        "amount_paid": float(complaint.amount_paid) if complaint.amount_paid is not None else None,
+            "nature_of_complaint": complaint.nature_of_complaint,
+        },
+        request=request,
+        region_code=audit_region_code,
+    )
     return complaint
 
 #Ashanti code ends here

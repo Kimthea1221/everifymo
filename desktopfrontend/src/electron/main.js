@@ -76,7 +76,7 @@ if (!gotLock) {
   createWindow()
 
   setTimeout(() => {
-    handleDeepLink('everifymo://complete-registration?token=dNZ-PGoHXRjKN1zdG78nwTriZ6mV84GXbJ_r4JVgbdg')
+    handleDeepLink('everifymo://complete-registration?token=EcPq1fqtWgzsHGzoslG_71rue-OzKgkn9WBvrooQ2Ac')
   }, 2000)
 }) */
 

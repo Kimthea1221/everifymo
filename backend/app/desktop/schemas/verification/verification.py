@@ -213,6 +213,8 @@ class LeaVerificationQueueCounts(BaseModel):
     fda_response_count: int
     initiated_count: int
     dismissed_count: int
+    completed_count: int
+
 
 # added by Darlene --start
 # Result choices for LEA FDA response items

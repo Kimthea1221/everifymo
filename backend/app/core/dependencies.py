@@ -29,12 +29,20 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
 
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail="Account has been suspended.")
+    if user.is_locked:
+        raise HTTPException(status_code=401, detail="Account is locked.")
+
     if user.role == "superadmin":
         db.execute(text("SET app.bypass_rls = 'true'"))
     else:
         db.execute(text("SET app.bypass_rls = 'false'"))
         region_id_str = str(user.region_id) if user.region_id else ""
-        db.execute(text(f"SET app.current_region_id = '{region_id_str}'"))
+        db.execute(
+        text("SET app.current_region_id = :region_id"),
+        {"region_id": region_id_str},
+)
 
     return user
 
