@@ -512,7 +512,11 @@ function FDAProductDB() {
           if (!response.ok) {
             const errorData = await response.json();
             const errorMsg = extractErrorMessage(errorData, "Failed to save product.");
-            setFormErrors({ registrationNumber: errorMsg });
+            if (errorMsg.includes("Duplicate product name") || errorMsg.includes("product name")) {
+              setFormErrors({ productName: errorMsg });
+            } else {
+              setFormErrors({ registrationNumber: errorMsg });
+            }
             return;
           }
 
@@ -597,7 +601,11 @@ function FDAProductDB() {
           if (!response.ok) {
             const errorData = await response.json();
             const errorMsg = extractErrorMessage(errorData, "Failed to update product.");
-            setFormErrors({ registrationNumber: errorMsg });
+            if (errorMsg.includes("Duplicate product name") || errorMsg.includes("product name")) {
+              setFormErrors({ productName: errorMsg });
+            } else {
+              setFormErrors({ registrationNumber: errorMsg });
+            }
             return;
           }
 
@@ -632,8 +640,11 @@ function FDAProductDB() {
       errors.advisoryDate = "Advisory date is required";
     } else {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (new Date(conversionDetails.advisoryDate) > today) {
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      if (conversionDetails.advisoryDate > todayStr) {
         errors.advisoryDate = "Advisory Date cannot be in the future";
       }
     }
@@ -708,8 +719,11 @@ function FDAProductDB() {
       errors.advisoryDate = "Advisory Date is required";
     } else {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (new Date(advisoryForm.advisoryDate) > today) {
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      if (advisoryForm.advisoryDate > todayStr) {
         errors.advisoryDate = "Advisory Date cannot be in the future";
       }
     }
@@ -779,8 +793,11 @@ function FDAProductDB() {
       errors.advisoryDate = "Advisory Date is required";
     } else {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (new Date(advisoryForm.advisoryDate) > today) {
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      if (advisoryForm.advisoryDate > todayStr) {
         errors.advisoryDate = "Advisory Date cannot be in the future";
       }
     }

@@ -2082,6 +2082,32 @@ function LeaVerificationRequest() {
                           </div>
                         )}
                       </div>
+
+                      {selectedInitiatedCase && (
+                        <div className='ConfirmationReturned'>
+                          <div className='ResponseUpdateBox' style={{ marginTop: '0px' }}>
+                            <h6>Field operation status update</h6>
+                            {/* CHANGED (Part 0) — bound to initiatedFieldNotes, not the old shared fieldOperationNotes */}
+                            {selectedInitiatedCase?.field_operation_notes && (
+                            <p style={{ fontSize: '12px', color: '#7a8796', marginTop: '-4px', marginBottom: '10px' }}>
+                              This is the note logged when the takedown was initiated. You may update it with the latest progress before closing this case.
+                            </p>
+                            )}
+                            <textarea
+                              placeholder="Enter notes on field operation progress..."
+                              value={initiatedFieldNotes}
+                              onChange={(e) => setInitiatedFieldNotes(e.target.value)}
+                            ></textarea>
+                          </div>
+                          <div className='ResponseBtn' style={{ marginTop: '20px' }}>
+                            {/* CHANGED — now passes real case_reference + complaint_id instead of dummy .caseNumber / .id */}
+                            <button onClick={() => handleActionButtonClick('Close Case', selectedInitiatedCase.case_reference, selectedInitiatedCase.complaint_id)}>
+                              Close Case
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     ) : (
                       <div className="LeaVerifNoDetail" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#7a8796', fontSize: '14px', fontWeight: '500', padding: '40px', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc' }}>
                         <Inbox size={32} style={{ marginBottom: '8px', color: '#94a3b8' }} />

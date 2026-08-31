@@ -91,10 +91,13 @@ def get_lea_verification_queue_counts(db: Session, current_user) -> LeaVerificat
     # already clicked through).
     dismissed_count = joined.filter(_closed_condition()).count()
 
+    completed_count = joined.filter(Complaint.status == "completed").count()
+
     return LeaVerificationQueueCounts(
         fda_response_count=fda_response_count,
         initiated_count=initiated_count,
         dismissed_count=dismissed_count,
+        completed_count=completed_count,
     )
 # fixed by Darlene --end
 

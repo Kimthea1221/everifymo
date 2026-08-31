@@ -7,16 +7,15 @@ from app.desktop.schemas.complaints.complaints import FdaComplaintListItem
 # services/complaints/fda_reports_service.py — one line change
 
 def list_all_complaints_for_fda(
-    db: Session, search: str | None, category: str | None,
+    db: Session, current_user, search: str | None, category: str | None,
     status: str | None, source: str | None,
 ) -> list[FdaComplaintListItem]:
     query = db.query(Complaint).filter(
         Complaint.deleted_at.is_(None),
         Complaint.status != "open",   # ADDED — not yet sent to FDA by LEA, excluded from this report
     )
-    # NOTE: no region_id filter on current_user — FDA sees every
-    # region for now. Add .filter(Complaint.region_id == current_user.region_id)
-    # here if/when confirmed FDA should be region-scoped like LEA.
+    if current_user.role != "superadmin" and current_user.region_id:
+        query = query.filter(Complaint.region_id == current_user.region_id)
 
     if source is not None:
         query = query.filter(Complaint.source == source)
@@ -55,11 +54,15 @@ from app.models.shared_files import SharedFile
 from app.desktop.schemas.complaints.complaints import SharedFileResponse, FdaComplaintDetailResponse
 
 
-def get_fda_complaint_detail(db: Session, complaint_id) -> FdaComplaintDetailResponse:
-    complaint = db.query(Complaint).filter(
+def get_fda_complaint_detail(db: Session, complaint_id, current_user) -> FdaComplaintDetailResponse:
+    query = db.query(Complaint).filter(
         Complaint.complaint_id == complaint_id,
         Complaint.deleted_at.is_(None),
-    ).first()
+    )
+    if current_user.role != "superadmin" and current_user.region_id:
+        query = query.filter(Complaint.region_id == current_user.region_id)
+        
+    complaint = query.first()
 
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found.")

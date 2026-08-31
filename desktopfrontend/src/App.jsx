@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
-{/* for universal login*/}
+{/* for universal login*/ }
 import UniversalLogin from './pages/universal-login.jsx';
 
 {/* LEA-CIDG PAGES */ }
