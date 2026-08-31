@@ -27,7 +27,7 @@ router = APIRouter(prefix="/auth/superadmin", tags=["superadmin-auth"])
 async def superadmin_login(request: SuperAdminLoginRequest, http_request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     db.execute(text("SET app.bypass_rls = 'true'"))
     try:
-        user = authenticate_superadmin(db, request.email, request.password)
+        user = authenticate_superadmin(db, request.email, request.password, http_request)
     except SuperadminThrottledError as exc:
         # Same account, temporarily throttled after repeated failures. Return
         # retry_after_seconds as a real field so the frontend can run a live
@@ -96,7 +96,7 @@ def verify_otp(request: SuperAdminOTPVerifyRequest, http_request: Request, db: S
 
 
     try:
-        otp_token = verify_otp_for_user(db, user, request.otp)
+        otp_token = verify_otp_for_user(db, user, request.otp, http_request)
     # Ashanti code starts here
     # Same treatment as the password-login path: a throttled last-active-superadmin
     # gets a structured 429 with retry_after_seconds instead of a hard 400 lock message.

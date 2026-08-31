@@ -42,7 +42,11 @@ async def update_complaint_status(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_personnel), 
 ):
-    complaint = db.query(Complaint).filter(Complaint.complaint_id == complaint_id).first()
+    complaint = (db.query(Complaint)
+                 .filter(Complaint.complaint_id == complaint_id)
+                 .filter(Complaint.region_id == current_user["region_id"])
+                 .filter(Complaint.source == "extension")
+                 .first())
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
@@ -63,12 +67,9 @@ async def update_complaint_status(
     db.refresh(complaint)
 
     recipient_email = None
-    if complaint.source == "extension" and complaint.consumer_id:
+    if complaint.consumer_id:
         consumer = db.query(ConsumerAccount).filter(ConsumerAccount.consumer_id == complaint.consumer_id).first()
         recipient_email = consumer.email if consumer else None
-    elif complaint.source == "walk_in" and complaint.complainant_id:
-        complainant = db.query(WalkinComplainant).filter(WalkinComplainant.complainant_id == complaint.complainant_id).first()
-        recipient_email = complainant.email if complainant else None
 
     if recipient_email:
         try:
@@ -90,6 +91,8 @@ def list_complaints(db: Session = Depends(get_db), current_user = Depends(get_cu
     complaints = (
         db.query(Complaint)
         .filter(Complaint.deleted_at.is_(None))
+        .filter(Complaint.region_id == current_user["region_id"])
+        .filter(Complaint.source == "extension")
         .order_by(Complaint.created_at.desc())
         .all()
     )
