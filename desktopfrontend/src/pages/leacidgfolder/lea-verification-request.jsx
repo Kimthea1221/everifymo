@@ -241,6 +241,8 @@ function LeaVerificationRequest() {
   const [awaitingList, setAwaitingList] = useState([]);
   const [awaitingLoading, setAwaitingLoading] = useState(false);
   const [selectedAwaitingFda, setSelectedAwaitingFda] = useState(null);
+  const [selectedAwaitingDetail, setSelectedAwaitingDetail] = useState(null);
+  const [awaitingDetailLoading, setAwaitingDetailLoading] = useState(false);
 
   // ADDED — doc preview modal state, mirrors the FDA-side implementation.
   // docPreviewModal holds the clicked attachment object (file_id, file_name, mime_type, file_size_display).
@@ -477,6 +479,33 @@ function LeaVerificationRequest() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // ADDED — fetches Awaiting FDA right-panel full detail whenever selectedAwaitingFda changes
+  useEffect(() => {
+    if (!selectedAwaitingFda?.request_id) {
+      setSelectedAwaitingDetail(null);
+      return;
+    }
+    const token = localStorage.getItem('access_token');
+    if (!selectedAwaitingDetail) {
+      setAwaitingDetailLoading(true);
+    }
+    fetch(`${API_BASE}/verification-requests/${selectedAwaitingFda.request_id}`, {
+      headers: { authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const msg = await parseBackendError(res);
+          showError(msg);
+          return;
+        }
+        const data = await res.json();
+        setSelectedAwaitingDetail(data);
+      })
+      .catch(() => showError('Could not load verification request details.'))
+      .finally(() => setAwaitingDetailLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAwaitingFda?.request_id]);
 
   // ADDED — fetches right-panel detail whenever selectedResponseId changes; keeps previous
   //          detail visible during the new fetch (no flicker, same pattern as BUG 2 fix)
@@ -988,6 +1017,7 @@ function LeaVerificationRequest() {
               // Recalled — this request no longer belongs in Awaiting FDA at all
               setAwaitingList(awaitingList.filter((r) => r.request_id !== id));
               setSelectedAwaitingFda(null);
+              setSelectedAwaitingDetail(null);
             } else {
               // Reminder sent — request stays in the list, nothing to remove;
               // this just confirms the call succeeded
@@ -1505,17 +1535,22 @@ function LeaVerificationRequest() {
                         className={`QueueCard ${selectedAwaitingFda?.request_id === item.request_id ? 'ActiveQueueCard' : ''}`}
                         onClick={() => setSelectedAwaitingFda(item)}
                       >
-                        {/* MERGED-CHANGED — restructured to match the reference UI: CASE ID + source tag on top row */}
+                        {/* MERGED-CHANGED — restructured to match the reference UI: CASE ID + source tag + priority on top row */}
                         <div className="QueueCardTopRow">
                           <small style={{ margin: 0 }}>CASE ID: {item.case_reference}</small>
-                          <span className="QueueTagInline">{GetSourceLabel(item.source)}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {item.priority && (
+                              <span className={`QueueStatusBadge ${(item.priority || '').toLowerCase() === 'standard' ? 'registered' : (item.priority || '').toLowerCase() === 'high' ? 'rejected' : 'unregistered'}`}>
+                                {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
+                              </span>
+                            )}
+                            <span className="QueueTagInline">{GetSourceLabel(item.source)}</span>
+                          </div>
                         </div>
                         <h4>{item.product_name}</h4>
                         <p>{item.manufacturer || '—'}</p>
 
-                        {/* MERGED-ADD — category + date, matching old version's QueueCardFooterRow.
-                            FLAGGED: same field-name caveat as the Ready to Send list — using
-                            item.requested_at (confirmed elsewhere in this tab's detail panel) as the date. */}
+                        {/* MERGED-ADD — category + date, matching old version's QueueCardFooterRow. */}
                         <div className="QueueCardFooterRow">
                           <span className="QueueCategoryTag">{item.product_category || '—'}</span>
                           <span className="QueueDateTag">
@@ -1533,42 +1568,116 @@ function LeaVerificationRequest() {
 
                   </div>
 
-                  {/* CHANGED — real data from awaitingList/selectedAwaitingFda, was hardcoded */}
+                  {/* CHANGED — real data from awaitingList/selectedAwaitingFda and selectedAwaitingDetail */}
                   {/* RIGHT PANEL */}
                   <div className="VerificationDetails">
                     <div className="VerificationCard">
                       <div>
                         {selectedAwaitingFda ? (
                           <>
-                            <small>CASE ID: {selectedAwaitingFda.case_reference}</small>
-                            <h2>{selectedAwaitingFda.product_name}</h2>
-                            <p>MANUFACTURER: {selectedAwaitingFda.manufacturer || '—'}</p>
+                            <small>CASE ID: {selectedAwaitingDetail?.case_reference || selectedAwaitingFda.case_reference}</small>
+                            <h2>{selectedAwaitingDetail?.product_name || selectedAwaitingFda.product_name}</h2>
+                            <p>MANUFACTURER: {selectedAwaitingDetail?.manufacturer || selectedAwaitingFda.manufacturer || '—'}</p>
 
-                            {/* BACKEND: complainant, category, source, and region are NOT stored
-                                                        directly in verification_requests. They are fetched via complaint_id
-                                                        joining to the complaints and walkin_complainants tables through the
-                                                        verification_requests_full view */}
+                            {/* Case Information Grid */}
                             <div className="CaseInfoGrid">
                               <div>
                                 <label>COMPLAINANT</label>
-                                <p>{selectedAwaitingFda.complainant_name || '—'}</p>
+                                <p>{selectedAwaitingDetail?.complainant_name || selectedAwaitingFda.complainant_name || '—'}</p>
                               </div>
 
                               <div>
                                 <label>CATEGORY</label>
-                                <p>{selectedAwaitingFda.product_category || '—'}</p>
+                                <p>{selectedAwaitingDetail?.product_category || selectedAwaitingFda.product_category || '—'}</p>
                               </div>
 
                               <div>
                                 <label>LOGGED</label>
-                                <p>{formatDateTime(selectedAwaitingFda.requested_at)}</p>
+                                <p>{formatDateTime(selectedAwaitingDetail?.requested_at || selectedAwaitingFda.requested_at)}</p>
                               </div>
 
                               <div>
                                 <label>SOURCE</label>
-                                <p>{GetSourceLabel(selectedAwaitingFda.source)}</p>
+                                <p>{GetSourceLabel(selectedAwaitingDetail?.source || selectedAwaitingFda.source)}</p>
                               </div>
                             </div>
+
+                            {/* Verification Request Details: Priority Status, Product Code, Requested By */}
+                            <div className="CaseInfoGrid" style={{ marginTop: '0', paddingTop: '0', borderTop: 'none' }}>
+                              <div>
+                                <label>PRIORITY LEVEL</label>
+                                <span className={`QueueStatusBadge ${(selectedAwaitingDetail?.priority || selectedAwaitingFda.priority || 'standard').toLowerCase() === 'standard' ? 'registered' : (selectedAwaitingDetail?.priority || selectedAwaitingFda.priority || '').toLowerCase() === 'high' ? 'rejected' : 'unregistered'}`}>
+                                  {selectedAwaitingDetail?.priority || selectedAwaitingFda.priority
+                                    ? (selectedAwaitingDetail?.priority || selectedAwaitingFda.priority).charAt(0).toUpperCase() + (selectedAwaitingDetail?.priority || selectedAwaitingFda.priority).slice(1)
+                                    : 'Standard'}
+                                </span>
+                              </div>
+
+                              <div>
+                                <label>PRODUCT CODE / BARCODE</label>
+                                <p style={{ fontFamily: 'monospace', fontWeight: '700' }}>
+                                  {selectedAwaitingDetail?.product_code || (awaitingDetailLoading ? 'Loading...' : 'N/A')}
+                                </p>
+                              </div>
+
+                              <div>
+                                <label>REQUESTED BY</label>
+                                <p>{selectedAwaitingDetail?.requested_by_name || 'LEA Officer'}</p>
+                              </div>
+                            </div>
+
+                            {/* Notes to FDA Section */}
+                            <div className="VerificationNotes" style={{ marginTop: '16px', marginBottom: '20px' }}>
+                              <label style={{ fontSize: '11px', textTransform: 'uppercase', color: '#7a8796', marginBottom: '6px' }}>
+                                Notes to FDA Verifier
+                              </label>
+                              <div style={{
+                                background: '#F8F9FA',
+                                border: '1px solid #EDEDED',
+                                borderRadius: '8px',
+                                padding: '12px 14px',
+                                fontSize: '13.5px',
+                                color: '#13213C',
+                                lineHeight: '1.5',
+                                whiteSpace: 'pre-wrap',
+                                minHeight: '48px',
+                              }}>
+                                {selectedAwaitingDetail?.complaint_statement || (awaitingDetailLoading ? 'Loading notes...' : 'No notes provided.')}
+                              </div>
+                            </div>
+
+                            {/* Attached Evidence & Supporting Documents */}
+                            {selectedAwaitingDetail?.attached_files && selectedAwaitingDetail.attached_files.length > 0 && (
+                              <div className="LeaVerifSectionCard" style={{ marginTop: '16px', marginBottom: '20px' }}>
+                                <div className="LeaVerifSectionHeader">
+                                  <Paperclip size={16} className="LeaVerifBlueIcon" />
+                                  <h3>Attached Evidence &amp; Supporting Documents</h3>
+                                </div>
+                                <div className="LeaVerifDocsGrid">
+                                  {selectedAwaitingDetail.attached_files.map((file) => (
+                                    <div key={file.file_id} className="LeaVerifDocCard">
+                                      <div className="LeaVerifDocIcon">
+                                        <FileText size={18} />
+                                      </div>
+                                      <div className="LeaVerifDocInfo">
+                                        <p className="LeaVerifDocName" title={file.file_name}>{file.file_name}</p>
+                                        <span className="LeaVerifDocMeta">{file.file_size_display}</span>
+                                      </div>
+                                      <div className="LeaVerifDocActions">
+                                        <button
+                                          type="button"
+                                          className="LeaVerifDocActionBtn"
+                                          title="Inspect Attachment"
+                                          onClick={() => setDocPreviewModal(file)}
+                                        >
+                                          <Eye size={13} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </>
                         ) : (
                           <p style={{ color: '#7a8796', fontSize: '13px' }}>Select a case from the list to view details.</p>
@@ -1721,202 +1830,208 @@ function LeaVerificationRequest() {
                                shows "Select a case" when nothing chosen and "Loading..." only on very first load */}
                   {/* RIGHT PANEL */}
                   <div className='VerificationDetails'>
-                    <div className='VerificationCard'>
-                      <div>
-                        {responseDetailLoading && !selectedResponse ? (
-                          <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
-                        ) : selectedResponse ? (
-                          <>
-                            <small>CASE ID: {selectedResponse.case_reference}</small>
-                            <h2>{selectedResponse.product_title}</h2>
-                            <p>MANUFACTURER: {selectedResponse.manufacturer || '—'}</p>
-
-                            <div className="CaseInfoGrid">
-                              <div>
-                                <label>COMPLAINANT</label>
-                                <p>{selectedResponse.complainant_name || '—'}</p>
-                              </div>
-
-                              <div>
-                                <label>CATEGORY</label>
-                                <p>{selectedResponse.product_category || '—'}</p>
-                              </div>
-
-                              <div>
-                                <label>LOGGED</label>
-                                <p>{formatDateTime(selectedResponse.logged_at)}</p>
-                              </div>
-
-                              <div>
-                                <label>SOURCE</label>
-                                <p>{GetSourceLabel(selectedResponse.source)}</p>
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <p style={{ color: '#7a8796', fontSize: '13px' }}>Select a case to view details.</p>
-                        )}
-                      </div>
-
-                      {selectedResponse && (
-                        <div className='ConfirmationReturned'>
-                          {selectedResponse.verification_result === 'rejected' ? (
+                    {selectedResponse ? (
+                      <div className='VerificationCard'>
+                        <div>
+                          {responseDetailLoading && !selectedResponse ? (
+                            <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
+                          ) : selectedResponse ? (
                             <>
-                              <div className="ResponseBox ResponseRejected">
-                                <div className='LeaVerifResponseStatusHeader LeaVerifRejectedHeader'>
-                                  <XCircle style={{ color: '#EF4444' }} />
-                                  <div className='StatementReturn'>
-                                    <h3>CONFIRMED REJECTED PRODUCT</h3>
-                                  </div>
+                              <small>CASE ID: {selectedResponse.case_reference}</small>
+                              <h2>{selectedResponse.product_title}</h2>
+                              <p>MANUFACTURER: {selectedResponse.manufacturer || '—'}</p>
+
+                              <div className="CaseInfoGrid">
+                                <div>
+                                  <label>COMPLAINANT</label>
+                                  <p>{selectedResponse.complainant_name || '—'}</p>
                                 </div>
 
-                                <div className="LeaVerifRejectionFieldsGrid">
-                                  <div className="LeaVerifResultField">
-                                    <label className="LeaVerifFieldLabel">Rejected By</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.verifier_name || '—'}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField">
-                                    <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
-                                    <p className="LeaVerifFieldValue">{formatDateTime(selectedResponse.responded_at)}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField LeaVerifFullWidthField">
-                                    <label className="LeaVerifFieldLabel">Reason for Rejection</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.rejection_reason || '—'}</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="LeaVerifAckNotice">
-                                <p>
-                                  Please review the rejection reason above and click Acknowledge to move this case to closed/dismissed records.
-                                </p>
-                              </div>
-
-                              <div className='ResponseBtn' style={{ marginTop: '20px' }}>
-                                <button
-                                  style={{ width: '300', height: '40px' }}
-                                  onClick={() => handleActionButtonClick('Acknowledge', selectedResponse.case_reference, selectedResponse.request_id)}
-                                >
-                                  Acknowledge
-                                </button>
-                              </div>
-                            </>
-                          ) : selectedResponse.verification_result === 'registered' ? (
-                            <>
-                              <div className="ResponseBox ResponseRegistered">
-                                <div className='LeaVerifResponseStatusHeader LeaVerifRegisteredHeader'>
-                                  <CheckCircle style={{ color: '#10B981', backgroundColor: '#D1FAE5' }} />
-                                  <div className='StatementReturn'>
-                                    <h3>CONFIRMED REGISTERED PRODUCT</h3>
-                                  </div>
+                                <div>
+                                  <label>CATEGORY</label>
+                                  <p>{selectedResponse.product_category || '—'}</p>
                                 </div>
 
-                                <div className="LeaVerifResultFieldsGrid">
-                                  <div className="LeaVerifResultField">
-                                    <label className="LeaVerifFieldLabel">Verified By</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.verifier_name || '—'}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField">
-                                    <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
-                                    <p className="LeaVerifFieldValue">{formatDateTime(selectedResponse.responded_at)}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField">
-                                    <label className="LeaVerifFieldLabel">FDA CPR Registration Number</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.cpr_number || '—'}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField">
-                                    <label className="LeaVerifFieldLabel">CPR Validity / Expiry Date</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.cpr_expiry || '—'}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField LeaVerifFullWidthField">
-                                    <label className="LeaVerifFieldLabel">Official FDA Verification Remarks</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.response_notes || '—'}</p>
-                                  </div>
+                                <div>
+                                  <label>LOGGED</label>
+                                  <p>{formatDateTime(selectedResponse.logged_at)}</p>
                                 </div>
-                              </div>
 
-                              <div className="LeaVerifAckNotice">
-                                <p>
-                                  This case has been confirmed to be Registered. Status is now dismissed. Please click Acknowledge to move this case to closed/dismissed records.
-                                </p>
-                              </div>
-
-                              <div className='ResponseBtn'>
-                                <button onClick={() => handleActionButtonClick(
-                                  'Dismiss Case',
-                                  selectedResponse.case_reference,
-                                  selectedResponse.request_id
-                                )}>
-                                  Acknowledge
-                                </button>
+                                <div>
+                                  <label>SOURCE</label>
+                                  <p>{GetSourceLabel(selectedResponse.source)}</p>
+                                </div>
                               </div>
                             </>
                           ) : (
-                            <>
-                              <div className="ResponseBox ResponseUnregistered">
-                                <div className='LeaVerifResponseStatusHeader LeaVerifUnregisteredHeader'>
-                                  <AlertTriangle style={{ color: '#EF4444', backgroundColor: '#FEE2E2' }} />
-                                  <div className='StatementReturn'>
-                                    <h3>CONFIRMED UNREGISTERED PRODUCT</h3>
-                                  </div>
-                                </div>
-
-                                <div className="LeaVerifResultFieldsGrid">
-                                  <div className="LeaVerifResultField">
-                                    <label className="LeaVerifFieldLabel">Verified By</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.verifier_name || '—'}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField">
-                                    <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
-                                    <p className="LeaVerifFieldValue">{formatDateTime(selectedResponse.responded_at)}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField LeaVerifFullWidthField">
-                                    <label className="LeaVerifFieldLabel">Reason Product is Not Registered</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.unregistered_reason || '—'}</p>
-                                  </div>
-
-                                  <div className="LeaVerifResultField LeaVerifFullWidthField">
-                                    <label className="LeaVerifFieldLabel">Advisory &amp; Enforcement Recommendations for LEA</label>
-                                    <p className="LeaVerifFieldValue">{selectedResponse.response_notes || '—'}</p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className='ResponseUpdateBox'>
-                                <h6>Field operation status update</h6>
-                                {/* CHANGED (Part 0) — bound to fdaTakedownNotes, not the old shared fieldOperationNotes */}
-                                <textarea
-                                  name=""
-                                  id=""
-                                  placeholder="Operation conducted at seller's address on 2026-05-18. Product siezed, takedown notice served."
-                                  value={fdaTakedownNotes}
-                                  onChange={(e) => setFdaTakedownNotes(e.target.value)}
-                                ></textarea>
-                              </div>
-
-                              <div className='ResponseBtn'>
-                                <button onClick={() => handleActionButtonClick(
-                                  'Initiate Takedown',
-                                  selectedResponse.case_reference,
-                                  selectedResponse.request_id
-                                )}>
-                                  Initiate Takedown
-                                </button>
-                              </div>
-                            </>
+                            <p style={{ color: '#7a8796', fontSize: '13px' }}>Select a case to view details.</p>
                           )}
                         </div>
-                      )}
-                    </div>
 
+                        {selectedResponse && (
+                          <div className='ConfirmationReturned'>
+                            {selectedResponse.verification_result === 'rejected' ? (
+                              <>
+                                <div className="ResponseBox ResponseRejected">
+                                  <div className='LeaVerifResponseStatusHeader LeaVerifRejectedHeader'>
+                                    <XCircle style={{ color: '#EF4444' }} />
+                                    <div className='StatementReturn'>
+                                      <h3>CONFIRMED REJECTED PRODUCT</h3>
+                                    </div>
+                                  </div>
+
+                                  <div className="LeaVerifRejectionFieldsGrid">
+                                    <div className="LeaVerifResultField">
+                                      <label className="LeaVerifFieldLabel">Rejected By</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.verifier_name || '—'}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField">
+                                      <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
+                                      <p className="LeaVerifFieldValue">{formatDateTime(selectedResponse.responded_at)}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField LeaVerifFullWidthField">
+                                      <label className="LeaVerifFieldLabel">Reason for Rejection</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.rejection_reason || '—'}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="LeaVerifAckNotice">
+                                  <p>
+                                    Please review the rejection reason above and click Acknowledge to move this case to closed/dismissed records.
+                                  </p>
+                                </div>
+
+                                <div className='ResponseBtn' style={{ marginTop: '20px' }}>
+                                  <button
+                                    style={{ width: '300', height: '40px' }}
+                                    onClick={() => handleActionButtonClick('Acknowledge', selectedResponse.case_reference, selectedResponse.request_id)}
+                                  >
+                                    Acknowledge
+                                  </button>
+                                </div>
+                              </>
+                            ) : selectedResponse.verification_result === 'registered' ? (
+                              <>
+                                <div className="ResponseBox ResponseRegistered">
+                                  <div className='LeaVerifResponseStatusHeader LeaVerifRegisteredHeader'>
+                                    <CheckCircle style={{ color: '#10B981', backgroundColor: '#D1FAE5' }} />
+                                    <div className='StatementReturn'>
+                                      <h3>CONFIRMED REGISTERED PRODUCT</h3>
+                                    </div>
+                                  </div>
+
+                                  <div className="LeaVerifResultFieldsGrid">
+                                    <div className="LeaVerifResultField">
+                                      <label className="LeaVerifFieldLabel">Verified By</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.verifier_name || '—'}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField">
+                                      <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
+                                      <p className="LeaVerifFieldValue">{formatDateTime(selectedResponse.responded_at)}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField">
+                                      <label className="LeaVerifFieldLabel">FDA CPR Registration Number</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.cpr_number || '—'}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField">
+                                      <label className="LeaVerifFieldLabel">CPR Validity / Expiry Date</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.cpr_expiry || '—'}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField LeaVerifFullWidthField">
+                                      <label className="LeaVerifFieldLabel">Official FDA Verification Remarks</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.response_notes || '—'}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="LeaVerifAckNotice">
+                                  <p>
+                                    This case has been confirmed to be Registered. Status is now dismissed. Please click Acknowledge to move this case to closed/dismissed records.
+                                  </p>
+                                </div>
+
+                                <div className='ResponseBtn'>
+                                  <button onClick={() => handleActionButtonClick(
+                                    'Dismiss Case',
+                                    selectedResponse.case_reference,
+                                    selectedResponse.request_id
+                                  )}>
+                                    Acknowledge
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="ResponseBox ResponseUnregistered">
+                                  <div className='LeaVerifResponseStatusHeader LeaVerifUnregisteredHeader'>
+                                    <AlertTriangle style={{ color: '#EF4444', backgroundColor: '#FEE2E2' }} />
+                                    <div className='StatementReturn'>
+                                      <h3>CONFIRMED UNREGISTERED PRODUCT</h3>
+                                    </div>
+                                  </div>
+
+                                  <div className="LeaVerifResultFieldsGrid">
+                                    <div className="LeaVerifResultField">
+                                      <label className="LeaVerifFieldLabel">Verified By</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.verifier_name || '—'}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField">
+                                      <label className="LeaVerifFieldLabel">Date Returned / Responded</label>
+                                      <p className="LeaVerifFieldValue">{formatDateTime(selectedResponse.responded_at)}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField LeaVerifFullWidthField">
+                                      <label className="LeaVerifFieldLabel">Reason Product is Not Registered</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.unregistered_reason || '—'}</p>
+                                    </div>
+
+                                    <div className="LeaVerifResultField LeaVerifFullWidthField">
+                                      <label className="LeaVerifFieldLabel">Advisory &amp; Enforcement Recommendations for LEA</label>
+                                      <p className="LeaVerifFieldValue">{selectedResponse.response_notes || '—'}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className='ResponseUpdateBox'>
+                                  <h6>Field operation status update</h6>
+                                  {/* CHANGED (Part 0) — bound to fdaTakedownNotes, not the old shared fieldOperationNotes */}
+                                  <textarea
+                                    name=""
+                                    id=""
+                                    placeholder="Operation conducted at seller's address on 2026-05-18. Product siezed, takedown notice served."
+                                    value={fdaTakedownNotes}
+                                    onChange={(e) => setFdaTakedownNotes(e.target.value)}
+                                  ></textarea>
+                                </div>
+
+                                <div className='ResponseBtn'>
+                                  <button onClick={() => handleActionButtonClick(
+                                    'Initiate Takedown',
+                                    selectedResponse.case_reference,
+                                    selectedResponse.request_id
+                                  )}>
+                                    Initiate Takedown
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="LeaVerifNoDetail" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#7a8796', fontSize: '14px', fontWeight: '500', padding: '40px', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc' }}>
+                        <Inbox size={32} style={{ marginBottom: '8px', color: '#94a3b8' }} />
+                        Select a case from the queue to view details.
+                      </div>
+                    )}
                   </div>
                 </div>}
 
@@ -2013,40 +2128,67 @@ function LeaVerificationRequest() {
                                now guards with null check, uses real detail fields, pre-fills fieldOperationNotes */}
                   {/* RIGHT PANEL */}
                   <div className='VerificationDetails'>
-                    <div className='VerificationCard'>
-                      <div>
-                        {initiatedDetailLoading && !selectedInitiatedCase ? (
-                          <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
-                        ) : selectedInitiatedCase ? (
-                          <>
-                            <small>CASE ID: {selectedInitiatedCase.case_reference}</small>
-                            <h2>{selectedInitiatedCase.product_title}</h2>
-                            <p>MANUFACTURER: {selectedInitiatedCase.manufacturer || '—'}</p>
+                    {selectedInitiatedCase ? (
+                      <div className='VerificationCard'>
+                        <div>
+                          {initiatedDetailLoading && !selectedInitiatedCase ? (
+                            <p style={{ color: '#7a8796', fontSize: '13px' }}>Loading details...</p>
+                          ) : selectedInitiatedCase ? (
+                            <>
+                              <small>CASE ID: {selectedInitiatedCase.case_reference}</small>
+                              <h2>{selectedInitiatedCase.product_title}</h2>
+                              <p>MANUFACTURER: {selectedInitiatedCase.manufacturer || '—'}</p>
 
-                            <div className="CaseInfoGrid">
-                              <div>
-                                <label>COMPLAINANT</label>
-                                <p>{selectedInitiatedCase.complainant_name || '—'}</p>
-                              </div>
+                              <div className="CaseInfoGrid">
+                                <div>
+                                  <label>COMPLAINANT</label>
+                                  <p>{selectedInitiatedCase.complainant_name || '—'}</p>
+                                </div>
 
-                              <div>
-                                <label>CATEGORY</label>
-                                <p>{selectedInitiatedCase.product_category || '—'}</p>
-                              </div>
+                                <div>
+                                  <label>CATEGORY</label>
+                                  <p>{selectedInitiatedCase.product_category || '—'}</p>
+                                </div>
 
-                              <div>
-                                <label>LOGGED</label>
-                                <p>{formatDateTime(selectedInitiatedCase.logged_at)}</p>
-                              </div>
+                                <div>
+                                  <label>LOGGED</label>
+                                  <p>{formatDateTime(selectedInitiatedCase.logged_at)}</p>
+                                </div>
 
-                              <div>
-                                <label>SOURCE</label>
-                                <p>{GetSourceLabel(selectedInitiatedCase.source)}</p>
+                                <div>
+                                  <label>SOURCE</label>
+                                  <p>{GetSourceLabel(selectedInitiatedCase.source)}</p>
+                                </div>
                               </div>
+                            </>
+                          ) : (
+                            <p style={{ color: '#7a8796', fontSize: '13px' }}>Select a case to view details.</p>
+                          )}
+                        </div>
+
+                        {selectedInitiatedCase && (
+                          <div className='ConfirmationReturned'>
+                            <div className='ResponseUpdateBox' style={{ marginTop: '0px' }}>
+                              <h6>Field operation status update</h6>
+                              {/* CHANGED (Part 0) — bound to initiatedFieldNotes, not the old shared fieldOperationNotes */}
+                              {selectedInitiatedCase?.field_operation_notes && (
+                                <p style={{ fontSize: '12px', color: '#7a8796', marginTop: '-4px', marginBottom: '10px' }}>
+                                  This is the note logged when the takedown was initiated. You may update it with the latest progress before closing this case.
+                                </p>
+                              )}
+                              <textarea
+                                placeholder="Enter notes on field operation progress..."
+                                value={initiatedFieldNotes}
+                                onChange={(e) => setInitiatedFieldNotes(e.target.value)}
+                              ></textarea>
                             </div>
-                          </>
-                        ) : (
-                          <p style={{ color: '#7a8796', fontSize: '13px' }}>Select a case to view details.</p>
+                            <div className='ResponseBtn' style={{ marginTop: '20px' }}>
+                              {/* CHANGED — now passes real case_reference + complaint_id instead of dummy .caseNumber / .id */}
+                              <button onClick={() => handleActionButtonClick('Close Case', selectedInitiatedCase.case_reference, selectedInitiatedCase.complaint_id)}>
+                                Close Case
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
 
@@ -2075,6 +2217,12 @@ function LeaVerificationRequest() {
                         </div>
                       )}
                     </div>
+                    ) : (
+                      <div className="LeaVerifNoDetail" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#7a8796', fontSize: '14px', fontWeight: '500', padding: '40px', textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc' }}>
+                        <Inbox size={32} style={{ marginBottom: '8px', color: '#94a3b8' }} />
+                        Select a case from the queue to view details.
+                      </div>
+                    )}
                   </div>
                 </div>}
 

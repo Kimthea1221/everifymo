@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
-{/* for universal login*/}
+{/* for universal login*/ }
 import UniversalLogin from './pages/universal-login.jsx';
+import { API_BASE_URL } from './utils/apiConfig'
 
 {/* LEA-CIDG PAGES */ }
 import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
@@ -48,10 +49,10 @@ function DeepLinkListener() {
   useEffect(() => {
     console.log('DeepLinkListener mounted, waiting for token...');
 
-    const handleToken = (token) => {
+    const unsubscribe = window.electronAPI.onDeepLinkToken((token) => {
       console.log('Token received:', token);
 
-      fetch(`http://localhost:8000/registration/validate/${token}`)
+      fetch(`${API_BASE_URL}/registration/validate/${token}`)
         .then((res) => res.json())
         .then((data) => {
           console.log('Validate response:', data);
@@ -73,13 +74,9 @@ function DeepLinkListener() {
             navigate('/invitation-status', { state: { status: data.status, invite_token: token } });
           }
         });
-    };
+    });
 
-    window.electronAPI.onDeepLinkToken(handleToken);
-
-    return () => {
-      window.electronAPI.removeDeepLinkToken(handleToken);
-    };
+    return unsubscribe;
   }, [navigate]);
 
   return null;
@@ -90,7 +87,7 @@ export default function App() {
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<SuperAdminLogin />} />
+        <Route path='/' element={<UniversalLogin />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />

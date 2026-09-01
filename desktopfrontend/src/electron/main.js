@@ -11,6 +11,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -19,7 +21,7 @@ function createWindow() {
   })
 
   // Open DevTools
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 
   // Stash the token here if it arrives before React has finished loading and
   // listening — we'll deliver it below, once did-finish-load confirms React is ready.
@@ -92,6 +94,9 @@ function handleDeepLink(url) {
   const token = new URL(url).searchParams.get('token')
 
   if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore() //added this line to restore the window if it is minimized
+    mainWindow.show() //added this line to show the window if it is hidden
+    mainWindow.focus() //added this line to focus the window if it is not focused
     mainWindow.webContents.send('deep-link-token', token)
   } else {
     pendingDeepLink = token

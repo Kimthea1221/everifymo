@@ -113,9 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Wipes every validation error message and red "invalid" outline back to clean
   const clearErrors = () => {
-    [emailError, passwordError, createPasswordError, confirmPasswordError, usernameError].forEach((errorNode) => {
+    [emailError, passwordError, createPasswordError, confirmPasswordError, usernameError, googleError, forgotOtpError, otpError].forEach((errorNode) => {
       if (errorNode) {
         errorNode.textContent = '';
+        errorNode.classList.remove('is-success');
       }
     });
 
@@ -423,8 +424,18 @@ document.addEventListener('DOMContentLoaded', () => {
   function exitForgotMode() {
     forgotStage = 'request';
     forgotPendingEmail = '';
+    forgotPendingResetToken = ''; 
+
+    if (forgotOtpCountdownInterval) { clearInterval(forgotOtpCountdownInterval); forgotOtpCountdownInterval = null; }
+    if (forgotOtpCountdownEl) forgotOtpCountdownEl.textContent = '';
 
     if (forgotPasswordFields) forgotPasswordFields.hidden = true;
+    if (forgotOtpField) forgotOtpField.hidden = true;              
+    if (newPasswordField) newPasswordField.hidden = true;          
+    if (confirmNewPasswordField) confirmNewPasswordField.hidden = true;  
+    if (resendForgotOtpLink) resendForgotOtpLink.hidden = true;   
+    if (backFromForgotOtpLink) backFromForgotOtpLink.hidden = true; 
+
     if (forgotConfirmButton) forgotConfirmButton.classList.add('hidden');
     if (backToSigninLink) backToSigninLink.classList.add('hidden');
     if (emailField) emailField.hidden = false;
@@ -432,6 +443,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabsContainer) tabsContainer.classList.remove('hidden');
     if (orDivider) orDivider.classList.remove('hidden');
     if (guestBtn) guestBtn.classList.remove('hidden');
+
+    clearForgotOtpInput();                                  
 
     updateMode('signin');
   }
@@ -488,6 +501,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (otpVerifyButton) otpVerifyButton.classList.add('hidden');
     if (resendOtpLink) resendOtpLink.hidden = true;
     if (backFromOtpLink) backFromOtpLink.hidden = true;
+    if (otpUsernameFixField) otpUsernameFixField.hidden = true;  
+    clearOtpInputs();  
     if (emailField) emailField.hidden = false;
     if (primaryButton) primaryButton.classList.remove('hidden');
     if (tabsContainer) tabsContainer.classList.remove('hidden');
@@ -509,6 +524,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   //   updateMode('signin');
   // }
+
+  // rate limiting error validation
+  function handleRateLimitError(error, button, errorNode) {
+    if (!error || !error.retryAfter) return false;
+
+    let seconds = error.retryAfter;
+    if (button) button.disabled = true;
+
+    const interval = setInterval(() => {
+      setError(errorNode, `Too many attempts. Try again in ${seconds}s.`);
+      seconds--;
+      if (seconds < 0) {
+        clearInterval(interval);
+        if (button) button.disabled = false;
+        if (errorNode) errorNode.textContent = '';
+      }
+    }, 1000);
+
+    return true;
+  }
 
   // Checks the signin/signup form fields before submitting.
   // Returns true only if everything required is filled in correctly.
@@ -631,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  function reVerifyEmail (email, error){
+  function reVerifyEmail (email, errorNode){
     const verifyLink = document.getElementById('verify-now-link');
     if (verifyLink) {
       verifyLink.addEventListener('click', (e) => {
@@ -640,9 +675,13 @@ document.addEventListener('DOMContentLoaded', () => {
           if (success) {
             enterOtpMode(email, 'signup');
             if (googleLoginBtn) googleLoginBtn.style.display = 'none'; 
-          } else {
-            setError(googleError, error || 'Could not resend code. Please try again.');
-          }
+            return;
+          } 
+          
+          if (handleRateLimitError(error, null, errorNode)) return;
+          
+          setError(errorNode, error?.message || 'Could not resend code. Please try again.');
+          
         });
       });
     }  
@@ -667,7 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
 
-          if (error && error.toLowerCase().includes('verify')) {
+          if (handleRateLimitError(error, forgotConfirmButton, emailError)) return;
+
+          if (error && error.message.toLowerCase().includes('verify')) {
             if (emailError){
               emailError.innerHTML ='Please verify your email before signing in. ' + 
                 '<a href="#" id="verify-now-link" style="color:#1F2937; font-weight:700; text-decoration:underline; cursor:pointer;">Verify now</a>';
@@ -678,7 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
 
-          setError(emailError, error || 'Something went wrong. Please try again.');
+          setError(emailError, error?.message || 'Something went wrong. Please try again.');
           if (emailInput) emailInput.classList.add('is-invalid');
         });
 
@@ -694,10 +735,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         verifyResetOtp(forgotPendingEmail, otpValue, (success, resetToken, error) => {
           if (!success) {
-            setError(forgotOtpError, error || 'Incorrect code. Please try again.');
+            if (handleRateLimitError(error, forgotConfirmButton, forgotOtpError)) return;
+
+            setError(forgotOtpError, error?.message  || 'Incorrect code. Please try again.');
             forgotOtpInputs.forEach(input => input.classList.add('is-invalid'));
             return;
-          }
+          } 
           
           forgotPendingResetToken = resetToken;
           enterForgotPasswordStage();
@@ -738,8 +781,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         confirmPasswordReset(forgotPendingEmail, forgotPendingResetToken, newPassword, (success, error) => {
           if (!success) {
+            if (handleRateLimitError(error, forgotConfirmButton, newPasswordError)) return;
+
             enterForgotMode();
-            setError(newPasswordError, error || 'Session expired. Please request a new code.');
+            setError(newPasswordError, error?.message || 'Session expired. Please request a new code.');
             return;
           }
 
@@ -757,15 +802,22 @@ document.addEventListener('DOMContentLoaded', () => {
   if (resendForgotOtpLink) {
     resendForgotOtpLink.addEventListener('click', (e) => {
       e.preventDefault();
-        requestPasswordReset(forgotPendingEmail, () => {
-          clearForgotOtpInput();
-          if (forgotOtpError) {  
-            forgotOtpError.textContent = 'A new code has been sent.';
-            forgotOtpError.classList.add('is-success');
-          }
-          if (forgotOtpCountdownInterval) clearInterval(forgotOtpCountdownInterval);
-            forgotOtpCountdownInterval = runCountdown(forgotOtpCountdownEl, 5 * 60);
-        })
+        requestPasswordReset(forgotPendingEmail, (success, error) => {
+          if (success) {
+            clearForgotOtpInput();
+            if (forgotOtpError) {  
+              forgotOtpError.textContent = 'A new code has been sent.';
+              forgotOtpError.classList.add('is-success');
+            }
+            if (forgotOtpCountdownInterval) clearInterval(forgotOtpCountdownInterval);
+              forgotOtpCountdownInterval = runCountdown(forgotOtpCountdownEl, 5 * 60);
+              return;
+            }
+          
+            if (handleRateLimitError(error, resendForgotOtpLink, forgotOtpError)) return;
+
+            setError(forgotOtpError, error?.message || 'Could not resend code.');
+        });
     })
   }
   // flash message after redirect to clear previous message
@@ -806,16 +858,19 @@ document.addEventListener('DOMContentLoaded', () => {
       // that's the account this code is being checked against
       verifyOtp(otpPendingEmail, enteredCode, (success, error) => {
         if (!success) {
-          if (error && error.toLowerCase().includes('username')) {
-            setError(otpError, error);
+          if (handleRateLimitError(error, otpVerifyButton, otpError)) return;
+
+          if (error && error.message && error.message.toLowerCase().includes('username')) {
+            setError(otpError, error.message);
             if (otpUsernameFixField) otpUsernameFixField.hidden = false;
             return;
           }
 
-          setError(otpError, error || 'Incorrect code. Please try again.');
+          setError(otpError, error?.message || 'Incorrect code. Please try again.');
           otpDigitInputs.forEach(inp => inp.classList.add('is-invalid'));
           return;
-        }
+        } 
+
         // Flash-style message, after redirect (successful signup)
         sessionStorage.setItem('authFlashMessage', 'Account verified! Please login to continue.');
         sessionStorage.setItem('authFlashType', 'success');
@@ -857,13 +912,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
           verifyOtp(otpPendingEmail, lastEnteredOtp, (success, error) => {
             if (!success) {
+              if (handleRateLimitError(error, otpUsernameFixButton, otpError)) return;
+              
               if (otpError) otpError.classList.remove('is-success');
-              setError(otpError, error || 'Your code expired - please request a new one.');
+              setError(otpError, error?.message || 'Your code expired - please request a new one.');
               clearOtpInputs();
               otpUsernameFixButton.disabled = false;
               otpUsernameFixButton.textContent = 'Update Username';
               return;
-            }
+            } 
+
             if (otpError) otpError.textContent = 'Verified! Redirecting...';
 
             sessionStorage.setItem('authFlashMessage', 'Account verified! Please login to continue.');
@@ -894,16 +952,20 @@ document.addEventListener('DOMContentLoaded', () => {
   if (resendOtpLink) {
     resendOtpLink.addEventListener('click', (e) => {
       e.preventDefault();
-      resendOtpSession(otpPendingEmail, (success, errorMsg) => {
+      resendOtpSession(otpPendingEmail, (success, error) => {
         clearOtpInputs();
         if (success) {
           setError(otpError, 'A new code has been sent.');
           otpError.classList.add('is-success');
+
           if (otpCountdownInterval) clearInterval(otpCountdownInterval);
           otpCountdownInterval = runCountdown(otpCountdownEl, 5 * 60);
-        } else {
-          setError(otpError, errorMsg || 'Could not resend code.');
-        }
+          return;
+        } 
+          
+        if (handleRateLimitError(error, resendOtpLink, otpError)) return;
+
+        setError(otpError, error?.message || 'Could not resend code.');
       });
     });
   }
@@ -954,20 +1016,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         loginUser(emailValue, passwordValue, (success, error) => {
           if (success) {
-            window.location.href = 'report-complaint.html';
-            // enterOtpMode(emailValue, 'signin');
-          } else if (error && error.toLowerCase().includes('verify')) {
-            if (passwordError){
-              passwordError.innerHTML ='Please verify your email before signing in. ' + 
-                '<a href="#" id="verify-now-link" style="color:#1F2937; font-weight:700; text-decoration:underline; cursor:pointer;">Verify now</a>';
-            }
-            
-            passwordInput.classList.add('is-invalid');
-            reVerifyEmail(emailValue, passwordError);
-            // enterOtpMode(emailValue, 'signup'); //redirect to OTP screen
+              window.location.href = 'report-complaint.html';
+              // enterOtpMode(emailValue, 'signin');
+              return;
+          } 
+
+          if (handleRateLimitError(error, primaryButton, passwordError)) return;
+          
+          if (error && error.message.toLowerCase().includes('verify')) {
+              if (passwordError){
+                passwordError.innerHTML ='Please verify your email before signing in. ' + 
+                  '<a href="#" id="verify-now-link" style="color:#1F2937; font-weight:700; text-decoration:underline; cursor:pointer;">Verify now</a>';
+              }
+              passwordInput.classList.add('is-invalid');
+              reVerifyEmail(emailValue, passwordError);
+              // enterOtpMode(emailValue, 'signup'); //redirect to OTP screen
           } else {
-            setError(passwordError, 'Incorrect email or password.');
-            passwordInput.classList.add('is-invalid');
+              setError(passwordError, 'Incorrect email or password.');
+              passwordInput.classList.add('is-invalid');
           }
         });
       }
@@ -982,16 +1048,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      googleLogin(token, (success, error, email) => {
+      googleLogin(token, (success, error, email, errObj) => {
         if (success) {
           window.location.href = 'report-complaint.html';
-        } else if (error && error.toLowerCase().includes('verify')) {
-            if (googleError){
-              googleError.innerHTML ='Please verify your email before signing in. ' + 
-                '<a href="#" id="verify-now-link" style="color:#1F2937; font-weight:700; text-decoration:underline; cursor:pointer;">Verify now</a>';
-            }
-            
-            reVerifyEmail(email, googleError);
+          return;
+        } 
+        
+        if (handleRateLimitError(errObj, null, googleError)) return;
+
+        if (error && error.toLowerCase().includes('verify')) {
+          if (googleError){
+            googleError.innerHTML ='Please verify your email before signing in. ' + 
+              '<a href="#" id="verify-now-link" style="color:#1F2937; font-weight:700; text-decoration:underline; cursor:pointer;">Verify now</a>';
+          }
+          
+          reVerifyEmail(email, googleError);
         } else {
           setError(googleError, error || "Google sign-in failed. Please try again.")
         }

@@ -11,14 +11,15 @@ from app.models.complaints_status_history import ComplaintStatusHistory
 from app.models.consumer_accounts import ConsumerAccount
 from app.models.walkin_complainants import WalkinComplainant
 from app.desktop.services.status.send_email import send_status_update_email
-from app.core.security import get_current_personnel  
+from app.core.dependencies import get_current_user
 from app.models.regions import Region
+from app.models.users import User
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_personnel)]
+user_dependency = Annotated[User, Depends(get_current_user)]
 
 STATUS_LABELS = {
     "open": "Open",
@@ -40,22 +41,25 @@ async def update_complaint_status(
     complaint_id: UUID,
     payload: StatusUpdateRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_personnel), 
+    current_user = Depends(get_current_user), 
 ):
-    complaint = db.query(Complaint).filter(Complaint.complaint_id == complaint_id).first()
+    query = db.query(Complaint).filter(Complaint.complaint_id == complaint_id)
+    if current_user.role != "superadmin" and current_user.region_id:
+        query = query.filter(Complaint.region_id == current_user.region_id)
+    complaint = query.first()
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
     previous_status = complaint.status
     complaint.status = payload.status
-    complaint.updated_by = current_user["user_id"]
+    complaint.updated_by = current_user.user_id
 
     if complaint.source == "extension":
         db.add(ComplaintStatusHistory(
             complaint_id=complaint.complaint_id,
             previous_status=previous_status,
             new_status=payload.status,
-            changed_by=current_user["user_id"], 
+            changed_by=current_user.user_id, 
             change_note=payload.change_note,
         ))
 
@@ -63,12 +67,9 @@ async def update_complaint_status(
     db.refresh(complaint)
 
     recipient_email = None
-    if complaint.source == "extension" and complaint.consumer_id:
+    if complaint.consumer_id:
         consumer = db.query(ConsumerAccount).filter(ConsumerAccount.consumer_id == complaint.consumer_id).first()
         recipient_email = consumer.email if consumer else None
-    elif complaint.source == "walk_in" and complaint.complainant_id:
-        complainant = db.query(WalkinComplainant).filter(WalkinComplainant.complainant_id == complaint.complainant_id).first()
-        recipient_email = complainant.email if complainant else None
 
     if recipient_email:
         try:
@@ -86,13 +87,11 @@ async def update_complaint_status(
 
 
 @router.get("/complaints-status-update")
-def list_complaints(db: Session = Depends(get_db), current_user = Depends(get_current_personnel),):
-    complaints = (
-        db.query(Complaint)
-        .filter(Complaint.deleted_at.is_(None))
-        .order_by(Complaint.created_at.desc())
-        .all()
-    )
+def list_complaints(db: Session = Depends(get_db), current_user = Depends(get_current_user),):
+    query = db.query(Complaint).filter(Complaint.deleted_at.is_(None))
+    if current_user.role != "superadmin" and current_user.region_id:
+        query = query.filter(Complaint.region_id == current_user.region_id)
+    complaints = query.order_by(Complaint.created_at.desc()).all()
 
     result = []
     for c in complaints:

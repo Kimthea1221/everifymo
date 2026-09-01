@@ -237,8 +237,8 @@ width: 100%;
 }
 
 .AdminLoginWrapper input:focus {
-  border-color: #0D9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+  border-color: #1E293B;
+  box-shadow: 0 0 0 3px rgba(9, 44, 41, 0.25);
   outline: none;
 }
 
@@ -246,22 +246,22 @@ width: 100%;
   width: 100%;
   margin-top: 15px;
   padding: 13px;
-  background: #0D9488;
-  color: #0f172a;
+  background: #1E293B;
+  color: #fff;
   font-size: 15px;
   font-weight: 700;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 0 0 3px rgba(9, 44, 41, 0.25);
   letter-spacing: 0.3px;
 }
 
 .AdminLoginWrapper button[type="submit"]:hover {
-  background: #0D9488;
+  background: #1E293B;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+
 }
 
 .AdminLoginWrapper button[type="submit"]:active {
@@ -309,7 +309,7 @@ width: 100%;
   right: 12px;
   background: transparent;
   border: none;
-  color: #0D9488;
+  color: #1E293B;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -321,7 +321,7 @@ width: 100%;
 }
 
 .TogglePasswordBtn:hover {
-  color: #5eead4;
+  color: #1E293B;
 }
 
 /* Forgot password link */
@@ -337,12 +337,12 @@ width: 100%;
   transition: color 0.15s ease; */
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  color: #2dd4a8;
+  color: #B91C1C;
   cursor: pointer;
 }
 
 .ForgotPasswordLink:hover {
-  color: #5eead4;
+  color: #8f1313;
 }
 /* ── Remember me + Forgot password row (under password field) ── */
 .AdminRememberMeRow {
@@ -369,7 +369,7 @@ width: 100%;
   height: 15px !important;
   margin: 0 !important;
   cursor: pointer;
-  accent-color: #0D9488;
+  accent-color: #1E293B;
 }
 
 .AdminRememberMeRow .ForgotPasswordLink {
@@ -543,6 +543,7 @@ width: 100%;
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   height: 100vh;
   overflow: hidden;
 }
@@ -631,9 +632,9 @@ width: 100%;
 
 /* ── Stats Row ── */
 .UMStatsRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
 }
 
 .UMStatCard {
@@ -689,7 +690,9 @@ width: 100%;
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
-  overflow: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   position: relative;
 }
@@ -712,6 +715,7 @@ width: 100%;
 
 .UMTable {
   width: 100%;
+  min-width: 860px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13.5px;
@@ -884,6 +888,9 @@ width: 100%;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
   animation: UMSlideUp 0.25s ease;
   overflow: hidden;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 @keyframes UMSlideUp {
@@ -920,6 +927,8 @@ width: 100%;
 .UMConfirmModal {
   width: 100%;
   max-width: 400px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   padding: 36px 32px;
   text-align: center;
 }
@@ -2396,9 +2405,9 @@ width: 100%;
 
 /* ── Stats Row ── */
 .SAMStatsRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
-  flex-wrap: wrap;
 }
 
 .SAMStatCard {
@@ -2564,7 +2573,9 @@ width: 100%;
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
-  overflow: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   position: relative;
 }
@@ -2587,6 +2598,7 @@ width: 100%;
 
 .SAMTable {
   width: 100%;
+  min-width: 860px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13.5px;
@@ -2843,7 +2855,8 @@ width: 100%;
   border-radius: 18px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   animation: SAMSlideUp 0.25s ease;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 48px);
   box-sizing: border-box;
 }
 

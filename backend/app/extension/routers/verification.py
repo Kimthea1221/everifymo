@@ -4,16 +4,17 @@ from sqlalchemy.orm import Session
 
 from app.database.sessions import get_db
 from app.extension.schemas.verification import CreateVerification, ToPrintVerification
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_current_user_optional
 from app.extension.services import verification_service
 from app.models.verification_history import VerificationHistory
 
 router = APIRouter()
 db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[dict, Depends(get_current_user)]
+user_dependency = Annotated[dict | None, Depends(get_current_user)]
+optional_user_dependency = Annotated[dict | None, Depends(get_current_user_optional)]
 
 @router.post('/submitVerification')
-async def InsertVerification(verification: CreateVerification, db: db_dependency, current_user: user_dependency):
+async def InsertVerification(verification: CreateVerification, db: db_dependency, current_user: optional_user_dependency):
     try:     
         if current_user:
             consumer_id = current_user["id"]

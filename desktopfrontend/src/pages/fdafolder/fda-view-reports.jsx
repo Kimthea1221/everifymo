@@ -77,7 +77,7 @@ function getCategoryLabel(category) {
 
 // Maps backend Complaint.status values to the final user-facing
 // complaint-workflow statuses, confirmed against VALID_COMPLAINT_TRANSITIONS.
-const STATUS_WORKFLOW_MAP = {
+const WALKIN_STATUS_MAP = {
   "under_review": "Under Review",
   "takedown_requested": "Forwarded to LEA",
   "takedown_initiated": "Operation in Progress",
@@ -85,8 +85,16 @@ const STATUS_WORKFLOW_MAP = {
   "dismissed": "Case Closed",
 };
 
-function getWorkflowStatus(status) {
-  return STATUS_WORKFLOW_MAP[status] || status;
+const EXTENSION_STATUS_MAP = {
+  "under_review": "Under Review",
+  "takedown_requested": "Takedown Requested",
+  "completed": "Takedown Completed",
+  "dismissed": "Case Closed",
+};
+
+function getWorkflowStatus(status, source) {
+  const map = source === 'extension' ? EXTENSION_STATUS_MAP : WALKIN_STATUS_MAP;
+  return map[status] || status;
 }
 
 function FDAViewReports() {
@@ -304,7 +312,7 @@ useEffect(() => {
                           report.case_reference.toLowerCase().includes(query);
 
     const matchesCategory = filterCategory === 'All' || report.product_category === filterCategory;
-    const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status) === filterStatus;
+    const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status, report.source) === filterStatus;
 
     return matchesTab && matchesSearch && matchesCategory && matchesStatus;
   });
@@ -318,7 +326,7 @@ useEffect(() => {
                             report.case_reference.toLowerCase().includes(query);
 
       const matchesCategory = filterCategory === 'All' || report.product_category === filterCategory;
-      const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status) === filterStatus;
+      const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status, report.source) === filterStatus;
 
       if (!matchesSearch || !matchesCategory || !matchesStatus) return false;
 
@@ -382,8 +390,8 @@ useEffect(() => {
         `"${(report.manufacturer || '').replace(/"/g, '""')}"`,
         `"${(report.product_category || '').replace(/"/g, '""')}"`,
         getSourceLabel(report.source),
-        getWorkflowStatus(report.status),
-        formatDateTime(report.created_at)
+        getWorkflowStatus(report.status, report.source),
+        `"${formatDateTime(report.created_at).replace(/"/g, '""')}"`
       ];
       csvRows.push(values.join(","));
     }
@@ -400,18 +408,17 @@ useEffect(() => {
   };
 
   // STATUS COLORS STYLING HELPER
-  const getStatusStyle = (status) => {
-    const s = getWorkflowStatus(status);
-    switch (s) {
-      case "Under Review":
+    const getStatusStyle = (status) => {
+    switch (status) {
+      case "under_review":
         return { backgroundColor: "rgba(217, 119, 6, 0.1)", color: "#D97706" };
-      case "Forwarded to LEA":
+      case "takedown_requested":
         return { backgroundColor: "rgba(37, 99, 235, 0.1)", color: "#2563EB" };
-      case "Operation in Progress":
+      case "takedown_initiated":
         return { backgroundColor: "rgba(234, 88, 12, 0.1)", color: "#EA580C" };
-      case "Takedown Completed":
+      case "completed":
         return { backgroundColor: "rgba(27, 67, 50, 0.1)", color: "#1B4332" };
-      case "Case Closed":
+      case "dismissed":
         return { backgroundColor: "rgba(31, 41, 55, 0.08)", color: "rgba(31, 41, 55, 0.6)" };
       default:
         return { backgroundColor: "#EDEDED", color: "#1F2937" };
@@ -425,6 +432,7 @@ useEffect(() => {
     "All",
     "Under Review",
     "Forwarded to LEA",
+    "Takedown Requested",
     "Operation in Progress",
     "Takedown Completed",
     "Case Closed"
@@ -497,7 +505,7 @@ useEffect(() => {
                 >
                   {categoriesList.map(cat => (
                     <option key={cat} value={cat}>
-                      {cat === 'All' ? 'All' : getCategoryLabel(cat)}
+                      {cat === 'All' ? 'All Categories' : getCategoryLabel(cat)}
                     </option>
                   ))}
                 </select>
@@ -513,7 +521,7 @@ useEffect(() => {
                   }}
                 >
                   {statusesList.map(stat => (
-                    <option key={stat} value={stat}>{stat}</option>
+                    <option key={stat} value={stat}>{stat === 'All' ? 'All Statuses' : stat}</option>
                   ))}
                 </select>
               </div>
@@ -628,7 +636,7 @@ useEffect(() => {
                           </td>
                           <td>
                             <span className="FdaBadge" style={getStatusStyle(report.status)}>
-                              {getWorkflowStatus(report.status)}
+                              {getWorkflowStatus(report.status, report.source)}
                             </span>
                           </td>
                           {/* REMOVED — <td>{report.region}</td> */}
@@ -725,7 +733,7 @@ useEffect(() => {
                   <div className="FdaDetailItem">
                     <label>Current Status</label>
                     <span className="FdaBadge" style={{ ...getStatusStyle(selectedReport.status), width: 'fit-content' }}>
-                      {getWorkflowStatus(selectedReport.status)}
+                      {getWorkflowStatus(selectedReport.status, selectedReport.source)}
                     </span>
                   </div>
                   <div className="FdaDetailItem" style={{ gridColumn: 'span 2' }}>

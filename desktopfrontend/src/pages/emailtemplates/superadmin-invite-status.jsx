@@ -73,7 +73,7 @@ function SuperadminInviteStatus() {
     },
     used: {
       icon: <CircleCheckBig size={32} color="#0D9488" />,
-      iconBg: '#D1FAE5',
+      iconBg: '#CCFBF1',
       title: 'Invitation Already Accepted',
       message: 'This invitation has already been accepted and used to set up a Superadmin account. You can proceed to log in to the Superadmin portal.',
       showButton: true,
@@ -82,12 +82,12 @@ function SuperadminInviteStatus() {
       accentColor: '#0D9488',
     },
     invalid: {
-      icon: <Link size={32} color="#B91C1C" />,
+      icon: <Link size={32} color="#DC2626" />,
       iconBg: '#FEE2E2',
       title: 'Invalid Invitation Link',
       message: 'This Superadmin invitation link is invalid or unrecognized. If you believe this is an error, please contact your lead system administrator.',
       showButton: false,
-      accentColor: '#B91C1C',
+      accentColor: '#DC2626',
     },
   };
 
@@ -100,32 +100,32 @@ function SuperadminInviteStatus() {
 
         .SuperadminInvitePage {
           min-height: 100vh;
-          background-color: #fdfdfd;
+          background-color: #F1F5F9;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 24px;
+          padding: 24px 16px;
           font-family: 'Inter', sans-serif;
           box-sizing: border-box;
         }
 
         .SuperadminInviteCard {
           background: #ffffff;
-          border-radius: 20px;
-          padding: 48px 40px;
+          border-radius: 16px;
+          padding: 44px 36px;
           max-width: 480px;
           width: 100%;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
           text-align: center;
-          border-top: 5px solid;
-          animation: InviteSlideUp 0.3s ease;
+          border-top: 4px solid;
+          animation: InviteSlideUp 0.35s ease;
           box-sizing: border-box;
         }
 
         @keyframes InviteSlideUp {
           from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+          to   { opacity: 1; transform: translateY(0); }
         }
 
         .SuperadminInviteIconBox {
@@ -135,7 +135,7 @@ function SuperadminInviteStatus() {
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 24px auto;
+          margin: 0 auto 20px auto;
         }
 
         .SuperadminInviteTitle {
@@ -143,20 +143,21 @@ function SuperadminInviteStatus() {
           font-size: 22px;
           font-weight: 700;
           color: #111827;
-          margin-bottom: 12px;
+          margin: 0 0 12px;
+          letter-spacing: -0.3px;
         }
 
         .SuperadminInviteMessage {
           font-family: 'Inter', sans-serif;
           font-size: 14px;
-          color: #6B7280;
+          color: #4B5563;
           line-height: 1.7;
-          margin-bottom: 28px;
+          margin: 0 0 24px;
         }
 
         .SuperadminInviteBtn {
           width: 100%;
-          padding: 13px 24px;
+          padding: 12px 24px;
           border: none;
           border-radius: 10px;
           font-family: 'Poppins', sans-serif;
@@ -170,11 +171,12 @@ function SuperadminInviteStatus() {
           align-items: center;
           justify-content: center;
           gap: 8px;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
         }
 
         .SuperadminInviteBtn:hover {
-          opacity: 0.92;
           transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
         }
 
         .SuperadminInviteBtn:active {
@@ -188,7 +190,7 @@ function SuperadminInviteStatus() {
         }
 
         .SuperadminInviteSystemName {
-          margin-top: 36px;
+          margin-top: 32px;
           font-size: 11px;
           color: #9CA3AF;
           letter-spacing: 1.2px;
@@ -203,7 +205,6 @@ function SuperadminInviteStatus() {
           margin: 20px auto;
           border-radius: 2px;
         }
-
       `}</style>
 
       <div className="SuperadminInvitePage">
