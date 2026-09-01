@@ -2,6 +2,7 @@
 .LeaDashboardMain {
   display: flex;
   height: 100vh;
+  overflow: hidden;
 }
 
 .LeaMainfeed {
@@ -9,6 +10,8 @@
   padding: 24px 28px;
   background: #f5f5f5;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 .LeaContentContainer {
@@ -304,11 +307,7 @@
   border: 1px solid #f5a0a0;
 }
 
-/* ======================================================
-   WALK-IN COMPLAINTS — SCOPED STYLES (WC prefix)
-   These class names are unique to lea-walkin-complaints
-   and will not conflict with other pages.
-   ====================================================== */
+/* WALK-IN COMPLAINTS  */
 
 /* Status badge base — walk-in complaints only */
 .WcStatusBadge {
@@ -1200,28 +1199,32 @@
 
 .VerificationContent {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: clamp(240px, 30vw, 380px) minmax(0, 1fr);
     gap: 16px;
+    align-items: start;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /*LEFT PANEL*/
 
 .ReadytoSendQueue, .AwaitingLEAQueue, .LEAResponseQueue{
     background: #FDFDFD;
-    border: 1px solid #d8d8d8;
+    border: 1.5px solid #EDEDED;
     border-radius: 12px;
     overflow: hidden;
-    min-height: 650px;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .ReadytoSendHeader, .AwaitingHeader, .LEAResponseHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    border-bottom: 1px solid #EDEDED;
+    padding: 14px 16px;
+    border-bottom: 1.5px solid #EDEDED;
 }
 
 .ReadytoSendHeader p, .AwaitingHeader p, .LEAResponseHeader p {
@@ -1241,32 +1244,25 @@
 }
 
 .QueueCard {
-  background: #FDFDFD;
-  border: 1.5px solid #EDEDED;
-  border-radius: 10px;
-  padding: 12px;
-  margin: 10px 14px 0 14px;
-  box-sizing: border-box;
-  width: calc(100% - 28px);
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #EDEDED;
+  padding: 14px 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.QueueCard:last-of-type {
-  margin-bottom: 10px;
+  transition: background 0.15s ease;
+  box-sizing: border-box;
 }
 
 .QueueCard:hover {
-  border-color: #13213C;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  background: #f8fafc;
 }
 
 .ActiveQueueCard {
-  background: rgba(252, 163, 17, 0.08) !important;
-  border-color: #EDEDED;
+  background: rgba(19, 33, 60, 0.06) !important;
+  border-left: 3px solid #13213C !important;
   box-shadow: none;
 }
 
@@ -1274,15 +1270,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 6px;
 }
 
 .QueueCard small,
 .QueueCardTopRow small,
 .QueueLabels small {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #13213C;
-  font-family: monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(31, 41, 55, 0.55);
+  font-family: inherit;
   margin: 0;
 }
 
@@ -1351,18 +1348,17 @@
 }
 
 .QueueCard h4 {
-  margin: 0;
+  margin: 0 0 2px 0;
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 600;
   color: #030303;
   line-height: 1.3;
 }
 
 .QueueCard p {
-  margin: 0;
-  font-size: 12px;
-  color: #1F2937;
-  opacity: 0.75;
+  margin: 0 0 6px 0;
+  font-size: 11.5px;
+  color: rgba(31, 41, 55, 0.6);
   line-height: 1.3;
 }
 
@@ -1392,7 +1388,7 @@
 }
 
 .QueueCategoryTag {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   color: #13213C;
   background: rgba(19, 33, 60, 0.08);
@@ -1406,8 +1402,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #1F2937;
-  opacity: 0.6;
+  color: rgba(31, 41, 55, 0.6);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1420,7 +1415,6 @@
     padding: 10px 14px;
     border-top: 1px solid #EDEDED;
     background: #FAFAFA;
-    margin-top: auto;
     box-sizing: border-box;
     width: 100%;
     flex-wrap: wrap;
@@ -1499,10 +1493,10 @@
 /*  RIGHT PANEL*/
 
 .VerificationDetails {
-  
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-width: 0;
 }
 
 .VerificationCard {
@@ -1939,11 +1933,56 @@
     background:#fff7ed;
     border:2px solid #f97316;
 }
-@media (max-width: 1024px) {
 
-    .VerificationContent {
-        grid-template-columns: 1fr;
-    }
+/* Compact left queue at small desktop widths (800px–1000px):
+   - narrows left panel so right details panel gains more space
+   - hides secondary elements (status/source badge, date) that are not
+     practical at narrow widths; data stays in the DOM unchanged */
+@media (max-width: 1000px) {
+  .QueueStatusBadge,
+  .QueueTagInline,
+  .OperationInProgressBadge {
+    display: none;
+  }
+  .QueueDateTag {
+    display: none;
+  }
+  .QueueCard {
+    padding: 10px 12px;
+  }
+  .LeaVerifQueueFilterHeader {
+    padding: 10px 12px;
+  }
+
+  /* Action buttons: keep icon, hide text label to save horizontal space */
+  .DeleteBtn span,
+  .DraftButton span,
+  .SendReqBtn span,
+  .LogButton span,
+  .SendReminderBtn span,
+  .RecallRequestBtn span {
+    display: none;
+  }
+  .DeleteBtn,
+  .DraftButton,
+  .LogButton {
+    padding: 0 10px;
+    min-width: 42px;
+  }
+  .SendReqBtn {
+    padding: 0 10px;
+    min-width: 42px;
+    font-size: 10px;
+  }
+  .SendReminderBtn,
+  .RecallRequestBtn {
+    width: auto;
+    min-width: 42px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 1024px) {
 
     .CaseInfoGrid {
         grid-template-columns: repeat(2, 1fr);
@@ -1998,7 +2037,7 @@
     .LeaVerifFilterControlsLeft,
     .LeaVerifFilterControlsRight {
         width: 100%;
-        
+
         justify-content: flex-start;
         margin-left: 0;
     }
@@ -2157,7 +2196,7 @@
     color: #13213C;
     margin-top: 4px;
     margin-bottom: 16px;
-    margin-left: 59px;
+    margin-left: 0;
     margin-right: 20px;
 }
 
@@ -2210,8 +2249,8 @@
   flex-direction: column;
   gap: 8px;
   background: transparent;
-  border-bottom: none;
-  padding: 14px 14px 4px 14px;
+  border-bottom: 1.5px solid #EDEDED;
+  padding: 14px;
 }
 
 .LeaSearchWrapper {
@@ -2245,8 +2284,8 @@
 }
 
 .LeaCategoriesSearchInput {
-  width: 100%;        
-  box-sizing: border-box; 
+  width: 100%;
+  box-sizing: border-box;
   height: 40px;
   border: 1px solid #EDEDED;
   border-radius: 8px;
@@ -2861,6 +2900,7 @@
 /* dismissed cases table — full width data grid for closed complaints */
 .DismissedTable {
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
 }
 
@@ -2977,11 +3017,13 @@
 .LeaDashboardMain {
   display: flex;
   min-height: 100vh;
+  overflow: hidden;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .LeaContentContainer {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -3073,7 +3115,7 @@
 }
 
 /* Charts Grid Row */
-.LeaChartsLeftCol,  
+.LeaChartsLeftCol,
 .LeaChartsRightCol {
   display: flex;
   flex-direction: column;
@@ -3390,6 +3432,7 @@
 
 .RecentComplaintsTable {
   width: 100%;
+  min-width: 580px;
   border-collapse: collapse;
 }
 
@@ -4057,4 +4100,148 @@
   border: 1px solid #D1D5DB;
   padding: 8px 12px;
   font-size: 12.5px;
-}
+}
+
+/* ── Responsive Search & Filter Containers: 2-Row Layout (Row 1: Search, Row 2: All Filters on 1 Centered Line) ── */
+@media (max-width: 1024px) {
+  .DraftsFilterSection,
+  .LeaFilterPanel {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .DraftsFilterControls,
+  .LeaFilterPanel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .DraftsFilterLeft,
+  .LeaVerifFilterControlsLeft {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .DraftsSearchInput,
+  .LeaSearchWrapper,
+  .LeaSearchInput {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .DraftsFilterRight,
+  .LeaVerifFilterControlsRight {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: center;
+    flex-wrap: nowrap !important;
+    margin-left: auto;
+    margin-right: auto;
+    width: auto;
+    max-width: 100%;
+    gap: 8px;
+  }
+
+  .DraftsFilterDropdown,
+  .DraftsDateFilter {
+    width: auto;
+    min-width: 0;
+    max-width: 125px;
+    flex: 0 1 auto;
+    flex-shrink: 1;
+    padding: 0 8px;
+    font-size: 12px;
+    height: 36px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .LeaFilterGroup {
+    flex: 0 1 auto;
+    min-width: 0;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .LeaFilterGroup label {
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  .LeaFilterGroup select,
+  .LeaVerifDateInput {
+    width: auto;
+    min-width: 0;
+    max-width: 125px;
+    flex: 0 1 auto;
+    flex-shrink: 1;
+    padding: 0 8px;
+    font-size: 12px;
+    height: 36px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .BtnClearFilters,
+  .BtnClearFiltersIcon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    margin-bottom: 3px;
+  }
+}
+
+@media (max-width: 900px) {
+  .DraftsFilterRight,
+  .LeaVerifFilterControlsRight {
+    gap: 6px;
+  }
+
+  .DraftsFilterDropdown,
+  .DraftsDateFilter,
+  .LeaFilterGroup select,
+  .LeaVerifDateInput {
+    max-width: 110px;
+    padding: 0 6px;
+    font-size: 11.5px;
+    height: 34px;
+  }
+
+  .LeaFilterGroup label {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .DraftsFilterRight,
+  .LeaVerifFilterControlsRight {
+    flex-wrap: nowrap !important;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .DraftsFilterDropdown,
+  .DraftsDateFilter,
+  .LeaFilterGroup,
+  .LeaFilterGroup select,
+  .LeaVerifDateInput {
+    width: auto;
+    min-width: 0;
+    max-width: 95px;
+    flex: 0 1 auto;
+    flex-shrink: 1;
+    padding: 0 4px;
+    font-size: 11px;
+    height: 32px;
+  }
+}
+
+

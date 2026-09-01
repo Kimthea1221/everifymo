@@ -18,6 +18,7 @@ import SuperadminOtpEmail from './pages/emailtemplates/superadmin-otp-email.jsx'
 
 import DeepLinkStatus from './pages/emailtemplates/invitation-status.jsx'
 import ProfileSetting from './pages/profile-setting.jsx';
+import AllNotifications from './pages/component/all-notifications.jsx';
 
 {/* SUPERADMIN PAGES */ }
 import SuperAdminLogin from './pages/superadminfolder/superadmin-login.jsx';
@@ -87,7 +88,7 @@ export default function App() {
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<UniversalLogin />} />
+        <Route path='/' element={<Login />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
@@ -126,6 +127,7 @@ export default function App() {
         <Route path='/superadmin-invite-status' element={<SuperadminInviteStatus />} />
 
         <Route path='/profile-setting' element={<ProfileSetting />} />
+        <Route path='/all-notifications' element={<AllNotifications />} />
 
         {/* FDA ROUTES */}
         <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />
