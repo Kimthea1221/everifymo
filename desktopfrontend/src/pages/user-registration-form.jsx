@@ -4,17 +4,18 @@ import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import ImgSuccess from '../images/success_img.png'
 import ImgTime from '../images/time_img.png'
 import { API_BASE_URL } from '../utils/apiConfig'
-import { 
-  User, 
-  Mail, 
-  Building2, 
-  MapPin, 
-  Phone, 
-  Briefcase, 
+import {
+  User,
+  Mail,
+  Building2,
+  MapPin,
+  Phone,
+  Briefcase,
   Fingerprint,
   Shield,
   AlertCircle
 } from 'lucide-react';
+
 
 // Maps raw role values from the database to human-friendly labels
 const ROLE_LABELS = {
@@ -23,6 +24,7 @@ const ROLE_LABELS = {
   superadmin: 'SuperAdmin',
 }
 
+
 // REGISTRATION PAGE FOR ADDED PERSONNEL
 function UserRegistration() {
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ function UserRegistration() {
   const officerData = location.state || {}   // fallback in case someone visits this page directly
   // add this to the top-level of the component, right after officerData is defined:
   const hasValidInviteData = Boolean(officerData.invite_token && officerData.email);
+
 
   const [form, setForm] = useState({
     firstName: '',
@@ -41,8 +44,11 @@ function UserRegistration() {
     position: '',
   });
 
+
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // NEW
+
 
   const REQUIRED_FIELDS = [
     'firstName',
@@ -52,6 +58,7 @@ function UserRegistration() {
     'department',
     'position',
   ];
+
 
   function validate() {
     const newErrors = {};
@@ -69,15 +76,19 @@ function UserRegistration() {
       }
     });
 
+
     if (form.contactNumber && form.contactNumber.length !== 11) {
     newErrors.contactNumber = 'Contact number must be exactly 11 digits.';
   }
 
+
     return newErrors;
   }
 
+
   function handleChange(e) { // added to handle contact number input to only allow digits and limit to 11 characters
   const { name, value } = e.target;
+
 
   if (name === 'contactNumber') {
     const digitsOnly = value.replace(/\D/g, '').slice(0, 11);
@@ -88,19 +99,29 @@ function UserRegistration() {
     return;
   }
 
+
   setForm((prev) => ({ ...prev, [name]: value }));
   if (errors[name]) {
     setErrors((prev) => ({ ...prev, [name]: '' }));
   }
 }
 
+
   function handleSubmit(e) {
     e.preventDefault();
+   
+    if (isSubmitting) return; // NEW — ignore extra clicks/double-fires while a request is in flight
+
+
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
+
+
+    setIsSubmitting(true); // NEW
+
 
     // Submit the form data to the backend
   fetch(`${API_BASE_URL}/registration/complete`, {
@@ -129,7 +150,14 @@ function UserRegistration() {
     // For now, at minimum, avoid silently pretending success
     alert('Something went wrong submitting your registration. Please try again.')
   })
+
+
+  .finally(() => setIsSubmitting(false)); // NEW — re-enable on both success and failure
+ 
 }
+
+
+
 
 // add this block BEFORE the `if (submitted)` block:
 if (!hasValidInviteData) {
@@ -150,6 +178,7 @@ if (!hasValidInviteData) {
   );
 }
 
+
   /*Success Screen*/
   if (submitted) {
     return (
@@ -168,7 +197,9 @@ if (!hasValidInviteData) {
                 <span className='RegTimeIcon'><img src={ImgTime} alt="Hour glass icon" /></span> Pending Administrator Approval
               </div>
 
+
               {/* in the success screen, add the Back to Login button after RegSuccessTag: */}
+
 
               <button
                 className="RegSubmitBtn"
@@ -177,13 +208,14 @@ if (!hasValidInviteData) {
               >
                 Back to Login
               </button>
-              
+             
             </div>
           </div>
         </div>
       </>
     );
   }
+
 
   /* Registration Form for user side */
   return (
@@ -199,6 +231,7 @@ if (!hasValidInviteData) {
               Please fill in your details to complete your personnel registration.
             </p>
           </div>
+
 
           <form className="RegForm" onSubmit={handleSubmit} noValidate>
             {/* Name Row */}
@@ -221,6 +254,7 @@ if (!hasValidInviteData) {
                 {errors.firstName && <span className="RegError"><AlertCircle size={12} /> {errors.firstName}</span>}
               </div>
 
+
               <div className="RegFormGroup">
                 <label className="RegLabel">Middle Name</label>
                 <div className="RegInputWrapper">
@@ -235,6 +269,7 @@ if (!hasValidInviteData) {
                   />
                 </div>
               </div>
+
 
               <div className="RegFormGroup">
                 <label className="RegLabel">
@@ -254,6 +289,7 @@ if (!hasValidInviteData) {
                 {errors.lastName && <span className="RegError"><AlertCircle size={12} /> {errors.lastName}</span>}
               </div>
             </div>
+
 
             {/* Employee ID & Contact */}
             <div className="RegFieldRow">
@@ -275,6 +311,7 @@ if (!hasValidInviteData) {
                 {errors.employeeId && <span className="RegError"><AlertCircle size={12} /> {errors.employeeId}</span>}
               </div>
 
+
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Contact Number <span className="RegRequired">*</span>
@@ -295,6 +332,7 @@ if (!hasValidInviteData) {
               </div>
             </div>
 
+
             {/* Account Info (read-only) kase pre-filled na based sa superadmin entry */}
             <div className="RegFormGroup">
               <label className="RegLabel">
@@ -312,6 +350,7 @@ if (!hasValidInviteData) {
                 />
               </div>
             </div>
+
 
             <div className="RegFieldRow">
               <div className="RegFormGroup">
@@ -331,6 +370,7 @@ if (!hasValidInviteData) {
                 </div>
               </div>
 
+
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Region{' '}
@@ -348,6 +388,7 @@ if (!hasValidInviteData) {
                 </div>
               </div>
             </div>
+
 
             {/* Department & Position */}
             <div className="RegFieldRow">
@@ -369,6 +410,7 @@ if (!hasValidInviteData) {
                 {errors.department && <span className="RegError"><AlertCircle size={12} /> {errors.department}</span>}
               </div>
 
+
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Position <span className="RegRequired">*</span>
@@ -388,8 +430,9 @@ if (!hasValidInviteData) {
               </div>
             </div>
 
-            <button type="submit" className="RegSubmitBtn">
-              Submit Registration
+
+            <button type="submit" className="RegSubmitBtn" disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit Registration'}
             </button>
           </form>
         </div>
@@ -400,8 +443,12 @@ if (!hasValidInviteData) {
 
 
 
+
+
+
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+
 
   .RegPageContainer {
     min-height: 100vh;
@@ -415,6 +462,7 @@ const styles = `
     font-family: 'Inter', sans-serif;
   }
 
+
   .RegCard {
     width: 100%;
     max-width: 700px;
@@ -424,6 +472,7 @@ const styles = `
     overflow: hidden;
     animation: RegSlideUp 0.35s ease;
   }
+
 
   @keyframes RegSlideUp {
     from { opacity: 0; transform: translateY(20px); }
@@ -437,6 +486,7 @@ const styles = `
     border-bottom: 4px solid #0D9488;
     text-align: center;
   }
+
 
   .RegSystemBadge {
     display: inline-block;
@@ -453,6 +503,7 @@ const styles = `
     font-family: 'Poppins', sans-serif;
   }
 
+
   .RegCardTitle {
     font-size: 22px;
     font-weight: 700;
@@ -461,6 +512,7 @@ const styles = `
     font-family: 'Poppins', sans-serif;
     letter-spacing: -0.3px;
   }
+
 
   .RegCardSubtitle {
     font-size: 13px;
@@ -477,17 +529,20 @@ const styles = `
     gap: 16px;
   }
 
+
   .RegFieldRow {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 14px;
   }
 
+
   .RegFormGroup {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
+
 
   .RegLabel {
     font-size: 13px;
@@ -498,7 +553,9 @@ const styles = `
     gap: 6px;
   }
 
+
   .RegRequired { color: #ef4444; }
+
 
   .RegReadonlyTag {
     font-size: 10.5px;
@@ -512,12 +569,14 @@ const styles = `
     letter-spacing: 0.5px;
   }
 
+
   .RegInputWrapper {
     position: relative;
     display: flex;
     align-items: center;
     width: 100%;
   }
+
 
   .RegInputIcon {
     position: absolute;
@@ -528,6 +587,7 @@ const styles = `
     align-items: center;
     justify-content: center;
   }
+
 
   .RegInput {
     width: 100%;
@@ -544,15 +604,18 @@ const styles = `
     font-family: 'Inter', sans-serif;
   }
 
+
   .RegInput:focus {
     border-color: #0D9488;
     box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
   }
 
+
   .reg-input-error {
     border-color: #ef4444 !important;
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
   }
+
 
   .reg-input-readonly {
     background: #f8fafc !important;
@@ -560,6 +623,7 @@ const styles = `
     border-color: #e2e8f0 !important;
     cursor: default;
   }
+
 
   .RegError {
     font-size: 11.5px;
@@ -589,11 +653,13 @@ const styles = `
     letter-spacing: 0.3px;
   }
 
+
   .RegSubmitBtn:hover {
     background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
     transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(13, 148, 136, 0.4);
   }
+
 
   .RegSubmitBtn:active {
     transform: translateY(0);
@@ -614,10 +680,12 @@ const styles = `
     animation: RegPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
+
   @keyframes RegPop {
     from { transform: scale(0); opacity: 0; }
     to   { transform: scale(1); opacity: 1; }
   }
+
 
   .RegSuccessTitle {
     font-size: 22px;
@@ -627,6 +695,7 @@ const styles = `
     font-family: 'Poppins', sans-serif;
   }
 
+
   .RegSuccessDesc {
     font-size: 14px;
     color: #64748b;
@@ -634,6 +703,7 @@ const styles = `
     margin: 0;
     max-width: 420px;
   }
+
 
   .RegSuccessTag {
     display: inline-flex;

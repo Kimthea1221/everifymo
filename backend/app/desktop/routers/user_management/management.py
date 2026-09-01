@@ -203,12 +203,12 @@ async def activate_user(
         user=current_user,
         action=AuditAction.APPROVE_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         old_value={"status": previous_status},
         new_value={"status": "active"},
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "User account activated successfully"}
@@ -246,12 +246,12 @@ def suspend_user(
         user=current_user,
         action=AuditAction.SUSPEND_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         old_value={"status": "active"},
         new_value={"status": "suspended"},
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "User account suspended successfully"}
@@ -289,12 +289,12 @@ def reactivate_user(
         user=current_user,
         action=AuditAction.REACTIVATE_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         old_value={"status": "suspended"},
         new_value={"status": "active"},
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "User account reactivated successfully"}
@@ -351,12 +351,12 @@ async def resend_invitation(
         user=current_user,
         action=AuditAction.INVITE_PERSONNEL_RESENT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         old_value={"status": "invited"},
         new_value={"status": "resend requested"},
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "Invitation resent successfully"}
@@ -374,17 +374,25 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if not (user.status == UserStatus.ACTIVE and not user.is_active) and user.status != UserStatus.INVITED:
-        raise HTTPException(status_code=400, detail="Only suspended users or invited/expired invitations can be deleted.")
+    if user.status != UserStatus.INVITED:
+        raise HTTPException(status_code=400, detail="Only invited or expired invitations can be deleted.")
+
 
     deleted_user_id = user.user_id
     deleted_user_email = user.email
     deleted_user_region_code = get_user_region_code(db, user)
-    deleted_user_previous_status = "suspended" if (user.status == UserStatus.ACTIVE and not user.is_active) else "invited"
 
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == user_id).delete()
     db.delete(user)
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_DELETED,
+        title="Account deleted",
+        message=f"{deleted_user_email}'s account has been deleted.",
+        related_user_id=deleted_user_id,
+    )
 
     write_audit_log(
         db,
@@ -393,7 +401,7 @@ def delete_user(
         target_table="users",
         target_id=deleted_user_id,
         target_reference=deleted_user_email,
-        old_value={"status": deleted_user_previous_status},
+        old_value={"status": "invited"},
         new_value={"status": "deleted"},
         request=http_request,
         region_code=deleted_user_region_code,
@@ -424,17 +432,25 @@ def unlock_user(
 
     db.commit()
 
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_UNLOCKED,
+        title="Account unlocked",
+        message=f"{user_email}'s account has been unlocked.",
+        related_user_id=user_id_val,
+    )
+
     write_audit_log(
         db,
         user=current_user,
         action=AuditAction.UNLOCK_PERSONNEL_ACCOUNT,
         target_table="users",
-        target_id=user.user_id,
-        target_reference=user.email,
+        target_id=user_id_val,
+        target_reference=user_email,
         old_value={"status": "locked"},
         new_value={"status": "active"},
         request=http_request,
-        region_code=get_user_region_code(db, user),
+        region_code=region_code,
     )
 
     return {"message": "User account unlocked successfully"}

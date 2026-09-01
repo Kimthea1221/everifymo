@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
 {/* for universal login*/ }
 import UniversalLogin from './pages/universal-login.jsx';
+import { API_BASE_URL } from './utils/apiConfig'
 
 {/* LEA-CIDG PAGES */ }
 import LeaDashboard from './pages/leacidgfolder/lea-dashboard.jsx';
@@ -48,10 +49,10 @@ function DeepLinkListener() {
   useEffect(() => {
     console.log('DeepLinkListener mounted, waiting for token...');
 
-    window.electronAPI.onDeepLinkToken((token) => {
+    const unsubscribe = window.electronAPI.onDeepLinkToken((token) => {
       console.log('Token received:', token);
 
-      fetch(`http://localhost:8000/registration/validate/${token}`)
+      fetch(`${API_BASE_URL}/registration/validate/${token}`)
         .then((res) => res.json())
         .then((data) => {
           console.log('Validate response:', data);
@@ -74,6 +75,8 @@ function DeepLinkListener() {
           }
         });
     });
+
+    return unsubscribe;
   }, [navigate]);
 
   return null;

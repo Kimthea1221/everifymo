@@ -67,12 +67,9 @@ async def update_complaint_status(
     db.refresh(complaint)
 
     recipient_email = None
-    if complaint.source == "extension" and complaint.consumer_id:
+    if complaint.consumer_id:
         consumer = db.query(ConsumerAccount).filter(ConsumerAccount.consumer_id == complaint.consumer_id).first()
         recipient_email = consumer.email if consumer else None
-    elif complaint.source == "walk_in" and complaint.complainant_id:
-        complainant = db.query(WalkinComplainant).filter(WalkinComplainant.complainant_id == complaint.complainant_id).first()
-        recipient_email = complainant.email if complainant else None
 
     if recipient_email:
         try:

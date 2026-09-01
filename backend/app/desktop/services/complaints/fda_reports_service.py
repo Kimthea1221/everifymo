@@ -2,6 +2,9 @@
 from sqlalchemy.orm import Session
 from app.models.complaints import Complaint
 from app.desktop.schemas.complaints.complaints import FdaComplaintListItem
+from fastapi import HTTPException
+from app.models.shared_files import SharedFile
+from app.desktop.schemas.complaints.complaints import SharedFileResponse, FdaComplaintDetailResponse
 
 
 # services/complaints/fda_reports_service.py — one line change
@@ -12,7 +15,8 @@ def list_all_complaints_for_fda(
 ) -> list[FdaComplaintListItem]:
     query = db.query(Complaint).filter(
         Complaint.deleted_at.is_(None),
-        Complaint.status != "open",   # ADDED — not yet sent to FDA by LEA, excluded from this report
+        Complaint.status != "open",   # not yet sent to FDA by LEA, excluded from this report
+        Complaint.region_id == current_user.region_id,   # FDA personnel are region-scoped, same as LEA
     )
     if current_user.role != "superadmin" and current_user.region_id:
         query = query.filter(Complaint.region_id == current_user.region_id)
@@ -48,10 +52,6 @@ def list_all_complaints_for_fda(
 
 
 # services/complaints/fda_reports_service.py — add this function to the same file
-
-from fastapi import HTTPException
-from app.models.shared_files import SharedFile
-from app.desktop.schemas.complaints.complaints import SharedFileResponse, FdaComplaintDetailResponse
 
 
 def get_fda_complaint_detail(db: Session, complaint_id, current_user) -> FdaComplaintDetailResponse:

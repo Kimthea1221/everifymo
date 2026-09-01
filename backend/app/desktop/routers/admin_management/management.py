@@ -212,8 +212,8 @@ async def resend_superadmin_invitation(
         user=current_user,
         action=AuditAction.INVITE_SUPERADMIN_RESENT,
         target_table="users",
-        target_id=admin.user_id,
-        target_reference=admin.email,
+        target_id=admin_id_val,
+        target_reference=admin_email,
         old_value={"status": "invited"},
         new_value={"status": "resend requested"},
         request=http_request,
@@ -278,6 +278,9 @@ def suspend_superadmin(
 
     db.refresh(admin)  # local ORM object is stale after the raw UPDATE — resync it
 
+    admin_id_val = admin.user_id
+    admin_email = admin.email
+
     db.query(UserSession).filter(UserSession.user_id == admin.user_id).delete()
     db.commit()
 
@@ -285,8 +288,8 @@ def suspend_superadmin(
         db=db,
         event_type=NotificationEventType.ACCOUNT_SUSPENDED,
         title="Superadmin suspended",
-        message=f"{admin.email}'s superadmin account has been suspended.",
-        related_user_id=admin.user_id,
+        message=f"{admin_email}'s superadmin account has been suspended.",
+        related_user_id=admin_id_val,
     )
 
     write_audit_log(
@@ -294,8 +297,8 @@ def suspend_superadmin(
         user=current_user,
         action=AuditAction.SUSPEND_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin.user_id,
-        target_reference=admin.email,
+        target_id=admin_id_val,
+        target_reference=admin_email,
         old_value={"status": "active"},
         new_value={"status": "suspended"},
         request=http_request,
@@ -318,14 +321,18 @@ def reactivate_superadmin(
     if not admin:
         raise HTTPException(status_code=404, detail="Superadmin not found")
     admin.is_active = True
+
+    admin_id_val = admin.user_id
+    admin_email = admin.email
+
     db.commit()
 
     notification_service.create_notification_for_all_superadmins(
         db=db,
         event_type=NotificationEventType.ACCOUNT_REACTIVATED,
         title="Superadmin reactivated",
-        message=f"{admin.email}'s superadmin account has been reactivated.",
-        related_user_id=admin.user_id,
+        message=f"{admin_email}'s superadmin account has been reactivated.",
+        related_user_id=admin_id_val,
     )
 
     write_audit_log(
@@ -333,8 +340,8 @@ def reactivate_superadmin(
         user=current_user,
         action=AuditAction.REACTIVATE_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin.user_id,
-        target_reference=admin.email,
+        target_id=admin_id_val,
+        target_reference=admin_email,
         old_value={"status": "suspended"},
         new_value={"status": "active"},
         request=http_request,
@@ -365,11 +372,19 @@ def delete_superadmin(
 
     deleted_admin_id = admin.user_id
     deleted_admin_email = admin.email
+    deleted_admin_previous_status = "suspended" if (admin.status == UserStatus.ACTIVE and not admin.is_active) else "invited"
 
     db.query(AccountInvitationToken).filter(AccountInvitationToken.user_id == admin_id).delete()
     db.delete(admin)
     db.commit()
-    # admin object is deleted AND expired — never touch it after this
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_DELETED,
+        title="Superadmin deleted",
+        message=f"{deleted_admin_email}'s superadmin account has been deleted.",
+        related_user_id=deleted_admin_id,
+    )
 
     write_audit_log(
         db,
@@ -378,7 +393,7 @@ def delete_superadmin(
         target_table="users",
         target_id=deleted_admin_id,
         target_reference=deleted_admin_email,
-        old_value={"status": "suspended"},
+        old_value={"status": deleted_admin_previous_status},
         new_value={"status": "deleted"},
         request=http_request,
         region_code=None,
@@ -417,15 +432,27 @@ def unlock_superadmin(
     admin.failed_login_attempts = 0
     admin.locked_until = None
     admin.failed_otp_attempts = 0
+
+    admin_id_val = admin.user_id
+    admin_email = admin.email
+
     db.commit()
+
+    notification_service.create_notification_for_all_superadmins(
+        db=db,
+        event_type=NotificationEventType.ACCOUNT_UNLOCKED,
+        title="Superadmin unlocked",
+        message=f"{admin_email}'s superadmin account has been unlocked.",
+        related_user_id=admin_id_val,
+    )
 
     write_audit_log(
         db,
         user=current_user,
         action=AuditAction.UNLOCK_SUPERADMIN_ACCOUNT,
         target_table="users",
-        target_id=admin.user_id,
-        target_reference=admin.email,
+        target_id=admin_id_val,
+        target_reference=admin_email,
         old_value={"status": "locked"},
         new_value={"status": "active"},
         request=http_request,

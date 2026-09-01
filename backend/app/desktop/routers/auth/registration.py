@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime, timezone, timedelta
 
-from app.database.sessions import get_db
+from app.database.sessions import get_db, set_bypass_rls
 from app.models.users import User
 from app.models.account_invitation_tokens import AccountInvitationToken
 from app.models.regions import Region
@@ -37,7 +37,7 @@ router = APIRouter(prefix="/registration", tags=["Registration"])
     # GET /registration/validate/{invite_token}
 @router.get("/validate/{invite_token}", response_model=ValidateTokenResponse)
 def validate_token(invite_token: str, db: Session = Depends(get_db)):
-    db.execute(text("SET app.bypass_rls = 'true'"))
+    set_bypass_rls(db, True)
 
     token_row = db.query(AccountInvitationToken).filter(
         AccountInvitationToken.invite_token == invite_token
@@ -85,7 +85,7 @@ def complete_registration(data: RegistrationCompleteRequest, http_request: Reque
 
     # Same as before — officer isn't logged in yet, so we need this
     # to be allowed to look at the users table at all
-    db.execute(text("SET app.bypass_rls = 'true'"))   
+    set_bypass_rls(db, True)   
 
     # This time the token comes from the request body (the form data),
     # not from the URL like in validate_token
@@ -165,7 +165,7 @@ def resend_invite(data: ResendInviteRequest, http_request: Request, db: Session 
 
     # Same as the other two endpoints — officer isn't logged in,
     # so we need this to be allowed to look at these tables at all
-    db.execute(text("SET app.bypass_rls = 'true'"))   
+    set_bypass_rls(db, True)   
 
     # Find the old, presumably-expired token the officer is trying to resend
     old_token_row = db.query(AccountInvitationToken).filter(
@@ -239,7 +239,7 @@ def resend_invite(data: ResendInviteRequest, http_request: Request, db: Session 
 @router.post("/request-resend", response_model=RequestResendResponse)
 def request_resend(data: RequestResendRequest, http_request: Request, db: Session = Depends(get_db)):
     # Officer isn't logged in, same bypass as every other registration endpoint
-    db.execute(text("SET app.bypass_rls = 'true'"))
+    set_bypass_rls(db, True)
 
     # Find the token the officer is asking to have resent
     token_row = db.query(AccountInvitationToken).filter(

@@ -1,6 +1,7 @@
 # backend/app/desktop/services/auth/personnel_auth.py
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from app.database.sessions import set_bypass_rls
 from datetime import datetime, timezone
 
 from fastapi import Request
@@ -26,7 +27,7 @@ def authenticate_personnel(
     http_request: Request | None = None,
 ) -> User:
 
-    db.execute(text("SET app.bypass_rls = 'true'"))
+    set_bypass_rls(db, True)   # was: db.execute(text("SET app.bypass_rls = 'true'"))
     user = db.query(User).filter(User.email == email).first()
 
     if not user:

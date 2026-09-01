@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from nlp.retrieval.retrieval import run_retrieval_pipeline
+from nlp.retrieval.retrieval import print_retrieval_summary, run_retrieval_pipeline
 
 
 class RetrievalRequest(BaseModel):
@@ -19,7 +19,7 @@ async def verify(request: RetrievalRequest):
 
     try:
         result = run_retrieval_pipeline(request.title, top_k=request.top_k)
-        print(f"Retrieval result: {result}")
-        return {"status": "unregistered", **result}
+        print_retrieval_summary(result)
+        return result
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
