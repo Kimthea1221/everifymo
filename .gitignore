@@ -75,5 +75,6 @@ Thumbs.db
 *.log
 
 #datasets and assets
-nlp/assets/
-nlp/datasets/
+backend/nlp/assets/
+backend/nlp/datasets/
+.gitattributes

@@ -15,6 +15,7 @@ function createWindow() {
 			preload: path.join(__dirname, "preload.cjs")
 		}
 	});
+	mainWindow.webContents.openDevTools();
 	mainWindow.webContents.on("did-finish-load", () => {
 		if (pendingDeepLink) {
 			mainWindow.webContents.send("deep-link-token", pendingDeepLink);

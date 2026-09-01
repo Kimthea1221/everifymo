@@ -1342,6 +1342,63 @@ body {
   align-items: center;
 }
 
+/* USERNAME-TAKEN FIX (embedded in OTP flow) */
+.username-fix-banner {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background-color: rgba(217, 119, 6, 0.08);
+  border: 1px solid #D97706;
+  border-radius: 10px;
+}
+
+.username-fix-header {
+  margin-bottom: 12px;
+}
+
+.username-fix-title {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #1F2937;
+}
+
+.username-fix-text {
+  margin: 4px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #777777;
+}
+
+.username-fix-input-field {
+  margin-bottom: 12px;
+}
+
+.btn-username-fix {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  background-color: #1F2937;
+  color: #FDFDFD;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.btn-username-fix:hover {
+  background-color: #37455a;
+}
+
+.btn-username-fix:disabled {
+  background-color: #D1D5DB;
+  color: #777777;
+  cursor: not-allowed;
+}
+
 /* BUTTONS */
 .btn-primary-green,
 .btn-guest {
