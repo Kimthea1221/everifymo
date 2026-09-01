@@ -97,12 +97,9 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
               <button className="UserMgmtDropdownItem" onClick={() => { onAction('reactivate'); setIsOpen(false); }}>
                 <RotateCcw size={14} /> Reactivate Account
               </button>
-              <div className="UserMgmtDropdownDivider" />
-              <button className="UserMgmtDropdownItem danger" onClick={() => { onAction('delete'); setIsOpen(false); }}>
-                <Trash2 size={14} /> Delete Account
-              </button>
             </>
           )}
+          
           {['Resend Requested', 'Link Expired'].includes(displayStatus) && (
             <button className="UserMgmtDropdownItem" onClick={() => { onAction('resend'); setIsOpen(false); }}>
               <Send size={14} /> Resend Link

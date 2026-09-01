@@ -92,6 +92,9 @@ function handleDeepLink(url) {
   const token = new URL(url).searchParams.get('token')
 
   if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore() //added this line to restore the window if it is minimized
+    mainWindow.show() //added this line to show the window if it is hidden
+    mainWindow.focus() //added this line to focus the window if it is not focused
     mainWindow.webContents.send('deep-link-token', token)
   } else {
     pendingDeepLink = token
