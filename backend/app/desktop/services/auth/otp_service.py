@@ -1,5 +1,6 @@
 import secrets
 from datetime import datetime, timedelta, timezone
+from app.database.sessions import set_bypass_rls
 
 from fastapi import Request
 from sqlalchemy.orm import Session
@@ -29,6 +30,7 @@ def generate_otp() -> str:
 
 
 def create_otp_for_user(db: Session, user: User) -> str:
+    set_bypass_rls(db, True)
     """Generates a fresh OTP, invalidates old ones, stores hash, returns plain OTP to send by email.
 
     Note: this does NOT reset user.failed_otp_attempts. Requesting a new OTP gives the
@@ -54,6 +56,7 @@ def create_otp_for_user(db: Session, user: User) -> str:
 
 
 def verify_otp_for_user(db: Session, user: User, otp: str, http_request: Request | None = None) -> OTPToken:
+    set_bypass_rls(db, True)
     """
     Returns the matching OTPToken if valid, else raises ValueError with a reason,
     or SuperadminThrottledError (see below) with structured retry_after_seconds.
@@ -71,20 +74,14 @@ def verify_otp_for_user(db: Session, user: User, otp: str, http_request: Request
             permanently locked, so the last admin is never bricked out.
           * any other role -> unchanged, permanently locked (is_locked=True).
 
-    # Ashanti code starts here
-    Raises SuperadminThrottledError instead of ValueError for the throttled case,
-    same as authenticate_superadmin, so the caller can return 429 + retry_after_seconds
-    the same way the password-login route already does.
-    # Ashanti code ends here
     """
-    # Ashanti code starts here
+   
     # Mirror the password path: surface an active throttle immediately, before
     # even looking at the submitted OTP, so the frontend can run its countdown.
     if user.locked_until and user.locked_until > datetime.now(timezone.utc):
         remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds())
         raise SuperadminThrottledError(retry_after_seconds=remaining)
-    # Ashanti code ends here
-
+  
     if user.is_locked:
         raise ValueError("Account is locked. Please contact your administrator.")
 

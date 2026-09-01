@@ -1,9 +1,16 @@
 # app/core/dependencies.py
 from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 
-from app.database.sessions import get_db
+from app.database.sessions import get_db, set_bypass_rls, set_region_context
+from app.core.security import decode_access_token
+from app.models.users import User
+
+
+from fastapi import Depends, HTTPException, Header
+from sqlalchemy.orm import Session
+
+from app.database.sessions import get_db, set_bypass_rls, set_region_context
 from app.core.security import decode_access_token
 from app.models.users import User
 
@@ -23,7 +30,7 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid or expired token.")
 
     user_id = payload.get("sub")
-    db.execute(text("SET app.bypass_rls = 'true'"))
+    set_bypass_rls(db, True)  # need to look the user up before we know their role/region
     user = db.query(User).filter(User.user_id == user_id).first()
 
     if not user:
@@ -35,14 +42,10 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Account is locked.")
 
     if user.role == "superadmin":
-        db.execute(text("SET app.bypass_rls = 'true'"))
+        set_bypass_rls(db, True)
     else:
-        db.execute(text("SET app.bypass_rls = 'false'"))
-        region_id_str = str(user.region_id) if user.region_id else ""
-        db.execute(
-        text("SET app.current_region_id = :region_id"),
-        {"region_id": region_id_str},
-)
+        set_bypass_rls(db, False)
+        set_region_context(db, str(user.region_id) if user.region_id else "")
 
     return user
 

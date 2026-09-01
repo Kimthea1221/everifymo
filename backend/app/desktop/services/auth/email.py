@@ -38,7 +38,8 @@ async def send_invite_email(to_email: str, agency_name: str, token: str):
         "LEA-CIDG": "LEA-CIDG"
     }.get(agency_name, agency_name)
 
-    deep_link = f"everifymo://complete-registration?token={token}"
+    #deep_link = f"everifymo://complete-registration?token={token}"
+    deep_link = f"https://everifyapp.netlify.app/?token={token}"
     html_body = render_invite_email(display_name, deep_link)
 
     message = MessageSchema(
@@ -59,7 +60,8 @@ def render_superadmin_invite_email(deep_link: str) -> str:
 
 
 async def send_superadmin_invite_email(to_email: str, token: str):
-    deep_link = f"everifymo://complete-registration?token={token}"
+    #deep_link = f"everifymo://complete-registration?token={token}"
+    deep_link = f"https://everifyapp.netlify.app/?token={token}" 
     html_body = render_superadmin_invite_email(deep_link)
 
     message = MessageSchema(

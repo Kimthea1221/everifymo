@@ -45,8 +45,12 @@ app.on("open-url", (event, url) => {
 });
 function handleDeepLink(url) {
 	const token = new URL(url).searchParams.get("token");
-	if (mainWindow) mainWindow.webContents.send("deep-link-token", token);
-	else pendingDeepLink = token;
+	if (mainWindow) {
+		if (mainWindow.isMinimized()) mainWindow.restore();
+		mainWindow.show();
+		mainWindow.focus();
+		mainWindow.webContents.send("deep-link-token", token);
+	} else pendingDeepLink = token;
 }
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") app.quit();
