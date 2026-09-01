@@ -15,6 +15,7 @@ from app.desktop.schemas.Product_database.registered_products import (
     RegisteredProductCreate,
     RegisteredProductUpdate
 )
+from app.desktop.services.Product_database.csv_sync import sync_registered_products_to_csv, sync_unregistered_advisories_to_csv
 
 
 def format_product_response(product: RegisteredProduct, db: Session):
@@ -91,6 +92,33 @@ def get_all_registered_products(db: Session, current_user: User):
 
 
 def create_registered_product(db: Session, data: RegisteredProductCreate, current_user, request: Request = None):
+    # Check duplicate product name
+    existing_name = db.query(RegisteredProduct).filter(
+        func.lower(RegisteredProduct.product_name) == func.lower(data.product_name),
+        RegisteredProduct.deleted_at.is_(None)
+    ).first()
+
+    if existing_name:
+        region_name = None
+        if existing_name.added_by:
+            creator = db.query(User).filter(User.user_id == existing_name.added_by).first()
+            if creator and creator.region_id:
+                from app.models.regions import Region
+                region = db.query(Region).filter(Region.region_id == creator.region_id).first()
+                if region:
+                    region_name = region.region_name
+
+        if region_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Duplicate product name detected. This product already exists in the database (Region: {region_name})."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Duplicate product name detected. This product already exists in the database."
+            )
+
     existing = db.query(RegisteredProduct).filter(
         RegisteredProduct.registration_number == data.registration_number,
         RegisteredProduct.deleted_at.is_(None)
@@ -120,6 +148,7 @@ def create_registered_product(db: Session, data: RegisteredProductCreate, curren
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
+    sync_registered_products_to_csv(db)
 
     write_audit_log(
         db,
@@ -154,6 +183,34 @@ def update_registered_product(db: Session, product_id, data: RegisteredProductUp
             detail="Registered product not found."
         )
 
+    # Check duplicate product name excluding current product
+    existing_name = db.query(RegisteredProduct).filter(
+        func.lower(RegisteredProduct.product_name) == func.lower(data.product_name),
+        RegisteredProduct.product_id != product_id,
+        RegisteredProduct.deleted_at.is_(None)
+    ).first()
+
+    if existing_name:
+        region_name = None
+        if existing_name.added_by:
+            creator = db.query(User).filter(User.user_id == existing_name.added_by).first()
+            if creator and creator.region_id:
+                from app.models.regions import Region
+                region = db.query(Region).filter(Region.region_id == creator.region_id).first()
+                if region:
+                    region_name = region.region_name
+
+        if region_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Duplicate product name detected. This product already exists in the database (Region: {region_name})."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Duplicate product name detected. This product already exists in the database."
+            )
+
     # Check unique constraint excluding current product
     existing = db.query(RegisteredProduct).filter(
         RegisteredProduct.registration_number == data.registration_number,
@@ -187,6 +244,7 @@ def update_registered_product(db: Session, product_id, data: RegisteredProductUp
 
     db.commit()
     db.refresh(product)
+    sync_registered_products_to_csv(db)
 
     write_audit_log(
         db,
@@ -248,6 +306,8 @@ def convert_advisory_to_product(db: Session, advisory_id, data: RegisteredProduc
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
+    sync_registered_products_to_csv(db)
+    sync_unregistered_advisories_to_csv(db)
 
     write_audit_log(
         db,
@@ -295,6 +355,7 @@ def delete_registered_product(db: Session, product_id, current_user, request: Re
     product.deleted_by = current_user_id
 
     db.commit()
+    sync_registered_products_to_csv(db)
 
     write_audit_log(
         db,

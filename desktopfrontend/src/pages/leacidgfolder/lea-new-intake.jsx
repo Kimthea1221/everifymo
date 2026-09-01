@@ -333,11 +333,28 @@ function LeaNewIntake() {
 
     fieldsToValidate.forEach((field) => {
       const val = getFieldValue(field)
-      const err = validateSingleField(field, val)
-      if (err) {
-        newErrors[field] = err
-        newTouched[field] = true
-        isValid = false
+      if (field === 'dateOfPurchase') {
+        if (val && val.trim()) {
+          const selectedDate = new Date(val)
+          const today = new Date()
+          today.setHours(23, 59, 59, 999)
+          if (selectedDate > today) {
+            newErrors[field] = 'Date of Purchase cannot be in the future.'
+            newTouched[field] = true
+            isValid = false
+          } else {
+            newErrors[field] = ''
+          }
+        } else {
+          newErrors[field] = ''
+        }
+      } else {
+        const err = validateSingleField(field, val)
+        if (err) {
+          newErrors[field] = err
+          newTouched[field] = true
+          isValid = false
+        }
       }
     })
 
@@ -458,7 +475,9 @@ function LeaNewIntake() {
     formData.append('manufacturer', manufacturer)
     formData.append('product_category', productCategory)
     formData.append('place_of_purchase', placeOfPurchase)
-    formData.append('date_of_purchase', dateOfPurchase)
+    if (dateOfPurchase && dateOfPurchase.trim()) {
+      formData.append('date_of_purchase', dateOfPurchase)
+    }
     if (amountPaid !== '' && amountPaid !== null && amountPaid !== undefined) {
       formData.append('amount_paid', amountPaid)
     }

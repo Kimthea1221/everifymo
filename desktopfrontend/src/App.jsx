@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
-{/* for universal login*/}
+{/* for universal login*/ }
 import UniversalLogin from './pages/universal-login.jsx';
 import { API_BASE_URL } from './utils/apiConfig'
 
@@ -87,7 +87,7 @@ export default function App() {
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<SuperAdminLogin />} />
+        <Route path='/' element={<UniversalLogin />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />

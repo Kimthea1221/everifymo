@@ -471,9 +471,6 @@ function FDAProductDB() {
     if (!productForm.registrationNumber.trim()) {
       errors.registrationNumber = "Registration Number is required";
     }
-    if (!productForm.category) {
-      errors.category = "Product Category is required";
-    }
     if (!productForm.dateRegistered) {
       errors.dateRegistered = "Date Registered is required";
     }
@@ -494,7 +491,7 @@ function FDAProductDB() {
       isOpen: true,
       type: 'confirm',
       title: 'Confirm Save Product',
-      message: 'Please check details before saving. Are you sure you want to save this product?',
+      message: 'Please check details before saving. Are you sure you want to save this product? Please make sure this is a cosmetics product before proceeding.',
       onConfirm: async () => {
         try {
           const response = await apiFetch('/registered-products/', {
@@ -503,7 +500,7 @@ function FDAProductDB() {
               product_name: productForm.productName.trim(),
               brand_name: productForm.manufacturer.trim() || null,
               registration_number: productForm.registrationNumber.trim(),
-              product_category: productForm.category,
+              product_category: productForm.category || 'Cosmetics',
               date_registered: productForm.dateRegistered || null,
               expiry_date: productForm.expiryDate || null,
             }),
@@ -512,7 +509,11 @@ function FDAProductDB() {
           if (!response.ok) {
             const errorData = await response.json();
             const errorMsg = extractErrorMessage(errorData, "Failed to save product.");
-            setFormErrors({ registrationNumber: errorMsg });
+            if (errorMsg.includes("Duplicate product name") || errorMsg.includes("product name")) {
+              setFormErrors({ productName: errorMsg });
+            } else {
+              setFormErrors({ registrationNumber: errorMsg });
+            }
             return;
           }
 
@@ -597,7 +598,11 @@ function FDAProductDB() {
           if (!response.ok) {
             const errorData = await response.json();
             const errorMsg = extractErrorMessage(errorData, "Failed to update product.");
-            setFormErrors({ registrationNumber: errorMsg });
+            if (errorMsg.includes("Duplicate product name") || errorMsg.includes("product name")) {
+              setFormErrors({ productName: errorMsg });
+            } else {
+              setFormErrors({ registrationNumber: errorMsg });
+            }
             return;
           }
 
@@ -632,8 +637,11 @@ function FDAProductDB() {
       errors.advisoryDate = "Advisory date is required";
     } else {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (new Date(conversionDetails.advisoryDate) > today) {
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      if (conversionDetails.advisoryDate > todayStr) {
         errors.advisoryDate = "Advisory Date cannot be in the future";
       }
     }
@@ -708,8 +716,11 @@ function FDAProductDB() {
       errors.advisoryDate = "Advisory Date is required";
     } else {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (new Date(advisoryForm.advisoryDate) > today) {
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      if (advisoryForm.advisoryDate > todayStr) {
         errors.advisoryDate = "Advisory Date cannot be in the future";
       }
     }
@@ -729,7 +740,7 @@ function FDAProductDB() {
       isOpen: true,
       type: 'confirm',
       title: 'Confirm Save Advisory',
-      message: 'Please check details before saving. Are you sure you want to save this advisory?',
+      message: 'Please check details before saving. Are you sure you want to save this advisory? Please make sure this is a cosmetics product before proceeding.',
       onConfirm: async () => {
         try {
           const response = await apiFetch('/unregistered-advisories/', {
@@ -779,8 +790,11 @@ function FDAProductDB() {
       errors.advisoryDate = "Advisory Date is required";
     } else {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (new Date(advisoryForm.advisoryDate) > today) {
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      if (advisoryForm.advisoryDate > todayStr) {
         errors.advisoryDate = "Advisory Date cannot be in the future";
       }
     }
@@ -1733,7 +1747,7 @@ function FDAProductDB() {
                     {formErrors.manufacturer && <span className="form-error-msg">{formErrors.manufacturer}</span>}
                   </div>
 
-                  <div className={`FdaFormGroup ${formErrors.registrationNumber ? 'has-error' : ''}`}>
+                  <div className={`FdaFormGroup span-two ${formErrors.registrationNumber ? 'has-error' : ''}`}>
                     <label>Registration Number *</label>
                     <input
                       type="text"
@@ -1742,22 +1756,6 @@ function FDAProductDB() {
                       onChange={(e) => setProductForm({ ...productForm, registrationNumber: e.target.value })}
                     />
                     {formErrors.registrationNumber && <span className="form-error-msg">{formErrors.registrationNumber}</span>}
-                  </div>
-
-                  <div className={`FdaFormGroup ${formErrors.category ? 'has-error' : ''}`}>
-                    <label>Product Category *</label>
-                    <select
-                      value={productForm.category}
-                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                    >
-                      <option value="">Select Category</option>
-                      {/* ⚠️ REMOVE THIS — options: Cosmetics, Food, Drugs, Medical Devices */}
-                      {/* 🔌 BACKEND: GET /api/categories for dynamic categories */}
-                      {defaultCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    {formErrors.category && <span className="form-error-msg">{formErrors.category}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.dateRegistered ? 'has-error' : ''}`}>
