@@ -79,8 +79,16 @@ from app.extension.routers import verification
 #for update status in desktop
 from app.desktop.routers.complaints import complaint_status
 
+#rate limiting in extension
+from app.core.extension_limiter import limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 app = FastAPI()
 # Base.metadata.create_all(bind=engine) wag na iuuncomment this line, since we are using alembic for migrations
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -144,15 +152,14 @@ app.include_router(superadmin_notifications_router)
 app.include_router(audit_logs_router)
 app.include_router(notifications_router)  # ADDED
 
-@app.get("/", status_code=status.HTTP_200_OK)
-async def user(consumer: consumer_dependency):
-    if consumer is None:
-        raise HTTPException(status_code=401,
-                            detail = "Authentication Failed")
-    return {
-        "User": consumer
-    }
-
+# @app.get("/", status_code=status.HTTP_200_OK)
+# async def user(consumer: consumer_dependency):
+#     if consumer is None:
+#         raise HTTPException(status_code=401,
+#                             detail = "Authentication Failed")
+#     return {
+#         "User": consumer
+#     }
 
 app.include_router(retrieval_router)
 

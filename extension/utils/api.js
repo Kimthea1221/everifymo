@@ -7,8 +7,19 @@ export class UnauthorizedError extends Error {
   }
 }
 
-async function handleResponse(response) {
+async function handleResponse(response, options = {}) {
+    if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const seconds = retryAfter ? parseInt(retryAfter, 10) : 60; // fallback if header missing
+        const err = new Error(`Too many attempts. Try again in ${seconds} seconds.`);
+        err.retryAfter = seconds;
+        throw err;
+    }
+
     if (response.status === 401) {
+        if (options.isLogin) {
+            throw new Error('Incorrect password.');
+        }
         throw new UnauthorizedError('Session expired. Please login once again');
     }
 
@@ -29,6 +40,14 @@ export async function apiSignUp({ email, username, password }){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, username, password })
     });
+
+    if (res.status === 429) {
+        const retryAfter = res.headers.get('Retry-After');
+        const seconds = retryAfter ? parseInt(retryAfter, 10) : 60;
+        const err = new Error(`Too many attempts. Try again in ${seconds} seconds.`);
+        err.retryAfter = seconds;
+        throw err;
+    }
 
     const data = await res.json();
 
@@ -52,13 +71,7 @@ export async function apiLogin(email, password) {
         body: formBody.toString()
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.detail || 'Login failed');
-    }
-
-    return data;
+    return handleResponse(res, { isLogin: true });
 }
 
 export async function apiGoogleLogin(token) {
@@ -67,6 +80,14 @@ export async function apiGoogleLogin(token) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token })
     });
+
+    if (res.status === 429) {
+        const retryAfter = res.headers.get('Retry-After');
+        const seconds = retryAfter ? parseInt(retryAfter, 10) : 60;
+        const err = new Error(`Too many attempts. Try again in ${seconds} seconds.`);
+        err.retryAfter = seconds;
+        throw err;
+    }
 
     const data = await res.json();
 

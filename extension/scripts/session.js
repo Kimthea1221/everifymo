@@ -103,7 +103,7 @@ export function loginUser(email, password, callback) {
               { access_token: data.access_token, token_type: data.token_type, username: data.username, email },
               () => callback(true)
           );
-      }).catch(e => callback(false, e.message));
+      }).catch(e => callback(false, e));
 }
 
 export function googleLogin(token, callback) {
@@ -113,7 +113,7 @@ export function googleLogin(token, callback) {
         { access_token: data.access_token, token_type: data.token_type, username: data.username, email: data.email },
         () => callback(true)
       );
-  }).catch(e => callback(false, e.message, e.email));
+  }).catch(e => callback(false, e.message, e.email, e));
 }
 
 export function changePendingUsername(email, newUsername, callback) {
@@ -123,27 +123,27 @@ export function changePendingUsername(email, newUsername, callback) {
 
 export function verifyOtp(email, inputCode, callback) {
   apiVerifyOtp(email, inputCode).then(() => callback(true))
-      .catch(e => callback(false, e.message))
+      .catch(e => callback(false, e))
 }
 
 export function resendOtpSession(email, callback) {
   apiResendOtp(email).then(() => callback(true))
-      .catch(e => callback(false, e.message));
+      .catch(e => callback(false, e));
 }
 
 export function verifyResetOtp(email, otpCode, callback) {
   apiVerifyResetOtp(email, otpCode).then(data => callback(true, data.reset_token))
-      .catch(e => callback(false, null, e.message));
+      .catch(e => callback(false, null, e));
 }
 
 export function requestPasswordReset(email, callback) {
   apiPasswordReset(email).then(() => callback(true))
-      .catch(e => callback(false, e.message));
+      .catch(e => callback(false, e));
 }
 
 export function confirmPasswordReset(email, resetToken, newPassword, callback) {
   apiConfirmPassReset(email, resetToken, newPassword).then(() => callback(true))
-      .catch(e => callback(false, e.message))
+      .catch(e => callback(false, e))
 }
 
 export function logoutUser(callback) {
