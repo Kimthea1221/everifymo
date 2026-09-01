@@ -36,9 +36,13 @@
   "content_scripts": [
     {
       "matches": [
-        "<all_urls>"  
+        "https://shopee.ph/*",
+        "https://lazada.com.ph/*",
+        "https://shop.tiktok.com/*",
+        "https://facebook.com/marketplace/*"  
       ],
       "js": ["scripts/content.js"],
+      "css": ["scripts/content.css"],
       "run_at": "document_idle"
     }
   ],
@@ -56,6 +60,7 @@
         "css/*.css",
         "js/*.js",
         "assets/fonts/*.woff2",
+        "assets/fonts/*.ttf",
         "assets/icons/*.png",
         "assets/images/*"
       ],

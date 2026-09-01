@@ -77,3 +77,4 @@ Thumbs.db
 #datasets and assets
 backend/nlp/assets/
 backend/nlp/datasets/
+.gitattributes

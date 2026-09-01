@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database.sessions import get_db
+from app.database.sessions import get_db, set_bypass_rls
 from app.desktop.schemas.auth.personnel_login import PersonnelLoginRequest, PersonnelOTPVerifyRequest
 from app.desktop.services.auth.personnel_auth import authenticate_personnel
 from app.desktop.services.auth.otp_service import create_otp_for_user, verify_otp_for_user
@@ -58,7 +58,7 @@ async def personnel_login(
 
 @router.post("/verify-otp")
 def verify_personnel_otp(request: PersonnelOTPVerifyRequest, http_request: Request, db: Session = Depends(get_db)):
-    db.execute(text("SET app.bypass_rls = 'true'"))
+    set_bypass_rls(db, True)
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=400, detail="User not found")

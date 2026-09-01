@@ -2,21 +2,22 @@
 from sqlalchemy.orm import Session
 from app.models.complaints import Complaint
 from app.desktop.schemas.complaints.complaints import FdaComplaintListItem
+from fastapi import HTTPException
+from app.models.shared_files import SharedFile
+from app.desktop.schemas.complaints.complaints import SharedFileResponse, FdaComplaintDetailResponse
 
 
 # services/complaints/fda_reports_service.py — one line change
 
 def list_all_complaints_for_fda(
-    db: Session, search: str | None, category: str | None,
+    db: Session, current_user, search: str | None, category: str | None,
     status: str | None, source: str | None,
 ) -> list[FdaComplaintListItem]:
     query = db.query(Complaint).filter(
         Complaint.deleted_at.is_(None),
-        Complaint.status != "open",   # ADDED — not yet sent to FDA by LEA, excluded from this report
+        Complaint.status != "open",   # not yet sent to FDA by LEA, excluded from this report
+        Complaint.region_id == current_user.region_id,   # FDA personnel are region-scoped, same as LEA
     )
-    # NOTE: no region_id filter on current_user — FDA sees every
-    # region for now. Add .filter(Complaint.region_id == current_user.region_id)
-    # here if/when confirmed FDA should be region-scoped like LEA.
 
     if source is not None:
         query = query.filter(Complaint.source == source)
@@ -50,15 +51,12 @@ def list_all_complaints_for_fda(
 
 # services/complaints/fda_reports_service.py — add this function to the same file
 
-from fastapi import HTTPException
-from app.models.shared_files import SharedFile
-from app.desktop.schemas.complaints.complaints import SharedFileResponse, FdaComplaintDetailResponse
 
-
-def get_fda_complaint_detail(db: Session, complaint_id) -> FdaComplaintDetailResponse:
+def get_fda_complaint_detail(db: Session, current_user, complaint_id) -> FdaComplaintDetailResponse:
     complaint = db.query(Complaint).filter(
         Complaint.complaint_id == complaint_id,
         Complaint.deleted_at.is_(None),
+        Complaint.region_id == current_user.region_id,   # region scoping — same pattern as get_walkin_complaint_detail
     ).first()
 
     if not complaint:
