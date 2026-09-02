@@ -27,10 +27,6 @@ import { apiFetch } from '../../utils/apiFetch';
 // NOTE: Items per page for table pagination
 const ITEMS_PER_PAGE = 10;
 
-// NOTE: Categories list options. 
-// 🔌 BACKEND: GET /api/categories for dynamic category list
-const defaultCategories = ['Cosmetics', 'Food', 'Drugs', 'Medical Devices'];
-
 // Reusable View + Dropdown action control (Superadmin-style pattern)
 function FdaActionDropdown({ id, activeDropdownId, setActiveDropdownId, onView, children }) {
   const [openUpward, setOpenUpward] = useState(false);
@@ -93,7 +89,6 @@ function FDAProductDB() {
 
   // Registered Products filters state
   const [searchRegistered, setSearchRegistered] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterExpiry, setFilterExpiry] = useState('');
   const [filterDateFromReg, setFilterDateFromReg] = useState('');
@@ -201,7 +196,7 @@ function FDAProductDB() {
     productName: '',
     manufacturer: '',
     registrationNumber: '',
-    category: '',
+    category: 'Cosmetics',
     dateRegistered: '',
     expiryDate: '',
   });
@@ -221,7 +216,7 @@ function FDAProductDB() {
     sourceUrl: '',
     registrationNumber: '',
     manufacturer: '',
-    category: '',
+    category: 'Cosmetics',
     dateRegistered: '',
     expiryDate: '',
   });
@@ -297,7 +292,7 @@ function FDAProductDB() {
       productName: '',
       manufacturer: '',
       registrationNumber: '',
-      category: '',
+      category: 'Cosmetics',
       dateRegistered: '',
       expiryDate: '',
     });
@@ -321,7 +316,7 @@ function FDAProductDB() {
       sourceUrl: '',
       registrationNumber: '',
       manufacturer: '',
-      category: '',
+      category: 'Cosmetics',
       dateRegistered: '',
       expiryDate: '',
     });
@@ -332,13 +327,12 @@ function FDAProductDB() {
   // FILTERING LOGIC
 
 
-  // NOTE: Filter products list based on category, status, expiry, date range and search filters
+  // NOTE: Filter products list based on status, expiry, date range and search filters
   const filteredProducts = registeredProducts.filter(product => {
     const matchesSearch = product.productName.toLowerCase().includes(searchRegistered.toLowerCase()) ||
       (product.manufacturer && product.manufacturer.toLowerCase().includes(searchRegistered.toLowerCase())) ||
       product.registrationNumber.toLowerCase().includes(searchRegistered.toLowerCase());
 
-    const matchesCategory = filterCategory === '' || product.category === filterCategory;
     const matchesStatus = filterStatus === '' || product.status === filterStatus;
 
     let matchesExpiry = true;
@@ -353,7 +347,7 @@ function FDAProductDB() {
     const matchesDateFrom = filterDateFromReg === '' || (product.dateRegistered && product.dateRegistered >= filterDateFromReg);
     const matchesDateTo = filterDateToReg === '' || (product.dateRegistered && product.dateRegistered <= filterDateToReg);
 
-    return matchesSearch && matchesCategory && matchesStatus && matchesExpiry && matchesDateFrom && matchesDateTo;
+    return matchesSearch && matchesStatus && matchesExpiry && matchesDateFrom && matchesDateTo;
   });
 
   // NOTE: Filter advisories list based on date ranges, source, and search filters
@@ -500,7 +494,7 @@ function FDAProductDB() {
               product_name: productForm.productName.trim(),
               brand_name: productForm.manufacturer.trim() || null,
               registration_number: productForm.registrationNumber.trim(),
-              product_category: productForm.category || 'Cosmetics',
+              product_category: 'Cosmetics',
               date_registered: productForm.dateRegistered || null,
               expiry_date: productForm.expiryDate || null,
             }),
@@ -557,9 +551,6 @@ function FDAProductDB() {
         errors.registrationNumber = "Registration Number must be unique. This number is used by another product.";
       }
     }
-    if (!productForm.category) {
-      errors.category = "Product Category is required";
-    }
     if (!productForm.dateRegistered) {
       errors.dateRegistered = "Date Registered is required";
     }
@@ -589,7 +580,7 @@ function FDAProductDB() {
               product_name: productForm.productName.trim(),
               brand_name: productForm.manufacturer.trim() || null,
               registration_number: productForm.registrationNumber.trim(),
-              product_category: productForm.category,
+              product_category: 'Cosmetics',
               date_registered: productForm.dateRegistered || null,
               expiry_date: productForm.expiryDate || null,
             }),
@@ -870,10 +861,6 @@ function FDAProductDB() {
       errors.manufacturer = "Manufacturer is required";
     }
 
-    if (!conversionDetails.category) {
-      errors.category = "Product Category is required";
-    }
-
     if (!conversionDetails.dateRegistered) {
       errors.dateRegistered = "Date Registered is required";
     }
@@ -904,7 +891,7 @@ function FDAProductDB() {
               product_name: selectedAdvisory.productName,
               brand_name: conversionDetails.manufacturer.trim() || null,
               registration_number: conversionDetails.registrationNumber.trim(),
-              product_category: conversionDetails.category,
+              product_category: 'Cosmetics',
               date_registered: conversionDetails.dateRegistered || null,
               expiry_date: conversionDetails.expiryDate || null,
             }),
@@ -1033,7 +1020,7 @@ function FDAProductDB() {
       productName: p.productName,
       manufacturer: p.manufacturer || '',
       registrationNumber: p.registrationNumber,
-      category: p.category,
+      category: 'Cosmetics',
       dateRegistered: p.dateRegistered || '',
       expiryDate: p.expiryDate || '',
     });
@@ -1082,28 +1069,6 @@ function FDAProductDB() {
           width: 100% !important;
         }
 
-        /* Responsive Overrides for FDA Product Database */
-        @media (max-width: 992px) {
-          .FdaProductFilterPanel {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 16px !important;
-          }
-          .FdaSearchFixed {
-            width: 100% !important;
-          }
-          .FdaFilterGroupsRight {
-            margin-left: 0 !important;
-            width: 100% !important;
-            display: grid !important;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
-            gap: 12px !important;
-          }
-          .FdaFilterGroup select, 
-          .FdaFilterGroup input[type="date"] {
-            width: 100% !important;
-          }
-        }
         @media (max-width: 768px) {
           .FdaHeader {
             flex-direction: column !important;
@@ -1302,24 +1267,6 @@ function FDAProductDB() {
 
               <div className="FdaFilterGroupsRight">
                 <div className="FdaFilterGroup">
-                  <label>Category</label>
-                  <select
-                    value={filterCategory}
-                    onChange={(e) => {
-                      setFilterCategory(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <option value="">All Categories</option>
-                    {defaultCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-
-
-                <div className="FdaFilterGroup">
                   <label>Expiry</label>
                   <select
                     value={filterExpiry}
@@ -1359,15 +1306,14 @@ function FDAProductDB() {
                   />
                 </div>
 
-                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
-                {(searchRegistered !== '' || filterCategory !== '' || filterStatus !== '' || filterExpiry !== '' || filterDateFromReg !== '' || filterDateToReg !== '') && (
+                {/* Clear Filters button */}
+                {(searchRegistered !== '' || filterStatus !== '' || filterExpiry !== '' || filterDateFromReg !== '' || filterDateToReg !== '') && (
                   <button
                     className="BtnClearFiltersIcon"
                     aria-label="Clear Filters"
                     title="Clear Filters"
                     onClick={() => {
                       setSearchRegistered('');
-                      setFilterCategory('');
                       setFilterStatus('');
                       setFilterExpiry('');
                       setFilterDateFromReg('');
@@ -1709,9 +1655,7 @@ function FDAProductDB() {
             </div>
           </div>
 
-          {/* =========================================================================
-              MODALS — TAB 1: REGISTERED PRODUCTS
-             ========================================================================= */}
+          {/* MODALS — TAB 1: REGISTERED PRODUCTS*/}
 
           {/* Modal 1: Add Registered Product */}
           {showAddProductModal && (
@@ -1884,7 +1828,7 @@ function FDAProductDB() {
                     {formErrors.manufacturer && <span className="form-error-msg">{formErrors.manufacturer}</span>}
                   </div>
 
-                  <div className={`FdaFormGroup ${formErrors.registrationNumber ? 'has-error' : ''}`}>
+                  <div className={`FdaFormGroup span-two ${formErrors.registrationNumber ? 'has-error' : ''}`}>
                     <label>Registration Number *</label>
                     <input
                       type="text"
@@ -1892,20 +1836,6 @@ function FDAProductDB() {
                       onChange={(e) => setProductForm({ ...productForm, registrationNumber: e.target.value })}
                     />
                     {formErrors.registrationNumber && <span className="form-error-msg">{formErrors.registrationNumber}</span>}
-                  </div>
-
-                  <div className={`FdaFormGroup ${formErrors.category ? 'has-error' : ''}`}>
-                    <label>Product Category *</label>
-                    <select
-                      value={productForm.category}
-                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                    >
-                      <option value="">Select Category</option>
-                      {defaultCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    {formErrors.category && <span className="form-error-msg">{formErrors.category}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.dateRegistered ? 'has-error' : ''}`}>
@@ -2207,7 +2137,7 @@ function FDAProductDB() {
                   A new registered product record will be created, and this advisory will be archived.
                 </p>
                 <form onSubmit={handleConvertToRegistered} className="FdaFormGrid">
-                  <div className={`FdaFormGroup ${formErrors.registrationNumber ? 'has-error' : ''}`}>
+                  <div className={`FdaFormGroup span-two ${formErrors.registrationNumber ? 'has-error' : ''}`}>
                     <label>Registration Number *</label>
                     <input
                       type="text"
@@ -2218,7 +2148,7 @@ function FDAProductDB() {
                     {formErrors.registrationNumber && <span className="form-error-msg">{formErrors.registrationNumber}</span>}
                   </div>
 
-                  <div className={`FdaFormGroup ${formErrors.manufacturer ? 'has-error' : ''}`}>
+                  <div className={`FdaFormGroup span-two ${formErrors.manufacturer ? 'has-error' : ''}`}>
                     <label>Manufacturer *</label>
                     <input
                       type="text"
@@ -2227,20 +2157,6 @@ function FDAProductDB() {
                       onChange={(e) => setConversionDetails({ ...conversionDetails, manufacturer: e.target.value })}
                     />
                     {formErrors.manufacturer && <span className="form-error-msg">{formErrors.manufacturer}</span>}
-                  </div>
-
-                  <div className={`FdaFormGroup ${formErrors.category ? 'has-error' : ''}`}>
-                    <label>Product Category *</label>
-                    <select
-                      value={conversionDetails.category}
-                      onChange={(e) => setConversionDetails({ ...conversionDetails, category: e.target.value })}
-                    >
-                      <option value="">Select Category</option>
-                      {defaultCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    {formErrors.category && <span className="form-error-msg">{formErrors.category}</span>}
                   </div>
 
                   <div className={`FdaFormGroup ${formErrors.dateRegistered ? 'has-error' : ''}`}>
@@ -2253,7 +2169,7 @@ function FDAProductDB() {
                     {formErrors.dateRegistered && <span className="form-error-msg">{formErrors.dateRegistered}</span>}
                   </div>
 
-                  <div className={`FdaFormGroup span-two ${formErrors.expiryDate ? 'has-error' : ''}`}>
+                  <div className={`FdaFormGroup ${formErrors.expiryDate ? 'has-error' : ''}`}>
                     <label>Expiry Date *</label>
                     <input
                       type="date"

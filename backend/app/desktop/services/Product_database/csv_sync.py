@@ -67,7 +67,7 @@ def sync_registered_products_to_csv(db: Session):
                     "PRODUCT_NAME": cleaned_name,
                     "BRAND_NAME": p.brand_name or "",
                     "PROD_VARIANTS": "",
-                    "PRODUCT_INTENDED_USE": "",
+                    "PRODUCT_INTENDED_USE": p.product_category or "Cosmetics",
                     "COMPANY_NAME": "",
                     "NOTIFICATION_DECISION_DATE": date_str,
                     "NOTIFICATION_VALIDITY": expiry_str,
