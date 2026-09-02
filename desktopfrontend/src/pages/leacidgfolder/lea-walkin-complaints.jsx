@@ -54,6 +54,19 @@ function WcGetStatusLabel(status) {
     }
 }
 
+// Maps raw backend category values to their display labels.
+// Only "Devices" differs from its own value — the rest map to themselves.
+const WC_CATEGORY_LABELS = {
+    Cosmetics: 'Cosmetics',
+    Food: 'Food',
+    Devices: 'Medical Devices',
+    Drugs: 'Drugs',
+};
+
+function WcGetCategoryLabel(category) {
+    return WC_CATEGORY_LABELS[category] || category;
+}
+
 function LeaWalkinComplaints() {
     // BACKEND:
     // Load complaints from API.
@@ -312,7 +325,7 @@ function LeaWalkinComplaints() {
             c.manufacturer,
             c.complainant,
             WcGetStatusLabel(c.status),
-            c.category,
+            WcGetCategoryLabel(c.category),
             c.logged,
         ])
         const escapeCell = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`
@@ -364,7 +377,7 @@ function LeaWalkinComplaints() {
                                     value={selectedStatus}
                                     onChange={(e) => setSelectedStatus(e.target.value)}
                                 >
-                                    <option value="All">All Status</option>
+                                    <option value="All">All Statuses</option>
                                     <option value="queued">Ready to Send</option>
                                     <option value="pending">Pending FDA Verification</option>
                                     <option value="confirmed_registered">Confirmed Registered</option>
@@ -445,7 +458,7 @@ function LeaWalkinComplaints() {
                                                     {WcGetStatusLabel(complaint.status)}
                                                 </span>
                                             </td>
-                                            <td className='WcCategoryCell'>{complaint.category}</td>
+                                            <td className='WcCategoryCell'>{WcGetCategoryLabel(complaint.category)}</td>
                                             <td>{complaint.logged}</td>
                                             <td>
                                                 <div className='WcActionCell' ref={openMenuId === complaint.id ? menuRef : null}>
@@ -544,7 +557,7 @@ function LeaWalkinComplaints() {
                                         <div>
                                             <p><strong>Case ID:</strong> <br></br>{selectedComplaint.id}</p>
                                             <p><strong>Manufacturer:</strong><br></br> {selectedComplaint.manufacturer}</p>
-                                            <p><strong>Category:</strong><br></br> {selectedComplaint.category}</p>
+                                            <p><strong>Category:</strong><br></br> {WcGetCategoryLabel(selectedComplaint.category)}</p>
                                         </div>
                                         <div>
                                             <p><strong>Complainant:</strong><br></br> {selectedComplaint.complainant}</p>

@@ -8,10 +8,12 @@ function DeepLinkStatus() {
     const location = useLocation()
     const navigate = useNavigate()
 
-    const { status: linkStatus, invite_token } = location.state || {}
+    const { status: linkStatus, invite_token, resend_already_requested } = location.state || {}
 
-    const [requested, setRequested] = useState(false)
-    const [resendNotice, setResendNotice] = useState('')
+    const [requested, setRequested] = useState(!!resend_already_requested)
+    const [resendNotice, setResendNotice] = useState(
+        resend_already_requested ? 'A resend has already been requested for this invitation.' : ''
+    )
     const [resendSending, setResendSending] = useState(false)
 
     function handleRequestResend() {
@@ -72,7 +74,7 @@ function DeepLinkStatus() {
             message: 'Your registration has already been completed. You do not need to register again. Please wait for your administrator to activate your account, or login if your account is already active.',
             showButton: true,
             buttonLabel: 'Go to Login',
-            buttonAction: () => navigate('/login'),
+            buttonAction: () => navigate('/universal-login'),
             accentColor: '#0D9488',
         },
     }
