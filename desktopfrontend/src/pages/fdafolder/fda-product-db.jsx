@@ -1069,28 +1069,6 @@ function FDAProductDB() {
           width: 100% !important;
         }
 
-        /* Responsive Overrides for FDA Product Database */
-        @media (max-width: 992px) {
-          .FdaProductFilterPanel {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 16px !important;
-          }
-          .FdaSearchFixed {
-            width: 100% !important;
-          }
-          .FdaFilterGroupsRight {
-            margin-left: 0 !important;
-            width: 100% !important;
-            display: grid !important;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
-            gap: 12px !important;
-          }
-          .FdaFilterGroup select, 
-          .FdaFilterGroup input[type="date"] {
-            width: 100% !important;
-          }
-        }
         @media (max-width: 768px) {
           .FdaHeader {
             flex-direction: column !important;
@@ -1677,9 +1655,7 @@ function FDAProductDB() {
             </div>
           </div>
 
-          {/* =========================================================================
-              MODALS — TAB 1: REGISTERED PRODUCTS
-             ========================================================================= */}
+          {/* MODALS — TAB 1: REGISTERED PRODUCTS*/}
 
           {/* Modal 1: Add Registered Product */}
           {showAddProductModal && (

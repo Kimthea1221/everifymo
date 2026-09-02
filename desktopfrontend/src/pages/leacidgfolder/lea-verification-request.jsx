@@ -659,7 +659,7 @@ function LeaVerificationRequest() {
   }, [docPreviewModal]);
 
   // ADDED — POST/PUT /drafts/verification/
-  // ─── Save Draft handler ───────────────────────────────────────────────────
+  // ─── Save Draft handler 
   const handleSaveDraft = async () => {
     if (!selectedComplaint) {
       showError('Please select a complaint first.');
@@ -1505,11 +1505,26 @@ function LeaVerificationRequest() {
                         className={`QueueCard ${selectedAwaitingFda?.request_id === item.request_id ? 'ActiveQueueCard' : ''}`}
                         onClick={() => setSelectedAwaitingFda(item)}
                       >
-                        {/* MERGED-CHANGED — restructured to match the reference UI: CASE ID + source tag on top row */}
-                        <div className="QueueCardTopRow">
-                          <small style={{ margin: 0 }}>CASE ID: {item.case_reference}</small>
-                          <span className="QueueTagInline">{GetSourceLabel(item.source)}</span>
-                        </div>
+                        {/* MERGED-CHANGED — restructured to match the reference UI: CASE ID + source tag + priority on top row */}
+                          <div className="QueueCardTopRow">
+                            <small style={{ margin: 0 }}>CASE ID: {item.case_reference}</small>
+
+                            <span className="QueueTagInline">
+                                  {GetSourceLabel(item.source)}
+                                </span>
+
+                                {item.priority && (
+                                  <span className={`QueueStatusBadge ${
+                                    (item.priority || '').toLowerCase() === 'standard'
+                                      ? 'registered'
+                                      : (item.priority || '').toLowerCase() === 'high'
+                                        ? 'rejected'
+                                        : 'unregistered'
+                                  }`}>
+                                    {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
+                                  </span>
+                                )}
+                              </div>
                         <h4>{item.product_name}</h4>
                         <p>{item.manufacturer || '—'}</p>
 

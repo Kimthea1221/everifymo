@@ -28,8 +28,12 @@ function UniversalLogin() {
   // Which tab is active: 'personnel' | 'superadmin'
   const [universalLoginActiveTab, setUniversalLoginActiveTab] = useState('personnel');
 
+  // Tracks whether either child form is on its OTP screen
+  const [isShowingOtp, setIsShowingOtp] = useState(false);
+
   function handleUniversalLoginTabSwitch(tab) {
     if (tab === universalLoginActiveTab) return;
+    setIsShowingOtp(false);
     setUniversalLoginActiveTab(tab);
   }
 
@@ -66,31 +70,33 @@ function UniversalLogin() {
 
           {/* RIGHT SIDE — compact white card with role toggle at top */}
           <div className="universal-login-right-wrapper">
-            <div className="universal-login-right-panel">
-              {/* TOP GLASS SEGMENTED ROLE TOGGLE */}
-              <div className="universal-login-tabs-container">
-                <button
-                  type="button"
-                  className={`universal-login-tab-btn ${universalLoginActiveTab === 'personnel' ? 'active' : ''}`}
-                  onClick={() => handleUniversalLoginTabSwitch('personnel')}
-                >
-                  <Users size={15} />
-                  <span>Personnel</span>
-                </button>
-                <button
-                  type="button"
-                  className={`universal-login-tab-btn ${universalLoginActiveTab === 'superadmin' ? 'active' : ''}`}
-                  onClick={() => handleUniversalLoginTabSwitch('superadmin')}
-                >
-                  <ShieldCheck size={15} />
-                  <span>Super Admin</span>
-                </button>
-              </div>
+            <div className="universal-login-right-panel" style={isShowingOtp ? { justifyContent: 'center' } : undefined}>
+              {/* TOP GLASS SEGMENTED ROLE TOGGLE — hidden while on OTP screen */}
+              {!isShowingOtp && (
+                <div className="universal-login-tabs-container">
+                  <button
+                    type="button"
+                    className={`universal-login-tab-btn ${universalLoginActiveTab === 'personnel' ? 'active' : ''}`}
+                    onClick={() => handleUniversalLoginTabSwitch('personnel')}
+                  >
+                    <Users size={15} />
+                    <span>Personnel</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`universal-login-tab-btn ${universalLoginActiveTab === 'superadmin' ? 'active' : ''}`}
+                    onClick={() => handleUniversalLoginTabSwitch('superadmin')}
+                  >
+                    <ShieldCheck size={15} />
+                    <span>Super Admin</span>
+                  </button>
+                </div>
+              )}
 
               {universalLoginActiveTab === 'personnel' ? (
-                <PersonnelLoginForm navigate={navigate} />
+                <PersonnelLoginForm navigate={navigate} onOtpStateChange={setIsShowingOtp} />
               ) : (
-                <SuperAdminLoginForm navigate={navigate} />
+                <SuperAdminLoginForm navigate={navigate} onOtpStateChange={setIsShowingOtp} />
               )}
             </div>
           </div>
@@ -792,7 +798,7 @@ function UniversalLogin() {
 // PERSONNEL LOGIN FORM
 // Supports both mock frontend testing and real API fallback
 // ============================================================================
-function PersonnelLoginForm({ navigate }) {
+function PersonnelLoginForm({ navigate, onOtpStateChange }) {
   const [personnelAgency, setPersonnelAgency] = useState('');
   const [personnelEmail, setPersonnelEmail] = useState('');
   const [personnelPassword, setPersonnelPassword] = useState('');
@@ -823,6 +829,11 @@ function PersonnelLoginForm({ navigate }) {
   const [personnelOtp, setPersonnelOtp] = useState(new Array(6).fill(''));
   const [personnelTimer, setPersonnelTimer] = useState(300);
   const personnelOtpRefs = useRef([]);
+
+  // Notify parent when OTP screen visibility changes
+  useEffect(() => {
+    if (onOtpStateChange) onOtpStateChange(personnelIsOtpSent);
+  }, [personnelIsOtpSent]);
 
   useEffect(() => {
     let interval;
@@ -1266,7 +1277,7 @@ function PersonnelLoginForm({ navigate }) {
 // SUPER ADMIN LOGIN FORM
 // Supports both mock frontend testing and real API fallback
 // ============================================================================
-function SuperAdminLoginForm({ navigate }) {
+function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminShowPassword, setAdminShowPassword] = useState(false);
@@ -1304,6 +1315,11 @@ function SuperAdminLoginForm({ navigate }) {
   const [adminOtp, setAdminOtp] = useState(new Array(6).fill(''));
   const [adminTimer, setAdminTimer] = useState(300);
   const adminOtpRefs = useRef([]);
+
+  // Notify parent when OTP screen visibility changes
+  useEffect(() => {
+    if (onOtpStateChange) onOtpStateChange(adminIsOtpSent);
+  }, [adminIsOtpSent]);
 
   useEffect(() => {
     let interval;

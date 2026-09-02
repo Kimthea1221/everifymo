@@ -515,6 +515,39 @@ function TopBar({ topbarType, role, agency }) {
                     font-size: 13px;
                 }
 
+                .TopNotifFooter {
+                    padding: 10px 16px;
+                    border-top: 1px solid #EDEDED;
+                    background: #FAFAFA;
+                    text-align: center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .SeeAllNotifsBtn {
+                    background: transparent;
+                    border: none;
+                    color: #13213C;
+                    font-size: 12.5px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    width: 100%;
+                    padding: 6px 10px;
+                    border-radius: 6px;
+                    transition: all 0.2s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    text-align: center;
+                    text-decoration: none;
+                }
+
+                .SeeAllNotifsBtn:hover {
+                    background: #EDEDED;
+                    color: #0D9488;
+                }
+
                 .BellBadge {
                     position: absolute;
                     top: -2px;
@@ -855,7 +888,7 @@ function TopBar({ topbarType, role, agency }) {
                                     ) : notifications.length === 0 ? (
                                         <div className='EmptyNotif'>No notifications</div>
                                     ) : (
-                                        notifications.map((notif) => (
+                                        notifications.slice(0, 10).map((notif) => (
                                             <div
                                                 key={notif.id}
                                                 className={`NotifItem ${notif.isRead ? '' : 'unread'}`}
@@ -870,6 +903,18 @@ function TopBar({ topbarType, role, agency }) {
                                             </div>
                                         ))
                                     )}
+                                </div>
+                                <div className='TopNotifFooter'>
+                                    <button
+                                        type='button'
+                                        className='SeeAllNotifsBtn'
+                                        onClick={() => {
+                                            setIsNotifOpen(false);
+                                            navigate('/all-notifications');
+                                        }}
+                                    >
+                                        See all notifications
+                                    </button>
                                 </div>
                             </div>
                         )}
