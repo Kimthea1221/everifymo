@@ -320,7 +320,7 @@ const sidebarStyles = `
   .SuperAdminSidebarMain,
   .FdaSidebarMain,
   .LeaSidebarMain {
-    width: 76px;
+    width: 60px;
     overflow: visible;
   }
 
@@ -339,17 +339,17 @@ const sidebarStyles = `
   .LeaSidebarMenu {
     order: 2;
     flex: 1;
-    padding: 12px 8px;
+    padding: 12px 6px;
     margin-bottom: 64px;
     transition: margin-bottom 0.3s ease;
-    overflow-y: auto;
-    overflow-x: hidden;
+    /* overflow: visible so ::after tooltips can appear outside the 60px rail */
+    overflow: visible;
   }
 
   .SuperAdminSidebarTop,
   .FdaSidebarTop,
   .LeaSidebarTop {
-    width: 76px;
+    width: 60px;
     min-height: 0;
     height: 0;
     padding: 0;
@@ -415,10 +415,9 @@ const sidebarStyles = `
   .LeaSidebarMain .MenuBtn[data-tooltip]:focus-visible::after {
     content: attr(data-tooltip);
     position: absolute;
-    left: 100%;
+    left: calc(100% + 10px);
     top: 50%;
     transform: translateY(-50%);
-    margin-left: 10px;
     background: #111827;
     color: #ffffff;
     padding: 6px 10px;
@@ -427,8 +426,8 @@ const sidebarStyles = `
     font-weight: 500;
     white-space: nowrap;
     pointer-events: none;
-    z-index: 50;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 999;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
   }
 
   /* Temporary expand via hamburger (overlay, doesn't shift layout) */

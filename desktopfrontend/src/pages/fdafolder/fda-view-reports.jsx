@@ -143,8 +143,7 @@ function FDAViewReports() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
 
-  // SELECTED ROW IDs FOR BULK ACTIONS
-  const [selectedIds, setSelectedIds] = useState([]);
+
 
   // PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
@@ -343,37 +342,13 @@ useEffect(() => {
   const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
   const paginatedReports = filteredReports.slice(startIndex, endIndex);
 
-  // ROW SELECTION HANDLERS
-  // CHANGED — id field is now complaint_id
-  const visibleIds = paginatedReports.map(r => r.complaint_id);
-  const isAllSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.includes(id));
 
-  const handleHeaderCheckboxChange = () => {
-    if (isAllSelected) {
-      setSelectedIds(prev => prev.filter(id => !visibleIds.includes(id)));
-    } else {
-      setSelectedIds(prev => {
-        const unique = new Set([...prev, ...visibleIds]);
-        return Array.from(unique);
-      });
-    }
-  };
-
-  const handleRowCheckboxChange = (id) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-    } else {
-      setSelectedIds(prev => [...prev, id]);
-    }
-  };
 
   // EXPORT CSV HANDLER
   // CHANGED — field names updated to match backend; REGION column removed
   // from both headers and row values.
   const handleExportCSV = () => {
-    const rowsToExport = selectedIds.length > 0 
-      ? reports.filter(r => selectedIds.includes(r.complaint_id))
-      : filteredReports;
+    const rowsToExport = filteredReports;
 
     if (rowsToExport.length === 0) {
       alert("No data available to export.");
@@ -542,22 +517,7 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* BULK ACTIONS BAR */}
-          {selectedIds.length > 0 && (
-            <div className="FdaBulkBar">
-              <span className="FdaBulkInfo">
-                {selectedIds.length} {selectedIds.length === 1 ? 'row' : 'rows'} selected
-              </span>
-              <div className="FdaBulkActions">
-                <button className="BtnBulkExport" onClick={handleExportCSV}>
-                  Bulk Export CSV
-                </button>
-                <button className="BtnClearSelection" onClick={() => setSelectedIds([])}>
-                  Clear
-                </button>
-              </div>
-            </div>
-          )}
+
 
           {/* MAIN PAGE INTERACTIVE GRID */}
           <div className="FdaLayoutGrid">
@@ -566,14 +526,6 @@ useEffect(() => {
                 <table className="FdaTable">
                   <thead>
                     <tr>
-                      <th style={{ width: '40px' }}>
-                        <input
-                          type="checkbox"
-                          className="FdaCheckbox"
-                          checked={isAllSelected}
-                          onChange={handleHeaderCheckboxChange}
-                        />
-                      </th>
                       <th>CASE ID</th>
                       <th>PRODUCT</th>
                       <th>MANUFACTURER</th>
@@ -589,19 +541,19 @@ useEffect(() => {
                     {/* ADDED — loading and error states for the real fetch */}
                     {reportsLoading ? (
                       <tr>
-                        <td colSpan="9" className="FdaEmptyState">
+                        <td colSpan="8" className="FdaEmptyState">
                           <p>Loading consumer reports...</p>
                         </td>
                       </tr>
                     ) : reportsError ? (
                       <tr>
-                        <td colSpan="9" className="FdaEmptyState">
+                        <td colSpan="8" className="FdaEmptyState">
                           <p>{reportsError}</p>
                         </td>
                       </tr>
                     ) : paginatedReports.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="FdaEmptyState">
+                        <td colSpan="8" className="FdaEmptyState">
                           <Search size={32} />
                           <p>No complaints match your search query or active filter settings.</p>
                         </td>
@@ -610,16 +562,7 @@ useEffect(() => {
                       paginatedReports.map(report => (
                         <tr 
                           key={report.complaint_id}
-                          className={selectedIds.includes(report.complaint_id) ? 'row-selected' : ''}
                         >
-                          <td>
-                            <input
-                              type="checkbox"
-                              className="FdaCheckbox"
-                              checked={selectedIds.includes(report.complaint_id)}
-                              onChange={() => handleRowCheckboxChange(report.complaint_id)}
-                            />
-                          </td>
                           <td className="CaseIdCell">{report.case_reference}</td>
                           <td className="ProductNameCell">{report.product_title}</td>
                           <td className="ManufacturerCell">{report.manufacturer || '—'}</td>
