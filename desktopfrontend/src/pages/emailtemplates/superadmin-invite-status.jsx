@@ -65,14 +65,14 @@ function SuperadminInviteStatus() {
       accentColor: '#0D9488',
     },
     expired: {
-      icon: <ClockAlert size={32} color="#D97706" />,
-      iconBg: '#FEF3C7',
+      icon: <ClockAlert size={32} color="#0D9488" />,
+      iconBg: '#CCFBF1',
       title: 'Invitation Expired',
       message: 'Your Superadmin invitation link has expired. Invitation links are only valid for 2 days. Please request a new invitation from your administrator.',
       showButton: !requested,
       buttonLabel: resendSending ? 'Sending Request…' : 'Request New Invitation',
       buttonAction: handleRequestNewInvite,
-      accentColor: '#D97706',
+      accentColor: '#0D9488',
     },
     used: {
       icon: <CircleCheckBig size={32} color="#0D9488" />,

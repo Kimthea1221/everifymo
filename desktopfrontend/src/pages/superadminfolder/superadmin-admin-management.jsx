@@ -20,6 +20,7 @@ import {
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 import { apiFetch } from '../../utils/apiFetch';
+import { ADMIN_STATUS_META } from './superadmin-status-colors';
 
 // Decode current superadmin's user_id from the JWT access token payload
 function getCurrentAdminId() {
@@ -52,18 +53,8 @@ function mapAdmin(item) {
   };
 }
 
-const STATUS_META = {
-  Invited: { label: 'Invited', className: 'sam-badge-invited' },
-  'Link Expired': { label: 'Link Expired', className: 'sam-badge-expired' },
-  'Resend Requested': { label: 'Resend Requested', className: 'sam-badge-pending' },
-  Active: { label: 'Active', className: 'sam-badge-active' },
-  Suspended: { label: 'Suspended', className: 'sam-badge-suspended' },
-  'Pending Approval': { label: 'Pending Approval', className: 'sam-badge-pending' },
-  Locked: { label: 'Locked', className: 'sam-badge-locked' },
-};
-
 function SAMStatusBadge({ status }) {
-  const meta = STATUS_META[status] || { label: status, className: '' };
+  const meta = ADMIN_STATUS_META[status] || { label: status, className: '' };
   return <span className={`SAMStatusBadge ${meta.className}`}>{meta.label}</span>;
 }
 
