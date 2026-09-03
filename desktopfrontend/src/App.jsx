@@ -92,7 +92,7 @@ export default function App() {
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
-        <Route path='/superadmin-login' element={<SuperAdminLogin />} />
+        <Route path='/superadmin-login' element={<Login />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/change-password' element={<ChangePassword />} />
         <Route path='/create-new-password' element={<CreateNewPassword />} />
