@@ -11,6 +11,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -19,7 +21,7 @@ function createWindow() {
   })
 
   // Open DevTools
-  // mainWindow.webContents.openDevTools();
+  //mainWindow.webContents.openDevTools();
 
   // Stash the token here if it arrives before React has finished loading and
   // listening — we'll deliver it below, once did-finish-load confirms React is ready.

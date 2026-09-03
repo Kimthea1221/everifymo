@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './pages/login-user.jsx'
-{/* for universal login*/}
+{/* for universal login*/ }
 import UniversalLogin from './pages/universal-login.jsx';
 import { API_BASE_URL } from './utils/apiConfig'
 
@@ -18,6 +18,7 @@ import SuperadminOtpEmail from './pages/emailtemplates/superadmin-otp-email.jsx'
 
 import DeepLinkStatus from './pages/emailtemplates/invitation-status.jsx'
 import ProfileSetting from './pages/profile-setting.jsx';
+import AllNotifications from './pages/component/all-notifications.jsx';
 
 {/* SUPERADMIN PAGES */ }
 import SuperAdminLogin from './pages/superadminfolder/superadmin-login.jsx';
@@ -62,7 +63,7 @@ function DeepLinkListener() {
               navigate('/create-new-password', { state: { token } });
             } else {
               navigate('/superadmin-invite-status', {
-                state: { status: data.status, token },
+                state: { ...data, token },
               });
             }
             return;
@@ -71,7 +72,7 @@ function DeepLinkListener() {
           if (data.status === 'valid') {
             navigate('/user-registration', { state: { ...data, invite_token: token } });
           } else {
-            navigate('/invitation-status', { state: { status: data.status, invite_token: token } });
+            navigate('/invitation-status', { state: { ...data, invite_token: token } });
           }
         });
     });
@@ -87,11 +88,11 @@ export default function App() {
     <BrowserRouter>
       <DeepLinkListener />
       <Routes>
-        <Route path='/' element={<SuperAdminLogin />} />
+        <Route path='/' element={<UniversalLogin />} />
 
         {/* AUTH ROUTES */}
         <Route path='/login' element={<Login />} />
-        <Route path='/superadmin-login' element={<SuperAdminLogin />} />
+        <Route path='/superadmin-login' element={<Login />} />
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/change-password' element={<ChangePassword />} />
         <Route path='/create-new-password' element={<CreateNewPassword />} />
@@ -126,6 +127,7 @@ export default function App() {
         <Route path='/superadmin-invite-status' element={<SuperadminInviteStatus />} />
 
         <Route path='/profile-setting' element={<ProfileSetting />} />
+        <Route path='/all-notifications' element={<AllNotifications />} />
 
         {/* FDA ROUTES */}
         <Route path='/fdafolder/fda-dashboard' element={<FDADashboard />} />

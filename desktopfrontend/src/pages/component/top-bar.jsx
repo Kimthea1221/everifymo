@@ -72,6 +72,10 @@ function TopBar({ topbarType, role, agency }) {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+    // End Session confirmation modal states
+    const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
     // refs for detecting clicks outside dropdowns
     const notifRef = useRef(null);
     const profileRef = useRef(null);
@@ -210,11 +214,33 @@ function TopBar({ topbarType, role, agency }) {
     localStorage.removeItem('role');
 
     if (normalizedAgency === 'superadmin') {
-        navigate('/superadmin-login');
+        navigate('/universal-login?tab=superadmin');
     } else {
-        navigate('/login');
+        navigate('/universal-login');
     }
 };
+
+    // Gated End Session UI Handlers — opens modal first, never ends session prematurely
+    const handleEndSessionClick = () => {
+        setIsProfileOpen(false);
+        setIsEndSessionModalOpen(true);
+    };
+
+    const handleCancelEndSession = () => {
+        if (isLoggingOut) return;
+        setIsEndSessionModalOpen(false);
+    };
+
+    const handleConfirmEndSession = async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
+        try {
+            await handleLogoutClick();
+        } finally {
+            setIsLoggingOut(false);
+            setIsEndSessionModalOpen(false);
+        }
+    };
 
     return (
         <>
@@ -330,6 +356,10 @@ function TopBar({ topbarType, role, agency }) {
                     font-size: 13.5px;
                     font-weight: 600;
                     color: #1F2937;
+                    max-width: 150px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
                 }
 
                 .TopbarChevron {
@@ -346,8 +376,8 @@ function TopBar({ topbarType, role, agency }) {
                     position: absolute;
                     top: calc(100% + 8px);
                     right: 0;
-                    width: 320px;
-                    max-height: 400px;
+                    width: min(340px, calc(100vw - 32px));
+                    max-height: calc(100vh - 76px);
                     background: #FDFDFD;
                     border: 1.5px solid #EDEDED;
                     border-radius: 12px;
@@ -363,7 +393,8 @@ function TopBar({ topbarType, role, agency }) {
                     position: absolute;
                     top: calc(100% + 8px);
                     right: 0;
-                    width: 200px;
+                    width: min(200px, calc(100vw - 32px));
+                    max-height: calc(100vh - 76px);
                     background: #FDFDFD;
                     border: 1.5px solid #EDEDED;
                     border-radius: 12px;
@@ -484,6 +515,39 @@ function TopBar({ topbarType, role, agency }) {
                     font-size: 13px;
                 }
 
+                .TopNotifFooter {
+                    padding: 10px 16px;
+                    border-top: 1px solid #EDEDED;
+                    background: #FAFAFA;
+                    text-align: center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .SeeAllNotifsBtn {
+                    background: transparent;
+                    border: none;
+                    color: #13213C;
+                    font-size: 12.5px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    width: 100%;
+                    padding: 6px 10px;
+                    border-radius: 6px;
+                    transition: all 0.2s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    text-align: center;
+                    text-decoration: none;
+                }
+
+                .SeeAllNotifsBtn:hover {
+                    background: #EDEDED;
+                    color: #0D9488;
+                }
+
                 .BellBadge {
                     position: absolute;
                     top: -2px;
@@ -596,6 +660,141 @@ function TopBar({ topbarType, role, agency }) {
                             height: 26px;
                         }
                     }
+
+                    /* End Session Confirmation Modal */
+                    .TopbarModalOverlay {
+                        position: fixed;
+                        inset: 0;
+                        background: rgba(15, 23, 42, 0.45);
+                        backdrop-filter: blur(4px);
+                        -webkit-backdrop-filter: blur(4px);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10000;
+                        padding: 16px;
+                        animation: TopbarModalFadeIn 0.2s ease-out;
+                    }
+
+                    .TopbarModalCard {
+                        background: #FFFFFF;
+                        border: 1.5px solid #EDEDED;
+                        border-radius: 16px;
+                        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                        width: 100%;
+                        max-width: 400px;
+                        padding: 28px 24px 24px 24px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        text-align: center;
+                        box-sizing: border-box;
+                        animation: TopbarModalCardSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                    }
+
+                    @keyframes TopbarModalFadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+
+                    @keyframes TopbarModalCardSlide {
+                        from { opacity: 0; transform: translateY(12px) scale(0.97); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+
+                    .TopbarModalIconCircle {
+                        width: 52px;
+                        height: 52px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-bottom: 16px;
+                        background: rgba(220, 38, 38, 0.1);
+                        color: #DC2626;
+                        border: 1.5px solid rgba(220, 38, 38, 0.2);
+                    }
+
+                    .TopbarModalTitle {
+                        margin: 0 0 8px 0;
+                        font-size: 18px;
+                        font-weight: 700;
+                        color: #111827;
+                        font-family: inherit;
+                    }
+
+                    .TopbarModalMessage {
+                        margin: 0 0 24px 0;
+                        font-size: 13.5px;
+                        line-height: 1.5;
+                        color: #64748B;
+                        font-family: inherit;
+                    }
+
+                    .TopbarModalActions {
+                        display: flex;
+                        gap: 12px;
+                        width: 100%;
+                    }
+
+                    .TopbarModalCancelBtn {
+                        flex: 1;
+                        padding: 10px 16px;
+                        border-radius: 8px;
+                        border: 1.5px solid #E2E8F0;
+                        background: #F8FAFC;
+                        color: #475569;
+                        font-size: 13.5px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.15s ease;
+                        font-family: inherit;
+                    }
+
+                    .TopbarModalCancelBtn:hover:not(:disabled) {
+                        background: #EDEDED;
+                        color: #1E293B;
+                        border-color: #CBD5E1;
+                    }
+
+                    .TopbarModalCancelBtn:disabled {
+                        opacity: 0.6;
+                        cursor: not-allowed;
+                    }
+
+                    .TopbarModalConfirmBtn {
+                        flex: 1;
+                        padding: 10px 16px;
+                        border-radius: 8px;
+                        border: none;
+                        background: #DC2626;
+                        color: #FFFFFF;
+                        font-size: 13.5px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.15s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+                        font-family: inherit;
+                    }
+
+                    .TopbarModalConfirmBtn:hover:not(:disabled) {
+                        background: #B91C1C;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35);
+                    }
+
+                    .TopbarModalConfirmBtn:active:not(:disabled) {
+                        transform: translateY(0);
+                    }
+
+                    .TopbarModalConfirmBtn:disabled {
+                        opacity: 0.65;
+                        cursor: not-allowed;
+                    }
             `}</style>
 
             <div className='TopbarContainer'>
@@ -648,7 +847,7 @@ function TopBar({ topbarType, role, agency }) {
                                 {/* redirects to superadmin-login if superadmin, else to /login */}
                                 <button
                                     className='TopbarDropdownItem TopbarDropdownItemLogout'
-                                    onClick={handleLogoutClick}
+                                    onClick={handleEndSessionClick}
                                 >
                                     <LogOut size={16} />
                                     <span>End Session</span>
@@ -689,7 +888,7 @@ function TopBar({ topbarType, role, agency }) {
                                     ) : notifications.length === 0 ? (
                                         <div className='EmptyNotif'>No notifications</div>
                                     ) : (
-                                        notifications.map((notif) => (
+                                        notifications.slice(0, 10).map((notif) => (
                                             <div
                                                 key={notif.id}
                                                 className={`NotifItem ${notif.isRead ? '' : 'unread'}`}
@@ -705,12 +904,57 @@ function TopBar({ topbarType, role, agency }) {
                                         ))
                                     )}
                                 </div>
+                                <div className='TopNotifFooter'>
+                                    <button
+                                        type='button'
+                                        className='SeeAllNotifsBtn'
+                                        onClick={() => {
+                                            setIsNotifOpen(false);
+                                            navigate('/all-notifications');
+                                        }}
+                                    >
+                                        See all notifications
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
 
                 </div>
             </div>
+
+            {/* End Session Confirmation Modal */}
+            {isEndSessionModalOpen && (
+                <div className='TopbarModalOverlay' onClick={handleCancelEndSession}>
+                    <div className='TopbarModalCard' onClick={(e) => e.stopPropagation()}>
+                        <div className='TopbarModalIconCircle'>
+                            <LogOut size={24} />
+                        </div>
+                        <h3 className='TopbarModalTitle'>End Session?</h3>
+                        <p className='TopbarModalMessage'>
+                            Are you sure you want to end your current session?
+                        </p>
+                        <div className='TopbarModalActions'>
+                            <button
+                                type='button'
+                                className='TopbarModalCancelBtn'
+                                onClick={handleCancelEndSession}
+                                disabled={isLoggingOut}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type='button'
+                                className='TopbarModalConfirmBtn'
+                                onClick={handleConfirmEndSession}
+                                disabled={isLoggingOut}
+                            >
+                                {isLoggingOut ? 'Ending Session...' : 'End Session'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }
