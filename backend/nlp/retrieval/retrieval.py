@@ -111,7 +111,7 @@ def retrieve(query, protected_vocab=None):
     }
 
 def evaluate_match(query):
-    threshold = 0.8
+    threshold = 0.7
 
     result = retrieve(query)
 
@@ -136,7 +136,7 @@ def evaluate_match(query):
 
     print(f"\n  Top 5 REGISTERED candidates:")
     for i, c in enumerate(top5_registered, 1):
-        print(f"    {i}. {c['title']}")
+        print(f"    {i}. {c['title']} (score: {c.get('faiss_score', 0):.4f})")
 
     reg_qualifies = reg_score >= threshold
     unreg_qualifies = unreg_score >= threshold
@@ -195,4 +195,5 @@ def brand_conflicts(query, candidate_index, registered_df):
 
 
 if __name__ == "__main__":
-    result = evaluate_match("MUMUSO olive moisturizing body oil")
+    extracted_title = " ".join(sys.argv[1:]).strip()
+    result = evaluate_match(extracted_title)
