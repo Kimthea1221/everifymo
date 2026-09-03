@@ -1,7 +1,8 @@
+# backend/app/desktop/routers/complaints/complaint_status.py
 import logging
 from typing import Annotated, List
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -11,15 +12,16 @@ from app.models.complaints_status_history import ComplaintStatusHistory
 from app.models.consumer_accounts import ConsumerAccount
 from app.models.walkin_complainants import WalkinComplainant
 from app.desktop.services.status.send_email import send_status_update_email
-from app.core.dependencies import get_current_user
+from app.core.security import get_current_personnel  
 from app.models.regions import Region
-from app.models.users import User
+from app.core.audit import write_audit_log
+from app.core.constants import AuditAction
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 db_dependency = Annotated[Session, Depends(get_db)]
-user_dependency = Annotated[User, Depends(get_current_user)]
+user_dependency = Annotated[dict, Depends(get_current_personnel)]
 
 STATUS_LABELS = {
     "open": "Open",
@@ -40,31 +42,57 @@ class StatusUpdateRequest(BaseModel):
 async def update_complaint_status(
     complaint_id: UUID,
     payload: StatusUpdateRequest,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user), 
+    current_user = Depends(get_current_personnel), 
 ):
-    query = db.query(Complaint).filter(Complaint.complaint_id == complaint_id)
-    if current_user.role != "superadmin" and current_user.region_id:
-        query = query.filter(Complaint.region_id == current_user.region_id)
-    complaint = query.first()
+    complaint = (db.query(Complaint)
+                 .filter(Complaint.complaint_id == complaint_id)
+                 .filter(Complaint.region_id == current_user["region_id"])
+                 .filter(Complaint.source == "extension")
+                 .first())
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
     previous_status = complaint.status
+    previous_note = (
+        db.query(ComplaintStatusHistory)
+        .filter(ComplaintStatusHistory.complaint_id == complaint.complaint_id)
+        .order_by(ComplaintStatusHistory.changed_at.desc())
+        .first()
+    )
+    previous_change_note = previous_note.change_note if previous_note else None
+
     complaint.status = payload.status
-    complaint.updated_by = current_user.user_id
+    complaint.updated_by = current_user["user_id"]
 
     if complaint.source == "extension":
         db.add(ComplaintStatusHistory(
             complaint_id=complaint.complaint_id,
             previous_status=previous_status,
             new_status=payload.status,
-            changed_by=current_user.user_id, 
+            changed_by=current_user["user_id"], 
             change_note=payload.change_note,
         ))
 
     db.commit()
     db.refresh(complaint)
+
+    region = db.query(Region).filter(Region.region_id == current_user["region_id"]).first()
+    write_audit_log(
+        db=db,
+        user=None,
+        action=AuditAction.UPDATE_COMPLAINT_STATUS,
+        target_table="complaints",
+        target_id=complaint.complaint_id,
+        target_reference=complaint.case_reference,
+        old_value={"status": previous_status, "change_note": previous_change_note},
+        new_value={"status": payload.status, "change_note": payload.change_note},
+        request=request,
+        user_role_override=current_user["role"],
+        region_code=region.region_code if region else None,
+        user_id_override=current_user["user_id"],
+    )
 
     recipient_email = None
     if complaint.consumer_id:
@@ -87,11 +115,15 @@ async def update_complaint_status(
 
 
 @router.get("/complaints-status-update")
-def list_complaints(db: Session = Depends(get_db), current_user = Depends(get_current_user),):
-    query = db.query(Complaint).filter(Complaint.deleted_at.is_(None))
-    if current_user.role != "superadmin" and current_user.region_id:
-        query = query.filter(Complaint.region_id == current_user.region_id)
-    complaints = query.order_by(Complaint.created_at.desc()).all()
+def list_complaints(db: Session = Depends(get_db), current_user = Depends(get_current_personnel),):
+    complaints = (
+        db.query(Complaint)
+        .filter(Complaint.deleted_at.is_(None))
+        .filter(Complaint.region_id == current_user["region_id"])
+        .filter(Complaint.source == "extension")
+        .order_by(Complaint.created_at.desc())
+        .all()
+    )
 
     result = []
     for c in complaints:
