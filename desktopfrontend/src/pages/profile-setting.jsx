@@ -263,9 +263,9 @@ function ProfileSetting() {
     localStorage.removeItem('role');
 
     if (currentRole === 'SUPERADMIN') {
-      navigate('/superadmin-login');
+      navigate('/universal-login?tab=superadmin');
     } else {
-      navigate('/login');
+      navigate('/universal-login');
     }
   }
 
