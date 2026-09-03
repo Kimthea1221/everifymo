@@ -237,8 +237,8 @@ width: 100%;
 }
 
 .AdminLoginWrapper input:focus {
-  border-color: #0D9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+  border-color: #1E293B;
+  box-shadow: 0 0 0 3px rgba(9, 44, 41, 0.25);
   outline: none;
 }
 
@@ -246,22 +246,22 @@ width: 100%;
   width: 100%;
   margin-top: 15px;
   padding: 13px;
-  background: #0D9488;
-  color: #0f172a;
+  background: #1E293B;
+  color: #fff;
   font-size: 15px;
   font-weight: 700;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 0 0 3px rgba(9, 44, 41, 0.25);
   letter-spacing: 0.3px;
 }
 
 .AdminLoginWrapper button[type="submit"]:hover {
-  background: #0D9488;
+  background: #1E293B;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+
 }
 
 .AdminLoginWrapper button[type="submit"]:active {
@@ -309,7 +309,7 @@ width: 100%;
   right: 12px;
   background: transparent;
   border: none;
-  color: #0D9488;
+  color: #1E293B;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -321,7 +321,7 @@ width: 100%;
 }
 
 .TogglePasswordBtn:hover {
-  color: #5eead4;
+  color: #1E293B;
 }
 
 /* Forgot password link */
@@ -337,12 +337,12 @@ width: 100%;
   transition: color 0.15s ease; */
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  color: #2dd4a8;
+  color: #B91C1C;
   cursor: pointer;
 }
 
 .ForgotPasswordLink:hover {
-  color: #5eead4;
+  color: #8f1313;
 }
 /* ── Remember me + Forgot password row (under password field) ── */
 .AdminRememberMeRow {
@@ -369,7 +369,7 @@ width: 100%;
   height: 15px !important;
   margin: 0 !important;
   cursor: pointer;
-  accent-color: #0D9488;
+  accent-color: #1E293B;
 }
 
 .AdminRememberMeRow .ForgotPasswordLink {
@@ -536,6 +536,7 @@ width: 100%;
 .SuperadminMainContainer {
   display: flex;
   height: 100vh;
+  overflow: hidden;
   background: #fdfdfd;
 }
 
@@ -543,6 +544,7 @@ width: 100%;
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   height: 100vh;
   overflow: hidden;
 }
@@ -552,6 +554,8 @@ width: 100%;
   padding: 32px;
   background: #f5f5f5;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 
@@ -631,9 +635,9 @@ width: 100%;
 
 /* ── Stats Row ── */
 .UMStatsRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
 }
 
 .UMStatCard {
@@ -689,7 +693,9 @@ width: 100%;
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
-  overflow: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   position: relative;
 }
@@ -712,6 +718,7 @@ width: 100%;
 
 .UMTable {
   width: 100%;
+  min-width: 860px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13.5px;
@@ -884,6 +891,9 @@ width: 100%;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
   animation: UMSlideUp 0.25s ease;
   overflow: hidden;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 @keyframes UMSlideUp {
@@ -920,6 +930,8 @@ width: 100%;
 .UMConfirmModal {
   width: 100%;
   max-width: 400px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   padding: 36px 32px;
   text-align: center;
 }
@@ -2396,9 +2408,9 @@ width: 100%;
 
 /* ── Stats Row ── */
 .SAMStatsRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
-  flex-wrap: wrap;
 }
 
 .SAMStatCard {
@@ -2564,7 +2576,9 @@ width: 100%;
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
-  overflow: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   position: relative;
 }
@@ -2587,6 +2601,7 @@ width: 100%;
 
 .SAMTable {
   width: 100%;
+  min-width: 860px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13.5px;
@@ -2843,7 +2858,8 @@ width: 100%;
   border-radius: 18px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   animation: SAMSlideUp 0.25s ease;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 48px);
   box-sizing: border-box;
 }
 
@@ -3080,6 +3096,134 @@ width: 100%;
 .SAMEmail {
   color: #0D9488 !important;
 }
+
+/* ── Responsive Search & Filter Containers: 2-Row Layout (Row 1: Search, Row 2: All Filters on 1 Centered Line) ── */
+@media (max-width: 1024px) {
+  .SAMFiltersContainer,
+  .AuditFiltersRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .SAMSearchWrapper,
+  .AuditSearchWrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .SAMSearchInput,
+  .AuditSearchInput {
+    width: 100%;
+  }
+
+  .SAMFilterGroup,
+  .AuditFiltersGroup {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: center;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+    width: auto;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .SAMFilterItem,
+  .AuditFilterItem,
+  .AuditDateGroup {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .SAMFilterLabel,
+  .AuditFilterLabel,
+  .AuditDateLabel {
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  .SAMSelectFilter,
+  .AuditSelectFilter,
+  .AuditDateInput {
+    width: auto;
+    min-width: 0;
+    max-width: 125px;
+    flex: 0 1 auto;
+    flex-shrink: 1;
+    padding: 0 8px;
+    font-size: 12px;
+    height: 36px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .BtnClearFiltersIcon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    margin-bottom: 3px;
+  }
+}
+
+@media (max-width: 900px) {
+  .SAMFilterGroup,
+  .AuditFiltersGroup {
+    gap: 6px;
+  }
+
+  .SAMSelectFilter,
+  .AuditSelectFilter,
+  .AuditDateInput {
+    max-width: 110px;
+    padding: 0 6px;
+    font-size: 11.5px;
+    height: 34px;
+  }
+
+  .SAMFilterLabel,
+  .AuditFilterLabel,
+  .AuditDateLabel {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .SAMFilterGroup,
+  .AuditFiltersGroup {
+    flex-wrap: nowrap !important;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .SAMFilterItem,
+  .AuditFilterItem,
+  .AuditDateGroup,
+  .SAMSelectFilter,
+  .AuditSelectFilter,
+  .AuditDateInput {
+    width: auto;
+    min-width: 0;
+    max-width: 95px;
+    flex: 0 1 auto;
+    flex-shrink: 1;
+    padding: 0 4px;
+    font-size: 11px;
+    height: 32px;
+  }
+}
+
+
 
 
 

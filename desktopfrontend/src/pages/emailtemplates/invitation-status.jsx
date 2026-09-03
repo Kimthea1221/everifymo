@@ -8,10 +8,12 @@ function DeepLinkStatus() {
     const location = useLocation()
     const navigate = useNavigate()
 
-    const { status: linkStatus, invite_token } = location.state || {}
+    const { status: linkStatus, invite_token, resend_already_requested } = location.state || {}
 
-    const [requested, setRequested] = useState(false)
-    const [resendNotice, setResendNotice] = useState('')
+    const [requested, setRequested] = useState(!!resend_already_requested)
+    const [resendNotice, setResendNotice] = useState(
+        resend_already_requested ? 'A resend has already been requested for this invitation.' : ''
+    )
     const [resendSending, setResendSending] = useState(false)
 
     function handleRequestResend() {
@@ -58,21 +60,21 @@ function DeepLinkStatus() {
             accentColor: '#D97706',
         },
         invalid: {
-            icon: <Link size={32} color="#B91C1C" />,
+            icon: <Link size={32} color="#DC2626" />,
             iconBg: '#FEE2E2',
             title: 'Invalid Invitation Link',
             message: 'This invitation link is not recognized or may have already been used. If you believe this is an error, please contact your administrator.',
             showButton: false,
-            accentColor: '#B91C1C',
+            accentColor: '#DC2626',
         },
         used: {
             icon: <CircleCheckBig size={32} color="#0D9488" />,
-            iconBg: '#D1FAE5',
+            iconBg: '#CCFBF1',
             title: 'Registration Already Complete',
             message: 'Your registration has already been completed. You do not need to register again. Please wait for your administrator to activate your account, or login if your account is already active.',
             showButton: true,
             buttonLabel: 'Go to Login',
-            buttonAction: () => navigate('/login'),
+            buttonAction: () => navigate('/universal-login'),
             accentColor: '#0D9488',
         },
     }
@@ -86,40 +88,34 @@ function DeepLinkStatus() {
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 
-                :root {
-                    --font-headings: 'Poppins', sans-serif;
-                    --font-body: 'Inter', sans-serif;
-                }
-
-                body, input, textarea, select, button {
-                    font-family: var(--font-body);
-                }
-
-                h1, h2, h3, h4, h5, h6 {
-                    font-family: var(--font-headings);
-                    font-weight: 600;
-                }
-
                 .DeepLinkPage {
                     min-height: 100vh;
-                    background-color: #F9FAFB;
+                    background-color: #F1F5F9;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    padding: 24px;
-                    font-family: var(--font-body);
+                    padding: 24px 16px;
+                    font-family: 'Inter', sans-serif;
+                    box-sizing: border-box;
                 }
 
                 .DeepLinkCard {
                     background: #ffffff;
                     border-radius: 16px;
-                    padding: 48px 40px;
+                    padding: 44px 36px;
                     max-width: 480px;
                     width: 100%;
-                    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
                     text-align: center;
                     border-top: 4px solid;
+                    box-sizing: border-box;
+                    animation: DeepLinkSlideUp 0.35s ease;
+                }
+
+                @keyframes DeepLinkSlideUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to   { opacity: 1; transform: translateY(0); }
                 }
 
                 .DeepLinkIconBox {
@@ -129,55 +125,62 @@ function DeepLinkStatus() {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 32px;
-                    margin: 0 auto 24px auto;
+                    margin: 0 auto 20px auto;
                 }
 
                 .DeepLinkTitle {
-                    font-family: var(--font-headings);
+                    font-family: 'Poppins', sans-serif;
                     font-size: 22px;
                     font-weight: 700;
                     color: #111827;
-                    margin-bottom: 12px;
+                    margin: 0 0 12px;
+                    letter-spacing: -0.3px;
                 }
 
                 .DeepLinkMessage {
-                    font-family: var(--font-body);
+                    font-family: 'Inter', sans-serif;
                     font-size: 14px;
-                    color: #6B7280;
+                    color: #4B5563;
                     line-height: 1.7;
-                    margin-bottom: 32px;
+                    margin: 0 0 24px;
                 }
 
                 .DeepLinkBtn {
                     width: 100%;
-                    padding: 13px 24px;
+                    padding: 12px 24px;
                     border: none;
-                    border-radius: 8px;
-                    font-family: var(--font-body);
+                    border-radius: 10px;
+                    font-family: 'Poppins', sans-serif;
                     font-size: 14px;
-                    font-weight: 600;
+                    font-weight: 700;
                     color: #ffffff;
                     cursor: pointer;
-                    transition: opacity 0.2s ease;
+                    transition: all 0.2s ease;
                     letter-spacing: 0.3px;
+                    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
                 }
 
                 .DeepLinkBtn:hover {
-                    opacity: 0.88;
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+                }
+
+                .DeepLinkBtn:active {
+                    transform: translateY(0);
                 }
 
                 .DeepLinkBtn:disabled {
                     opacity: 0.6;
                     cursor: not-allowed;
+                    transform: none;
                 }
 
                 .DeepLinkSystemName {
-                    margin-top: 40px;
+                    margin-top: 32px;
                     font-size: 11px;
                     color: #9CA3AF;
-                    letter-spacing: 1px;
-                    font-weight: 500;
+                    letter-spacing: 1.2px;
+                    font-weight: 600;
                     text-transform: uppercase;
                 }
 
@@ -193,18 +196,17 @@ function DeepLinkStatus() {
                     background: #F0FDF4;
                     border: 1.5px solid #99F6E4;
                     border-radius: 8px;
-                    padding: 14px 16px;
-                    margin-bottom: 24px;
+                    padding: 12px 16px;
+                    margin-bottom: 20px;
                     text-align: left;
                 }
 
                 .DeepLinkAlertBox p {
                     font-size: 13px;
                     color: #0D9488;
-                    font-weight: 500;
+                    font-weight: 600;
                     margin: 0;
                 }
-
             `}</style>
 
             <div className='DeepLinkPage'>
@@ -243,8 +245,8 @@ function DeepLinkStatus() {
                     )}
 
                     {linkStatus === 'expired' && requested && (
-                        <p className='DeepLinkMessage' style={{ marginTop: 16, marginBottom: 0 }}>
-                            {resendNotice}
+                        <p className='DeepLinkMessage' style={{ color: '#0D9488', fontWeight: 600, marginTop: 16, marginBottom: 0 }}>
+                            ✓ {resendNotice}
                         </p>
                     )}
 

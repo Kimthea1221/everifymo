@@ -1,7 +1,8 @@
+# backend/app/desktop/routers/complaints/complaint_status.py
 import logging
 from typing import Annotated, List
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,8 @@ from app.models.walkin_complainants import WalkinComplainant
 from app.desktop.services.status.send_email import send_status_update_email
 from app.core.security import get_current_personnel  
 from app.models.regions import Region
+from app.core.audit import write_audit_log
+from app.core.constants import AuditAction
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +42,27 @@ class StatusUpdateRequest(BaseModel):
 async def update_complaint_status(
     complaint_id: UUID,
     payload: StatusUpdateRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_personnel), 
 ):
-    complaint = db.query(Complaint).filter(Complaint.complaint_id == complaint_id).first()
+    complaint = (db.query(Complaint)
+                 .filter(Complaint.complaint_id == complaint_id)
+                 .filter(Complaint.region_id == current_user["region_id"])
+                 .filter(Complaint.source == "extension")
+                 .first())
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
     previous_status = complaint.status
+    previous_note = (
+        db.query(ComplaintStatusHistory)
+        .filter(ComplaintStatusHistory.complaint_id == complaint.complaint_id)
+        .order_by(ComplaintStatusHistory.changed_at.desc())
+        .first()
+    )
+    previous_change_note = previous_note.change_note if previous_note else None
+
     complaint.status = payload.status
     complaint.updated_by = current_user["user_id"]
 
@@ -62,13 +78,26 @@ async def update_complaint_status(
     db.commit()
     db.refresh(complaint)
 
+    region = db.query(Region).filter(Region.region_id == current_user["region_id"]).first()
+    write_audit_log(
+        db=db,
+        user=None,
+        action=AuditAction.UPDATE_COMPLAINT_STATUS,
+        target_table="complaints",
+        target_id=complaint.complaint_id,
+        target_reference=complaint.case_reference,
+        old_value={"status": previous_status, "change_note": previous_change_note},
+        new_value={"status": payload.status, "change_note": payload.change_note},
+        request=request,
+        user_role_override=current_user["role"],
+        region_code=region.region_code if region else None,
+        user_id_override=current_user["user_id"],
+    )
+
     recipient_email = None
-    if complaint.source == "extension" and complaint.consumer_id:
+    if complaint.consumer_id:
         consumer = db.query(ConsumerAccount).filter(ConsumerAccount.consumer_id == complaint.consumer_id).first()
         recipient_email = consumer.email if consumer else None
-    elif complaint.source == "walk_in" and complaint.complainant_id:
-        complainant = db.query(WalkinComplainant).filter(WalkinComplainant.complainant_id == complaint.complainant_id).first()
-        recipient_email = complainant.email if complainant else None
 
     if recipient_email:
         try:
@@ -90,6 +119,8 @@ def list_complaints(db: Session = Depends(get_db), current_user = Depends(get_cu
     complaints = (
         db.query(Complaint)
         .filter(Complaint.deleted_at.is_(None))
+        .filter(Complaint.region_id == current_user["region_id"])
+        .filter(Complaint.source == "extension")
         .order_by(Complaint.created_at.desc())
         .all()
     )

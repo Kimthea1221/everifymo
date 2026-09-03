@@ -52,7 +52,7 @@ function LeaDashboard() {
         }
 
         // 2. Fetch all walk-in complaints for count and recent table
-        const complaintsRes = await fetch(`${API_BASE}/complaints?source=walk_in`, { headers });
+        const complaintsRes = await fetch(`${API_BASE}/complaints/walkin/`, { headers });
         let complaintsData = [];
         if (complaintsRes.ok) {
           complaintsData = await complaintsRes.json();
@@ -68,7 +68,7 @@ function LeaDashboard() {
         const leaCountsRes = await fetch(`${API_BASE}/verification-requests/lea-counts`, { headers });
         if (leaCountsRes.ok) {
           const leaCountsData = await leaCountsRes.json();
-          setTakedownsCount(leaCountsData.dismissed_count);
+          setTakedownsCount(leaCountsData.completed_count);
         }
 
         // 4. Fetch trends data
@@ -84,21 +84,12 @@ function LeaDashboard() {
 
         // Map real walk-in complaints for recent complaints table:
         const mappedRecent = complaintsData.map(c => {
-          let statusVal = 'pending_verification';
-          if (c.status === 'open' || c.status === 'under_review') {
-            statusVal = 'pending_verification';
-          } else if (c.status === 'takedown_requested' || c.status === 'takedown_initiated' || c.status === 'completed') {
-            statusVal = 'forwarded_to_lea';
-          } else if (c.status === 'dismissed') {
-            statusVal = 'verified';
-          }
-
           return {
             id: c.case_reference,
             product: c.product_title,
             manufacturer: c.manufacturer || '—',
             complainant: c.complainant_name || '—',
-            status: statusVal,
+            status: c.status,
             logged: c.created_at ? new Date(c.created_at).toLocaleString() : '—',
             rawDate: c.created_at ? new Date(c.created_at) : new Date(0)
           };
@@ -158,12 +149,16 @@ function LeaDashboard() {
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case 'pending_verification':
-        return 'badge-pending-verification';
-      case 'verified':
-        return 'badge-verified';
-      case 'forwarded_to_lea':
-        return 'badge-forwarded-to-lea';
+      case 'queued':
+        return 'WcStatus-queued';
+      case 'pending':
+        return 'WcStatus-pending';
+      case 'confirmed_registered':
+        return 'WcStatus-confirmed-registered';
+      case 'confirmed_unregistered':
+        return 'WcStatus-confirmed-unregistered';
+      case 'rejected':
+        return 'WcStatus-rejected';
       default:
         return '';
     }
@@ -171,12 +166,16 @@ function LeaDashboard() {
 
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'pending_verification':
-        return 'Pending Verification';
-      case 'verified':
-        return 'Verified';
-      case 'forwarded_to_lea':
-        return 'Forwarded to LEA';
+      case 'queued':
+        return 'Ready to Send';
+      case 'pending':
+        return 'Pending FDA Verification';
+      case 'confirmed_registered':
+        return 'Confirmed Registered';
+      case 'confirmed_unregistered':
+        return 'Confirmed Unregistered';
+      case 'rejected':
+        return 'Verification Rejected';
       default:
         return status;
     }
@@ -589,7 +588,7 @@ function LeaDashboard() {
                       </td>
                       <td className='ComplainantCol'>{complaint.complainant}</td>
                       <td>
-                        <span className={`DashboardStatusBadge ${getStatusBadgeClass(complaint.status)}`}>
+                        <span className={`WcStatusBadge ${getStatusBadgeClass(complaint.status)}`}>
                           {getStatusLabel(complaint.status)}
                         </span>
                       </td>

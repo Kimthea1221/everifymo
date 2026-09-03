@@ -71,8 +71,13 @@ function createModal() {
   modal.style.overflowY = 'auto';
  
   modal.innerHTML = `
+    <header class="mo-header">
+      <img src="${chrome.runtime.getURL('assets/images/extension_icon.png')}" alt="E-Verify Logo" class="mo-logo" />
+      <h1 class="mo-extension-name">E-Verify</h1>
+      <button id="mo-close-x" class="mo-close-x" type="button" aria-label="Close">✕</button>
+    </header>
+    
     <main class="main-content">
- 
       <!-- loading ui -->
       <div class="state hidden" id="state-loading">
         <div class="loading-copy">
@@ -81,11 +86,14 @@ function createModal() {
         </div>
       </div>
  
-      <!-- ui results for registered products -->
+       <!-- ui results for registered products -->
       <div class="state hidden" id="state-registered">
         <div class="registered-banner">
+          <div class="icon-placeholder-green" aria-hidden="true">
+            <img src="${chrome.runtime.getURL('assets/images/check_green_icon.png')}" alt="check_icon" />
+          </div>
           <div class="registered-copy">
-            <div class="registered-title">✅ Registered Product!</div>
+            <div class="registered-title">Registered Product!</div>
             <div class="registered-product">Product: <span id="product-name-registered"></span></div>
           </div>
         </div>
@@ -93,6 +101,21 @@ function createModal() {
       <!-- ui top matches result -->
         <div class="top-matches">
           <div class="top-matches-title">Top Matches</div>
+          <div class="top-matches-subtitle">Closest registered products to the detected listing.</div>
+            <div class="match-legend">
+            <div class="legend-item">
+              <span class="legend-dot dot-best"></span>
+              <span class="legend-label">Best Match</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot dot-high"></span>
+              <span class="legend-label">High Match</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot dot-partial"></span>
+              <span class="legend-label">Partial Match</span>
+            </div>
+          </div>
           <div class="match-list">
             <div class="match-card">
               <div class="rank-badge">#1</div>
@@ -136,18 +159,20 @@ function createModal() {
             </div>
           </div>
 
-          <!-- close button -->
           <div class="action-buttons-green action-buttons">
             <button class="btn-skip-green btn-skip" type="button">Close</button>
           </div>
         </div>
       </div>
-  
+
       <!-- ui result for suspicious product -->
       <div class="state hidden" id="state-suspicious">
         <div class="not-found-banner">
+          <div class="icon-placeholder-orange" aria-hidden="true">
+            <img src="${chrome.runtime.getURL('assets/images/sus_icon.png')}" alt="warning_icon" />
+          </div>
           <div class="not-found-copy">
-            <div class="not-found-title">⚠️ Product Not Found!</div>
+            <div class="not-found-title">Product Not Found!</div>
             <div class="not-found-product">Product: <span id="product-name-suspicious"></span></div>
           </div>
         </div>
@@ -158,6 +183,13 @@ function createModal() {
             may not be a cosmetic item the system checks. Registration status
             can't be guaranteed — manual verification is recommended.</div>
         </div>
+
+        <div class="quick-check-guide">
+          <div class="quick-check-title">Quick Check Guide</div>
+          <div class="quick-check-tip">Look for an FDA CPR (Certificate of Product Registration) number printed on the back label imagery.</div>
+          <div class="quick-check-tip">Verify if the manufacturer, country of origin, and complete ingredients list are clearly stated in the product description.</div>
+          <div class="quick-check-tip">Be cautious if the price is unrealistically low compared to official brand flagship stores.</div>
+        </div>
  
         <!-- report and close btn for suspicious product -->
         <div class="action-buttons-orange action-buttons">
@@ -165,19 +197,37 @@ function createModal() {
             <button class="btn-skip-orange btn-skip" type="button">Close</button>
         </div>
       </div>
-  
+
       <!-- ui result for unregistered products -->
       <div class="state hidden" id="state-unregistered">
         <div class="unregistered-banner">
+          <div class="icon-placeholder-red" aria-hidden="true">
+            <img src="${chrome.runtime.getURL('assets/images/x_icon.png')}" alt="cross_icon" />
+          </div>
           <div class="unregistered-copy">
-            <div class="unregistered-title">❌ Unregistered Product!</div>
+            <div class="unregistered-title">Unregistered Product!</div>
             <div class="unregistered-message">Product: <span id="product-name-unregistered"></span></div>
           </div>
         </div>
  
         <div class="top-matches-red">
           <div class="top-matches-title-red">Top Matches</div>
-          <div class="match-list-red">
+          <div class="top-matches-subtitle-red">Closest UNREGISTERED products to the detected listing.</div>
+          <div class="match-legend-red">
+            <div class="legend-item-red">
+              <span class="legend-dot-red dot-best-red"></span>
+              <span class="legend-label-red">Best Match</span>
+            </div>
+            <div class="legend-item-red">
+              <span class="legend-dot-red dot-high-red"></span>
+              <span class="legend-label-red">High Match</span>
+            </div>
+            <div class="legend-item-red">
+              <span class="legend-dot-red dot-partial-red"></span>
+              <span class="legend-label-red">Partial Match</span>
+            </div>
+          </div>
+           <div class="match-list-red">
             <div class="match-card-red">
               <div class="rank-badge-red">#1</div>
               <div class="match-content-red">
@@ -219,47 +269,62 @@ function createModal() {
               <div class="match-score-red"><span class="match-percent-red"></span></div>
             </div>
           </div>
-  
-          <!-- report and close button for unregistered result -->
+
           <div class="action-buttons-red action-buttons">
             <button class="btn-report-red btn-report" type="button">Report</button>
             <button class="btn-skip-red btn-skip" type="button">Close</button>
           </div>
         </div>
       </div>
- 
+
       <!-- report complaint ui(form) -->
       <div class="state hidden" id="state-report-form">
-        <div class="field">
-          <label>Product Name/Title</label>
-          <textarea id="rf-product-name"></textarea>
-        </div>
-        <div class="field">
-          <label>Link/URL</label>
-          <textarea id="rf-product-url" readonly></textarea>
-        </div>
-        <div class="field">
-          <label>Store Name</label>
-          <textarea id="rf-store-name" placeholder="Enter Store Name"></textarea>
-        </div>
-        <div class="field">
-          <label>Description (optional)</label>
-          <textarea id="rf-description" placeholder="What made this product look suspicious..."></textarea>
-        </div>
-        <div class="field attach-box" id="rf-attach-box">
-          <input type="file" id="rf-attach-input" accept="image/*" class="hidden" />
-          <span id="rf-attach-text">Attach screenshot (optional)</span>
-          <img id="rf-attach-preview" style="display:none; max-width:100%; margin-top:8px;" />
+        <div class="rf-notice-banner">
+          <img class="rf-notice-icon" src="${chrome.runtime.getURL('assets/images/report.png')}" alt="Report Icon" />
+          <div class="rf-notice-text-container">
+            <p class="rf-notice-title">Report this product</p>
+            <p class="rf-notice-text">Make sure your details are accurate before submitting.</p>
+          </div>
         </div>
 
-        <div class="action-buttons">
-          <button id="rf-cancel" type="button">Cancel</button>
-          <button id="rf-submit" type="button">Submit Report</button>
+        <div class="rf-field">
+          <label class="rf-field-label" for="rf-product-name">Product Name/Title</label>
+          <textarea id="rf-product-name" class="rf-input"></textarea>
+        </div>
+        <div class="rf-field">
+          <label class="rf-field-label" for="rf-product-url">Link/URL</label>
+          <textarea id="rf-product-url" class="rf-input" readonly></textarea>
+        </div>
+        <div class="rf-field">
+          <label class="rf-field-label" for="rf-store-name">Store Name</label>
+          <textarea id="rf-store-name" class="rf-input" placeholder="Enter Store Name"></textarea>
+        </div>
+        <div class="rf-field">
+          <label class="rf-field-label" for="rf-description">Description (optional)</label>
+          <textarea id="rf-description" class="rf-input" placeholder="What made this product look suspicious..."></textarea>
+        </div>
+        <div class="rf-attach-box" id="rf-attach-box" role="button" tabindex="0">
+          <input type="file" id="rf-attach-input" accept="image/*" class="hidden" />
+          <img class="rf-upload-icon" src="${chrome.runtime.getURL('assets/images/upload_icon.png')}" alt="Upload Icon" />
+          <span id="rf-attach-text" class="rf-attach-text">Attach screenshot (optional)</span>
+          <img id="rf-attach-preview" class="rf-attach-preview-img" style="display:none;" />
+        </div>
+
+        <div class="rf-action-row">
+          <button id="rf-cancel" class="rf-btn-cancel" type="button">Return to Results</button>
+          <button id="rf-submit" class="rf-btn-submit" type="button">Submit Report</button>
         </div>
       </div>
 
       <div class="state hidden" id="state-report-success">
         <p class="state-message">✅ Complaint submitted. You can track it in your account.</p>
+      </div>
+
+      <div class="state hidden" id="state-report-error">
+        <p class="state-message error">❌ <span id="report-error-message">Something went wrong.</span></p>
+        <div class="action-buttons">
+          <button id="rf-error-back" type="button">Back to Form</button>
+        </div>
       </div>
 
     </main>
@@ -290,13 +355,19 @@ function createModal() {
     reader.readAsDataURL(file);
   });
 
+  modal.querySelector('#rf-error-back').addEventListener('click', () => {
+    showState('state-report-form');
+  });
  
   modal.querySelectorAll('.btn-skip').forEach(btn => {
     btn.addEventListener('click', () => { modal.style.display = 'none'; });
   });
 
+  let lastResultState = '';
   modal.querySelectorAll('.btn-report').forEach(btn => {
     btn.addEventListener('click', () => {  
+      lastResultState = btn.closest('.state').id;
+
       const productName = modal.querySelector('#rf-product-name');
       const url = modal.querySelector('#rf-product-url');
 
@@ -311,7 +382,11 @@ function createModal() {
   });
 
   modal.querySelector('#rf-cancel').addEventListener('click', () => {
-    modal.style.display = 'none';
+    if (lastResultState) {
+      showState(lastResultState);
+    } else {
+      modal.style.display = 'none';
+    }
   });
 
   modal.querySelector('#rf-submit').addEventListener('click', () => {
@@ -332,7 +407,9 @@ function createModal() {
         if (response?.success) {
           showState('state-report-success');
         } else {
-          console.error("Complaint submission failed:", response?.error);
+          document.getElementById('report-error-message').textContent =
+            response?.error || 'Failed to submit report. Please try again.';
+          showState('state-report-error');
         }
         // reset AFTER sending, not before
         lastAttachmentPath = null;
@@ -342,6 +419,10 @@ function createModal() {
         attachInput.value = '';
       }
     );
+  });
+
+  modal.querySelector('#mo-close-x').addEventListener('click', () => {
+    modal.style.display = 'none';
   });
 
   return modal;
@@ -371,6 +452,10 @@ function showState(stateId) {
   const target = modal.querySelector(`#${stateId}`);
   target.classList.remove('hidden');
   target.style.display = 'block';
+
+  const closeX = modal.querySelector('#mo-close-x');
+  const reportStates = ['state-report-form', 'state-report-success', 'state-report-error'];
+  closeX.style.display = reportStates.includes(stateId) ? 'block' : 'none';
 }
  
 function renderResult(status, productTitle, results = []) {

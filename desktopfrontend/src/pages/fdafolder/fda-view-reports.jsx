@@ -59,16 +59,14 @@ function getSourceLabel(source) {
 function mapTabToSource(tabName) {
   if (tabName === 'Browser Extension') return 'extension';
   if (tabName === 'Walk-in') return 'walk_in';
-  return null; // 'All'
+  return null; 
 }
 
-// Display-label mapping for categories. Kept from the mock-data era —
-// harmless no-op fallback (returns the category unchanged) if the real
-// product_category values don't match these specific mock labels.
 const CATEGORY_LABELS = {
-  Supplement: 'Foods',
+  Cosmetics: 'Cosmetics',
   Food: 'Food',
-  Pharmaceutical: 'Drugs',
+  Devices: 'Medical Devices',
+  Drugs: 'Drugs',
 };
 
 function getCategoryLabel(category) {
@@ -77,7 +75,7 @@ function getCategoryLabel(category) {
 
 // Maps backend Complaint.status values to the final user-facing
 // complaint-workflow statuses, confirmed against VALID_COMPLAINT_TRANSITIONS.
-const STATUS_WORKFLOW_MAP = {
+const WALKIN_STATUS_MAP = {
   "under_review": "Under Review",
   "takedown_requested": "Forwarded to LEA",
   "takedown_initiated": "Operation in Progress",
@@ -85,8 +83,16 @@ const STATUS_WORKFLOW_MAP = {
   "dismissed": "Case Closed",
 };
 
-function getWorkflowStatus(status) {
-  return STATUS_WORKFLOW_MAP[status] || status;
+const EXTENSION_STATUS_MAP = {
+  "under_review": "Under Review",
+  "takedown_requested": "Takedown Requested",
+  "completed": "Completed",
+  "dismissed": "Dismissed",
+};
+
+function getWorkflowStatus(status, source) {
+  const map = source === 'extension' ? EXTENSION_STATUS_MAP : WALKIN_STATUS_MAP;
+  return map[status] || status;
 }
 
 function FDAViewReports() {
@@ -98,9 +104,9 @@ function FDAViewReports() {
   const [reportsError, setReportsError] = useState('');
 
   // SEARCH AND TABS STATE
-  const [activeTab, setActiveTab] = useState('All');
+  const [activeTab, setActiveTab] = useState('Walk-in');
   const [searchQuery, setSearchQuery] = useState('');
-  const tabs = ['All', 'Browser Extension', 'Walk-in'];
+  const tabs = ['Walk-in', 'Browser Extension'];
   const location = useLocation();
 
   useEffect(() => {
@@ -135,8 +141,7 @@ function FDAViewReports() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
 
-  // SELECTED ROW IDs FOR BULK ACTIONS
-  const [selectedIds, setSelectedIds] = useState([]);
+
 
   // PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
@@ -280,7 +285,8 @@ useEffect(() => {
   const handleTabClick = (tabName) => {
     if (activeTab === tabName) return;
     setCurrentPage(1); // Reset page on tab switch
-    
+    setFilterStatus('All'); // status labels differ per tab — don't carry a selection that may not exist on the other tab
+
     if (!document.startViewTransition) {
       setActiveTab(tabName);
       return;
@@ -296,7 +302,7 @@ useEffect(() => {
   // goes through mapTabToSource since backend uses 'extension'/'walk_in'.
   const filteredReports = reports.filter(report => {
     const tabSource = mapTabToSource(activeTab);
-    const matchesTab = activeTab === 'All' || report.source === tabSource;
+    const matchesTab = report.source === tabSource;
 
     const query = searchQuery.toLowerCase();
     const matchesSearch = report.product_title.toLowerCase().includes(query) ||
@@ -304,7 +310,7 @@ useEffect(() => {
                           report.case_reference.toLowerCase().includes(query);
 
     const matchesCategory = filterCategory === 'All' || report.product_category === filterCategory;
-    const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status) === filterStatus;
+    const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status, report.source) === filterStatus;
 
     return matchesTab && matchesSearch && matchesCategory && matchesStatus;
   });
@@ -318,11 +324,11 @@ useEffect(() => {
                             report.case_reference.toLowerCase().includes(query);
 
       const matchesCategory = filterCategory === 'All' || report.product_category === filterCategory;
-      const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status) === filterStatus;
+      const matchesStatus = filterStatus === 'All' || getWorkflowStatus(report.status, report.source) === filterStatus;
 
       if (!matchesSearch || !matchesCategory || !matchesStatus) return false;
 
-      if (tabName === 'All') return true;
+      
       return report.source === mapTabToSource(tabName);
     }).length;
   };
@@ -335,37 +341,13 @@ useEffect(() => {
   const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
   const paginatedReports = filteredReports.slice(startIndex, endIndex);
 
-  // ROW SELECTION HANDLERS
-  // CHANGED — id field is now complaint_id
-  const visibleIds = paginatedReports.map(r => r.complaint_id);
-  const isAllSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.includes(id));
 
-  const handleHeaderCheckboxChange = () => {
-    if (isAllSelected) {
-      setSelectedIds(prev => prev.filter(id => !visibleIds.includes(id)));
-    } else {
-      setSelectedIds(prev => {
-        const unique = new Set([...prev, ...visibleIds]);
-        return Array.from(unique);
-      });
-    }
-  };
-
-  const handleRowCheckboxChange = (id) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-    } else {
-      setSelectedIds(prev => [...prev, id]);
-    }
-  };
 
   // EXPORT CSV HANDLER
   // CHANGED — field names updated to match backend; REGION column removed
   // from both headers and row values.
   const handleExportCSV = () => {
-    const rowsToExport = selectedIds.length > 0 
-      ? reports.filter(r => selectedIds.includes(r.complaint_id))
-      : filteredReports;
+    const rowsToExport = filteredReports;
 
     if (rowsToExport.length === 0) {
       alert("No data available to export.");
@@ -382,8 +364,8 @@ useEffect(() => {
         `"${(report.manufacturer || '').replace(/"/g, '""')}"`,
         `"${(report.product_category || '').replace(/"/g, '""')}"`,
         getSourceLabel(report.source),
-        getWorkflowStatus(report.status),
-        formatDateTime(report.created_at)
+        getWorkflowStatus(report.status, report.source),
+        `"${formatDateTime(report.created_at).replace(/"/g, '""')}"`
       ];
       csvRows.push(values.join(","));
     }
@@ -393,42 +375,42 @@ useEffect(() => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `fda_consumer_reports_${new Date().toISOString().slice(0, 10)}.csv`);
+    const tabSlug = activeTab === 'Browser Extension' ? 'extension' : 'walkin';
+    link.setAttribute("download", `fda_${tabSlug}_reports_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   // STATUS COLORS STYLING HELPER
-  const getStatusStyle = (status) => {
-    const s = getWorkflowStatus(status);
-    switch (s) {
-      case "Under Review":
+    const getStatusStyle = (status) => {
+    switch (status) {
+      case "under_review":
         return { backgroundColor: "rgba(217, 119, 6, 0.1)", color: "#D97706" };
-      case "Forwarded to LEA":
+      case "takedown_requested":
         return { backgroundColor: "rgba(37, 99, 235, 0.1)", color: "#2563EB" };
-      case "Operation in Progress":
+      case "takedown_initiated":
         return { backgroundColor: "rgba(234, 88, 12, 0.1)", color: "#EA580C" };
-      case "Takedown Completed":
+      case "completed":
         return { backgroundColor: "rgba(27, 67, 50, 0.1)", color: "#1B4332" };
-      case "Case Closed":
+      case "dismissed":
         return { backgroundColor: "rgba(31, 41, 55, 0.08)", color: "rgba(31, 41, 55, 0.6)" };
       default:
         return { backgroundColor: "#EDEDED", color: "#1F2937" };
     }
   };
 
-  // UNIQUE FILTER OPTIONS COMPUTATION
-  // CHANGED — reads product_category instead of category
-  const categoriesList = ["All", ...Array.from(new Set(reports.map(r => r.product_category).filter(Boolean)))];
-  const statusesList = [
-    "All",
-    "Under Review",
-    "Forwarded to LEA",
-    "Operation in Progress",
-    "Takedown Completed",
-    "Case Closed"
-  ];
+    // UNIQUE FILTER OPTIONS COMPUTATION
+  const categoriesList = ["All", "Cosmetics", "Food", "Devices", "Drugs"];
+
+  // CHANGED — now depends on activeTab. Walk-in and Extension use the
+  // SAME raw status values but different display labels for some of
+  // them (completed -> "Takedown Completed" vs "Completed", dismissed
+  // -> "Case Closed" vs "Dismissed"), so a single shared list would let
+  // someone pick a label that can never match anything on the other tab.
+  const statusesList = activeTab === 'Browser Extension'
+    ? ["All", "Under Review", "Takedown Requested", "Completed", "Dismissed"]
+    : ["All", "Under Review", "Forwarded to LEA", "Operation in Progress", "Takedown Completed", "Case Closed"];
 
   return (
     <div className="FdaDashboardMain">
@@ -497,7 +479,7 @@ useEffect(() => {
                 >
                   {categoriesList.map(cat => (
                     <option key={cat} value={cat}>
-                      {cat === 'All' ? 'All' : getCategoryLabel(cat)}
+                      {cat === 'All' ? 'All Categories' : getCategoryLabel(cat)}
                     </option>
                   ))}
                 </select>
@@ -513,7 +495,7 @@ useEffect(() => {
                   }}
                 >
                   {statusesList.map(stat => (
-                    <option key={stat} value={stat}>{stat}</option>
+                    <option key={stat} value={stat}>{stat === 'All' ? 'All Statuses' : stat}</option>
                   ))}
                 </select>
               </div>
@@ -534,22 +516,7 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* BULK ACTIONS BAR */}
-          {selectedIds.length > 0 && (
-            <div className="FdaBulkBar">
-              <span className="FdaBulkInfo">
-                {selectedIds.length} {selectedIds.length === 1 ? 'row' : 'rows'} selected
-              </span>
-              <div className="FdaBulkActions">
-                <button className="BtnBulkExport" onClick={handleExportCSV}>
-                  Bulk Export CSV
-                </button>
-                <button className="BtnClearSelection" onClick={() => setSelectedIds([])}>
-                  Clear
-                </button>
-              </div>
-            </div>
-          )}
+
 
           {/* MAIN PAGE INTERACTIVE GRID */}
           <div className="FdaLayoutGrid">
@@ -558,14 +525,6 @@ useEffect(() => {
                 <table className="FdaTable">
                   <thead>
                     <tr>
-                      <th style={{ width: '40px' }}>
-                        <input
-                          type="checkbox"
-                          className="FdaCheckbox"
-                          checked={isAllSelected}
-                          onChange={handleHeaderCheckboxChange}
-                        />
-                      </th>
                       <th>CASE ID</th>
                       <th>PRODUCT</th>
                       <th>MANUFACTURER</th>
@@ -581,19 +540,19 @@ useEffect(() => {
                     {/* ADDED — loading and error states for the real fetch */}
                     {reportsLoading ? (
                       <tr>
-                        <td colSpan="9" className="FdaEmptyState">
+                        <td colSpan="8" className="FdaEmptyState">
                           <p>Loading consumer reports...</p>
                         </td>
                       </tr>
                     ) : reportsError ? (
                       <tr>
-                        <td colSpan="9" className="FdaEmptyState">
+                        <td colSpan="8" className="FdaEmptyState">
                           <p>{reportsError}</p>
                         </td>
                       </tr>
                     ) : paginatedReports.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="FdaEmptyState">
+                        <td colSpan="8" className="FdaEmptyState">
                           <Search size={32} />
                           <p>No complaints match your search query or active filter settings.</p>
                         </td>
@@ -602,16 +561,7 @@ useEffect(() => {
                       paginatedReports.map(report => (
                         <tr 
                           key={report.complaint_id}
-                          className={selectedIds.includes(report.complaint_id) ? 'row-selected' : ''}
                         >
-                          <td>
-                            <input
-                              type="checkbox"
-                              className="FdaCheckbox"
-                              checked={selectedIds.includes(report.complaint_id)}
-                              onChange={() => handleRowCheckboxChange(report.complaint_id)}
-                            />
-                          </td>
                           <td className="CaseIdCell">{report.case_reference}</td>
                           <td className="ProductNameCell">{report.product_title}</td>
                           <td className="ManufacturerCell">{report.manufacturer || '—'}</td>
@@ -628,7 +578,7 @@ useEffect(() => {
                           </td>
                           <td>
                             <span className="FdaBadge" style={getStatusStyle(report.status)}>
-                              {getWorkflowStatus(report.status)}
+                              {getWorkflowStatus(report.status, report.source)}
                             </span>
                           </td>
                           {/* REMOVED — <td>{report.region}</td> */}
@@ -725,7 +675,7 @@ useEffect(() => {
                   <div className="FdaDetailItem">
                     <label>Current Status</label>
                     <span className="FdaBadge" style={{ ...getStatusStyle(selectedReport.status), width: 'fit-content' }}>
-                      {getWorkflowStatus(selectedReport.status)}
+                      {getWorkflowStatus(selectedReport.status, selectedReport.source)}
                     </span>
                   </div>
                   <div className="FdaDetailItem" style={{ gridColumn: 'span 2' }}>
