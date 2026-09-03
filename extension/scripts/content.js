@@ -397,7 +397,7 @@ function populateMatches(stateId, results) {
     if (!match) { card.style.display = 'none'; return; }
     card.style.display = '';
     card.querySelector(`.match-title${suffix}`).textContent = match.title;
-    const pct = Math.round(match.cosine_similarity * 100);
+    const pct = Math.round((match.score ?? match.cosine_similarity ?? 0) * 100);
     card.querySelector(`.match-percent${suffix}`).textContent = `${pct}%`;
     card.querySelector(`.progress-fill${suffix}`).style.width = `${pct}%`;
   });
@@ -419,9 +419,10 @@ verifyBtn.addEventListener("click", () => {
   }, (response) => {
     console.log("Response from background:", response);
  
-    const status = response?.data?.status || 'unregistered';
+    const verdict = response?.data?.verdict || 'no_match';
+    const status = verdict === 'no_match' ? 'suspicious' : verdict;
     lastVerificationStatus = status;
-    const results = response?.data?.results || [];
+    const results = response?.data?.top5_registered || [];
     
     renderResult(status, lastProductTitle, results);
   });
