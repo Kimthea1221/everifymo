@@ -81,3 +81,4 @@ backend/nlp/datasets/
 backend/nlp/finetuned_sbert.zip
 backend/nlp/finetuned_sbert.zip:Zone.Identifier
 backend/nlp/finetuned_sbert/
+.gitattributes

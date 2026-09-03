@@ -1,3 +1,4 @@
+# backend/app/core/security.py
 from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
@@ -103,6 +104,18 @@ def get_current_user(token: Annotated[str | None, Depends(oauth2_bearer)]):
             detail="Unauthorized access"
         )
 
+def get_current_user_optional(token: Annotated[str | None, Depends(oauth2_bearer)]):
+    if token is None:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub")
+        consumer_id: str = payload.get("id")
+        if username is None or consumer_id is None:
+            return None
+        return {"username": username, "id": consumer_id}
+    except JWTError:
+        return None
 
 def validate_password_strength(v: str) -> str:
     if len(v) < 8:

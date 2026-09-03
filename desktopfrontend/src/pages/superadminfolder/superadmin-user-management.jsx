@@ -6,20 +6,10 @@ import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
 import { apiFetch } from '../../utils/apiFetch';
 import { createPortal } from 'react-dom';
-
-
-const STATUS_META = {
-  Invited: { label: 'Invited', className: 'badge-pending' },
-  'Pending Approval': { label: 'Pending Approval', className: 'badge-for-activation' },
-  Active: { label: 'Active', className: 'badge-active' },
-  Suspended: { label: 'Suspended', className: 'badge-suspended' },
-  'Resend Requested': { label: 'Resend Requested', className: 'badge-pending' },
-  'Link Expired': { label: 'Link Expired', className: 'badge-expired' },
-  Locked: { label: 'Locked', className: 'badge-suspended' },
-};
+import { USER_STATUS_META } from './superadmin-status-colors';
 
 function StatusBadge({ status }) {
-  const meta = STATUS_META[status] || { label: status, className: '' };
+  const meta = USER_STATUS_META[status] || { label: status, className: '' };
   return <span className={`UMStatusBadge ${meta.className}`}>{meta.label}</span>;
 }
 
@@ -97,12 +87,9 @@ function UserMgmtActionDropdown({ user, onAction, onView }) {
               <button className="UserMgmtDropdownItem" onClick={() => { onAction('reactivate'); setIsOpen(false); }}>
                 <RotateCcw size={14} /> Reactivate Account
               </button>
-              <div className="UserMgmtDropdownDivider" />
-              <button className="UserMgmtDropdownItem danger" onClick={() => { onAction('delete'); setIsOpen(false); }}>
-                <Trash2 size={14} /> Delete Account
-              </button>
             </>
           )}
+          
           {['Resend Requested', 'Link Expired'].includes(displayStatus) && (
             <button className="UserMgmtDropdownItem" onClick={() => { onAction('resend'); setIsOpen(false); }}>
               <Send size={14} /> Resend Link
@@ -633,22 +620,22 @@ function SuperAdminUserManagement() {
                 {
                   label: 'Pending Approval',
                   value: users.filter((u) => (u.display_status || u.status) === 'Pending Approval').length,
-                  className: 'stat-activation',
+                  className: 'stat-pending',
                 },
                 {
                   label: 'Invited',
                   value: users.filter((u) => ['Invited', 'Resend Requested'].includes(u.display_status || u.status)).length,
-                  className: 'stat-pending',
+                  className: 'stat-invited',
                 },
                 {
                   label: 'Link Expired',
                   value: users.filter((u) => (u.display_status || u.status) === 'Link Expired').length,
-                  className: 'stat-suspended',
+                  className: 'stat-expired',
                 },
                 {
                   label: 'Locked',
                   value: users.filter((u) => (u.display_status || u.status) === 'Locked').length,
-                  className: 'stat-suspended',
+                  className: 'stat-locked',
                 },
               ].map((s) => (
                 <div key={s.label} className={`UMStatCard ${s.className}`}>
