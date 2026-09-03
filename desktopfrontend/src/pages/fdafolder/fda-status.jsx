@@ -369,8 +369,15 @@ function FdaStatus() {
             </div>
 
             {/* RIGHT: selected complaint detail + form */}
-            {selectedComplaint && (
-              <div className="FdaDetailPanel">
+            <div className="FdaDetailPanel">
+              {!selectedComplaint ? (
+                <div className="FdaVerifEmptyDetails">
+                  <Mail size={44} className="FdaVerifEmptyDetailsIcon" />
+                  <h3>No Complaint Selected</h3>
+                  <p>Select a complaint from the left list to review details and push a status update.</p>
+                </div>
+              ) : (
+              <>
                 <div className="FdaDetailPanelHeader">
                   <div>
                     <small>{selectedComplaint.caseReference}</small>
@@ -485,8 +492,9 @@ function FdaStatus() {
                     Push update
                   </button>
                 </div>
-              </div>
-            )}
+              </>
+              )}
+            </div>
           </div>
 
           {/* RECENT STATUS PUSHES */}
