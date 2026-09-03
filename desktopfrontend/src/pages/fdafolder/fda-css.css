@@ -5594,3 +5594,11 @@ h6 {
   padding: 8px 12px;
   font-size: 12.5px;
 }
+
+/* toast based color (if no email) */
+.FdaVerifToast_warning {
+  border-left-color: #D97706;
+}
+.FdaVerifToast_warning .FdaVerifToastIconWrap {
+  color: #D97706;
+}
