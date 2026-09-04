@@ -1,5 +1,6 @@
 import './superadmin-css.css';
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Send,
   UserX,
@@ -62,6 +63,7 @@ function SAMStatusBadge({ status }) {
 function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, onView }) {
   const status = admin.status;
   const [openUpward, setOpenUpward] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef(null);
 
   const handleToggle = (e) => {
@@ -69,7 +71,12 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
     if (!isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      setOpenUpward(spaceBelow < 170);
+      const upward = spaceBelow < 170;
+      setOpenUpward(upward);
+      setMenuPos({
+        top: upward ? Math.max(8, rect.top - 150) : rect.bottom + 4,
+        left: Math.max(8, rect.right - 190),
+      });
     }
     toggleDropdown();
   };
@@ -86,8 +93,18 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
         <MoreVertical size={16} />
       </button>
 
-      {isOpen && (
-        <div className={`SAMDropdownMenu ${openUpward ? 'open-upward' : ''}`}>
+      {isOpen &&
+        createPortal(
+          <div
+            className={`SAMDropdownMenu ${openUpward ? 'open-upward' : ''}`}
+            style={{
+              position: 'fixed',
+              top: `${menuPos.top}px`,
+              left: `${menuPos.left}px`,
+              zIndex: 9999,
+              width:`150px`,
+            }}
+          >
           <button
             className="SAMDropdownItem"
             onClick={() => {
@@ -194,8 +211,9 @@ function SAMActionDropdown({ admin, isSelf, isOpen, toggleDropdown, onAction, on
               </button>
             </>
           )}
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
@@ -558,7 +576,10 @@ export default function SuperAdminAdminManagement() {
 
   useEffect(() => {
     function handleOutsideClick(event) {
-      if (!event.target.closest('.SAMDropdownWrapper')) {
+      if (
+        !event.target.closest('.SAMDropdownWrapper') &&
+        !event.target.closest('.SAMDropdownMenu')
+      ) {
         setActiveDropdownId(null);
       }
     }
