@@ -50,7 +50,7 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
             background: linear-gradient(135deg, #1E293B 0%, #0f172a 100%);
             padding: 32px 24px;
             text-align: center;
-            border-bottom: 4px solid #0D9488;
+            border-bottom: 4px solid #0D9488 !important;
           }
           .EmailSystemName {
             color: #0D9488;
@@ -105,7 +105,7 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
             font-size: 36px;
             font-weight: 800;
             letter-spacing: 6px;
-            color: #0D9488;
+            color: #0D9488 !important;
             margin: 0;
             font-family: 'Courier New', Courier, monospace;
           }
@@ -166,7 +166,7 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
                   <p className="EmailHeaderSub">FDA & LEA-CIDG Security Verification</p>
                 </td>
               </tr>
-              
+
               {/* CONTENT */}
               <tr>
                 <td className="EmailContent">
@@ -174,18 +174,18 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
                   <p className="EmailInstructions">
                     We received a request to access your Interagency Complaint Management System account. Please use the following One-Time Password (OTP) to complete your login. This code is valid for single use only.
                   </p>
-                  
+
                   <div className="EmailOtpBox">
                     <h1 className="EmailOtpCode">{otpCode}</h1>
                     <p className="EmailExpiryAlert">This code will expire in 5 minutes.</p>
                   </div>
-                  
+
                   <p className="EmailInstructions" style={{ marginBottom: 0 }}>
                     If you did not initiate this login request, please contact your systems administrator immediately and secure your account credentials.
                   </p>
-                  
+
                   <div className="EmailDivider"></div>
-                  
+
                   <div className="EmailSecurityNotice">
                     <div className="EmailSecurityNoticeTitle">Security Information:</div>
                     <ul>
@@ -196,7 +196,7 @@ const OtpEmailTemplate = ({ otpCode = "123456" }) => {
                   </div>
                 </td>
               </tr>
-              
+
               {/* FOOTER */}
               <tr>
                 <td className="EmailFooter">

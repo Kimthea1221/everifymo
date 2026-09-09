@@ -138,7 +138,7 @@ def create_registered_product(db: Session, data: RegisteredProductCreate, curren
         product_name=data.product_name,
         brand_name=data.brand_name,
         registration_number=data.registration_number,
-        product_category=data.product_category,
+        product_category=data.product_category or "Cosmetics",
         date_registered=data.date_registered,
         expiry_date=data.expiry_date,
         added_by=current_user_id,
@@ -237,7 +237,7 @@ def update_registered_product(db: Session, product_id, data: RegisteredProductUp
     product.product_name = data.product_name
     product.brand_name = data.brand_name
     product.registration_number = data.registration_number
-    product.product_category = data.product_category
+    product.product_category = data.product_category or "Cosmetics"
     product.date_registered = data.date_registered
     product.expiry_date = data.expiry_date
     product.updated_by = current_user_id
@@ -295,7 +295,7 @@ def convert_advisory_to_product(db: Session, advisory_id, data: RegisteredProduc
         product_name=data.product_name,
         brand_name=data.brand_name,
         registration_number=data.registration_number,
-        product_category=data.product_category,
+        product_category=data.product_category or "Cosmetics",
         date_registered=data.date_registered,
         expiry_date=data.expiry_date,
         converted_from_advisory_id=advisory_id,

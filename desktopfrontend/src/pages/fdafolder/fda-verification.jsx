@@ -1209,10 +1209,6 @@ function FDAVerification() {
                 id="fda-tab-verification-queue"
               >
                 Verification Queue
-                {/* CHANGED — was fdaQueueList.length; now uses the real count
-                    from queueCounts so this tab badge stays in sync with the
-                    stat card above from the single API call. */}
-                <span className="FdaPillCount">{queueCounts !== null ? queueCounts.verification_queue_count : '-'}</span>
               </button>
 
               <button
@@ -1221,8 +1217,6 @@ function FDAVerification() {
                 id="fda-tab-completed"
               >
                 Completed
-                {/* CHANGED — was fdaCompletedList.length; now uses queueCounts.completed_count. */}
-                <span className="FdaPillCount">{queueCounts !== null ? queueCounts.completed_count : '-'}</span>
               </button>
 
               <button
@@ -1231,8 +1225,6 @@ function FDAVerification() {
                 id="fda-tab-rejected"
               >
                 Rejected Requests
-                {/* CHANGED — was fdaRejectedList.length; now uses queueCounts.rejected_count. */}
-                <span className="FdaPillCount">{queueCounts !== null ? queueCounts.rejected_count : '-'}</span>
               </button>
             </div>
           </div>
@@ -1355,7 +1347,7 @@ function FDAVerification() {
                         })}
 
                         {filteredQueue.length > 0 && (
-                          <div className="FdaCaseListFooter" style={{ marginTop: '12px' }}>
+                          <div className="FdaCaseListFooter">
                             <span className="FdaFooterInfo">
                               Showing {queueStartIdx + 1}–{queueEndIdx} of {filteredQueue.length}
                             </span>

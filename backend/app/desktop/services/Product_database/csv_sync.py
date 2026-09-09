@@ -5,7 +5,7 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from app.models.registered_products import RegisteredProduct
 from app.models.unregistered_advisories import UnregisteredAdvisory
-from nlp.common.clean import clean_title
+#from nlp.common.clean import clean_title --temp
 
 # Get backend folder root relative to this file
 # __file__ is backend/app/desktop/services/Product_database/csv_sync.py
@@ -67,7 +67,7 @@ def sync_registered_products_to_csv(db: Session):
                     "PRODUCT_NAME": cleaned_name,
                     "BRAND_NAME": p.brand_name or "",
                     "PROD_VARIANTS": "",
-                    "PRODUCT_INTENDED_USE": "",
+                    "PRODUCT_INTENDED_USE": p.product_category or "Cosmetics",
                     "COMPANY_NAME": "",
                     "NOTIFICATION_DECISION_DATE": date_str,
                     "NOTIFICATION_VALIDITY": expiry_str,

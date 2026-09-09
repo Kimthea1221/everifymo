@@ -536,6 +536,7 @@ width: 100%;
 .SuperadminMainContainer {
   display: flex;
   height: 100vh;
+  overflow: hidden;
   background: #fdfdfd;
 }
 
@@ -553,6 +554,8 @@ width: 100%;
   padding: 32px;
   background: #f5f5f5;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 
@@ -679,11 +682,14 @@ width: 100%;
 .stat-pending { border-top: 3px solid #d97706; }
 .stat-pending .UMStatValue { color: #d97706; }
 
-.stat-activation { border-top: 3px solid #2563eb; }
-.stat-activation .UMStatValue { color: #2563eb; }
+.stat-invited { border-top: 3px solid #0284c7; }
+.stat-invited .UMStatValue { color: #0284c7; }
 
-.stat-suspended { border-top: 3px solid #dc2626; }
-.stat-suspended .UMStatValue { color: #dc2626; }
+.stat-expired { border-top: 3px solid #dc2626; }
+.stat-expired .UMStatValue { color: #dc2626; }
+
+.stat-locked { border-top: 3px solid #b91c1c; }
+.stat-locked .UMStatValue { color: #b91c1c; }
 
 /* ── Table ── */
 .UMTableWrapper {
@@ -790,10 +796,10 @@ width: 100%;
   border: 1px solid #fde68a;
 }
 
-.badge-for-activation {
-  background: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+.badge-invited {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
 }
 
 .badge-active {
@@ -811,6 +817,12 @@ width: 100%;
 .badge-expired {
   background: #fee2e2;
   color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.badge-locked {
+  background: #fee2e2;
+  color: #991b1b;
   border: 1px solid #fecaca;
 }
 
@@ -1737,43 +1749,6 @@ width: 100%;
   box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
 }
 
-/* Status Badges */
-.UMStatusBadge.UserMgmtBadgeInvited,
-.UMStatusBadge.UserMgmtBadgePendingApproval,
-.UMStatusBadge.UserMgmtBadgeActive,
-.UMStatusBadge.UserMgmtBadgeSuspended {
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-weight: 700;
-  font-size: 12px;
-  border-width: 1px;
-  border-style: solid;
-}
-
-.UserMgmtBadgeInvited {
-  background: #F3F4F6;
-  color: #4B5563;
-  border-color: #D1D5DB;
-}
-
-.UserMgmtBadgePendingApproval {
-  background: #FEF3C7;
-  color: #92400E;
-  border-color: #FCD34D;
-}
-
-.UserMgmtBadgeActive {
-  background: #DCFCE7;
-  color: #166534;
-  border-color: #86EFAC;
-}
-
-.UserMgmtBadgeSuspended {
-  background: #FEE2E2;
-  color: #991B1B;
-  border-color: #FCA5A5;
-}
-
 /* Stats Cards Top Borders */
 .UserMgmtStatInvited {
   border-top: 3px solid #64748b;
@@ -2452,8 +2427,8 @@ width: 100%;
 .sam-stat-pending { border-top: 3.5px solid #d97706; }
 .sam-stat-pending .SAMStatValue { color: #d97706; }
 
-.sam-stat-suspended { border-top: 3.5px solid #475569; }
-.sam-stat-suspended .SAMStatValue { color: #475569; }
+.sam-stat-suspended { border-top: 3.5px solid #dc2626; }
+.sam-stat-suspended .SAMStatValue { color: #dc2626; }
 
 .sam-stat-invited { border-top: 3.5px solid #0284c7; }
 .sam-stat-invited .SAMStatValue { color: #0284c7; }
@@ -2683,9 +2658,9 @@ width: 100%;
 }
 
 .sam-badge-suspended {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 .sam-badge-expired {
@@ -3093,6 +3068,134 @@ width: 100%;
 .SAMEmail {
   color: #0D9488 !important;
 }
+
+/* ── Responsive Search & Filter Containers: 2-Row Layout (Row 1: Search, Row 2: All Filters on 1 Centered Line) ── */
+@media (max-width: 1024px) {
+  .SAMFiltersContainer,
+  .AuditFiltersRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .SAMSearchWrapper,
+  .AuditSearchWrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .SAMSearchInput,
+  .AuditSearchInput {
+    width: 100%;
+  }
+
+  .SAMFilterGroup,
+  .AuditFiltersGroup {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: center;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+    width: auto;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .SAMFilterItem,
+  .AuditFilterItem,
+  .AuditDateGroup {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .SAMFilterLabel,
+  .AuditFilterLabel,
+  .AuditDateLabel {
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  .SAMSelectFilter,
+  .AuditSelectFilter,
+  .AuditDateInput {
+    width: auto;
+    min-width: 0;
+    max-width: 125px;
+    flex: 0 1 auto;
+    flex-shrink: 1;
+    padding: 0 8px;
+    font-size: 12px;
+    height: 36px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .BtnClearFiltersIcon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    margin-bottom: 3px;
+  }
+}
+
+@media (max-width: 900px) {
+  .SAMFilterGroup,
+  .AuditFiltersGroup {
+    gap: 6px;
+  }
+
+  .SAMSelectFilter,
+  .AuditSelectFilter,
+  .AuditDateInput {
+    max-width: 110px;
+    padding: 0 6px;
+    font-size: 11.5px;
+    height: 34px;
+  }
+
+  .SAMFilterLabel,
+  .AuditFilterLabel,
+  .AuditDateLabel {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .SAMFilterGroup,
+  .AuditFiltersGroup {
+    flex-wrap: nowrap !important;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .SAMFilterItem,
+  .AuditFilterItem,
+  .AuditDateGroup,
+  .SAMSelectFilter,
+  .AuditSelectFilter,
+  .AuditDateInput {
+    width: auto;
+    min-width: 0;
+    max-width: 95px;
+    flex: 0 1 auto;
+    flex-shrink: 1;
+    padding: 0 4px;
+    font-size: 11px;
+    height: 32px;
+  }
+}
+
+
 
 
 

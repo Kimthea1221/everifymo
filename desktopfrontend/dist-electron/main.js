@@ -9,13 +9,14 @@ function createWindow() {
 	mainWindow = new BrowserWindow({
 		width: 1280,
 		height: 800,
+		minWidth: 800,
+		minHeight: 600,
 		webPreferences: {
 			nodeIntegration: false,
 			contextIsolation: true,
 			preload: path.join(__dirname, "preload.cjs")
 		}
 	});
-	mainWindow.webContents.openDevTools();
 	mainWindow.webContents.on("did-finish-load", () => {
 		if (pendingDeepLink) {
 			mainWindow.webContents.send("deep-link-token", pendingDeepLink);
