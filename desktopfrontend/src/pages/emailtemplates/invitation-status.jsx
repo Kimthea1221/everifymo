@@ -50,14 +50,14 @@ function DeepLinkStatus() {
 
     const statusContent = {
         expired: {
-            icon: <ClockAlert size={32} color="#D97706" />,
-            iconBg: '#FEF3C7',
+            icon: <ClockAlert size={32} color="#0D9488" />,
+            iconBg: '#CCFBF1',
             title: 'Invitation Link Expired',
             message: 'Your registration link has expired. Invitation links are only valid for a limited time. Please request a new invitation from your administrator.',
             showButton: !requested,
             buttonLabel: resendSending ? 'Sending Request…' : 'Request New Invitation',
             buttonAction: handleRequestResend,
-            accentColor: '#D97706',
+            accentColor: '#0D9488',
         },
         invalid: {
             icon: <Link size={32} color="#DC2626" />,

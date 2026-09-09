@@ -27,16 +27,21 @@ STATUS_LABELS = {
     "open": "Open",
     "under_review": "Under Review",
     "takedown_requested": "Takedown Requested",
-    "takedown_initiated": "Takedown Initiated",
     "completed": "Completed",
     "dismissed": "Dismissed",
 }
-
 
 class StatusUpdateRequest(BaseModel):
     status: str
     change_note: str | None = None
 
+FINAL_STATUSES = {"completed", "dismissed"}
+
+ALLOWED_TRANSITIONS = {
+    "open": {"under_review"},
+    "under_review": {"takedown_requested", "completed", "dismissed"},
+    "takedown_requested": {"completed", "dismissed"},  # no going back to under_review
+}
 
 @router.patch("/complaints/{complaint_id}/status")
 async def update_complaint_status(
@@ -54,6 +59,22 @@ async def update_complaint_status(
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
+    if complaint.status in FINAL_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"This complaint is already marked as "
+                   f"'{STATUS_LABELS.get(complaint.status, complaint.status)}' and cannot be changed further.",
+        )
+
+    allowed_next = ALLOWED_TRANSITIONS.get(complaint.status, set())
+    if payload.status not in allowed_next:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot change status from "
+                f"'{STATUS_LABELS.get(complaint.status, complaint.status)}' to "
+                f"'{STATUS_LABELS.get(payload.status, payload.status)}'.",
+        )
+    
     previous_status = complaint.status
     previous_note = (
         db.query(ComplaintStatusHistory)
@@ -95,9 +116,22 @@ async def update_complaint_status(
     )
 
     recipient_email = None
+    notification_warning = None
+    
     if complaint.consumer_id:
         consumer = db.query(ConsumerAccount).filter(ConsumerAccount.consumer_id == complaint.consumer_id).first()
-        recipient_email = consumer.email if consumer else None
+        if consumer and consumer.email:
+            recipient_email = consumer.email
+        else:
+            notification_warning = (
+                "The consumer account linked to this complaint no longer has a usable email "
+                "(the account may have been deleted). No email notification was sent."
+            )
+    else:
+        notification_warning = (
+            "This complaint has no linked consumer account (likely a guest submission). "
+            "No email notification was sent."
+        )
 
     if recipient_email:
         try:
@@ -106,12 +140,18 @@ async def update_complaint_status(
                 product_title=complaint.product_title,
                 case_reference=complaint.case_reference,
                 new_status_label=STATUS_LABELS.get(complaint.status, complaint.status),
+                new_status_code=complaint.status,
                 change_note=payload.change_note,
             )
         except Exception as e:
             logger.error(f"Failed to send status update email for {complaint.complaint_id}: {e}")
+            notification_warning = "Status was updated, but the email notification failed to send."
 
-    return complaint
+    return {
+        "complaintId": str(complaint.complaint_id),
+        "status": complaint.status,
+        "notificationWarning": notification_warning,
+    }
 
 
 @router.get("/complaints-status-update")
@@ -136,11 +176,6 @@ def list_complaints(db: Session = Depends(get_db), current_user = Depends(get_cu
             if consumer:
                 reporter_email = consumer.email
                 reporter_username = consumer.email.split("@")[0]
-        elif c.source == "walk_in" and c.complainant_id:
-            complainant = db.query(WalkinComplainant).filter(WalkinComplainant.complainant_id == c.complainant_id).first()
-            if complainant:
-                reporter_email = complainant.email
-                reporter_username = complainant.full_name
 
         result.append({
             "complaintId": str(c.complaint_id),

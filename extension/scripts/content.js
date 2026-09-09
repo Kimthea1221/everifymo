@@ -66,8 +66,9 @@ function createModal() {
   modal.style.padding = '16px';
   modal.style.borderRadius = '8px';
   modal.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-  modal.style.maxWidth = '360px';
-  modal.style.maxHeight = '80vh';
+  modal.style.width = '360px';
+  modal.style.minHeight = '500px';
+  modal.style.maxHeight = '600px';
   modal.style.overflowY = 'auto';
  
   modal.innerHTML = `
@@ -169,7 +170,7 @@ function createModal() {
       <div class="state hidden" id="state-suspicious">
         <div class="not-found-banner">
           <div class="icon-placeholder-orange" aria-hidden="true">
-            <img src="${chrome.runtime.getURL('assets/images/sus_icon.png')}" alt="warning_icon" />
+            <img src="${chrome.runtime.getURL('assets/images/suspicious_icon.png')}" alt="warning_icon" />
           </div>
           <div class="not-found-copy">
             <div class="not-found-title">Product Not Found!</div>
@@ -202,7 +203,7 @@ function createModal() {
       <div class="state hidden" id="state-unregistered">
         <div class="unregistered-banner">
           <div class="icon-placeholder-red" aria-hidden="true">
-            <img src="${chrome.runtime.getURL('assets/images/x_icon.png')}" alt="cross_icon" />
+            <img src="${chrome.runtime.getURL('assets/images/unregistered_icon.png')}" alt="cross_icon" />
           </div>
           <div class="unregistered-copy">
             <div class="unregistered-title">Unregistered Product!</div>
@@ -327,6 +328,14 @@ function createModal() {
         </div>
       </div>
 
+      <div class="state hidden" id="state-report-unauthorized">
+        <p class="state-message">🔒 You need an account to submit a report. Please sign in first.</p>
+        <div class="action-buttons">
+          <button id="rf-unauth-login" type="button">Sign In</button>
+          <button id="rf-unauth-back" type="button">Back to Results</button>
+        </div>
+      </div>
+
     </main>
   `;
  
@@ -363,21 +372,38 @@ function createModal() {
     btn.addEventListener('click', () => { modal.style.display = 'none'; });
   });
 
+  modal.querySelector('#rf-unauth-login').addEventListener('click', () => {
+    // window.location.href = 'auth.html';
+    chrome.runtime.sendMessage({ action: "openLogin" });
+  });
+
+  modal.querySelector('#rf-unauth-back').addEventListener('click', () => {
+    showState(lastResultState || 'state-suspicious');
+  });
+
   let lastResultState = '';
   modal.querySelectorAll('.btn-report').forEach(btn => {
     btn.addEventListener('click', () => {  
-      lastResultState = btn.closest('.state').id;
+      chrome.runtime.sendMessage({ action: "checkAuth" }, (res) => {
+        if (!res?.loggedIn) {
+          lastResultState = btn.closest('.state').id;
+          showState('state-report-unauthorized');
+          return;
+        }
 
-      const productName = modal.querySelector('#rf-product-name');
-      const url = modal.querySelector('#rf-product-url');
-
-      if (productName) productName.value = lastProductTitle;
-      if (url) url.value = sanitizeUrl(lastProductUrl);
-
-      modal.querySelector('#rf-store-name').value = '';
-      modal.querySelector('#rf-description').value = '';
-
-      showState('state-report-form');
+        lastResultState = btn.closest('.state').id;
+       
+        const productName = modal.querySelector('#rf-product-name');
+        const url = modal.querySelector('#rf-product-url');
+       
+        if (productName) productName.value = lastProductTitle;
+        if (url) url.value = sanitizeUrl(lastProductUrl);
+       
+        modal.querySelector('#rf-store-name').value = '';
+        modal.querySelector('#rf-description').value = '';
+       
+        showState('state-report-form');
+      });
     });
   });
 
@@ -482,7 +508,7 @@ function populateMatches(stateId, results) {
     if (!match) { card.style.display = 'none'; return; }
     card.style.display = '';
     card.querySelector(`.match-title${suffix}`).textContent = match.title;
-    const pct = Math.round(match.cosine_similarity * 100);
+    const pct = Math.round((match.score ?? match.cosine_similarity ?? 0) * 100);
     card.querySelector(`.match-percent${suffix}`).textContent = `${pct}%`;
     card.querySelector(`.progress-fill${suffix}`).style.width = `${pct}%`;
   });
@@ -504,9 +530,10 @@ verifyBtn.addEventListener("click", () => {
   }, (response) => {
     console.log("Response from background:", response);
  
-    const status = response?.data?.status || 'unregistered';
+    const verdict = response?.data?.verdict || 'no_match';
+    const status = verdict === 'no_match' ? 'suspicious' : verdict;
     lastVerificationStatus = status;
-    const results = response?.data?.results || [];
+    const results = response?.data?.top5_registered || [];
     
     renderResult(status, lastProductTitle, results);
   });

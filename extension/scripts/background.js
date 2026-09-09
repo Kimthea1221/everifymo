@@ -1,7 +1,19 @@
 ﻿console.log("Background service worker started");
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-console.log('Background received message:', message);
+  if (message.action === "checkAuth") {
+    chrome.storage.local.get(['access_token'], (data) => {
+      sendResponse({ loggedIn: !!data.access_token });
+    });
+    return true;
+  }
+
+  if (message.action === "openLogin") {
+    chrome.tabs.create({ url: chrome.runtime.getURL('pages/auth.html') });
+    return true;
+  }
+
+  console.log('Background received message:', message);
   if (message.action === 'extractedTitle') {
     //
     (async () => {
@@ -19,7 +31,7 @@ console.log('Background received message:', message);
         const data = await response.json().catch(() => null);
         console.log('Backend response:', data);
         
-        const status = data?.status || 'unregistered';
+        const status = data?.verdict === 'no_match' ? 'suspicious' : data?.verdict || 'unregistered';
 
         // Store the extracted product info in chrome.storage
         chrome.storage.local.set({
