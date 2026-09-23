@@ -1,71 +1,82 @@
-import { useState } from 'react';
+// merged lea-save-drafts.jsx
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './lea-css.css';
 import Sidebar from '../component/sidebar';
 import TopBar from '../component/top-bar';
-import { PenLine, Trash2, Info } from 'lucide-react';
+import { PenLine, Trash2, Info, Eye, MoreVertical, X, Inbox } from 'lucide-react';
+import { apiFetch } from '../../utils/apiFetch';
 
 
+
+// CHANGED — checks real backend values now ("draft"/"incomplete",
+// lowercase), not the old mock-data capitalized strings
 function GetDraftStatusClass(status) {
-    if (status === 'Draft') return 'status-draft';
-    if (status === 'Incomplete') return 'status-incomplete';
+    if (status === 'draft') return 'status-draft';
+    if (status === 'incomplete') return 'status-incomplete';
     return '';
 }
+
+// ADDED — backend sends draft_type as "walkin"/"verification"; this
+// converts that into the readable label your UI already displays
+function GetDraftTypeLabel(draftType) {
+    if (draftType === 'walkin') return 'Walk-in Intake';
+    if (draftType === 'verification') return 'Verification Request';
+    return draftType;
+}
+
 
 function LeaSavedDraft() {
     const navigate = useNavigate();
 
-    // Initial mock data as specified in the user request
-    const [drafts, setDrafts] = useState([
-        {
-            id: 'ICM-2025-00201',
-            draftType: 'Walk-in Intake',
-            product: 'BioGlow Serum',
-            complainant: 'L. Dela Cruz',
-            lastEdited: '2026-05-18 14:32',
-            savedBy: 'Admin',
-            status: 'Incomplete'
-        },
-        {
-            id: 'VR-2025-00122',
-            draftType: 'Verification Request',
-            product: 'HerbalSlim Capsules',
-            complainant: 'M. Reyes',
-            lastEdited: '2026-05-18 11:15',
-            savedBy: 'Admin',
-            status: 'Draft'
-        },
-        {
-            id: 'ICM-2025-00200',
-            draftType: 'Walk-in Intake',
-            product: 'PainAway Cream',
-            complainant: 'R. Tan',
-            lastEdited: '2026-05-17 16:48',
-            savedBy: 'Admin',
-            status: 'Draft'
-        }
-    ]);
+    // CHANGED — starts empty, filled by a real fetch below instead of mock data
+    const [drafts, setDrafts] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     // States for filter and search controls
     const [activeTab, setActiveTab] = useState('All'); // 'All', 'Walk-in Intake', 'Verification Request'
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('All'); // 'All', 'Draft', 'Incomplete'
     const [sortOption, setSortOption] = useState('Recently Edited'); // 'Recently Edited', 'Oldest First', 'Product Name'
+    const [currentPage, setCurrentPage] = useState(1);
+    const DRAFT_PAGE_SIZE = 25;
+    useEffect(() => { setCurrentPage(1); }, [activeTab, searchQuery, statusFilter, sortOption]);
     
     // States for Modals and Toast notifications
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [draftToDelete, setDraftToDelete] = useState(null);
     const [toastMessage, setToastMessage] = useState(null);
 
+    // ADDED — dropdown menu open/close state per row, and view-modal data
+    const [openDropdownId, setOpenDropdownId] = useState(null);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const [viewModalData, setViewModalData] = useState(null);
+
+    // ADDED — fetches the real combined drafts list on page load
+    useEffect(() => {
+        setLoading(true);
+
+        apiFetch(`/drafts/`)
+            .then((res) => res.json())
+            .then((data) => setDrafts(Array.isArray(data) ? data : []))
+            .catch(() => showToast('Could not load drafts.'))
+            .finally(() => setLoading(false));
+    }, []);
+
     const handleTabClick = (tabName) => {
         setActiveTab(tabName);
+        setSearchQuery('');
+        setStatusFilter('All');
+        setSortOption('recently_edited');
+        setCurrentPage(1);
     };
 
     const handleClearFilters = () => {
-        setActiveTab('All');
         setSearchQuery('');
         setStatusFilter('All');
-        setSortOption('Recently Edited');
+        setSortOption('recently_edited');
+        setCurrentPage(1);
     };
 
     const handleDeleteClick = (draft) => {
@@ -73,14 +84,28 @@ function LeaSavedDraft() {
         setShowDeleteModal(true);
     };
 
-    const handleConfirmDelete = () => {
-        if (draftToDelete) {
-            setDrafts(drafts.filter(d => d.id !== draftToDelete.id));
+    // CHANGED — actually calls the backend now, using the right
+    // endpoint depending on draft_type
+    const handleConfirmDelete = async () => {
+        if (!draftToDelete) return;
+
+        const endpoint = draftToDelete.draft_type === 'walkin'
+            ? `/drafts/walkin/${draftToDelete.draft_id}`
+            : `/drafts/verification/${draftToDelete.draft_id}`;
+
+        try {
+            const res = await apiFetch(endpoint, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete draft.');
+
+            setDrafts(drafts.filter((d) => d.draft_id !== draftToDelete.draft_id));
+            showToast('Draft deleted successfully');
+        } catch (err) {
+            showToast(err.message);
+        } finally {
             setShowDeleteModal(false);
             setDraftToDelete(null);
-            showToast('Draft deleted successfully');
         }
-    };
+        };
 
     const showToast = (msg) => {
         setToastMessage(msg);
@@ -89,48 +114,91 @@ function LeaSavedDraft() {
         }, 2000);
     };
 
+    // CHANGED — passes the real draft_id through navigation, so the
+    // destination page knows exactly which draft to load
     const handleEditDraft = (draft) => {
-        showToast(`Loading draft ${draft.id} for ${draft.product}...`);
+        showToast(`Loading draft for ${draft.product_name}...`);
         setTimeout(() => {
-            if (draft.draftType === 'Walk-in Intake') {
-                navigate('/leacidgfolder/lea-new-intake');
+            if (draft.draft_type === 'walkin') {
+                navigate('/leacidgfolder/lea-new-intake', { state: { draftId: draft.draft_id } });
             } else {
-                navigate('/leacidgfolder/lea-verification-request');
+                navigate('/leacidgfolder/lea-verification-request', { state: { draftId: draft.draft_id } });
             }
         }, 1200);
     };
 
+    // ADDED — dropdown open/close toggle per row with portal positioning
+    const toggleDropdown = (draftId, e) => {
+        if (openDropdownId === draftId) {
+            setOpenDropdownId(null);
+        } else {
+            if (e && e.currentTarget) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const openUpward = spaceBelow < 120;
+                setDropdownPos({
+                    top: openUpward ? Math.max(8, rect.top - 84) : rect.bottom + 4,
+                    left: Math.max(8, rect.right - 190),
+                });
+            }
+            setOpenDropdownId(draftId);
+        }
+    };
+
+    useEffect(() => {
+        if (!openDropdownId) return;
+        const handleOutsideClick = (event) => {
+            if (
+                !event.target.closest('.LeaDropdownMenu') &&
+                !event.target.closest('.LeaDropdownTrigger')
+            ) {
+                setOpenDropdownId(null);
+            }
+        };
+        document.addEventListener('click', handleOutsideClick);
+        return () => document.removeEventListener('click', handleOutsideClick);
+    }, [openDropdownId]);
+
     // Filtering and sorting calculations
+    // Filtering and sorting — still done client-side, on the real
+    // fetched data now instead of the mock array
     const filteredDrafts = drafts.filter(draft => {
         // Tab / Type filter
-        if (activeTab !== 'All' && draft.draftType !== activeTab) {
+        if (activeTab !== 'All' && draft.draft_type !== activeTab) {
             return false;
         }
 
         // Status filter
-        if (statusFilter !== 'All' && draft.status !== statusFilter) {
+        if (statusFilter !== 'All' && draft.draft_status !== statusFilter) {
             return false;
         }
 
-        // Search query filter (Product, Case Number, Complainant)
+        // Search query filter (EVERY field is checked except save_by)
         if (searchQuery.trim() !== '') {
             const query = searchQuery.toLowerCase();
-            const matchesProduct = draft.product.toLowerCase().includes(query);
-            const matchesId = draft.id.toLowerCase().includes(query);
-            const matchesComplainant = draft.complainant.toLowerCase().includes(query);
-            if (!matchesProduct && !matchesId && !matchesComplainant) {
+            const matchesProduct = draft.product_name?.toLowerCase().includes(query) ?? false;
+            const matchesCategory = draft.product_category?.toLowerCase().includes(query) ?? false;
+            const matchesComplainant = draft.complainant_name?.toLowerCase().includes(query) ?? false;
+            const matchesType = GetDraftTypeLabel(draft.draft_type).toLowerCase().includes(query);
+            const matchesStatus = draft.draft_status.toLowerCase().includes(query);
+            // Formats the date the same readable way it's displayed in the
+            // table, so searching "August" or a specific date actually matches
+            // what the officer sees on screen
+            const matchesDate = new Date(draft.updated_at).toLocaleString().toLowerCase().includes(query);
+
+            if (!matchesProduct && !matchesCategory && !matchesComplainant && !matchesType && !matchesStatus && !matchesDate) {
                 return false;
             }
         }
 
         return true;
     }).sort((a, b) => {
-        if (sortOption === 'Recently Edited') {
-            return new Date(b.lastEdited) - new Date(a.lastEdited);
-        } else if (sortOption === 'Oldest First') {
-            return new Date(a.lastEdited) - new Date(b.lastEdited);
-        } else if (sortOption === 'Product Name') {
-            return a.product.localeCompare(b.product);
+        if (sortOption === 'recently_edited') {
+            return new Date(b.updated_at) - new Date(a.updated_at);
+        } else if (sortOption === 'oldest_first') {
+            return new Date(a.updated_at) - new Date(b.updated_at);
+        } else if (sortOption === 'product_name_az') {
+            return (a.product_name || '').localeCompare(b.product_name || '');
         }
         return 0;
     });
@@ -139,155 +207,255 @@ function LeaSavedDraft() {
         <div className='LeaDashboardMain'>
             <Sidebar sidebarType="LEA" />
             <div className='LeaContentContainer'>
-                <TopBar />
+                <TopBar topbarType="LEA" />
                 <div className="LeaMainfeed">
-                    {/* Page Header */}
                     <div className='LeaHeader'>
                         <div>
                             <p>LEA-CIDG: Saved Drafts</p>
                             <p>SAVED DRAFTS</p>
-                         
                         </div>
                     </div>
 
-                    {/* Tab Navigation */}
-                    <div className="VerificationTabs" style={{ marginBottom: '20px', width: '100%', maxWidth: '1100px', justifySelf: 'center' }}>
-                        <div className='VerificationTabsButton'>
-                            <button 
-                                className={`ButtonTab ${activeTab === 'All' ? 'active' : ''}`} 
+                    <div className="VerificationTabs" style={{ marginBottom: '20px' }}>
+                        <div className="VerificationTabsButton">
+                            <button
+                                className={`ButtonTab ${activeTab === 'All' ? 'active' : ''}`}
                                 onClick={() => handleTabClick('All')}
                             >
                                 All Drafts
                             </button>
-                            <button 
-                                className={`ButtonTab ${activeTab === 'Walk-in Intake' ? 'active' : ''}`} 
-                                onClick={() => handleTabClick('Walk-in Intake')}
+                            <button
+                                className={`ButtonTab ${activeTab === 'walkin' ? 'active' : ''}`}
+                                onClick={() => handleTabClick('walkin')}
                             >
                                 Walk-in Intake
                             </button>
-                            <button 
-                                className={`ButtonTab ${activeTab === 'Verification Request' ? 'active' : ''}`} 
-                                onClick={() => handleTabClick('Verification Request')}
+                            <button
+                                className={`ButtonTab ${activeTab === 'verification' ? 'active' : ''}`}
+                                onClick={() => handleTabClick('verification')}
                             >
                                 Verification Request
                             </button>
                         </div>
                     </div>
 
-                    {/* Filter & Search Section */}
+                    {/* MERGED-CHANGED — re-added the DraftsFilterLeft / DraftsFilterRight wrapper divs from the
+                        design source. lea-css.css's @media (max-width: 768px) rules target these exact classes
+                        to stack search left / filters right responsively — without the wrappers here, that
+                        responsive behavior has nothing to apply to. Target's real filter values/handlers are
+                        unchanged, just re-grouped into the two wrappers, and the Clear Filters button (target's
+                        own addition) now sits inside DraftsFilterRight alongside the dropdowns. */}
                     <div className="DraftsFilterSection">
                         <div className="DraftsFilterControls">
-                            <input
-                                type="text"
-                                className="DraftsSearchInput"
-                                placeholder="Search by Product Name, Case Number, or Complainant"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                            <div className="DraftsFilterLeft">
+                                <input
+                                    type="text"
+                                    className="DraftsSearchInput"
+                                    placeholder="Search by Product Name or Product Category..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={activeTab}
-                                onChange={(e) => handleTabClick(e.target.value)}
-                            >
-                                <option value="All">All Types</option>
-                                <option value="Walk-in Intake">Walk-in Intake</option>
-                                <option value="Verification Request">Verification Request</option>
-                            </select>
+                            <div className="DraftsFilterRight">
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <option value="All">All Statuses</option>
-                                <option value="Draft">Draft</option>
-                                <option value="Incomplete">Incomplete</option>
-                            </select>
 
-                            <select
-                                className="DraftsFilterDropdown"
-                                value={sortOption}
-                                onChange={(e) => setSortOption(e.target.value)}
-                            >
-                                <option value="Recently Edited">Recently Edited</option>
-                                <option value="Oldest First">Oldest First</option>
-                                <option value="Product Name">Product Name (A–Z)</option>
-                            </select>
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="All">All Statuses</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="incomplete">Incomplete</option>
+                                </select>
 
-                            <button className="BtnClearFilters" onClick={handleClearFilters}>
-                                Clear Filters
-                            </button>
-                        </div>
+                                <select
+                                    className="DraftsFilterDropdown"
+                                    value={sortOption}
+                                    onChange={(e) => setSortOption(e.target.value)}
+                                >
+                                    <option value="recently_edited">Recently Edited</option>
+                                    <option value="oldest_first">Oldest First</option>
+                                    <option value="product_name_az">Product Name (A–Z)</option>
+                                </select>
 
-                        <div className="DraftsTotalCount">
-                            Total Drafts: {filteredDrafts.length}
+                                {/* Change 1 — icon-only Clear Filters button (X icon, no text label) */}
+                                {(() => {
+                                    const hasActiveFilters = Boolean(searchQuery.trim() !== '' || statusFilter !== 'All' || (sortOption !== 'Recently Edited' && sortOption !== 'recently_edited'));
+                                    return (
+                                        <button
+                                            className="BtnClearFiltersIcon"
+                                            onClick={handleClearFilters}
+                                            disabled={!hasActiveFilters}
+                                            aria-label="Clear Filters"
+                                            title="Clear Filters"
+                                            style={{ display: hasActiveFilters ? 'inline-flex' : 'none' }}
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    );
+                                })()}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Draft List Layout */}
-                    {filteredDrafts.length > 0 ? (
+                    {/* MERGED-CHANGED — Total Drafts moved outside the DraftsFilterSection box, to match the
+                        Dismissed Cases "Total Cases" placement for uniformity across both pages: its own line,
+                        outside the filter panel's bordered/padded container, not nested inside it. */}
+                    <div className="DraftsTotalCount">
+                        Total Drafts: {filteredDrafts.length}
+                    </div>
+
+                    {loading ? (
+                        <div className="EmptyStateContainer">
+                            <p>Loading drafts...</p>
+                        </div>
+                    ) : filteredDrafts.length > 0 ? (
                         <div className='TableCard'>
                             <table className='ComplaintsTable'>
                                 <thead>
                                     <tr>
-                                        <th>Draft Type</th>
-                                        <th>Case No.</th>
-                                        <th>Product</th>
-                                        <th>Complainant</th>
-                                        <th>Last Edited</th>
-                                        <th>Saved By</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                        <th>DRAFT TYPE</th>
+                                        <th>PRODUCT CATEGORY</th>
+                                        <th>PRODUCT NAME</th>
+                                        <th>COMPLAINANT</th>
+                                        <th>LAST EDITED</th>
+                                        <th>SAVED BY</th>
+                                        <th>STATUS</th>
+                                        <th>ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredDrafts.map((draft) => (
-                                        <tr key={draft.id}>
-                                            <td style={{ fontWeight: '600', color: '#13213C' }}>{draft.draftType}</td>
-                                            <td className='ClassId'>{draft.id}</td>
-                                            <td className='ProductName'>{draft.product}</td>
-                                            <td>{draft.complainant}</td>
-                                            <td>{draft.lastEdited}</td>
-                                            <td>{draft.savedBy}</td>
-                                            <td>
-                                                <span className={`StatusBadge ${GetDraftStatusClass(draft.status)}`}>
-                                                    {draft.status}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="TableActionsCell">
-                                                    <button 
-                                                        className="BtnTableEdit"
-                                                        onClick={() => handleEditDraft(draft)}
-                                                    >
-                                                        <PenLine className="BtnEditIcon" size={16} /> Edit Draft
-                                                    </button>
-                                                    <button 
-                                                        className="BtnTableDelete"
-                                                        onClick={() => handleDeleteClick(draft)}
-                                                        title="Delete Draft"
-                                                    >
-                                                        <Trash2 className="BtnDeleteIcon" size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {(() => {
+                                        const totalPages = Math.ceil(filteredDrafts.length / DRAFT_PAGE_SIZE) || 1;
+                                        const safePage = Math.min(Math.max(1, currentPage), totalPages);
+                                        const startIndex = (safePage - 1) * DRAFT_PAGE_SIZE;
+                                        const endIndex = Math.min(startIndex + DRAFT_PAGE_SIZE, filteredDrafts.length);
+                                        const paginatedDrafts = filteredDrafts.slice(startIndex, endIndex);
+
+                                        return paginatedDrafts.map((draft) => (
+                                            <tr key={draft.draft_id}>
+                                                <td style={{ fontWeight: '600', color: '#13213C' }}>
+                                                    {GetDraftTypeLabel(draft.draft_type)}
+                                                </td>
+                                                <td>{draft.product_category}</td>
+                                                <td className='ProductName'>{draft.product_name}</td>
+                                                <td>{draft.complainant_name}</td>
+                                                <td>{new Date(draft.updated_at).toLocaleString()}</td>
+                                                <td>{draft.saved_by_name || 'You'}</td>
+                                                <td>
+                                                    <span className={`StatusBadge ${GetDraftStatusClass(draft.draft_status)}`}>
+                                                        {draft.draft_status === 'draft' ? 'Draft' : 'Incomplete'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="LeaDropdownWrapper">
+                                                        <button
+                                                            className="LeaViewBtn"
+                                                            title="View Draft"
+                                                            onClick={() => setViewModalData(draft)}
+                                                        >
+                                                            <Eye size={15} />
+                                                        </button>
+                                                        <button
+                                                            className="LeaDropdownTrigger"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleDropdown(draft.draft_id, e);
+                                                            }}
+                                                        >
+                                                            <MoreVertical size={15} />
+                                                        </button>
+
+                                                        {openDropdownId === draft.draft_id &&
+                                                            createPortal(
+                                                                <div
+                                                                    className="LeaDropdownMenu"
+                                                                    style={{
+                                                                        position: 'fixed',
+                                                                        top: `${dropdownPos.top}px`,
+                                                                        left: `${dropdownPos.left}px`,
+                                                                        zIndex: 9999,
+                                                                        width:`150px`,
+                                                                    }}
+                                                                >
+                                                                    <button
+                                                                        className="LeaDropdownItem"
+                                                                        onClick={() => {
+                                                                            setOpenDropdownId(null);
+                                                                            handleEditDraft(draft);
+                                                                        }}
+                                                                    >
+                                                                        <PenLine size={14} /> Continue Editing
+                                                                    </button>
+                                                                    <button
+                                                                        className="LeaDropdownItem"
+                                                                        onClick={() => {
+                                                                            setOpenDropdownId(null);
+                                                                            handleDeleteClick(draft);
+                                                                        }}
+                                                                    >
+                                                                        <Trash2 size={14} /> Delete Draft
+                                                                    </button>
+                                                                </div>,
+                                                                document.body
+                                                            )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ));
+                                    })()}
                                 </tbody>
                             </table>
+
+                            {(() => {
+                                const totalPages = Math.ceil(filteredDrafts.length / DRAFT_PAGE_SIZE) || 1;
+                                const safePage = Math.min(Math.max(1, currentPage), totalPages);
+                                const startIndex = (safePage - 1) * DRAFT_PAGE_SIZE;
+                                const endIndex = Math.min(startIndex + DRAFT_PAGE_SIZE, filteredDrafts.length);
+                                return (
+                                    <div className='Pagination'>
+                                        <p>Showing {filteredDrafts.length === 0 ? 0 : startIndex + 1}–{endIndex} of {filteredDrafts.length}</p>
+                                        <div className='PaginationBtn'>
+                                            <button
+                                                className='BtnPage'
+                                                disabled={safePage === 1}
+                                                onClick={() => setCurrentPage(safePage - 1)}
+                                            >
+                                                Previous
+                                            </button>
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                                <button
+                                                    key={p}
+                                                    className={`BtnPage ${safePage === p ? 'active' : ''}`}
+                                                    onClick={() => setCurrentPage(p)}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                            <button
+                                                className='BtnPage'
+                                                disabled={safePage === totalPages}
+                                                onClick={() => setCurrentPage(safePage + 1)}
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     ) : (
-                        /* Empty State */
                         <div className="EmptyStateContainer">
-                            <div className="EmptyStateIcon">📂</div>
+                            <div className="EmptyStateIcon"> <Inbox size={40} /></div>
                             <h3 className="EmptyStateTitle">No saved drafts yet</h3>
                             <p className="EmptyStateMessage">
                                 You haven't saved any drafts.<br />
                                 Any complaint or verification request you save as a draft will appear here.
                             </p>
-                            <span 
-                                className="EmptyStateLink" 
+                            <span
+                                className="EmptyStateLink"
                                 onClick={() => navigate('/leacidgfolder/lea-new-intake')}
                             >
                                 Create New Complaint
@@ -295,11 +463,6 @@ function LeaSavedDraft() {
                         </div>
                     )}
 
-                    {/* Footer Informational Banner */}
-                    <div className="FooterInfoBanner">
-                        <span className="FooterInfoIcon"><Info size={18} /></span>
-                        <p>Drafts are saved locally while you're working. Remember to submit them when you're ready.</p>
-                    </div>
                 </div>
             </div>
 
@@ -309,7 +472,7 @@ function LeaSavedDraft() {
                     <div className='ModalBox'>
                         <h3>Confirm Delete</h3>
                         <p>
-                            Are you sure you want to delete the draft for <strong>{draftToDelete.product}</strong> ({draftToDelete.id})? This action cannot be undone.
+                            Are you sure you want to delete the draft for <strong>{draftToDelete.product_name}</strong>? This action cannot be undone.
                         </p>
                         <div className='ModalActions'>
                             <button className='BtnCancelModal' onClick={() => setShowDeleteModal(false)}>Cancel</button>
@@ -319,29 +482,45 @@ function LeaSavedDraft() {
                 </div>
             )}
 
-            {/* Notification Toast */}
+            {/* ADDED — View Draft Modal (read-only), same modal classes as the delete confirm modal */}
+            {viewModalData && (
+                <div className='ModalOverlay'>
+                    <div className='ModalBox'>
+                        <h3>Draft Details</h3>
+                        <p><strong>Type:</strong> {GetDraftTypeLabel(viewModalData.draft_type)}</p>
+                        <p><strong>Product Category:</strong> {viewModalData.product_category}</p>
+                        <p><strong>Product Name:</strong> {viewModalData.product_name}</p>
+                        <p><strong>Complainant:</strong> {viewModalData.complainant_name}</p>
+                        <p><strong>Last Edited:</strong> {new Date(viewModalData.updated_at).toLocaleString()}</p>
+                        <p><strong>Saved By:</strong> {viewModalData.saved_by_name || 'You'}</p>
+                        <p><strong>Status:</strong> {viewModalData.draft_status === 'draft' ? 'Draft' : 'Incomplete'}</p>
+                        <div className='ModalActions'>
+                            <button className='BtnCancelModal' onClick={() => setViewModalData(null)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* FDA-STYLE FLOATING TOAST NOTIFICATION ALERT */}
             {toastMessage && (
-                <div style={{
-                    position: 'fixed',
-                    bottom: '30px',
-                    right: '30px',
-                    background: '#1B2746',
-                    color: '#FDFDFD',
-                    padding: '14px 24px',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    zIndex: 1000,
-                    fontWeight: '500',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                }}>
-                    <span><Info className="BtnInfoIcon" size={18} /></span> {toastMessage}
+                <div className="LeaToastAlert LeaToast_info" role="alert">
+                    <div className="LeaToastIconWrap">
+                        <Info size={18} />
+                    </div>
+                    <div className="LeaToastBody">
+                        <p className="LeaToastMessage">{toastMessage}</p>
+                    </div>
+                    <button
+                        className="LeaToastCloseBtn"
+                        onClick={() => setToastMessage(null)}
+                        aria-label="Close notification"
+                    >
+                        <X size={14} />
+                    </button>
                 </div>
             )}
         </div>
     );
-}
+  }
 
 export default LeaSavedDraft;
-
