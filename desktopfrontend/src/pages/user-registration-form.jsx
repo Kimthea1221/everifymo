@@ -1,54 +1,26 @@
-// desktopfrontend/src/pages/user-registration-form.jsx
 import { useState } from 'react';
-import { Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import ImgSuccess from '../images/success_img.png'
 import ImgTime from '../images/time_img.png'
-import { API_BASE_URL } from '../utils/apiConfig'
-import {
-  User,
-  Mail,
-  Building2,
-  MapPin,
-  Phone,
-  Briefcase,
-  Fingerprint,
-  Shield,
-  AlertCircle
-} from 'lucide-react';
-
-
-// Maps raw role values from the database to human-friendly labels
-const ROLE_LABELS = {
-  fda_personnel: 'FDA Personnel',
-  lea_personnel: 'LEA Personnel',
-  superadmin: 'SuperAdmin',
-}
-
 
 // REGISTRATION PAGE FOR ADDED PERSONNEL
 function UserRegistration() {
   const navigate = useNavigate();
-  const location = useLocation()
-  const officerData = location.state || {}   // fallback in case someone visits this page directly
-  // add this to the top-level of the component, right after officerData is defined:
-  const hasValidInviteData = Boolean(officerData.invite_token && officerData.email);
-
-
   const [form, setForm] = useState({
     firstName: '',
     middleName: '',
     lastName: '',
     employeeId: '',
+    email: 'invited.user@icmda.gov.ph', // pre-filled from deep link token
+    agency: 'LEA-CIDG', // pre-filled from superadmin side
+    region: 'NCR', // pre-filled from superadmin side
     contactNumber: '',
     department: '',
     position: '',
   });
 
-
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // NEW
-
 
   const REQUIRED_FIELDS = [
     'firstName',
@@ -58,7 +30,6 @@ function UserRegistration() {
     'department',
     'position',
   ];
-
 
   function validate() {
     const newErrors = {};
@@ -75,122 +46,26 @@ function UserRegistration() {
         newErrors[field] = `${label} is required.`;
       }
     });
-
-
-    if (form.contactNumber && form.contactNumber.length !== 11) {
-    newErrors.contactNumber = 'Contact number must be exactly 11 digits.';
-  }
-
-
     return newErrors;
   }
 
-
-  function handleChange(e) { // added to handle contact number input to only allow digits and limit to 11 characters
-  const { name, value } = e.target;
-
-
-  if (name === 'contactNumber') {
-    const digitsOnly = value.replace(/\D/g, '').slice(0, 11);
-    setForm((prev) => ({ ...prev, [name]: digitsOnly }));
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
-    return;
   }
-
-
-  setForm((prev) => ({ ...prev, [name]: value }));
-  if (errors[name]) {
-    setErrors((prev) => ({ ...prev, [name]: '' }));
-  }
-}
-
 
   function handleSubmit(e) {
     e.preventDefault();
-   
-    if (isSubmitting) return; // NEW — ignore extra clicks/double-fires while a request is in flight
-
-
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-
-
-    setIsSubmitting(true); // NEW
-
-
-    // Submit the form data to the backend
-  fetch(`${API_BASE_URL}/registration/complete`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      invite_token: officerData.invite_token,
-      first_name: form.firstName,
-      middle_name: form.middleName || null,
-      last_name: form.lastName,
-      employee_id: form.employeeId,
-      contact_number: form.contactNumber,
-      department: form.department,
-      position: form.position,
-    }),
-  })
-    .then(async (res) => {
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const err = new Error(body.detail || 'Submission failed');
-        err.status = res.status;
-        err.detail = body.detail;
-        throw err;
-      }
-      return body;
-    })
-    .then(() => setSubmitted(true))
-    .catch((error) => {
-      console.error(error);
-
-      if (error.status === 409 && error.detail) {
-        // Duplicate employee_id or contact_number — route to the right field
-        if (error.detail.toLowerCase().includes('employee id')) {
-          setErrors((prev) => ({ ...prev, employeeId: error.detail }));
-        } else if (error.detail.toLowerCase().includes('contact number')) {
-          setErrors((prev) => ({ ...prev, contactNumber: error.detail }));
-        } else {
-          alert(error.detail);
-        }
-      } else if (error.detail) {
-        // 400/404 from the backend (expired/invalid token, etc.)
-        alert(error.detail);
-      } else {
-        alert('Something went wrong submitting your registration. Please try again.');
-      }
-    })
-    .finally(() => setIsSubmitting(false));
+    setSubmitted(true);
   }
-
-
-// add this block BEFORE the `if (submitted)` block:
-if (!hasValidInviteData) {
-  return (
-    <>
-      <style>{styles}</style>
-      <div className="RegPageContainer">
-        <div className="RegCard">
-          <div className="RegSuccessScreen">
-            <h2 className="RegSuccessTitle">Link Not Recognized</h2>
-            <p className="RegSuccessDesc">
-              We couldn't find your registration details. Please use the invitation link from your email, or contact your administrator.
-            </p>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
 
   /*Success Screen*/
   if (submitted) {
@@ -209,26 +84,13 @@ if (!hasValidInviteData) {
               <div className="RegSuccessTag">
                 <span className='RegTimeIcon'><img src={ImgTime} alt="Hour glass icon" /></span> Pending Administrator Approval
               </div>
-
-
-              {/* in the success screen, add the Back to Login button after RegSuccessTag: */}
-
-
-              <button
-                className="RegSubmitBtn"
-                style={{ marginTop: 20, maxWidth: 220 }}
-                onClick={() => navigate('/universal-login')}
-              >
-                Back to Login
-              </button>
-             
+              
             </div>
           </div>
         </div>
       </>
     );
   }
-
 
   /* Registration Form for user side */
   return (
@@ -245,7 +107,6 @@ if (!hasValidInviteData) {
             </p>
           </div>
 
-
           <form className="RegForm" onSubmit={handleSubmit} noValidate>
             {/* Name Row */}
             <div className="RegFieldRow">
@@ -253,56 +114,44 @@ if (!hasValidInviteData) {
                 <label className="RegLabel">
                   First Name <span className="RegRequired">*</span>
                 </label>
-                <div className="RegInputWrapper">
-                  <User className="RegInputIcon" size={16} />
-                  <input
-                    className={`RegInput ${errors.firstName ? 'reg-input-error' : ''}`}
-                    type="text"
-                    name="firstName"
-                    placeholder="Juan"
-                    value={form.firstName}
-                    onChange={handleChange}
-                  />
-                </div>
-                {errors.firstName && <span className="RegError"><AlertCircle size={12} /> {errors.firstName}</span>}
+                <input
+                  className={`RegInput ${errors.firstName ? 'reg-input-error' : ''}`}
+                  type="text"
+                  name="firstName"
+                  placeholder="Juan"
+                  value={form.firstName}
+                  onChange={handleChange}
+                />
+                {errors.firstName && <span className="RegError">{errors.firstName}</span>}
               </div>
-
 
               <div className="RegFormGroup">
                 <label className="RegLabel">Middle Name</label>
-                <div className="RegInputWrapper">
-                  <User className="RegInputIcon" size={16} />
-                  <input
-                    className="RegInput"
-                    type="text"
-                    name="middleName"
-                    placeholder="Optional"
-                    value={form.middleName}
-                    onChange={handleChange}
-                  />
-                </div>
+                <input
+                  className="RegInput"
+                  type="text"
+                  name="middleName"
+                  placeholder="Optional"
+                  value={form.middleName}
+                  onChange={handleChange}
+                />
               </div>
-
 
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Last Name <span className="RegRequired">*</span>
                 </label>
-                <div className="RegInputWrapper">
-                  <User className="RegInputIcon" size={16} />
-                  <input
-                    className={`RegInput ${errors.lastName ? 'reg-input-error' : ''}`}
-                    type="text"
-                    name="lastName"
-                    placeholder="Dela Cruz"
-                    value={form.lastName}
-                    onChange={handleChange}
-                  />
-                </div>
-                {errors.lastName && <span className="RegError"><AlertCircle size={12} /> {errors.lastName}</span>}
+                <input
+                  className={`RegInput ${errors.lastName ? 'reg-input-error' : ''}`}
+                  type="text"
+                  name="lastName"
+                  placeholder="Dela Cruz"
+                  value={form.lastName}
+                  onChange={handleChange}
+                />
+                {errors.lastName && <span className="RegError">{errors.lastName}</span>}
               </div>
             </div>
-
 
             {/* Employee ID & Contact */}
             <div className="RegFieldRow">
@@ -310,41 +159,32 @@ if (!hasValidInviteData) {
                 <label className="RegLabel">
                   Employee ID <span className="RegRequired">*</span>
                 </label>
-                <div className="RegInputWrapper">
-                  <Fingerprint className="RegInputIcon" size={16} />
-                  <input
-                    className={`RegInput ${errors.employeeId ? 'reg-input-error' : ''}`}
-                    type="text"
-                    name="employeeId"
-                    placeholder="EMP-00123"
-                    value={form.employeeId}
-                    onChange={handleChange}
-                  />
-                </div>
-                {errors.employeeId && <span className="RegError"><AlertCircle size={12} /> {errors.employeeId}</span>}
+                <input
+                  className={`RegInput ${errors.employeeId ? 'reg-input-error' : ''}`}
+                  type="text"
+                  name="employeeId"
+                  placeholder="EMP-00123"
+                  value={form.employeeId}
+                  onChange={handleChange}
+                />
+                {errors.employeeId && <span className="RegError">{errors.employeeId}</span>}
               </div>
-
 
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Contact Number <span className="RegRequired">*</span>
                 </label>
-                <div className="RegInputWrapper">
-                  <Phone className="RegInputIcon" size={16} />
-                  <input
-                    className={`RegInput ${errors.contactNumber ? 'reg-input-error' : ''}`}
-                    type="text"
-                    name="contactNumber"
-                    placeholder="09XX XXX XXXX"
-                    maxLength={11}
-                    value={form.contactNumber}
-                    onChange={handleChange}
-                  />
-                </div>
-                {errors.contactNumber && <span className="RegError"><AlertCircle size={12} /> {errors.contactNumber}</span>}
+                <input
+                  className={`RegInput ${errors.contactNumber ? 'reg-input-error' : ''}`}
+                  type="text"
+                  name="contactNumber"
+                  placeholder="09XX XXX XXXX"
+                  value={form.contactNumber}
+                  onChange={handleChange}
+                />
+                {errors.contactNumber && <span className="RegError">{errors.contactNumber}</span>}
               </div>
             </div>
-
 
             {/* Account Info (read-only) kase pre-filled na based sa superadmin entry */}
             <div className="RegFormGroup">
@@ -352,18 +192,14 @@ if (!hasValidInviteData) {
                 Email Address{' '}
                 <span className="RegReadonlyTag">pre-filled</span>
               </label>
-              <div className="RegInputWrapper">
-                <Mail className="RegInputIcon" size={16} />
-                <input
-                  className="RegInput reg-input-readonly"
-                  type="email"
-                  name="email"
-                  value={officerData.email || ''} //changed to officerData.email to pre-fill from deep link token
-                  readOnly
-                />
-              </div>
+              <input
+                className="RegInput reg-input-readonly"
+                type="email"
+                name="email"
+                value={form.email}
+                readOnly
+              />
             </div>
-
 
             <div className="RegFieldRow">
               <div className="RegFormGroup">
@@ -371,37 +207,29 @@ if (!hasValidInviteData) {
                   Agency{' '}
                   <span className="RegReadonlyTag">pre-filled</span>
                 </label>
-                <div className="RegInputWrapper">
-                  <Building2 className="RegInputIcon" size={16} />
-                  <input
-                    className="RegInput reg-input-readonly"
-                    type="text"
-                    name="agency"
-                    value={ROLE_LABELS[officerData.role] || officerData.role || ''} // changed too, with the role labels
-                    readOnly
-                  />
-                </div>
+                <input
+                  className="RegInput reg-input-readonly"
+                  type="text"
+                  name="agency"
+                  value={form.agency}
+                  readOnly
+                />
               </div>
-
 
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Region{' '}
                   <span className="RegReadonlyTag">pre-filled</span>
                 </label>
-                <div className="RegInputWrapper">
-                  <MapPin className="RegInputIcon" size={16} />
-                  <input
-                    className="RegInput reg-input-readonly"
-                    type="text"
-                    name="region"
-                    value={officerData.region_name || ''} //changed as well
-                    readOnly
-                  />
-                </div>
+                <input
+                  className="RegInput reg-input-readonly"
+                  type="text"
+                  name="region"
+                  value={form.region}
+                  readOnly
+                />
               </div>
             </div>
-
 
             {/* Department & Position */}
             <div className="RegFieldRow">
@@ -409,43 +237,35 @@ if (!hasValidInviteData) {
                 <label className="RegLabel">
                   Department <span className="RegRequired">*</span>
                 </label>
-                <div className="RegInputWrapper">
-                  <Building2 className="RegInputIcon" size={16} />
-                  <input
-                    className={`RegInput ${errors.department ? 'reg-input-error' : ''}`}
-                    type="text"
-                    name="department"
-                    placeholder="e.g. Operations Division"
-                    value={form.department}
-                    onChange={handleChange}
-                  />
-                </div>
-                {errors.department && <span className="RegError"><AlertCircle size={12} /> {errors.department}</span>}
+                <input
+                  className={`RegInput ${errors.department ? 'reg-input-error' : ''}`}
+                  type="text"
+                  name="department"
+                  placeholder="e.g. Operations Division"
+                  value={form.department}
+                  onChange={handleChange}
+                />
+                {errors.department && <span className="RegError">{errors.department}</span>}
               </div>
-
 
               <div className="RegFormGroup">
                 <label className="RegLabel">
                   Position <span className="RegRequired">*</span>
                 </label>
-                <div className="RegInputWrapper">
-                  <Briefcase className="RegInputIcon" size={16} />
-                  <input
-                    className={`RegInput ${errors.position ? 'reg-input-error' : ''}`}
-                    type="text"
-                    name="position"
-                    placeholder="e.g. Senior Analyst"
-                    value={form.position}
-                    onChange={handleChange}
-                  />
-                </div>
-                {errors.position && <span className="RegError"><AlertCircle size={12} /> {errors.position}</span>}
+                <input
+                  className={`RegInput ${errors.position ? 'reg-input-error' : ''}`}
+                  type="text"
+                  name="position"
+                  placeholder="e.g. Senior Analyst"
+                  value={form.position}
+                  onChange={handleChange}
+                />
+                {errors.position && <span className="RegError">{errors.position}</span>}
               </div>
             </div>
 
-
-            <button type="submit" className="RegSubmitBtn" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit Registration'}
+            <button type="submit" className="RegSubmitBtn">
+              Submit Registration
             </button>
           </form>
         </div>
@@ -455,13 +275,8 @@ if (!hasValidInviteData) {
 }
 
 
-
-
-
-
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
-
 
   .RegPageContainer {
     min-height: 100vh;
@@ -469,37 +284,33 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #F1F5F9;
+    background: #fdfdfd;
     padding: 32px 16px;
     box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
   }
-
 
   .RegCard {
     width: 100%;
     max-width: 700px;
     background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     animation: RegSlideUp 0.35s ease;
   }
 
-
   @keyframes RegSlideUp {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(24px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* Card Header */
+  /*Card Header*/
   .RegCardHeader {
     background: linear-gradient(135deg, #1E293B 0%, #0f172a 100%);
-    padding: 28px 36px 24px;
+    padding: 32px 36px;
     border-bottom: 4px solid #0D9488;
     text-align: center;
   }
-
 
   .RegSystemBadge {
     display: inline-block;
@@ -510,45 +321,39 @@ const styles = `
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
-    padding: 3px 12px;
+    padding: 4px 14px;
     border-radius: 20px;
-    margin-bottom: 10px;
-    font-family: 'Poppins', sans-serif;
+    margin-bottom: 12px;
   }
-
 
   .RegCardTitle {
     font-size: 22px;
     font-weight: 700;
     color: #ffffff;
-    margin: 0 0 6px;
+    margin: 0 0 8px;
     font-family: 'Poppins', sans-serif;
-    letter-spacing: -0.3px;
   }
 
-
   .RegCardSubtitle {
-    font-size: 13px;
+    font-size: 13.5px;
     color: #94a3b8;
     margin: 0;
     line-height: 1.5;
   }
 
-  /* Form */
+  /*Form*/
   .RegForm {
-    padding: 28px 36px 32px;
+    padding: 32px 36px 36px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
   }
-
 
   .RegFieldRow {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
+    gap: 16px;
   }
-
 
   .RegFormGroup {
     display: flex;
@@ -556,19 +361,16 @@ const styles = `
     gap: 6px;
   }
 
-
   .RegLabel {
     font-size: 13px;
     font-weight: 600;
-    color: #334155;
+    color: #374151;
     display: flex;
     align-items: center;
     gap: 6px;
   }
 
-
   .RegRequired { color: #ef4444; }
-
 
   .RegReadonlyTag {
     font-size: 10.5px;
@@ -582,123 +384,100 @@ const styles = `
     letter-spacing: 0.5px;
   }
 
-
-  .RegInputWrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    width: 100%;
-  }
-
-
-  .RegInputIcon {
-    position: absolute;
-    left: 12px;
-    color: #94a3b8;
-    pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-
   .RegInput {
-    width: 100%;
-    height: 44px;
-    padding: 11px 12px 11px 38px;
+    padding: 11px 14px;
     border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
+    border-radius: 9px;
     font-size: 14px;
     color: #111827;
-    background: #ffffff;
+    background: #f9fafb;
     outline: none;
     transition: all 0.2s ease;
     box-sizing: border-box;
+    width: 100%;
     font-family: 'Inter', sans-serif;
   }
-
 
   .RegInput:focus {
     border-color: #0D9488;
     box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+    background: #fff;
   }
-
 
   .reg-input-error {
     border-color: #ef4444 !important;
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
   }
 
-
   .reg-input-readonly {
-    background: #f8fafc !important;
+    background: #f1f5f9 !important;
     color: #64748b !important;
+    cursor: not-allowed;
     border-color: #e2e8f0 !important;
-    cursor: default;
   }
 
+  .RegSelect {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
 
   .RegError {
-    font-size: 11.5px;
+    font-size: 12px;
     color: #ef4444;
     margin-top: 2px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 500;
   }
 
-  /* Submit Button */
+  /* Submit Button*/
   .RegSubmitBtn {
-    margin-top: 6px;
+    margin-top: 8px;
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background: linear-gradient(135deg, #0D9488 0%, #0f766e 100%);
     color: #ffffff;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
+    transition: all 0.22s ease;
+    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
     font-family: 'Poppins', sans-serif;
     letter-spacing: 0.3px;
   }
 
-
   .RegSubmitBtn:hover {
     background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(13, 148, 136, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(13, 148, 136, 0.5);
   }
-
 
   .RegSubmitBtn:active {
     transform: translateY(0);
   }
 
-  /* Success Screen */
+  /* Success Screen*/
   .RegSuccessScreen {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 48px 36px;
+    padding: 56px 36px;
     gap: 16px;
   }
 
-  .RegSuccessIconLarge img {
-    width: 80px !important;
+  .RegSuccessIconLarge img{
+    width: 100px !important;
     animation: RegPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-
 
   @keyframes RegPop {
     from { transform: scale(0); opacity: 0; }
     to   { transform: scale(1); opacity: 1; }
   }
-
 
   .RegSuccessTitle {
     font-size: 22px;
@@ -708,7 +487,6 @@ const styles = `
     font-family: 'Poppins', sans-serif;
   }
 
-
   .RegSuccessDesc {
     font-size: 14px;
     color: #64748b;
@@ -717,26 +495,25 @@ const styles = `
     max-width: 420px;
   }
 
-
   .RegSuccessTag {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 18px;
+    padding: 10px 22px;
     background: #fef3c7;
     border: 1px solid #fde68a;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
     color: #92400e;
-    margin-top: 4px;
+    margin-top: 8px;
+  }
+    .RegTimeIcon img{
+    width: 18px;
+    height: auto;
+    margin-top: 5px;
   }
 
-  .RegTimeIcon img {
-    width: 16px;
-    height: auto;
-    display: block;
-  }
 `;
 
 export default UserRegistration;

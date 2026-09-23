@@ -47,9 +47,9 @@ const UserEmailActivation = ({
           max-width: 520px;
           margin: 0 auto;
           background-color: #ffffff;
-          border-radius: 16px;
+          border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
         }
 
         /* ── Header ── */
@@ -85,18 +85,19 @@ const UserEmailActivation = ({
 
         /* ── Activated Banner ── */
         .ActEmailBanner {
-         
-          padding: 16px 24px;
+          background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+          border-bottom: 2px solid #86efac;
+          padding: 18px 24px;
           text-align: center;
         }
         .ActEmailBannerIcon {
-          font-size: 28px;
-          margin-bottom: 4px;
+          font-size: 32px;
+          margin-bottom: 6px;
           display: block;
         }
         .ActEmailBannerText {
           font-family: 'Poppins', sans-serif;
-          font-size: 15px;
+          font-size: 16px;
           font-weight: 700;
           color: #166534;
           margin: 0;
@@ -104,10 +105,10 @@ const UserEmailActivation = ({
 
         /* ── Content ── */
         .ActEmailContent {
-          padding: 36px 32px;
+          padding: 32px;
         }
         .ActEmailGreeting {
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 600;
           color: #111827;
           margin: 0 0 14px;
@@ -125,7 +126,7 @@ const UserEmailActivation = ({
           background: #f8fafc;
           border: 1px solid #e2e8f0;
           border-radius: 12px;
-          padding: 18px 20px;
+          padding: 20px 24px;
           margin: 20px 0 24px;
         }
         .ActEmailCredTitle {
@@ -135,16 +136,16 @@ const UserEmailActivation = ({
           color: #1E293B;
           text-transform: uppercase;
           letter-spacing: 1px;
-          margin: 0 0 12px;
-          padding-bottom: 8px;
+          margin: 0 0 14px;
+          padding-bottom: 10px;
           border-bottom: 1px solid #e2e8f0;
         }
         .ActEmailCredRow {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 6px 0;
-          border-bottom: 1px dashed #e2e8f0;
+          padding: 8px 0;
+          border-bottom: 1px dashed #f1f5f9;
         }
         .ActEmailCredRow:last-child {
           border-bottom: none;
@@ -155,7 +156,7 @@ const UserEmailActivation = ({
           font-weight: 500;
         }
         .ActEmailCredValue {
-          font-size: 13.5px;
+          font-size: 14px;
           color: #111827;
           font-weight: 700;
           font-family: 'Courier New', Courier, monospace;
@@ -177,8 +178,8 @@ const UserEmailActivation = ({
 
         /* ── Security Note ── */
         .ActEmailSecurityBox {
-          background: #fffbeb;
-          border: 1px solid #fde68a;
+          background: #fff7ed;
+          border: 1px solid #fed7aa;
           border-radius: 10px;
           padding: 14px 18px;
           margin-bottom: 20px;
@@ -186,7 +187,7 @@ const UserEmailActivation = ({
         .ActEmailSecurityTitle {
           font-size: 12.5px;
           font-weight: 700;
-          color: #b45309;
+          color: #9a3412;
           margin: 0 0 6px;
           display: flex;
           align-items: center;
@@ -194,9 +195,9 @@ const UserEmailActivation = ({
         }
         .ActEmailSecurityText {
           font-size: 12.5px !important;
-          color: #92400e !important;
+          color: #c2410c !important;
           margin: 0 !important;
-          line-height: 1.6 !important;
+          line-height: 1.5 !important;
         }
 
         /* ── Footer ── */
