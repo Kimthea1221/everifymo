@@ -1,13 +1,10 @@
 
 
-import React from 'react';
-
-/**
- * Superadmin OTP Email Template
- * Sent to Superadmin personnel during login verification.
- * Props:
- *  - otpCode  6-digit verification code
- */
+{/**
+*   THIS OTP INTENDED ONLY FOR SUPERADMIN OTP TEMPLATE SIDE
+*   SAMPLE OTP CODE TO BE REPLACE BY BACKEND
+*
+*/}
 const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
   return (
     <>
@@ -28,8 +25,8 @@ const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
           .EmailBody {
             margin: 0;
             padding: 0;
-            font-family: 'Inter', Arial, sans-serif;
-            background-color: #f0f4f8;
+            font-family: var(--font-body);
+            background-color: #f4f5f8;
             color: #333333;
           }
           .EmailTable {
@@ -38,67 +35,55 @@ const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
           .EmailWrapper {
             width: 100%;
             table-layout: fixed;
-            background-color: #f0f4f8;
+            background-color: #f4f5f8;
             padding-top: 40px;
             padding-bottom: 40px;
           }
           .EmailMainCard {
             width: 100%;
-            max-width: 520px;
+            max-width: 500px;
             margin: 0 auto;
             background-color: #ffffff;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
           }
-
-          /* Header */
           .EmailHeader {
             background: linear-gradient(135deg, #1E293B 0%, #0f172a 100%);
-            padding: 32px 24px;
+            padding: 30px 20px;
             text-align: center;
-            border-bottom: 4px solid #0D9488;
+            border-bottom: 3px solid #0D9488;
           }
-          .EmailSystemName {
-            color: #0D9488;
-            font-family: 'Poppins', sans-serif;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin: 0 0 6px;
-          }
-          .EmailHeaderTitle {
+          .EmailHeader h2 {
             color: #ffffff;
-            font-family: 'Poppins', sans-serif;
-            font-size: 18px;
-            font-weight: 700;
             margin: 0;
-            letter-spacing: 0.3px;
-          }
-          .EmailHeaderSub {
-            color: #94a3b8;
-            font-size: 11.5px;
-            margin: 6px 0 0;
+            font-size: 20px;
+            font-weight: 700;
             letter-spacing: 0.5px;
           }
-
-          /* Content */
+          .EmailHeader p {
+            color: #cfcfcf;
+            margin: 5px 0 0 0;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+          }
           .EmailContent {
-            padding: 36px 32px;
+            padding: 40px 30px;
           }
           .EmailGreeting {
             font-size: 16px;
             font-weight: 600;
-            margin: 0 0 14px;
-            color: #111827;
-            font-family: 'Poppins', sans-serif;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #1a1a2e;
           }
           .EmailInstructions {
             font-size: 14px;
-            line-height: 1.7;
-            color: #4b5563;
-            margin: 0 0 24px;
+            line-height: 1.6;
+            color: #555555;
+            margin-top: 0;
+            margin-bottom: 30px;
           }
           .EmailOtpBox {
             background-color: #f8fafc;
@@ -106,7 +91,7 @@ const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
             border-radius: 12px;
             padding: 24px;
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 30px;
           }
           .EmailOtpCode {
             font-size: 36px;
@@ -118,45 +103,43 @@ const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
           }
           .EmailExpiryAlert {
             font-size: 13px;
-            color: #dc2626;
-            margin: 8px 0 0 0;
+            color: #ef4444;
+            margin: 10px 0 0 0;
             font-weight: 500;
           }
           .EmailDivider {
             height: 1px;
-            background-color: #e5e7eb;
-            margin: 24px 0;
+            background-color: #e2e8f0;
+            margin: 30px 0;
           }
           .EmailSecurityNotice {
-            font-size: 12.5px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
             color: #64748b;
           }
           .EmailSecurityNoticeTitle {
             font-weight: 600;
-            color: #334155;
-            margin-bottom: 6px;
+            color: #475569;
+            margin-bottom: 4px;
           }
           .EmailFooter {
             background-color: #f8fafc;
-            border-top: 1px solid #e5e7eb;
-            padding: 18px 24px;
+            padding: 20px;
             text-align: center;
-            font-size: 11.5px;
+            font-size: 11px;
             color: #94a3b8;
+            border-top: 1px solid #f1f5f9;
           }
           .EmailFooter p {
-            margin: 4px 0 !important;
-            color: #9ca3af !important;
-            font-size: 11.5px !important;
+            margin: 5px 0;
           }
-          ul {
-            padding: 0 0 0 18px;
-            margin: 6px 0 0;
-          }
-          li {
-            margin-bottom: 6px;
-          }
+            ul{
+             padding: 0 0 0 20px;
+            
+            }
+             li{
+               margin-bottom: 8px;
+             }
         `}
       </style>
       <div className="EmailBody">
@@ -166,11 +149,8 @@ const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
             <tbody>
               <tr>
                 <td className="EmailHeader">
-                  <p className="EmailSystemName">ICMDA</p>
-                  <h2 className="EmailHeaderTitle">
-                    Interagency Complaint Management Desktop Application
-                  </h2>
-                  <p className="EmailHeaderSub">Super Administrator Security Verification</p>
+                  <h2>INTERAGENCY COMPLAINT MANAGEMENT SYSTEM</h2>
+                  <p>ICMDA Secure Verification</p>
                 </td>
               </tr>
               
@@ -179,7 +159,7 @@ const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
                 <td className="EmailContent">
                   <h3 className="EmailGreeting">Security Verification Code</h3>
                   <p className="EmailInstructions">
-                    We received a request to access your Interagency Complaint Management System account with Super Administrator privileges. Please use the following One-Time Password (OTP) to complete your login. This code is valid for single use only.
+                    We received a request to access your Interagency Complaint Management System account. Please use the following One-Time Password (OTP) to complete your login. This code is valid for single use only.
                   </p>
                   
                   <div className="EmailOtpBox">
@@ -187,8 +167,8 @@ const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
                     <p className="EmailExpiryAlert">This code will expire in 5 minutes.</p>
                   </div>
                   
-                  <p className="EmailInstructions" style={{ marginBottom: 0 }}>
-                    If you did not request this verification code, do not proceed with the login. Immediately review your account security, change your password if necessary, and investigate any suspicious activity.
+                  <p className="EmailInstructions">
+                      If you did not request this verification code, do not proceed with the login. Immediately review your account security, change your password if necessary, and investigate any suspicious activity.
                   </p>
                   
                   <div className="EmailDivider"></div>
@@ -207,7 +187,8 @@ const SuperadminOtpEmail = ({ otpCode = "123456" }) => {
               {/* FOOTER */}
               <tr>
                 <td className="EmailFooter">
-                  <p>ICMDA — Interagency Complaint Management Desktop Application</p>
+                 
+                  <p>Interagency Complaint Management System (ICMDA)</p>
                   <p>For authorized Super Administrator use only. This is an automated email. Please do not reply.</p>
                 </td>
               </tr>
