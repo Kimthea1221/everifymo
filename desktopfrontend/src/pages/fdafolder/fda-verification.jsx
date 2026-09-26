@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { apiFetch } from '../../utils/apiFetch';
+
 
 // ============================================================================
 // BACKEND NOTIFICATION ARCHITECTURE SPECIFICATION
@@ -244,10 +246,6 @@ const dummyRejectedRequests = [
   }
 ];
 
-// ADDED — base URL for all FDA backend API calls; mirrors the same constant
-// used in the LEA pages (e.g. lea-saved-draft.jsx) so the host is easy to
-// update from one place.
-const API_BASE = 'https://everify.store'; 
 
 function FDAVerification() {
 
@@ -388,10 +386,7 @@ function FDAVerification() {
     setFdaDocPreviewLoading(true);
     setFdaDocPreviewError(false);
 
-    const token = localStorage.getItem('access_token');
-    fetch(`${API_BASE}/shared-files/${fdaDocPreviewModal.file_id}/preview`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/shared-files/${fdaDocPreviewModal.file_id}/preview`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.blob();
@@ -424,12 +419,7 @@ function FDAVerification() {
 
     const requestId = incoming.openVerificationRequestId;
     const draftId = incoming.draftId;
-    const token = localStorage.getItem('access_token');
 
-    // If this request is already sitting in the currently loaded queue
-    // list, select it directly. Otherwise, set just the ID — the existing
-    // detail-fetch useEffect (watching selectedQueueItem?.request_id)
-    // picks this up automatically and fetches the full case detail.
     const existing = fdaQueueList.find((q) => q.request_id === requestId);
     setFdaActiveTab('queue');
 
@@ -440,11 +430,7 @@ function FDAVerification() {
     }
 
     if (draftId) {
-      // Arrived from a saved draft — fetch its actual values and restore
-      // them into the determination form.
-      fetch(`${API_BASE}/drafts/fda-verification/${draftId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      apiFetch(`/drafts/fda-verification/${draftId}`)
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
@@ -519,20 +505,20 @@ function FDAVerification() {
         item.productName.toLowerCase().includes(q) ||
         item.manufacturer.toLowerCase().includes(q) ||
         (item.productCode && item.productCode.toLowerCase().includes(q));
-
+  
       const matchesCategory =
         !completedCategory || item.category === completedCategory;
-
+  
       let matchesDateFrom = true;
       if (completedDateFrom) {
         matchesDateFrom = new Date(item.dateCompleted) >= new Date(completedDateFrom);
       }
-
+  
       let matchesDateTo = true;
       if (completedDateTo) {
         matchesDateTo = new Date(item.dateCompleted) <= new Date(completedDateTo + 'T23:59:59');
       }
-
+  
       return matchesSearch && matchesCategory && matchesDateFrom && matchesDateTo;
     });
   }, [fdaCompletedList, completedSearch, completedCategory, completedDateFrom, completedDateTo]); */
@@ -555,20 +541,20 @@ function FDAVerification() {
         item.productName.toLowerCase().includes(q) ||
         item.manufacturer.toLowerCase().includes(q) ||
         (item.productCode && item.productCode.toLowerCase().includes(q));
-
+  
       const matchesCategory =
         !rejectedCategory || item.category === rejectedCategory;
-
+  
       let matchesDateFrom = true;
       if (rejectedDateFrom) {
         matchesDateFrom = new Date(item.dateRejected) >= new Date(rejectedDateFrom);
       }
-
+  
       let matchesDateTo = true;
       if (rejectedDateTo) {
         matchesDateTo = new Date(item.dateRejected) <= new Date(rejectedDateTo + 'T23:59:59');
       }
-
+  
       return matchesSearch && matchesCategory && matchesDateFrom && matchesDateTo;
     });
   }, [fdaRejectedList, rejectedSearch, rejectedCategory, rejectedDateFrom, rejectedDateTo]); */
@@ -609,11 +595,8 @@ function FDAVerification() {
   // card click, and from a useEffect that watches selectedQueueItem so the
   // detail panel is also populated on the initial auto-select after page load.
   const fetchDetail = (requestId) => {
-    const token = localStorage.getItem('access_token');
     setDetailLoading(true);
-    fetch(`${API_BASE}/verification-requests/${requestId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/verification-requests/${requestId}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -633,10 +616,7 @@ function FDAVerification() {
   // ADDED — helper function to fetch badge counts from the backend endpoint.
   // Called on component mount and after successful submit or reject actions.
   const fetchCounts = () => {
-    const token = localStorage.getItem('access_token');
-    fetch(`${API_BASE}/verification-requests/counts`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch('/verification-requests/counts')
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -664,8 +644,6 @@ function FDAVerification() {
   // request; if priority is 'all' the parameter is omitted entirely.
   // SMOOTH LOADING — only triggers full loading state if list is currently empty.
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-
     const timer = setTimeout(() => {
       if (fdaQueueList.length === 0) {
         setQueueLoading(true);
@@ -676,9 +654,7 @@ function FDAVerification() {
       if (fdaPriorityFilter !== 'all') params.set('priority', fdaPriorityFilter);
       const qs = params.toString() ? `?${params.toString()}` : '';
 
-      fetch(`${API_BASE}/verification-requests/awaiting-fda${qs}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      apiFetch(`/verification-requests/awaiting-fda${qs}`)
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
@@ -724,8 +700,6 @@ function FDAVerification() {
   // trigger immediately since they come from dropdowns/date pickers, not typing.
   // SMOOTH LOADING — only triggers full loading state if list is currently empty.
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-
     const doFetch = () => {
       if (fdaCompletedList.length === 0) {
         setCompletedLoading(true);
@@ -741,9 +715,7 @@ function FDAVerification() {
       params.set('page', String(completedPage));
       params.set('page_size', '25');
 
-      fetch(`${API_BASE}/verification-requests/completed?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      apiFetch(`/verification-requests/completed?${params.toString()}`)
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
@@ -770,8 +742,6 @@ function FDAVerification() {
   // trigger immediately since they come from dropdowns/date pickers, not typing.
   // SMOOTH LOADING — only triggers full loading state if list is currently empty.
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-
     const doFetch = () => {
       if (fdaRejectedList.length === 0) {
         setRejectedLoading(true);
@@ -784,9 +754,7 @@ function FDAVerification() {
       params.set('page', String(rejectedPage));
       params.set('page_size', '25');
 
-      fetch(`${API_BASE}/verification-requests/rejected?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      apiFetch(`/verification-requests/rejected?${params.toString()}`)
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
@@ -880,18 +848,9 @@ function FDAVerification() {
   const handleExecuteModalAction = async () => {
     if (!fdaModalConfig || !currentItem) return;
 
-    const token = localStorage.getItem('access_token');
-
     if (fdaModalConfig.type === 'save_draft') {
-      // ADDED — calls the real upsert endpoint.
-      // POST /drafts/fda-verification/{verification_request_id}
-      // No required-field validation — saving a draft is always allowed with any
-      // combination of empty/filled fields, since the whole point is saving
-      // incomplete work. This intentionally has no validation guard, unlike Submit/Reject.
       try {
         const payload = {
-          // ADDED — each field maps from the corresponding form state variable.
-          // Empty strings are coerced to null so the backend never receives "".
           draft_verification_status: fdaVerificationStatus.toLowerCase() || null,
           draft_cpr_number: fdaCprNumber.trim() || null,
           draft_cpr_expiry: fdaCprExpiry.trim() || null,
@@ -901,38 +860,22 @@ function FDAVerification() {
           draft_unregistered_reason: fdaUnregisteredReason.trim() || null,
         };
 
-        const res = await fetch(`${API_BASE}/drafts/fda-verification/${currentItem.request_id}`, {
+        const res = await apiFetch(`/drafts/fda-verification/${currentItem.request_id}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
           body: JSON.stringify(payload)
         });
 
         if (!res.ok) {
-          // ADDED — reads the detail field from the error response body and surfaces
-          // it via triggerAlert, matching the same pattern used in the submit/reject
-          // handlers above. Modal is intentionally NOT closed on error so the user
-          // can see the message and decide whether to retry or cancel.
           const errData = await res.json().catch(() => null);
           const errMsg = errData?.detail || 'Failed to save draft.';
           triggerAlert(errMsg, 'danger');
           return;
         }
 
-        // ADDED — on success: show toast, close modal.
-        // The card stays selected (selectedQueueItem / selectedQueueDetail are NOT cleared)
-        // and form fields are NOT reset — unlike Submit/Reject, saving a draft does not
-        // change the request's verification_request_status; the officer is still actively
-        // working on this request and expects their entered values to remain.
-        // CHANGED — uses case_reference (real field name) instead of the old caseId.
         triggerAlert(`Draft saved successfully for Case ID ${currentItem.case_reference}.`, 'success');
         setFdaModalConfig(null);
 
       } catch (err) {
-        // ADDED — network-level failure (fetch throws entirely, e.g. server unreachable),
-        // matching the try/catch pattern used in the submit/reject handlers.
         triggerAlert('Network error occurred while saving the draft.', 'danger');
       }
     }
@@ -948,12 +891,8 @@ function FDAVerification() {
           unregistered_reason: fdaUnregisteredReason.trim() || null
         };
 
-        const res = await fetch(`${API_BASE}/verification-requests/${currentItem.request_id}/fda-response`, {
+        const res = await apiFetch(`/verification-requests/${currentItem.request_id}/fda-response`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
           body: JSON.stringify(payload)
         });
 
@@ -968,7 +907,6 @@ function FDAVerification() {
         const caseRef = currentItem.case_reference || selectedQueueDetail?.case_reference || '';
         triggerAlert(`Verification submitted successfully for Case ID ${caseRef}.`, 'success');
 
-        // Remove from current list and select next item if available
         if (fdaActiveTab === 'queue') {
           const remaining = fdaQueueList.filter((q) => q.request_id !== currentItem.request_id);
           setFdaQueueList(remaining);
@@ -979,7 +917,6 @@ function FDAVerification() {
           }
         }
 
-        // Reset form states
         setFdaVerificationStatus('');
         setFdaCprNumber('');
         setFdaCprExpiry('');
@@ -987,7 +924,6 @@ function FDAVerification() {
         setFdaAdvisoryRemarks('');
         setFdaUnregisteredReason('');
 
-        // Re-fetch badge counts and trigger Completed/Rejected table refresh (FIX 4)
         fetchCounts();
         setDataRefreshTrigger((prev) => prev + 1);
 
@@ -1003,12 +939,8 @@ function FDAVerification() {
           rejection_reason: fdaRejectionReason.trim()
         };
 
-        const res = await fetch(`${API_BASE}/verification-requests/${currentItem.request_id}/fda-reject`, {
+        const res = await apiFetch(`/verification-requests/${currentItem.request_id}/fda-reject`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
           body: JSON.stringify(payload)
         });
 
@@ -1060,10 +992,7 @@ function FDAVerification() {
   // the existing Verification Record modal with real API field names.
   // Endpoint: GET /verification-requests/completed/{request_id}
   const handleViewCompletedRecord = (requestId) => {
-    const token = localStorage.getItem('access_token');
-    fetch(`${API_BASE}/verification-requests/completed/${requestId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/verification-requests/completed/${requestId}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -1080,10 +1009,7 @@ function FDAVerification() {
   // the existing Record modal with _type: 'rejected'.
   // Endpoint: GET /verification-requests/rejected/{request_id}
   const handleViewRejectedRecord = (requestId) => {
-    const token = localStorage.getItem('access_token');
-    fetch(`${API_BASE}/verification-requests/rejected/${requestId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/verification-requests/rejected/${requestId}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -2597,12 +2523,12 @@ function FDAVerification() {
                   <button
                     className="FdaVerifBtnOutline"
                     onClick={() => {
-                      const token = localStorage.getItem('access_token');
                       const endpoint = fdaRecordModalData._type === 'completed'
-                        ? `${API_BASE}/verification-requests/completed/${fdaRecordModalData.request_id}/export-pdf`
-                        : `${API_BASE}/verification-requests/rejected/${fdaRecordModalData.request_id}/export-pdf`;
+                        ? `/verification-requests/completed/${fdaRecordModalData.request_id}/export-pdf`
+                        : `/verification-requests/rejected/${fdaRecordModalData.request_id}/export-pdf`;
 
-                      fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } })
+                      // CHANGE — swap the raw fetch + manual header for apiFetch:
+                      apiFetch(endpoint)
                         .then((res) => {
                           if (!res.ok) throw new Error(`HTTP ${res.status}`);
                           return res.blob();
@@ -2722,10 +2648,7 @@ function FDAVerification() {
                   <button
                     className="FdaVerifBtnDownloadAttachment"
                     onClick={() => {
-                      const token = localStorage.getItem('access_token');
-                      fetch(`${API_BASE}/shared-files/${fdaDocPreviewModal.file_id}/download`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                      })
+                      apiFetch(`/shared-files/${fdaDocPreviewModal.file_id}/download`)
                         .then((res) => {
                           if (!res.ok) throw new Error(`HTTP ${res.status}`);
                           return res.blob();

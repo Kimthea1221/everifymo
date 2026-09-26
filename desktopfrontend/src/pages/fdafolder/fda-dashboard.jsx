@@ -155,7 +155,7 @@ function FDADashboard() {
             { label: 'Cosmetics', value: categoryCounts['Cosmetics'], color: '#2563eb' },
             { label: 'Food', value: categoryCounts['Food'], color: '#10b981' },
             { label: 'Drugs', value: categoryCounts['Drugs'], color: '#06b6d4' },
-            { label: 'Health Devices', value: categoryCounts['Health Devices'], color: '#f59e0b' }
+            { label: 'Devices', value: categoryCounts['Devices'], color: '#f59e0b' }
         ];
 
         return {
