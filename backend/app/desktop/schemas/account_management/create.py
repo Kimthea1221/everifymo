@@ -1,6 +1,24 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Literal
 import uuid
+
+# Known domains for pre-provisioned FDA/CIDG/LEA personnel & admin accounts.
+# Update this list when a new agency or domain is onboarded.
+ALLOWED_EMAIL_DOMAINS = {
+    "gmail.com",
+    "fda.gov.ph",
+    "pnp.gov.ph",
+}
+
+
+def validate_allowed_domain(email: str) -> str:
+    domain = email.rsplit("@", 1)[-1].lower()
+    if domain not in ALLOWED_EMAIL_DOMAINS:
+        allowed = ", ".join(sorted(ALLOWED_EMAIL_DOMAINS))
+        raise ValueError(
+            f"Email domain '{domain}' is not allowed. Allowed domains: {allowed}"
+        )
+    return email
 
 
 class CreateAdminRequest(BaseModel):
@@ -16,17 +34,18 @@ class CreateAdminRequest(BaseModel):
     region_id: uuid.UUID
     agency: Literal["FDA", "LEA-CIDG"]
 
+    _check_domain = field_validator("email")(validate_allowed_domain)
+
 
 class CreateNationalAdminRequest(BaseModel):
-    """National Admin -> creates a fellow National Admin"""
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
+
+    _check_domain = field_validator("email")(validate_allowed_domain)
 
 
 class CreateFellowAdminRequest(BaseModel):
-    """Agency Admin -> creates a fellow Admin in the SAME agency+region.
-    Deliberately has no region_id/agency field — backend derives both from the actor."""
     first_name: str = Field(..., min_length=1, max_length=100)
     middle_name: str | None = Field(None, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
@@ -35,10 +54,11 @@ class CreateFellowAdminRequest(BaseModel):
     employee_id: str | None = Field(None, max_length=50)
     position: str | None = Field(None, max_length=150)
     department: str | None = Field(None, max_length=150)
+
+    _check_domain = field_validator("email")(validate_allowed_domain)
 
 
 class CreatePersonnelRequest(BaseModel):
-    """Agency Admin -> creates Personnel in the SAME agency+region."""
     first_name: str = Field(..., min_length=1, max_length=100)
     middle_name: str | None = Field(None, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
@@ -47,6 +67,8 @@ class CreatePersonnelRequest(BaseModel):
     employee_id: str | None = Field(None, max_length=50)
     position: str | None = Field(None, max_length=150)
     department: str | None = Field(None, max_length=150)
+
+    _check_domain = field_validator("email")(validate_allowed_domain)
 
 
 class EditPersonnelInfoRequest(BaseModel):

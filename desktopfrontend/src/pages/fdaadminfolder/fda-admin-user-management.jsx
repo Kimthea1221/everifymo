@@ -3,6 +3,7 @@ import './fda-admin-css.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { apiFetch } from '../../utils/apiFetch';
+import { validateEmail } from '../../utils/emailValidation'; 
 import {
   Send,
   UserCheck,
@@ -401,10 +402,8 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
     if (!formData.email.trim()) {
       errs.email = 'Email Address is required.';
     } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email.trim())) {
-        errs.email = 'Please enter a valid email address.';
-      }
+      const err = validateEmail(formData.email.trim());
+      if (err) errs.email = err;
     }
 
     return errs;

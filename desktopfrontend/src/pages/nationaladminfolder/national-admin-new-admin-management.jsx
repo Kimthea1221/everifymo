@@ -2,6 +2,7 @@ import './national-admin-css.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiFetch } from '../../utils/apiFetch';
 import { createPortal } from 'react-dom';
+import { validateEmail } from '../../utils/emailValidation'; 
 import {
   Send,
   UserX,
@@ -397,9 +398,9 @@ function AddNationalAdminModal({ open, onClose, onAddSuccess }) {
     setEmailError('Email address is required.');
     hasError = true;
   } else {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setEmailError('Please enter a valid email address.');
+    const err = validateEmail(email.trim());
+    if (err) {
+      setEmailError(err);
       hasError = true;
     }
   }
@@ -511,12 +512,8 @@ function AddNationalAdminModal({ open, onClose, onAddSuccess }) {
                     if (!val.trim()) {
                       setEmailError('');
                     } else {
-                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                      if (!emailRegex.test(val.trim())) {
-                        setEmailError('Please enter a valid email address.');
-                      } else {
-                        setEmailError('');
-                      }
+                      const err = validateEmail(val.trim());
+                      setEmailError(err || '');
                     }
                   }}
                   disabled={sending}
