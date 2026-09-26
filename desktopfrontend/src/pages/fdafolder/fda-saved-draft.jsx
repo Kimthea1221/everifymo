@@ -19,10 +19,8 @@ import {
   X,
   Clock,
 } from "lucide-react";
+import { apiFetch } from "../../utils/apiFetch";
 
-// ADDED — base URL for all API calls in this file. Mirrors the same constant
-// declared in fda-verification.jsx so the host can be updated from one place.
-const API_BASE = "https://everify.store"; // ← replace with your actual production URL
 
 // CHANGED — was a client-side page size of 5; now 10 to match the server's
 // default page_size sent in every GET /drafts/fda-verification/ request.
@@ -102,8 +100,6 @@ function FDASavedDraft() {
   // data already exists, the existing rows stay visible in-place until the new
   // response arrives, eliminating table flicker on every keystroke or dropdown pick.
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-
     const doFetch = () => {
       // CHANGED — was `if (drafts.length === 0)` which incorrectly re-triggered
       // the skeleton whenever a filter/search returned zero results (because
@@ -131,11 +127,7 @@ function FDASavedDraft() {
       params.set("page", String(currentPage));
       params.set("page_size", String(ITEMS_PER_PAGE));
 
-      fetch(`${API_BASE}/drafts/fda-verification/?${params.toString()}`, {
-        // ADDED — Bearer token auth, same pattern as every other fetch in
-        // fda-verification.jsx (localStorage 'access_token').
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      apiFetch(`/drafts/fda-verification/?${params.toString()}`)
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
@@ -299,13 +291,10 @@ function FDASavedDraft() {
   // it via showToast (not a generic message), matching the task spec.
   const handleConfirmDelete = () => {
     if (!draftToDelete) return;
-    const token = localStorage.getItem("access_token");
     setDeleteLoading(true);
 
-    fetch(`${API_BASE}/drafts/fda-verification/${draftToDelete.draft_id}`, {
+    apiFetch(`/drafts/fda-verification/${draftToDelete.draft_id}`, {
       method: "DELETE",
-      // ADDED — Bearer token auth, same pattern as the list fetch above.
-      headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
         if (!res.ok) {

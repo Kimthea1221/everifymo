@@ -7,8 +7,8 @@ import {
   AlertTriangle,
   Footprints
 } from 'lucide-react';
-
-const API_BASE = 'https://everify.store';
+// CHANGED — migrated off hardcoded API_BASE to apiFetch (dev/prod auto-switches via apiConfig.js)
+import { apiFetch } from '../../utils/apiFetch';
 
 function LeaDashboard() {
   const navigate = useNavigate();
@@ -31,13 +31,11 @@ function LeaDashboard() {
   ]);
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    const headers = { Authorization: `Bearer ${token}` };
-
     const fetchData = async () => {
       try {
         // 1. Fetch awaiting FDA cases
-        const awaitingRes = await fetch(`${API_BASE}/verification-requests/awaiting-fda`, { headers });
+        // CHANGED — migrated off hardcoded API_BASE to apiFetch (dev/prod auto-switches via apiConfig.js)
+        const awaitingRes = await apiFetch('/verification-requests/awaiting-fda');
         let awaitingData = [];
         if (awaitingRes.ok) {
           awaitingData = await awaitingRes.json();
@@ -52,27 +50,31 @@ function LeaDashboard() {
         }
 
         // 2. Fetch all walk-in complaints for count and recent table
-        const complaintsRes = await fetch(`${API_BASE}/complaints/walkin/`, { headers });
+        // CHANGED — migrated off hardcoded API_BASE to apiFetch (dev/prod auto-switches via apiConfig.js)
+        const complaintsRes = await apiFetch('/complaints/walkin/');
         let complaintsData = [];
         if (complaintsRes.ok) {
           complaintsData = await complaintsRes.json();
         }
 
         // 3. Fetch counts
-        const countsRes = await fetch(`${API_BASE}/verification-requests/counts`, { headers });
+        // CHANGED — migrated off hardcoded API_BASE to apiFetch (dev/prod auto-switches via apiConfig.js)
+        const countsRes = await apiFetch('/verification-requests/counts');
         if (countsRes.ok) {
           const countsData = await countsRes.json();
           setSentCount(countsData.verification_queue_count + countsData.completed_count + countsData.rejected_count);
         }
 
-        const leaCountsRes = await fetch(`${API_BASE}/verification-requests/lea-counts`, { headers });
+        // CHANGED — migrated off hardcoded API_BASE to apiFetch (dev/prod auto-switches via apiConfig.js)
+        const leaCountsRes = await apiFetch('/verification-requests/lea-counts');
         if (leaCountsRes.ok) {
           const leaCountsData = await leaCountsRes.json();
           setTakedownsCount(leaCountsData.completed_count);
         }
 
         // 4. Fetch trends data
-        const trendsRes = await fetch(`${API_BASE}/complaints/trends`, { headers });
+        // CHANGED — migrated off hardcoded API_BASE to apiFetch (dev/prod auto-switches via apiConfig.js)
+        const trendsRes = await apiFetch('/complaints/trends');
         if (trendsRes.ok) {
           const trendsData = await trendsRes.json();
           setIntakeData(trendsData.intake_data);
