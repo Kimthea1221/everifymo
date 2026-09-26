@@ -84,6 +84,7 @@ backend/nlp/finetuned_sbert/
 backend/nlp/finetuned_sbert.zip
 backend/nlp/finetuned_sbert.zip:Zone.Identifier
 backend/nlp/finetuned_sbert/
+backend/app/extension/routers/retrieval.py //add ko
 .gitattributes
 
 
@@ -92,4 +93,3 @@ backend/db.env
 
 desktopfrontend/release/
 
-#HI

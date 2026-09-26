@@ -16,18 +16,6 @@ import {
   Loader2,
 } from 'lucide-react';
 
-// ⚠️ REMOVE THIS — mock data
-// Set INITIAL_WORKSPACE_LOCATION = null to preview the "Not set" (empty) state.
-const INITIAL_WORKSPACE_LOCATION = {
-  agency: 'FDA',
-  region: 'Region III',
-  latitude: 15.0794,
-  longitude: 120.6200,
-  radius_meters: 500,
-  updated_at: '2026-09-12T10:35:00',
-  updated_by: 'J. dela Cruz',
-};
-
 function formatFdaWorkspaceName(profileRegion) {
   if (!profileRegion) return 'Workspace office';
   const romanOrName = profileRegion.replace(/^region\s+/i, '').trim();
@@ -40,21 +28,6 @@ function formatFdaEyebrow(profileRegion) {
   return `FDA regional admin — ${profileRegion}`;
 }
 
-function formatAdminDisplayName(p) {
-  if (p?.first_name && p?.last_name) {
-    return `${p.first_name[0]}. ${p.last_name}`;
-  }
-  const cachedName = localStorage.getItem('user_name');
-  if (cachedName) {
-    const parts = cachedName.trim().split(/\s+/);
-    if (parts.length > 1) {
-      return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
-    }
-    return cachedName;
-  }
-  return 'J. dela Cruz';
-}
-
 function formatDateTime(dateVal) {
   if (!dateVal) return '—';
   const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
@@ -65,9 +38,8 @@ function formatDateTime(dateVal) {
 }
 
 export default function FDAAdminWorkspaceLocation() {
-  // 🔌 BACKEND: GET /workspace-location on page load
-  // Initialize locationData from backend API once implemented.
-  const [locationData, setLocationData] = useState(INITIAL_WORKSPACE_LOCATION);
+  const [locationData, setLocationData] = useState(null);
+  const [loadingLocation, setLoadingLocation] = useState(true);
 
   // Profile data for dynamic agency/region/admin name
   const [profile, setProfile] = useState(null);
@@ -107,9 +79,33 @@ export default function FDAAdminWorkspaceLocation() {
     }
   }, []);
 
+  // Fetch configured workspace location from backend
+  const fetchWorkspaceLocation = useCallback(async () => {
+    setLoadingLocation(true);
+    try {
+      const res = await apiFetch('/workspace-location');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.latitude != null && data.longitude != null) {
+          setLocationData(data);
+        } else {
+          setLocationData(null);
+        }
+      } else {
+        setLocationData(null);
+      }
+    } catch (err) {
+      console.warn('Could not fetch workspace location:', err);
+      setLocationData(null);
+    } finally {
+      setLoadingLocation(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile]);
+    fetchWorkspaceLocation();
+  }, [fetchProfile, fetchWorkspaceLocation]);
 
   const isConfigured = Boolean(
     locationData &&
@@ -263,30 +259,44 @@ export default function FDAAdminWorkspaceLocation() {
     setConfirmData(null);
   };
 
-  const handleConfirmSave = () => {
+  const handleConfirmSave = async () => {
     if (!confirmData || isSaving) return;
     setIsSaving(true);
 
-    // 🔌 BACKEND: PUT/POST /workspace-location
-    // The backend must set updated_at and updated_by from the authenticated admin and server time.
-    setLocationData({
-      agency: locationData?.agency || profile?.agency || 'FDA',
-      region: locationData?.region || profile?.region || 'Region III',
-      latitude: confirmData.latitude,
-      longitude: confirmData.longitude,
-      radius_meters: confirmData.radius_meters,
-      updated_at: new Date().toISOString(),
-      updated_by: formatAdminDisplayName(profile),
-    });
+    try {
+      const res = await apiFetch('/workspace-location', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          latitude: confirmData.latitude,
+          longitude: confirmData.longitude,
+          radius_meters: confirmData.radius_meters,
+        }),
+      });
 
-    const source = confirmData.source;
-    setConfirmData(null);
-    setIsSaving(false);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to save workspace location.');
+      }
 
-    if (source === 'modal') {
-      handleCloseModal();
+      const savedData = await res.json();
+      setLocationData(savedData);
+
+      const source = confirmData.source;
+      setConfirmData(null);
+
+      if (source === 'modal') {
+        handleCloseModal();
+      }
+      showToast('Workspace location saved successfully.');
+    } catch (err) {
+      console.error('Error saving workspace location:', err);
+      showToast(err.message || 'Failed to save workspace location.');
+    } finally {
+      setIsSaving(false);
     }
-    showToast('Workspace location saved successfully.');
   };
 
   return (
@@ -314,7 +324,7 @@ export default function FDAAdminWorkspaceLocation() {
                   <span className="FdaWsLoc-OfficeName">{officeName}</span>
                 </div>
                 <span className={`FdaWsLoc-Badge ${isConfigured ? 'is-set' : 'not-set'}`}>
-                  {isConfigured ? 'Set' : 'Not set'}
+                  {loadingLocation ? 'Loading...' : isConfigured ? 'Set' : 'Not set'}
                 </span>
               </div>
 
@@ -322,7 +332,9 @@ export default function FDAAdminWorkspaceLocation() {
                 <div className="FdaWsLoc-Row">
                   <span className="FdaWsLoc-RowLabel">Coordinates</span>
                   <span className="FdaWsLoc-RowValue">
-                    {isConfigured
+                    {loadingLocation
+                      ? 'Loading...'
+                      : isConfigured
                       ? `${locationData.latitude}, ${locationData.longitude}`
                       : '—'}
                   </span>
@@ -331,7 +343,9 @@ export default function FDAAdminWorkspaceLocation() {
                 <div className="FdaWsLoc-Row">
                   <span className="FdaWsLoc-RowLabel">Geofence radius</span>
                   <span className="FdaWsLoc-RowValue">
-                    {isConfigured && locationData.radius_meters != null
+                    {loadingLocation
+                      ? 'Loading...'
+                      : isConfigured && locationData.radius_meters != null
                       ? `${locationData.radius_meters} m`
                       : '—'}
                   </span>
@@ -340,14 +354,22 @@ export default function FDAAdminWorkspaceLocation() {
                 <div className="FdaWsLoc-Row">
                   <span className="FdaWsLoc-RowLabel">Last updated at</span>
                   <span className="FdaWsLoc-RowValue">
-                    {isConfigured ? formatDateTime(locationData.updated_at) : '—'}
+                    {loadingLocation
+                      ? 'Loading...'
+                      : isConfigured
+                      ? formatDateTime(locationData.updated_at)
+                      : '—'}
                   </span>
                 </div>
 
                 <div className="FdaWsLoc-Row">
                   <span className="FdaWsLoc-RowLabel">Updated by</span>
                   <span className="FdaWsLoc-RowValue">
-                    {isConfigured && locationData.updated_by ? locationData.updated_by : '—'}
+                    {loadingLocation
+                      ? 'Loading...'
+                      : isConfigured && locationData.updated_by
+                      ? locationData.updated_by
+                      : '—'}
                   </span>
                 </div>
               </div>

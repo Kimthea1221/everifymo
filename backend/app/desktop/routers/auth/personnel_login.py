@@ -56,8 +56,16 @@ async def personnel_login(
     return {"message": "OTP sent"}
 
 
+from app.desktop.services.location.personnel_location_check import check_and_log_personnel_login_location
+
+
 @router.post("/verify-otp")
-def verify_personnel_otp(request: PersonnelOTPVerifyRequest, http_request: Request, db: Session = Depends(get_db)):
+def verify_personnel_otp(
+    request: PersonnelOTPVerifyRequest,
+    http_request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     set_bypass_rls(db, True)
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
@@ -102,6 +110,17 @@ def verify_personnel_otp(request: PersonnelOTPVerifyRequest, http_request: Reque
     )
     db.add(session)
     db.commit()
+
+    # Check personnel login location against geofencing
+    check_and_log_personnel_login_location(
+        db=db,
+        user=user,
+        session_id=session.session_id,
+        latitude=request.latitude,
+        longitude=request.longitude,
+        source=request.source,
+        background_tasks=background_tasks,
+    )
 
     write_audit_log(
         db,
