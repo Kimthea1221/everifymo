@@ -1,7 +1,8 @@
+import secrets
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from app.core.security import pwd_context
 from app.models.consumer_accounts import ConsumerAccount
@@ -102,6 +103,13 @@ def resend_signup_otp(db: Session, email: str) -> str:
         raise HTTPException(status_code=400, detail="Account already verified")
 
     return consumer_otp_service.create_otp(db, consumer.consumer_id, purpose="signup_verification")
+
+def create_refresh_token(consumer: ConsumerAccount, db: Session, expires_delta: timedelta = timedelta(days=14)):
+    token = secrets.token_urlsafe(32)
+    consumer.refresh_token = token
+    consumer.refresh_token_expires = datetime.now(timezone.utc) + expires_delta
+    db.commit()
+    return token
 
 def change_pending_username(db: Session, email: str, new_username: str) -> ConsumerAccount:
     consumer = db.query (ConsumerAccount).filter(ConsumerAccount.email == email).first()

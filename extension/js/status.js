@@ -1,6 +1,5 @@
 // status.js
-import { whenSessionReady, isUserLoggedIn, getToken } from "../scripts/session.js";
-import { apiGetStatus } from "../utils/api.js";
+import { whenSessionReady, isUserLoggedIn, getComplaintStatus } from "../scripts/session.js";
 
 const STAGE_ORDER = ['open', 'under_review', 'takedown_requested'];
 const STAGE_LABELS = { open: 'OPEN', under_review: 'UNDER REVIEW', takedown_requested: 'TAKEDOWN REQUESTED' };
@@ -66,13 +65,20 @@ async function renderComplaintStatusPage() {
   const isGuest = typeof isUserLoggedIn === 'function' ? !isUserLoggedIn() : false;
 
   if (isGuest) {
-    if (emptyText) emptyText.textContent = 'No contents to show. Sign in/up for tracking.';
+    if (emptyText) emptyText.innerHTML = 'No contents to show. <a href="auth.html" class="guest-notice-link">Sign in/up</a> for tracking.';
     if (emptyView) emptyView.classList.remove('hidden');
     if (populatedView) populatedView.classList.add('hidden');
     return;
   }
 
-  const res = await apiGetStatus(getToken());
+  let res;
+  try {
+    res = await getComplaintStatus();
+  } catch (e) {
+    console.error(e);
+    return; 
+  }
+
   const complaints = res.map(c => ({
       id: c.complaint_id,
       stage: c.new_status,

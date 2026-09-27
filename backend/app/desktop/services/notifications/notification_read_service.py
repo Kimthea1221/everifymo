@@ -27,9 +27,16 @@ def list_notifications(db: Session, current_user, limit: int, offset: int):
     return notifications, _unread_count(db, current_user.user_id)
 
 
-def get_unread_count(db: Session, current_user) -> int:
-    check_and_send_sla_reminders(db, current_user)  # ADDED — piggybacks SLA check on this poll
-    return _unread_count(db, current_user.user_id)
+def get_unread_count(db: Session, current_user) -> tuple[int, Notification | None]:  # CHANGED
+    check_and_send_sla_reminders(db, current_user)
+    count = _unread_count(db, current_user.user_id)
+    latest = (
+        db.query(Notification)
+        .filter(Notification.user_id == current_user.user_id)
+        .order_by(Notification.created_at.desc())
+        .first()
+    )
+    return count, latest
 
 
 def mark_notification_read(db: Session, notification_id: UUID, current_user):
