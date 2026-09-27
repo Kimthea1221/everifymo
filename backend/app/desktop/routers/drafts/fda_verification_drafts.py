@@ -226,7 +226,7 @@ def delete_fda_verification_draft(
     # itself.
 @router.get("/", response_model=FdaVerificationDraftListResponse)
 def list_fda_verification_drafts(
-    search: str | None = Query(None),
+    search: str | None = Query(None, max_length=150),
     category: str | None = Query(None),
     date_filter: date | None = Query(None),
     sort: SortOption = Query(SortOption.recently_edited),

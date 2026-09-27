@@ -54,26 +54,37 @@ class SortOption(str, Enum):
 # "incomplete" or "draft" happens later, in the service layer,
 # not here.
 class WalkinIntakeDraftSave(BaseModel):
-    full_name: str | None = None
-    contact_number: str | None = Field(None, max_length=20)
-    email: str | None = Field(None, max_length=255)
+    full_name: str | None = Field(None, max_length=100)
+    contact_number: str | None = Field(None, max_length=11)
+    email: str | None = Field(None, max_length=254)
     id_type: IdType | None = None
-    address: str | None = None
+    address: str | None = Field(None, max_length=300)
 
-    product_name: str | None = None
-    manufacturer: str | None = Field(None, max_length=255)
-    product_category: str | None = Field(None, max_length=100)
-    place_of_purchase: str | None = None
+    product_name: str | None = Field(None, max_length=150)
+    manufacturer: str | None = Field(None, max_length=150)
+    product_category: str | None = Field(None, max_length=150)
+    place_of_purchase: str | None = Field(None, max_length=300)
     date_of_purchase: date | None = None
     amount_paid: Decimal | None = None
-    nature_of_complaint: str | None = None
+    nature_of_complaint: str | None = Field(None, max_length=2000)
 
-    @field_validator("contact_number") #Pydantic decorator that says "run this function every time contact_number is set, to check/clean it."
+    # Normalize Windows CRLF (\r\n) → LF (\n) for all multi-line text fields
+    # BEFORE Pydantic enforces max_length. The browser sends \r\n in multipart
+    # form data, but the HTML maxLength attribute only counts \n — so without
+    # this, a 2000-char textarea can arrive as 2050+ chars and fail validation.
+    @field_validator("nature_of_complaint", mode="before")
+    @classmethod
+    def normalize_newlines(cls, v):
+        if isinstance(v, str):
+            return v.replace('\r\n', '\n').replace('\r', '\n')
+        return v
+
+    @field_validator("contact_number")
     @classmethod
     def validate_contact_number(cls, value):
         if value is None:
             return value
-        if not value.isdigit(): # checks every character is 0-9 
+        if not value.isdigit():
             raise ValueError("Contact number must contain digits only.")
         if len(value) != 11:
             raise ValueError("Contact number must be exactly 11 digits.")
@@ -151,7 +162,16 @@ class VerificationRequestDraftSave(BaseModel):
 
     product_code: str | None = Field(None, max_length=100)
     priority: Priority | None = None
-    notes_to_fda: str | None = None
+    notes_to_fda: str | None = Field(None, max_length=2000)
+
+    # Same CRLF normalization as WalkinIntakeDraftSave — browser sends
+    # \r\n in multipart but maxLength counts only \n.
+    @field_validator("notes_to_fda", mode="before")
+    @classmethod
+    def normalize_newlines(cls, v):
+        if isinstance(v, str):
+            return v.replace('\r\n', '\n').replace('\r', '\n')
+        return v
 
 
 # What we send back — reopening a saved draft, or one row in the
@@ -189,8 +209,16 @@ class FdaVerificationDraftSave(BaseModel):
     draft_verification_status: FdaDraftVerificationStatus | None = None
     draft_cpr_number: str | None = Field(None, max_length=100)
     draft_cpr_expiry: date | None = None
-    draft_response_notes: str | None = None
-    draft_unregistered_reason: str | None = None
+    draft_response_notes: str | None = Field(None, max_length=2000)
+    draft_unregistered_reason: str | None = Field(None, max_length=2000)
+
+    # Same CRLF normalization — browser textarea sends \r\n, maxLength counts \n only.
+    @field_validator("draft_response_notes", "draft_unregistered_reason", mode="before")
+    @classmethod
+    def normalize_newlines(cls, v):
+        if isinstance(v, str):
+            return v.replace('\r\n', '\n').replace('\r', '\n')
+        return v
 
 
 # What we send back for a bare draft row — inherits the officer-typed

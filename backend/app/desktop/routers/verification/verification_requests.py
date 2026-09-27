@@ -156,7 +156,7 @@ list_router = APIRouter(prefix="/verification-requests", tags=["Verification Req
     # GET /verification-requests/awaiting-fda
 @list_router.get("/awaiting-fda", response_model=list[VerificationRequestAwaitingFDAResponse])
 def list_verification_requests_awaiting_fda(
-    search: str | None = Query(None),
+    search: str | None = Query(None, max_length=150),
     priority: str | None = Query(None),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -218,8 +218,8 @@ def list_verification_requests_awaiting_fda(
     # GET /verification-requests/completed
 @list_router.get("/completed", response_model=FdaVerificationCompletedListResponse)
 def list_completed_verification_requests(
-    search: str | None = Query(None),
-    category: str | None = Query(None),
+    search: str | None = Query(None, max_length=150),
+    category: str | None = Query(None, max_length=150),
     verification_result: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
@@ -281,8 +281,8 @@ def export_completed_verification_pdf(
     # GET /verification-requests/rejected
 @list_router.get("/rejected", response_model=FdaVerificationRejectedListResponse)
 def list_rejected_verification_requests(
-    search: str | None = Query(None),
-    category: str | None = Query(None),
+    search: str | None = Query(None, max_length=150),
+    category: str | None = Query(None, max_length=150),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     page: int = Query(1, ge=1),
@@ -404,9 +404,9 @@ def get_lea_fda_response_detail_endpoint(
     # GET /verification-requests/closed-cases
 @list_router.get("/closed-cases", response_model=LeaClosedCaseListResponse)
 def list_lea_closed_cases_endpoint(
-    search: str | None = Query(None),
-    category: str | None = Query(None),
-    reason_closed: str | None = Query(None),
+    search: str | None = Query(None, max_length=150),
+    category: str | None = Query(None, max_length=150),
+    reason_closed: str | None = Query(None, max_length=150),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     page: int = Query(1, ge=1),
