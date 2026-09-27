@@ -52,12 +52,14 @@ class NotificationEventType(str, Enum):
     # admin. No special-cased fan-out needed, same workspace-scoped rule
     # as every other admin-bucket event.
     PASSWORD_CHANGED = "password_changed"
+    WORKSPACE_LOCATION_UPDATED = "workspace_location_updated"
 
     # ---- Shared account-status transitions (both buckets use these) ----
 
     ACCOUNT_LOCKED = "account_locked"
     ACCOUNT_UNLOCKED = "account_unlocked"
     FAILED_LOGIN_WARNING = "failed_login_warning"
+    LOCATION_ANOMALY_DETECTED = "location_anomaly_detected"
     ACCOUNT_SUSPENDED = "account_suspended"
     ACCOUNT_REACTIVATED = "account_reactivated"
 

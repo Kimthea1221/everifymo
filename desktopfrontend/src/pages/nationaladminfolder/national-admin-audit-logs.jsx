@@ -46,8 +46,14 @@ const LEA_TAB_ACTIONS = [
 // personnel/regional-admin lockouts and pending-approvals show on FDA/LEA
 // Admin's own System tabs instead.
 const SYSTEM_TAB_ACTIONS = [
-  'LOCK_NATIONAL_ADMIN_ACCOUNT', 'PENDING_NATIONAL_ADMIN_ACCOUNT',
+  'LOCK_NATIONAL_ADMIN_ACCOUNT', 'PENDING_NATIONAL_ADMIN_ACCOUNT', 'INVITATION_EXPIRED_NATIONAL_ADMIN',
+  'INVITATION_EXPIRED_REGIONAL_ADMIN',
 ];
+
+// Agency filter options for the System tab only — once
+// INVITATION_EXPIRED_REGIONAL_ADMIN rows are mixed in, the tab spans more
+// than one agency and needs its own way to narrow that down.
+const SYSTEM_AGENCY_OPTIONS = ['National Admin', 'FDA', 'LEA-CIDG'];
 
 const SHARED_LOGIN_ACTIONS = ['LOGIN', 'LOGOUT', 'LOGIN_FAILED'];
 
@@ -68,6 +74,19 @@ function formatTimestamp(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString('en-PH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// Local (not UTC) calendar date, so the date filter agrees with what
+// formatTimestamp displays — a raw ISO string's date portion is UTC and
+// can be off by a day from the viewer's local date.
+function toLocalDateStr(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function ActionBadge({ action }) {
@@ -111,6 +130,7 @@ export default function NationalAdminAuditLogs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('All');
   const [regionFilter, setRegionFilter] = useState('All');
+  const [agencyFilter, setAgencyFilter] = useState('All');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedLog, setSelectedLog] = useState(null);
@@ -133,7 +153,7 @@ export default function NationalAdminAuditLogs() {
         apiFetch('/admin/audit-logs/national-admin?limit=500'),
         apiFetch('/admin/audit-logs/fda?limit=500'),
         apiFetch('/admin/audit-logs/lea?limit=500'),
-        apiFetch('/admin/audit-logs/system?limit=500'),
+        apiFetch('/admin/audit-logs/national-admin/system?limit=500'),
       ]);
 
       if (!nationalRes.ok) throw new Error('Failed to load National Admin audit logs.');
@@ -198,6 +218,10 @@ export default function NationalAdminAuditLogs() {
         return false;
       }
 
+      if (activeTab === 'System' && agencyFilter !== 'All' && log.agency !== agencyFilter) {
+        return false;
+      }
+
       const q = searchQuery.toLowerCase().trim();
       if (q) {
         const matchesSearch =
@@ -209,13 +233,13 @@ export default function NationalAdminAuditLogs() {
         if (!matchesSearch) return false;
       }
 
-      const logDate = log.timestamp ? log.timestamp.split('T')[0] : '';
+      const logDate = toLocalDateStr(log.timestamp);
       if (dateFrom && logDate < dateFrom) return false;
       if (dateTo && logDate > dateTo) return false;
 
       return true;
     });
-  }, [rawLogs, activeTab, searchQuery, actionFilter, regionFilter, dateFrom, dateTo]);
+  }, [rawLogs, activeTab, searchQuery, actionFilter, regionFilter, agencyFilter, dateFrom, dateTo]);
 
   const totalItems = filteredLogs.length;
   const totalPages = Math.ceil(totalItems / limit) || 1;
@@ -228,12 +252,14 @@ export default function NationalAdminAuditLogs() {
     searchQuery !== '' ||
     actionFilter !== 'All' ||
     ((activeTab === 'FDA' || activeTab === 'LEA') && regionFilter !== 'All') ||
+    (activeTab === 'System' && agencyFilter !== 'All') ||
     dateFrom !== '' ||
     dateTo !== '';
 
   function switchTab(tab) {
     setActiveTab(tab);
     setRegionFilter('All');
+    setAgencyFilter('All');
     setActionFilter('All');
     setCurrentPage(1);
   }
@@ -242,6 +268,7 @@ export default function NationalAdminAuditLogs() {
     setSearchQuery('');
     setActionFilter('All');
     setRegionFilter('All');
+    setAgencyFilter('All');
     setDateFrom('');
     setDateTo('');
     setCurrentPage(1);
@@ -367,6 +394,27 @@ export default function NationalAdminAuditLogs() {
                       {REGION_OPTIONS.map((reg) => (
                         <option key={reg} value={reg}>
                           {reg}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {activeTab === 'System' && (
+                  <div className="NAMFilterItem">
+                    <span className="NAMFilterLabel">AGENCY</span>
+                    <select
+                      className="NAMSelectFilter"
+                      value={agencyFilter}
+                      onChange={(e) => {
+                        setAgencyFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <option value="All">All Agencies</option>
+                      {SYSTEM_AGENCY_OPTIONS.map((ag) => (
+                        <option key={ag} value={ag}>
+                          {ag}
                         </option>
                       ))}
                     </select>

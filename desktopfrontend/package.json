@@ -12,8 +12,8 @@
     "dist": "electron-builder"
   },
   "build": {
-    "appId": "com.everifymo.desktop",
-    "productName": "E-VERIFYMO",
+    "appId": "com.icmda.desktop",
+    "productName": "ICMDA",
     "files": [
       "dist/**/*",
       "dist-electron/**/*"
@@ -49,4 +49,3 @@
     "vite-plugin-electron-renderer": "^1.0.0"
   }
 }
-

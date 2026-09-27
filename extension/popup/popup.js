@@ -1,4 +1,5 @@
 ﻿
+// extension/popup/popup.js
 import { whenSessionReady, isUserLoggedIn, getCurrentUser } from "../scripts/session.js";
 
 let lastProductTitle = '';
@@ -6,6 +7,12 @@ let lastProductUrl = '';
 let lastVerificationStatus = 'unregistered';
 
 document.addEventListener("DOMContentLoaded", () => {
+
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]?.id) {
+      chrome.tabs.sendMessage(tabs[0].id, { action: "closeEverifyModal" });
+    }
+  });
 
   whenSessionReady(() => {
 

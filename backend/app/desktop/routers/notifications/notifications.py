@@ -39,11 +39,12 @@ def list_notifications_endpoint(
 
     # GET /notifications/unread-count
 @router.get("/unread-count", response_model=UnreadCountResponse)
-def get_unread_count_endpoint(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    return UnreadCountResponse(unread_count=get_unread_count(db, current_user))
+def get_unread_count_endpoint(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    count, latest = get_unread_count(db, current_user)  # CHANGED
+    return UnreadCountResponse(
+        unread_count=count,
+        latest_notification=NotificationResponse.model_validate(latest) if latest else None,
+    )
 
 
     # PATCH /notifications/{notification_id}/read

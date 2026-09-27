@@ -101,13 +101,13 @@ document.addEventListener('DOMContentLoaded', () => {
       title: 'Signing in is optional',
       text: 'You can still verify products as a guest. Sign in or Sign up to file complaints, and to view your verification history, complaints, and report status.',
       buttonLabel: 'Sign In',
-      documentTitle: 'E-VERIFY | Sign In'
+      documentTitle: 'ProduCheck | Sign In'
     },
     signup: {
       title: 'Signing up is optional',
       text: 'You can still verify products as a guest. Sign in or Sign up to file complaints, and to view your verification history, complaints, and report status.',
       buttonLabel: 'Sign Up',
-      documentTitle: 'E-VERIFY | Sign Up'
+      documentTitle: 'ProduCheck | Sign Up'
     }
   };
 
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         isValid = false;
       } else if (!isStrongPassword(createPasswordValue)) {
-        setError(createPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
+        setError(createPasswordError, 'The password must be at least 8 characters long and include at least one uppercase letter and one number.');
         if (createPasswordInput) {
           createPasswordInput.classList.add('is-invalid');
         }
@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
           isValid = false;
         } else if (!isStrongPassword(newPassword)) {
-          setError(newPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
+          setError(newPasswordError, 'The password must be at least 8 characters long and include at least one uppercase letter and one number.');
           if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
           isValid = false;
         }

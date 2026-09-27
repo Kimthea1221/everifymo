@@ -253,3 +253,15 @@ export async function getVerificationHistory(token) {
 
     return handleResponse(res);
 }
+
+export async function apiRefreshToken(refreshToken) {
+    const res = await fetch(`${API_BASE}/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`, {
+        method: 'POST'
+    });
+
+    if (!res.ok) {
+        throw new UnauthorizedError('Refresh token invalid or expired');
+    }
+
+    return res.json();
+}

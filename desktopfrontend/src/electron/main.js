@@ -21,7 +21,7 @@ function createWindow() {
   })
 
   // Open DevTools
-  // mainWindow.webContents.openDevTools();
+  //mainWindow.webContents.openDevTools();
 
   // Stash the token here if it arrives before React has finished loading and
   // listening — we'll deliver it below, once did-finish-load confirms React is ready.
@@ -39,16 +39,16 @@ function createWindow() {
   }
 }
 
-// Register our custom protocol so the OS knows to send producheck:// links to us
-// Tell the OS: send producheck:// links to this app
+// Register our custom protocol so the OS knows to send icmda:// links to us
+// Tell the OS: send icmda:// links to this app
 console.log('argv:', process.argv)
 console.log('execPath:', process.execPath)
 
 if (process.env.VITE_DEV_SERVER_URL) {
     // Dev mode needs extra info so Windows knows how to relaunch our dev setup
-  app.setAsDefaultProtocolClient('producheck', process.execPath, [path.resolve(process.argv[1])])
+  app.setAsDefaultProtocolClient('icmda', process.execPath, [path.resolve(process.argv[1])])
 } else {
-  app.setAsDefaultProtocolClient('producheck')
+  app.setAsDefaultProtocolClient('icmda')
 }
 
 // Prevent a second copy of the app opening when a link is clicked while we're already running
@@ -60,7 +60,7 @@ if (!gotLock) {
 } else {
   // Windows/Linux: app was already running, link was clicked again
   app.on('second-instance', (event, argv) => {
-    const url = argv.find((arg) => arg.startsWith('producheck://'))
+    const url = argv.find((arg) => arg.startsWith('icmda://'))
     if (url) handleDeepLink(url)
   })
 
@@ -69,7 +69,7 @@ if (!gotLock) {
     createWindow()
 
     // Windows/Linux: app was fully closed, this link is what launched it
-    const launchUrl = process.argv.find((arg) => arg.startsWith('producheck://'))
+    const launchUrl = process.argv.find((arg) => arg.startsWith('icmda://'))
     if (launchUrl) handleDeepLink(launchUrl)
   })
 }
@@ -79,7 +79,7 @@ if (!gotLock) {
   createWindow()
 
   setTimeout(() => {
-    handleDeepLink('producheck://complete-registration?token=EcPq1fqtWgzsHGzoslG_71rue-OzKgkn9WBvrooQ2Ac')
+    handleDeepLink('icmda://complete-registration?token=EcPq1fqtWgzsHGzoslG_71rue-OzKgkn9WBvrooQ2Ac')
   }, 2000)
 }) */
 
