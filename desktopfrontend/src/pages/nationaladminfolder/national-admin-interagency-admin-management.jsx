@@ -2,6 +2,7 @@ import './national-admin-css.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiFetch } from '../../utils/apiFetch';
 import { createPortal } from 'react-dom';
+import { validateEmail } from '../../utils/emailValidation'; 
 import {
   Send,
   UserX,
@@ -432,10 +433,8 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
     if (!formData.email.trim()) {
       errors.email = 'Email Address is required.';
     } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email.trim())) {
-        errors.email = 'Please enter a valid email address.';
-      }
+      const err = validateEmail(formData.email.trim());
+      if (err) errors.email = err;
     }
 
     if (!formData.agency) errors.agency = 'Agency is required. Please select FDA or LEA-CIDG.';
