@@ -87,7 +87,7 @@ async def _send(to_email: str, subject: str, html_body: str) -> None:
 
 
 def _deep_link(token: str) -> str:
-    return f"https://producheck.netlify.app/?token={quote(token)}"
+    return f"https://interagencycomplaintmanagement.netlify.app/?token={quote(token)}"
 
 
 def _display_agency(agency_name: str) -> str:

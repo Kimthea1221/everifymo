@@ -17,7 +17,10 @@ from app.desktop.schemas.complaints.complaints import (
     LeaCloseCaseResponse,
 )
 
-from app.desktop.services.notifications.notification_service import notify_fda_case_closed  # ADDED
+from app.desktop.services.notifications.notification_service import (
+    notify_fda_case_closed,
+    notify_lea_peers_case_closed,  # ADDED
+)
 
 # Left panel list — active takedown operations, region-scoped. No
 # search/category params, same client-side-filter pattern as the
@@ -97,6 +100,7 @@ def close_case(
     transition_complaint_status(complaint, "completed")
 
     notify_fda_case_closed(db, complaint) #Added for notification to FDA personnel that the takedown operation has been closed
+    notify_lea_peers_case_closed(db, complaint, current_user)  # ADDED for notification to LEA personnel in the same region that a takedown operation has been closed
 
     # Captured before commit — commit() expires session objects.
     audit_region_code = get_user_region_code(db, current_user)

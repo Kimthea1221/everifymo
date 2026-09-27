@@ -18,6 +18,8 @@ from app.desktop.schemas.verification.verification import (
 from app.desktop.services.notifications.notification_service import (
     notify_fda_lea_acknowledged,
     notify_fda_takedown_initiated,  # ADDED
+    notify_lea_peers_acknowledged,       # ADDED
+    notify_lea_peers_takedown_initiated, # ADDED
 )
 
 
@@ -59,6 +61,7 @@ def acknowledge_fda_response(
     verification_request.lea_acknowledged_by = current_user.user_id
 
     notify_fda_lea_acknowledged(db, complaint)  # ADDED for notification to FDA personnel that LEA has acknowledged the FDA response
+    notify_lea_peers_acknowledged(db, complaint, current_user)  # ADDED for notification to LEA personnel in the same region that a colleague has acknowledged the FDA response
 
     # Captured before commit — commit() expires session objects.
     audit_region_code = get_user_region_code(db, current_user)
@@ -127,6 +130,7 @@ def initiate_takedown(
     transition_complaint_status(complaint, "takedown_initiated")
 
     notify_fda_takedown_initiated(db, complaint) #Added for notification to FDA personnel that a takedown operation has been initiated
+    notify_lea_peers_takedown_initiated(db, complaint, current_user)  # ADDED for notification to LEA personnel in the same region that a takedown operation has been initiated
 
     # Captured before commit — commit() expires session objects.
     audit_region_code = get_user_region_code(db, current_user)
