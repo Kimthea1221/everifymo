@@ -8,6 +8,12 @@ let lastVerificationStatus = 'unregistered';
 
 document.addEventListener("DOMContentLoaded", () => {
 
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]?.id) {
+      chrome.tabs.sendMessage(tabs[0].id, { action: "closeEverifyModal" });
+    }
+  });
+
   whenSessionReady(() => {
 
     const verifyToggle = document.getElementById('verify-toggle');

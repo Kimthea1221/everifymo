@@ -3,6 +3,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { apiFetch } from '../../utils/apiFetch'
+import { createPortal } from 'react-dom'
 
 // Event types that are computed at read-time on the backend (not real
 // stored rows) - clicking these can't call the mark-as-read endpoint,
@@ -267,6 +268,23 @@ function TopBar({ topbarType, role, agency }) {
   });
   const [notifLoading, setNotifLoading] = useState(false);
 
+  // ADDED — toast state for real-time team-activity events, piggybacking
+  // on the existing 30s unread-count poll
+  const lastNotifiedIdRef = useRef(null);
+  const hasInitializedToastRef = useRef(false);
+  const [toasts, setToasts] = useState([]);
+
+  // ADDED — which notification titles should pop a toast
+  const TOAST_TRIGGER_TITLES = ['Reminder: Verification Request Pending'];
+
+  const showToast = (title, message) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, title, message }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 8000);
+  };
+
+  // ---- fetch unread count on mount + poll every 30s (live personnel) ----
+
   // ---- fetch unread count on mount + poll every 30s (live personnel) ----
   useEffect(() => {
     if (isMockWorkspace) {
@@ -282,6 +300,24 @@ function TopBar({ topbarType, role, agency }) {
         if (!res.ok) return;
         const data = await res.json();
         setUnreadCount(data.unread_count);
+
+        // ADDED — toast logic: only fires for a genuinely NEW notification
+        // (never on first load), and only for titles in TOAST_TRIGGER_TITLES
+        const latest = data.latest_notification;
+        if (latest) {
+          if (!hasInitializedToastRef.current) {
+            hasInitializedToastRef.current = true;
+            lastNotifiedIdRef.current = latest.notification_id;
+          } else if (
+            latest.notification_id !== lastNotifiedIdRef.current &&
+            TOAST_TRIGGER_TITLES.includes(latest.title)
+          ) {
+            showToast(latest.title, latest.message);
+            lastNotifiedIdRef.current = latest.notification_id;
+          } else {
+            lastNotifiedIdRef.current = latest.notification_id;
+          }
+        }
       } catch (err) {
         console.error('Failed to fetch unread count:', err);
       }
@@ -770,6 +806,12 @@ function TopBar({ topbarType, role, agency }) {
                     color: #4b5563;
                     margin-bottom: 4px;
                     line-height: 1.4;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    word-break: break-word;
                 }
 
                 .NotifItemTime {
@@ -1064,6 +1106,39 @@ function TopBar({ topbarType, role, agency }) {
                         opacity: 0.65;
                         cursor: not-allowed;
                     }
+                    
+                      /* ADDED — Toast notifications */
+                    .TopbarToastStack {
+                        position: fixed;
+                        bottom: 20px;
+                        right: 20px;
+                        z-index: 10001;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+
+                    .TopbarToast {
+                        background: #13213C;
+                        color: #FDFDFD;
+                        padding: 12px 16px;
+                        border-radius: 10px;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                        max-width: 320px;
+                        animation: TopbarModalCardSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                    }
+
+                    .TopbarToast strong {
+                        display: block;
+                        font-size: 13px;
+                        margin-bottom: 4px;
+                    }
+
+                    .TopbarToast p {
+                        margin: 0;
+                        font-size: 12px;
+                        opacity: 0.85;
+                    }
             `}</style>
 
       <div className={`TopbarContainer ${getContainerClass()}`}>
@@ -1158,7 +1233,7 @@ function TopBar({ topbarType, role, agency }) {
                       >
                         <div className='NotifContent'>
                           <div className='NotifItemTitle'>{notif.title}</div>
-                          <div className='NotifItemMsg'>{notif.message}</div>
+                          <div className='NotifItemMsg' title={notif.message}>{notif.message}</div>
                           <div className='NotifItemTime'>{notif.time}</div>
                         </div>
                         {!notif.isRead && <div className='NotifBadgeDot'></div>}
@@ -1216,6 +1291,18 @@ function TopBar({ topbarType, role, agency }) {
             </div>
           </div>
         </div>
+      )}
+
+      {toasts.length > 0 && createPortal(
+        <div className='TopbarToastStack'>
+          {toasts.map(t => (
+            <div key={t.id} className='TopbarToast'>
+              <strong>{t.title}</strong>
+              <p>{t.message}</p>
+            </div>
+          ))}
+        </div>,
+        document.body
       )}
     </>
   )

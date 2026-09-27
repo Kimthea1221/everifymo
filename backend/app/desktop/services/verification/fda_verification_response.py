@@ -16,6 +16,9 @@ from app.core.complaint_status import transition_complaint_status
 from app.desktop.services.notifications.notification_service import (
     notify_lea_fda_responded,  
     notify_lea_fda_rejected,
+    notify_fda_peers_responded,  # ADDED
+    notify_fda_peers_rejected,   # ADDED
+
 )
 
 from app.models.users import User
@@ -89,6 +92,11 @@ def submit_fda_verification_response(
                 status_code=400,
                 detail="CPR Registration Number and Official FDA Verification Remarks are required for a Registered determination.",
             )
+        if len(data.response_notes.strip()) < 10:
+            raise HTTPException(
+                status_code=400,
+                detail="Official FDA Verification Remarks must be at least 10 characters.",
+            )
         new_verification_status = "confirmed_registered"
         new_complaint_status = "dismissed"
     else:
@@ -97,6 +105,17 @@ def submit_fda_verification_response(
                 status_code=400,
                 detail="Reason Product is Not Registered is required for an Unregistered determination.",
             )
+        if len(data.unregistered_reason.strip()) < 10:
+            raise HTTPException(
+                status_code=400,
+                detail="Reason Product is Not Registered must be at least 10 characters.",
+            )
+        if data.response_notes and data.response_notes.strip():
+            if len(data.response_notes.strip()) < 10:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Advisory & Enforcement Recommendations must be at least 10 characters if provided.",
+                )
         new_verification_status = "confirmed_unregistered"
         new_complaint_status = "takedown_requested"
 
@@ -124,7 +143,8 @@ def submit_fda_verification_response(
 
 
     # ADDED — notify LEA of the outcome, before commit, same transaction
-    notify_lea_fda_responded(db, complaint)
+    notify_lea_fda_responded(db, complaint) #ADDED for notification to LEA personnel that FDA has responded to the verification request
+    notify_fda_peers_responded(db, complaint, current_user)  # ADDED for notification to FDA personnel in the same region that a colleague has responded to the verification request
 
     # One commit at the end — if anything above raised, nothing here
     # has been written yet, so verification_requests and complaints
@@ -197,6 +217,7 @@ def reject_fda_verification_response(
     ).delete()
 
     notify_lea_fda_rejected(db, complaint, verification_request)  # ADDED for notification to LEA personnel that the verification request has been rejected
+    notify_fda_peers_rejected(db, complaint, current_user)  # ADDED for notification to FDA personnel in the same region that a colleague has rejected the verification request
 
     db.commit()
     db.refresh(verification_request)

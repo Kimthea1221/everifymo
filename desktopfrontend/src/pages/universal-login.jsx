@@ -4,10 +4,35 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle, Users, ShieldCheck, Building2, Ch
 import FDALogo from '../images/FDA.png'
 import PNPLogo from '../images/pnp-cidg.jpg'
 import { API_BASE_URL } from '../utils/apiConfig'
+import { validateEmail } from '../utils/emailValidation';
 
 
+async function safeParseErrorResponse(response) {
+  let rawText = '';
+  try {
+    rawText = await response.text();
+  } catch {
+    return null;
+  }
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    console.error('Non-JSON error response from server:', rawText);
+    return null;
+  }
+}
 
-const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/i;
+function extractErrorMessage(errorData, fallback) {
+  const detail = errorData?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.map(d => d?.msg || JSON.stringify(d)).join(' ');
+  }
+  if (detail && typeof detail === 'object') {
+    return detail.msg || detail.message || JSON.stringify(detail);
+  }
+  return fallback;
+}
 
 function UniversalLogin() {
   const navigate = useNavigate();
@@ -22,7 +47,10 @@ function UniversalLogin() {
     ? 'interagency-admin'
     : 'personnel';
   const [universalLoginActiveTab, setUniversalLoginActiveTab] = useState(initialTab);
-
+  const reason = searchParams.get('reason');
+  const [sessionMessage, setSessionMessage] = useState(
+    reason === 'session_expired' ? 'Your session has expired. Please log in again.' : ''
+  );
   // Tracks whether either child form is on its OTP screen
   const [isShowingOtp, setIsShowingOtp] = useState(false);
 
@@ -33,7 +61,7 @@ function UniversalLogin() {
   }
 
   return (
-    <div>
+    <div style={{ width: '100%', overflowX: 'hidden' }}>
       <div className="universal-login-page">
         <div className="universal-login-glass-container">
           {/* LEFT PANEL — original large branding and logos preserved */}
@@ -49,7 +77,7 @@ function UniversalLogin() {
             <div className="universal-login-hero">
               <h1>WELCOME! <br /></h1>
               <h4>
-                This is Interagency <span>Complaint Management </span> <br />
+                This is Interagency <span>Complaint Management</span>{' '}
                 System Desktop Application (<span>ICMDA</span>)
               </h4>
             </div>
@@ -65,7 +93,7 @@ function UniversalLogin() {
 
           {/* RIGHT SIDE — compact white card with role toggle at top */}
           <div className="universal-login-right-wrapper">
-            <div className="universal-login-right-panel" style={isShowingOtp ? { justifyContent: 'center' } : undefined}>
+            <div className="universal-login-right-panel">
               {/* TOP GLASS SEGMENTED ROLE TOGGLE — hidden while on OTP screen */}
               {!isShowingOtp && (
                 <div className="universal-login-tabs-container">
@@ -97,13 +125,13 @@ function UniversalLogin() {
               )}
 
               {universalLoginActiveTab === 'personnel' && (
-                <PersonnelLoginForm navigate={navigate} onOtpStateChange={setIsShowingOtp} />
+                <PersonnelLoginForm navigate={navigate} onOtpStateChange={setIsShowingOtp} sessionMessage={sessionMessage} />
               )}
               {universalLoginActiveTab === 'national-admin' && (
-                <SuperAdminLoginForm navigate={navigate} onOtpStateChange={setIsShowingOtp} />
+                <SuperAdminLoginForm navigate={navigate} onOtpStateChange={setIsShowingOtp} sessionMessage={sessionMessage} />
               )}
               {universalLoginActiveTab === 'interagency-admin' && (
-                <InteragencyAdminLoginForm navigate={navigate} onOtpStateChange={setIsShowingOtp} />
+                <InteragencyAdminLoginForm navigate={navigate} onOtpStateChange={setIsShowingOtp} sessionMessage={sessionMessage} />
               )}
             </div>
           </div>
@@ -118,12 +146,12 @@ function UniversalLogin() {
         /* ===== LARGE OUTER GLASS CONTAINER (RESTORED TO PREVIOUS FULL SIZE) ===== */
         .universal-login-page {
           background-color: #1D3439;
-          width: 100vw;
+          width: 100%;
           min-height: 100vh;
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 40px 24px;
+          padding: clamp(16px, 3vh, 40px) clamp(16px, 2.5vw, 24px);
           color: #fdfdfd;
           overflow-x: hidden;
           box-sizing: border-box;
@@ -135,14 +163,15 @@ function UniversalLogin() {
           justify-content: space-between;
           align-items: stretch;
           width: min(95vw, 1450px);
-          min-height: 750px;
+          height: min(92vh, 750px);
+          min-height: 0;
           background: rgba(253, 253, 253, 0.07);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 16px;
           border: 1px solid rgba(255, 255, 255, 0.16);
-          padding: 48px 56px;
-          gap: 36px;
+          padding: clamp(20px, 3vh, 48px) clamp(24px, 3.5vw, 56px);
+          gap: clamp(16px, 2.5vw, 36px);
           box-sizing: border-box;
         }
 
@@ -212,7 +241,7 @@ function UniversalLogin() {
           font-weight: 600;
         }
         .universal-login-hero h4 {
-          font-size: 1.45rem;
+          font-size: clamp(1rem, 1.4vw, 1.45rem);
           color: rgba(255, 255, 255, 0.82);
           font-weight: 600;
           margin-top: 12px;
@@ -289,14 +318,15 @@ function UniversalLogin() {
         /* ===== SMALLER COMPACT WHITE LOGIN CARD ===== */
         .universal-login-right-panel {
           width: 510px;
+          min-width: min(510px, 100%);
           max-width: 100%;
-          min-height: 620px;
+          min-height: 580px;
           height: auto;
           background: #ffffff;
           padding: 24px 28px;
           border-radius: 16px;
           box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-          flex-shrink: 0;
+          flex-shrink: 1;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
@@ -333,7 +363,8 @@ function UniversalLogin() {
 
         .universal-login-otp-header {
           text-align: center;
-          margin-bottom: 10px;
+          margin-top: 12px;
+          margin-bottom: 8px;
         }
         .universal-login-otp-header h2, .universal-login-otp-header h3 {
           font-size: 24px;
@@ -682,6 +713,7 @@ function UniversalLogin() {
         .universal-login-otp-container {
           display: flex;
           flex-direction: column;
+          margin-top: 36px;
           animation: universalLoginFadeIn 0.35s ease-out forwards;
         }
       .universal-login-otp-instructions {
@@ -731,7 +763,7 @@ function UniversalLogin() {
         .universal-login-interagency-otp-instructions {
           font-size: 13.5px;
           color: #475569;
-          margin-bottom: 40px;
+          margin-bottom: 20px;
           line-height: 1.45;
           text-align: center;
         }
@@ -826,10 +858,11 @@ function UniversalLogin() {
         @keyframes universalLoginFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
         /* ===== RESPONSIVENESS ===== */
-        @media (max-width: 1023px) {
+        @media (max-width: 820px) {
           .universal-login-glass-container {
             flex-direction: column;
             width: min(92vw, 640px);
+            height: auto;
             min-height: auto;
             padding: 36px 28px;
             gap: 32px;
@@ -855,7 +888,8 @@ function UniversalLogin() {
           .universal-login-right-panel {
             width: 100%;
             max-width: 100%;
-            min-height: 480px;
+            min-width: 0;
+            min-height: 570px;
             height: auto;
             max-height: none;
             padding: 22px 20px;
@@ -863,6 +897,126 @@ function UniversalLogin() {
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
+          }
+        }
+
+        @media (max-height: 720px) {
+          .universal-login-page {
+            padding: 16px 20px;
+          }
+          .universal-login-glass-container {
+            padding: 20px 28px;
+            gap: 20px;
+          }
+          .universal-login-left-panel {
+            gap: 12px;
+            padding: 4px 0;
+          }
+          .universal-login-agency img {
+            width: 44px;
+            height: 44px;
+          }
+          .universal-login-agency-top img,
+          .universal-login-fda-logo {
+            width: 48px;
+            height: 48px;
+          }
+          .universal-login-agency h3 {
+            font-size: 0.85rem;
+          }
+          .universal-login-hero {
+            margin: 8px 0;
+          }
+          .universal-login-hero h1 {
+            font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+          }
+          .universal-login-hero h4 {
+            font-size: clamp(0.9rem, 1.2vw, 1.15rem);
+            margin-top: 6px;
+          }
+          .universal-login-right-panel {
+            padding: 16px 22px;
+            min-height: 445px;
+            height: auto;
+          }
+          .universal-login-tabs-container {
+            height: 38px;
+            margin-bottom: 14px;
+          }
+          .universal-login-tab-btn {
+            font-size: 12px;
+            gap: 4px;
+          }
+          .universal-login-card-header {
+            margin-bottom: 12px;
+          }
+          .universal-login-card-header h2 {
+            font-size: 20px;
+          }
+          .universal-login-card-header small {
+            font-size: 13px;
+          }
+          .universal-login-card-header p {
+            font-size: 12px;
+            margin-bottom: 8px;
+          }
+          .universal-login-form-group {
+            margin-bottom: 8px;
+          }
+          .universal-login-form-group label,
+          .universal-login-personnel-form label,
+          .universal-login-admin-form label {
+            font-size: 13px;
+            margin-bottom: 4px;
+          }
+          .universal-login-input-wrapper input,
+          .universal-login-admin-input-wrapper input,
+          .universal-login-password-wrapper input,
+          .universal-login-admin-password-wrapper input,
+          .universal-login-select {
+            min-height: 38px;
+            padding-top: 8px !important;
+            padding-bottom: 8px !important;
+            font-size: 13px;
+          }
+          .universal-login-inter-buttons {
+            min-height: 38px;
+            padding: 6px 10px;
+            font-size: 12.5px;
+          }
+          .universal-login-remember-me,
+          .universal-login-admin-remember-row {
+            margin-bottom: 8px;
+          }
+          .universal-login-submit-btn {
+            margin-top: 14px;
+            padding: 8px 12px;
+            font-size: 13.5px;
+          }
+          .universal-login-otp-header h2,
+          .universal-login-otp-header h3 {
+            font-size: 20px;
+            margin-bottom: 2px;
+          }
+          .universal-login-otp-header p {
+            font-size: 13px;
+            margin-bottom: 10px;
+          }
+          .universal-login-otp-instructions {
+            font-size: 13px;
+            margin-bottom: 10px;
+          }
+          .universal-login-otp-digit-input,
+          .universal-login-admin-otp-digit-input,
+          .universal-login-interagency-otp-digit-input {
+            width: 44px;
+            height: 48px;
+            font-size: 18px;
+          }
+          .universal-login-back-btn,
+          .universal-login-admin-back-btn {
+            margin-top: 12px;
+            font-size: 13px;
           }
         }
 
@@ -878,7 +1032,7 @@ function UniversalLogin() {
           .universal-login-right-panel {
             padding: 18px 14px;
             border-radius: 14px;
-            min-height: auto;
+            min-height: 535px;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -915,11 +1069,34 @@ function UniversalLogin() {
   );
 }
 
+const getDeviceCoordinates = () => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve({ latitude: null, longitude: null, source: 'ip' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        resolve({
+          latitude: parseFloat(pos.coords.latitude.toFixed(6)),
+          longitude: parseFloat(pos.coords.longitude.toFixed(6)),
+          source: 'gps',
+        });
+      },
+      (err) => {
+        console.warn('Geolocation unavailable during login:', err);
+        resolve({ latitude: null, longitude: null, source: 'ip' });
+      },
+      { enableHighAccuracy: true, timeout: 6000 }
+    );
+  });
+};
+
 // ============================================================================
 // PERSONNEL LOGIN FORM
 // Supports both mock frontend testing and real API fallback
 // ============================================================================
-function PersonnelLoginForm({ navigate, onOtpStateChange }) {
+function PersonnelLoginForm({ navigate, onOtpStateChange, sessionMessage  }) {
   const [personnelAgency, setPersonnelAgency] = useState('');
   const [personnelEmail, setPersonnelEmail] = useState('');
   const [personnelPassword, setPersonnelPassword] = useState('');
@@ -934,18 +1111,23 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
   }
 
   useEffect(() => {
-  const key = rememberedEmailKey(personnelAgency);
-  if (!key) return;
+    const key = rememberedEmailKey(personnelAgency);
+    if (!key) {
+      setPersonnelEmail('');
+      setPersonnelRememberMe(false);
+      return;
+    }
 
-  const savedEmail = localStorage.getItem(key);
+    const savedEmail = localStorage.getItem(key);
 
-  if (savedEmail && !personnelEmail.trim()) {
-    setPersonnelEmail(savedEmail);
-    setPersonnelRememberMe(true);
-  } else if (!savedEmail) {
-    setPersonnelRememberMe(false);
-  }
-}, [personnelAgency]);
+    if (savedEmail) {
+      setPersonnelEmail(savedEmail);
+      setPersonnelRememberMe(true);
+    } else {
+      setPersonnelEmail('');
+      setPersonnelRememberMe(false);
+    }
+  }, [personnelAgency]);
 
   const [personnelIsOtpSent, setPersonnelIsOtpSent] = useState(false);
   const [personnelOtp, setPersonnelOtp] = useState(new Array(6).fill(''));
@@ -1015,8 +1197,8 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to resend code.');
+        const errorData = await safeParseErrorResponse(response);
+        throw new Error(extractErrorMessage(errorData, 'Failed to resend code.'));
       }
 
       setPersonnelTimer(300);
@@ -1048,10 +1230,9 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
     setPersonnelEmail(val);
     if (!val.trim()) {
       setPersonnelErrors((prev) => ({ ...prev, email: '' }));
-    } else if (!EMAIL_REGEX.test(val.trim())) {
-      setPersonnelErrors((prev) => ({ ...prev, email: 'Please enter a valid email address.' }));
     } else {
-      setPersonnelErrors((prev) => ({ ...prev, email: '' }));
+      const err = validateEmail(val.trim());
+      setPersonnelErrors((prev) => ({ ...prev, email: err || '' }));
     }
   }
 
@@ -1081,8 +1262,9 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
 
       if (!personnelEmail.trim()) {
         newErrors.email = 'Email is required.';
-      } else if (!EMAIL_REGEX.test(personnelEmail.trim())) {
-        newErrors.email = 'Please enter a valid email address.';
+      } else {
+        const err = validateEmail(personnelEmail.trim());
+        if (err) newErrors.email = err;
       }
 
       if (!personnelPassword.trim()) {
@@ -1107,8 +1289,8 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Invalid email or password.');
+          const errorData = await safeParseErrorResponse(response);
+          throw new Error(extractErrorMessage(errorData, 'Invalid email or password.'));
         }
 
         const key = rememberedEmailKey(personnelAgency);
@@ -1136,15 +1318,23 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
 
       // REAL BACKEND OTP VERIFICATION
       try {
+        const coords = await getDeviceCoordinates();
+
         const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: personnelEmail.trim(), otp: otpCode }),
+          body: JSON.stringify({
+            email: personnelEmail.trim(),
+            otp: otpCode,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            source: coords.source,
+          }),
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
+          const errorData = await safeParseErrorResponse(response);
+          throw new Error(extractErrorMessage(errorData, 'Invalid verification code. Please try again.'));
         }
 
         const data = await response.json();
@@ -1293,6 +1483,12 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
           <button type="submit" className="universal-login-submit-btn">
             Login
           </button>
+
+          {sessionMessage && (
+            <div className="universal-login-error-msg-container" style={{ marginTop: '12px' }}>
+              <p className="universal-login-error-msg">{sessionMessage}</p>
+            </div>
+          )}
         </form>
       ) : (
         <form noValidate onSubmit={handlePersonnelLoginSubmit}>
@@ -1372,7 +1568,7 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
 //      -> /nationaladminfolder/national-admin-new-admin-management
 //   Nothing else changed — same validation, same OTP UI, same lockout handling.
 // ============================================================================
-function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
+function SuperAdminLoginForm({ navigate, onOtpStateChange, sessionMessage }) {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminShowPassword, setAdminShowPassword] = useState(false);
@@ -1473,12 +1669,11 @@ function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.detail && typeof errorData.detail === 'object') {
+        const errorData = await safeParseErrorResponse(response);
+        if (errorData?.detail && typeof errorData.detail === 'object' && 'retry_after_seconds' in errorData.detail) {
           setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
-          throw new Error(errorData.detail.message || 'Failed to resend code.');
         }
-        throw new Error(errorData.detail || 'Failed to resend code.');
+        throw new Error(extractErrorMessage(errorData, 'Failed to resend code.'));
       }
 
       setAdminTimer(300);
@@ -1509,10 +1704,9 @@ function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
     setAdminEmail(val);
     if (!val.trim()) {
       setAdminErrors((prev) => ({ ...prev, email: '' }));
-    } else if (!EMAIL_REGEX.test(val.trim())) {
-      setAdminErrors((prev) => ({ ...prev, email: 'Please enter a valid email address.' }));
     } else {
-      setAdminErrors((prev) => ({ ...prev, email: '' }));
+      const err = validateEmail(val.trim());
+      setAdminErrors((prev) => ({ ...prev, email: err || '' }));
     }
   }
 
@@ -1529,8 +1723,9 @@ function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
 
       if (!adminEmail.trim()) {
         newErrors.email = 'Email is required.';
-      } else if (!EMAIL_REGEX.test(adminEmail.trim())) {
-        newErrors.email = 'Please enter a valid email address.';
+      } else {
+        const err = validateEmail(adminEmail.trim());
+        if (err) newErrors.email = err;
       }
 
       if (!adminPassword.trim()) {
@@ -1552,13 +1747,13 @@ function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          if (errorData.detail && typeof errorData.detail === 'object') {
+          const errorData = await safeParseErrorResponse(response);
+          if (errorData?.detail && typeof errorData.detail === 'object' && 'retry_after_seconds' in errorData.detail) {
             setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
-            throw new Error(errorData.detail.message || 'Too many failed attempts.');
+          } else {
+            setLockoutSeconds(0);
           }
-          setLockoutSeconds(0);
-          throw new Error(errorData.detail || 'Invalid email or password.');
+          throw new Error(extractErrorMessage(errorData, 'Invalid email or password.'));
         }
 
         if (adminRememberMe) {
@@ -1590,12 +1785,11 @@ function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          if (errorData.detail && typeof errorData.detail === 'object') {
+          const errorData = await safeParseErrorResponse(response);
+          if (errorData?.detail && typeof errorData.detail === 'object' && 'retry_after_seconds' in errorData.detail) {
             setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
-            throw new Error(errorData.detail.message || 'Too many failed attempts.');
           }
-          throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
+          throw new Error(extractErrorMessage(errorData, 'Invalid verification code. Please try again.'));
         }
 
         const data = await response.json();
@@ -1716,6 +1910,12 @@ function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
           >
             Login
           </button>
+
+          {sessionMessage && (
+            <div className="universal-login-admin-error-container" style={{ marginTop: '12px' }}>
+              <p className="universal-login-admin-error-msg">{sessionMessage}</p>
+            </div>
+          )}
         </form>
       ) : (
         <form noValidate onSubmit={handleAdminLoginSubmit}>
@@ -1791,7 +1991,7 @@ function SuperAdminLoginForm({ navigate, onOtpStateChange }) {
 //   POST /auth/admin/login
 //   POST /auth/admin/verify-otp
 // ============================================================================
-function InteragencyAdminLoginForm({ navigate, onOtpStateChange }) {
+function InteragencyAdminLoginForm({ navigate, onOtpStateChange, sessionMessage }) {
   const [agency, setAgency] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -1808,18 +2008,21 @@ function InteragencyAdminLoginForm({ navigate, onOtpStateChange }) {
   }
 
   useEffect(() => {
-  const key = rememberedEmailKey(agency);
-  if (!key) return;
-
-  const savedEmail = localStorage.getItem(key);
-
-  if (savedEmail && !email.trim()) {
-    setEmail(savedEmail);
-    setRememberMe(true);
-  } else if (!savedEmail) {
-    setRememberMe(false);
-  }
-}, [agency]);
+    const key = rememberedEmailKey(agency);
+    if (!key) {
+      return;
+    }
+    const savedEmail = localStorage.getItem(key);
+    if (savedEmail && email.trim() === '') {
+      // Only auto-fill if the user hasn't already typed something —
+      // never overwrite or clear an in-progress email
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+    // If there's no saved email for this agency, or the user already has
+    // something typed, leave the email field exactly as it is — do not
+    // clear it and do not touch rememberMe in that case.
+  }, [agency]);
 
   // OTP state
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -1857,10 +2060,13 @@ function InteragencyAdminLoginForm({ navigate, onOtpStateChange }) {
     return () => clearInterval(interval);
   }, [lockoutSeconds]);
 
-function handleAgencyChange(value) {
-  setAgency(value);
-  setPassword('');
-
+function handleAgencyChange(newAgency) {
+  if (agency && agency !== newAgency) {
+    // Agency was already selected, and it's genuinely changing — clear password only
+    setPassword('');
+  }
+  // If agency was empty (first-time selection) or newAgency === agency, do nothing to password
+  setAgency(newAgency);
   if (errors.agency) {
     setErrors((prev) => ({ ...prev, agency: '' }));
   }
@@ -1871,10 +2077,9 @@ function handleAgencyChange(value) {
     setEmail(val);
     if (!val.trim()) {
       setErrors((prev) => ({ ...prev, email: '' }));
-    } else if (!EMAIL_REGEX.test(val.trim())) {
-      setErrors((prev) => ({ ...prev, email: 'Please enter a valid email address.' }));
     } else {
-      setErrors((prev) => ({ ...prev, email: '' }));
+      const err = validateEmail(val.trim());
+      setErrors((prev) => ({ ...prev, email: err || '' }));
     }
   }
 
@@ -1889,8 +2094,11 @@ function handleAgencyChange(value) {
 
     const newErrors = {};
     if (!agency) newErrors.agency = 'Please select an agency.';
-    if (!email.trim()) newErrors.email = 'Email is required.';
-    else if (!EMAIL_REGEX.test(email.trim())) newErrors.email = 'Please enter a valid email address.';
+        if (!email.trim()) newErrors.email = 'Email is required.';
+    else {
+      const err = validateEmail(email.trim());
+      if (err) newErrors.email = err;
+    }
     if (!password.trim()) newErrors.password = 'Please enter your password.';
 
     if (Object.keys(newErrors).length > 0) {
@@ -1908,14 +2116,13 @@ function handleAgencyChange(value) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        // admin_login.py raises 429 with a structured detail object when throttled
-        if (errorData.detail && typeof errorData.detail === 'object') {
+        const errorData = await safeParseErrorResponse(response);
+        if (errorData?.detail && typeof errorData.detail === 'object' && 'retry_after_seconds' in errorData.detail) {
           setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
-          throw new Error(errorData.detail.message || 'Too many failed attempts.');
+        } else {
+          setLockoutSeconds(0);
         }
-        setLockoutSeconds(0);
-        throw new Error(errorData.detail || 'Invalid email or password.');
+        throw new Error(extractErrorMessage(errorData, 'Invalid email or password.'));
       }
 
       // Save or clear the remembered email for this agency
@@ -1985,12 +2192,11 @@ function handleAgencyChange(value) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.detail && typeof errorData.detail === 'object') {
+        const errorData = await safeParseErrorResponse(response);
+        if (errorData?.detail && typeof errorData.detail === 'object' && 'retry_after_seconds' in errorData.detail) {
           setLockoutSeconds(errorData.detail.retry_after_seconds || 0);
-          throw new Error(errorData.detail.message || 'Failed to resend code.');
         }
-        throw new Error(errorData.detail || 'Failed to resend code.');
+        throw new Error(extractErrorMessage(errorData, 'Failed to resend code.'));
       }
 
       setTimer(300);
@@ -2026,8 +2232,8 @@ function handleAgencyChange(value) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Invalid verification code. Please try again.');
+        const errorData = await safeParseErrorResponse(response);
+        throw new Error(extractErrorMessage(errorData, 'Invalid verification code. Please try again.'));
       }
 
       const data = await response.json();
@@ -2048,6 +2254,9 @@ function handleAgencyChange(value) {
       setOtpError(err.message || 'Invalid verification code. Please try again.');
       setOtp(new Array(6).fill(''));
       setTimeout(() => otpRefs.current[0]?.focus(), 0);
+      if (/request a new otp/i.test(err.message)) {
+      setTimer(0);
+      }
     }
   }
 
@@ -2185,6 +2394,12 @@ function handleAgencyChange(value) {
         <button type="submit" className="universal-login-submit-btn" disabled={lockoutSeconds > 0}>
           Login
         </button>
+
+        {sessionMessage && (
+          <div className="universal-login-admin-error-container" style={{ marginTop: '12px' }}>
+            <p className="universal-login-admin-error-msg">{sessionMessage}</p>
+          </div>
+        )}
 
         </form>
       ) : (

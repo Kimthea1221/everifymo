@@ -1,7 +1,7 @@
 # backend/app/desktop/routers/complaints/walkin_complaints.py
 from uuid import UUID
 from datetime import date, datetime, timezone
-from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Request, Query
 from app.core.audit import write_audit_log, get_user_region_code
 from app.core.constants import AuditAction
 
@@ -56,17 +56,17 @@ def submit_draft(
 @direct_complaint_router.post("/", response_model=ComplaintResponse)
 def create_complaint_direct(
     request: Request,
-    full_name: str | None = Form(None),
-    contact_number: str | None = Form(None),
-    email: str | None = Form(None),
+    full_name: str | None = Form(None, max_length=100),
+    contact_number: str | None = Form(None, max_length=11),
+    email: str | None = Form(None, max_length=254),
     id_type: str | None = Form(None),
-    address: str | None = Form(None),
+    address: str | None = Form(None, max_length=300),
     amount_paid: float | None = Form(None),
 
-    product_name: str = Form(...),
-    manufacturer: str = Form(...),
-    product_category: str = Form(...),
-    place_of_purchase: str = Form(...),
+    product_name: str = Form(..., max_length=150, min_length=2),
+    manufacturer: str = Form(..., max_length=150, min_length=2),
+    product_category: str = Form(..., max_length=150),
+    place_of_purchase: str = Form(..., max_length=300, min_length=2),
     date_of_purchase: str = Form(...),
     nature_of_complaint: str = Form(...),
 
@@ -81,6 +81,17 @@ def create_complaint_direct(
         "id_type": id_type,
         "address": address,
     }
+
+    # Normalize CRLF (\r\n) → LF (\n) so the char count matches what the
+    # browser's maxLength attribute reported to the officer. Without this,
+    # a 2000-char textarea with 50 line breaks arrives as 2050 chars.
+    if nature_of_complaint:
+        nature_of_complaint = nature_of_complaint.replace('\r\n', '\n').replace('\r', '\n')
+
+    if len(nature_of_complaint) < 10:
+        raise HTTPException(status_code=422, detail="Nature of complaint must be at least 10 characters.")
+    if len(nature_of_complaint) > 2000:
+        raise HTTPException(status_code=422, detail="Nature of complaint must be at most 2000 characters.")
 
     complaint_fields = {
         "product_title": product_name,
@@ -109,7 +120,7 @@ def create_complaint_direct(
 def list_walkin_complaints(
     status: str | None = None,
     category: str | None = None,
-    search: str | None = None,
+    search: str | None = Query(None, max_length=150),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -187,17 +198,17 @@ def list_walkin_complaints(
 def update_complaint_direct(
     complaint_id: UUID,
     request: Request,
-    full_name: str | None = Form(None),
-    contact_number: str | None = Form(None),
-    email: str | None = Form(None),
+    full_name: str | None = Form(None, max_length=100),
+    contact_number: str | None = Form(None, max_length=11),
+    email: str | None = Form(None, max_length=254),
     id_type: str | None = Form(None),
-    address: str | None = Form(None),
+    address: str | None = Form(None, max_length=300),
     amount_paid: float | None = Form(None),
 
-    product_name: str = Form(...),
-    manufacturer: str = Form(...),
-    product_category: str = Form(...),
-    place_of_purchase: str = Form(...),
+    product_name: str = Form(..., max_length=150, min_length=2),
+    manufacturer: str = Form(..., max_length=150, min_length=2),
+    product_category: str = Form(..., max_length=150),
+    place_of_purchase: str = Form(..., max_length=300, min_length=2),
     date_of_purchase: str = Form(...),
     nature_of_complaint: str = Form(...),
 
@@ -213,6 +224,15 @@ def update_complaint_direct(
         "id_type": id_type,
         "address": address,
     }
+
+    # Same CRLF normalization as the POST path
+    if nature_of_complaint:
+        nature_of_complaint = nature_of_complaint.replace('\r\n', '\n').replace('\r', '\n')
+        if len(nature_of_complaint) < 10 or len(nature_of_complaint) > 2000:
+            raise HTTPException(
+                status_code=422,
+                detail="nature_of_complaint must be between 10 and 2000 characters."
+            )
 
     complaint_fields = {
         "product_title": product_name,

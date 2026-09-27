@@ -1297,6 +1297,8 @@ h6 {
   font-size: 13px;
   color: rgba(31, 41, 55, 0.65);
   margin: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .FdaDetailGrid {
@@ -1313,6 +1315,7 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .FdaDetailItem label {
@@ -1327,6 +1330,8 @@ h6 {
   font-size: 13px;
   font-weight: 600;
   color: #030303;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .FdaDetailDesc {
@@ -1351,6 +1356,8 @@ h6 {
   background: #EDEDED;
   padding: 12px;
   border-radius: 8px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .FdaDetailActions {
@@ -2287,6 +2294,8 @@ h6 {
   color: #1F2937;
   line-height: 1.6;
   margin: 16px 0 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Link View Source Style */
@@ -2298,6 +2307,8 @@ h6 {
   align-items: center;
   gap: 4px;
   transition: color 0.2s;
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
 
 .FdaSourceLink:hover {
@@ -3146,6 +3157,8 @@ h6 {
   font-size: 13px;
   font-weight: 600;
   color: #030303;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .FdaVerifInfoValueHighlight {
@@ -3153,6 +3166,8 @@ h6 {
   font-weight: 700;
   color: #13213C;
   font-family: monospace;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .FdaVerifCodeBadge {
@@ -3711,6 +3726,12 @@ h6 {
   width: 100%;
   padding: 20px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+}
+
+.FdaVerifModalContainer span {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .FdaVerifModalHeader {
@@ -4316,6 +4337,7 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
 }
 
 .FdaRecordInfoLabel {
@@ -4580,6 +4602,7 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .FdaRecordInfoItemFull {
@@ -4644,6 +4667,9 @@ h6 {
   border: 1px solid #E5E7EB;
   border-radius: 7px;
   padding: 10px 12px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .FdaRecordRejectionReasonBox {
@@ -4659,6 +4685,9 @@ h6 {
   color: #374151;
   line-height: 1.65;
   margin: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 /* ============================================================================ */

@@ -365,7 +365,9 @@ useEffect(() => {
         `"${(report.product_category || '').replace(/"/g, '""')}"`,
         getSourceLabel(report.source),
         getWorkflowStatus(report.status, report.source),
-        `"${formatDateTime(report.created_at).replace(/"/g, '""')}"`
+        // CHANGED — wrapped in ="..." so Excel treats it as literal text,
+        // not a date it should reformat (this was the ##### bug)
+        `"=""${formatDateTime(report.created_at).replace(/"/g, '""')}"""`
       ];
       csvRows.push(values.join(","));
     }
@@ -459,6 +461,7 @@ useEffect(() => {
                 type="text"
                 placeholder="Search product, manufacturer, ID..."
                 className="FdaSearchInput"
+                maxLength={150}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);

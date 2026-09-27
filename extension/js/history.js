@@ -1,6 +1,5 @@
 // history.js
-import { whenSessionReady, isUserLoggedIn, getToken } from "../scripts/session.js";
-import { apiGetComplaints, apiGetStatus, getVerificationHistory } from "../utils/api.js";
+import { whenSessionReady, isUserLoggedIn, getComplaintHistory, getProductVerificationHistory } from "../scripts/session.js";
 
 const COMPLAINT_STATUS_LABELS = { completed: 'COMPLETED', dismissed: 'DISMISSED' };
 const VERIFICATION_STATUS_LABELS = { registered: 'REGISTERED', suspicious: 'SUSPICIOUS', unregistered: 'UNREGISTERED' };
@@ -27,7 +26,7 @@ function timeFormat(submittedTime) {
 }
 
 async function renderComplaintsHistoryList() {
-  const res = await apiGetComplaints(getToken());
+  const res = await getComplaintHistory();
   const items = res.map(c => ({
       id: c.complaint_id,
       status: c.status,
@@ -71,7 +70,7 @@ async function renderComplaintsHistoryList() {
 }
 
 async function renderVerificationHistoryList() {
-  const response = await getVerificationHistory(getToken());
+  const response = await getProductVerificationHistory();
 
   const items = response.map(v => ({
       id: v.history_id,
@@ -142,8 +141,15 @@ async function renderHistoryPage() {
     return;
   }
 
-  const complaints = await apiGetComplaints(getToken());
-  const verification = await getVerificationHistory(getToken());
+  let complaints, verification;
+  try {
+    complaints = await getComplaintHistory();
+    verification = await getProductVerificationHistory();
+  } catch (e) {
+    console.error(e);
+    return; 
+  }
+
   const hasNoDataAtAll = complaints.length === 0 && verification.length === 0;
 
   if (hasNoDataAtAll) {

@@ -3,6 +3,7 @@ import './fda-admin-css.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { apiFetch } from '../../utils/apiFetch';
+import { validateEmail } from '../../utils/emailValidation'; 
 import {
   Send,
   UserCheck,
@@ -401,10 +402,8 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
     if (!formData.email.trim()) {
       errs.email = 'Email Address is required.';
     } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email.trim())) {
-        errs.email = 'Please enter a valid email address.';
-      }
+      const err = validateEmail(formData.email.trim());
+      if (err) errs.email = err;
     }
 
     return errs;
@@ -482,7 +481,18 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
                       className={`FDAAdminInput ${errors.firstName ? 'input-error' : ''}`}
                       placeholder="e.g. Maria"
                       value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      maxLength={50}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, firstName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, firstName: 'First Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, firstName: 'First Name is required.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, firstName: undefined }));
+                        }
+                      }}
                     />
                   </div>
                   {errors.firstName && (
@@ -498,12 +508,28 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
                     <User className="FDAAdminInputIcon" size={17} />
                     <input
                       type="text"
-                      className="FDAAdminInput"
+                      className={`FDAAdminInput ${errors.middleName ? 'input-error' : ''}`}
                       placeholder="e.g. Santos (Optional)"
                       value={formData.middleName}
-                      onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                      maxLength={50}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, middleName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, middleName: 'Middle Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (val.trim().length > 0 && val.trim().length < 2) {
+                          setErrors((prev) => ({ ...prev, middleName: 'Middle Name must be at least 2 characters if provided.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, middleName: undefined }));
+                        }
+                      }}
                     />
                   </div>
+                  {errors.middleName && (
+                    <span className="FDAAdminFieldError">
+                      <AlertCircle size={12} /> {errors.middleName}
+                    </span>
+                  )}
                 </div>
 
                 <div className="FDAAdminFormGroup">
@@ -517,7 +543,18 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
                       className={`FDAAdminInput ${errors.lastName ? 'input-error' : ''}`}
                       placeholder="e.g. Cruz"
                       value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      maxLength={50}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, lastName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, lastName: 'Last Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, lastName: 'Last Name is required.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, lastName: undefined }));
+                        }
+                      }}
                     />
                   </div>
                   {errors.lastName && (
@@ -538,6 +575,7 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
                       className="FDAAdminInput"
                       placeholder="e.g. FDA-2026-091 (Optional)"
                       value={formData.employeeId}
+                      maxLength={50}
                       onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                     />
                   </div>
@@ -558,6 +596,15 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '').slice(0, 11);
                         setFormData({ ...formData, contactNumber: val });
+                        if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Contact number is required.' }));
+                        } else if (val.trim().length < 11) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Contact number must be at least 11 digits.' }));
+                        } else if (!val.startsWith('09')) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, contactNumber: undefined }));
+                        }
                       }}
                     />
                   </div>
@@ -580,7 +627,17 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
                     className={`FDAAdminInput ${errors.email ? 'input-error' : ''}`}
                     placeholder="e.g. maria.cruz@fda.gov.ph"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    maxLength={254}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, email: val });
+                      if (!val.trim()) {
+                        setErrors((prev) => ({ ...prev, email: undefined }));
+                      } else {
+                        const err = validateEmail(val.trim());
+                        setErrors((prev) => ({ ...prev, email: err || undefined }));
+                      }
+                    }}
                   />
                 </div>
                 {errors.email && (
@@ -617,6 +674,7 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
                       className="FDAAdminInput"
                       placeholder="e.g. Regulatory Compliance (Optional)"
                       value={formData.department}
+                      maxLength={150}
                       onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     />
                   </div>
@@ -630,6 +688,7 @@ function AddPersonnelFlow({ open, onClose, onCreated, myProfile }) {
                       className="FDAAdminInput"
                       placeholder="e.g. Inspection Officer (Optional)"
                       value={formData.position}
+                      maxLength={150}
                       onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                     />
                   </div>
@@ -833,7 +892,18 @@ function EditProfileModal({ open, user, onClose, onSaved }) {
                     type="text"
                     className={`FDAAdminInput with-icon ${errors.firstName ? 'input-error' : ''}`}
                     value={form.firstName}
-                    onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                    maxLength={50}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm((prev) => ({ ...prev, firstName: val }));
+                      if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                        setErrors((prev) => ({ ...prev, firstName: 'First Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                      } else if (!val.trim()) {
+                        setErrors((prev) => ({ ...prev, firstName: 'First Name is required.' }));
+                      } else {
+                        setErrors((prev) => ({ ...prev, firstName: undefined }));
+                      }
+                    }}
                   />
                 </div>
                 {errors.firstName && (
@@ -849,11 +919,27 @@ function EditProfileModal({ open, user, onClose, onSaved }) {
                   <User className="FDAAdminInputIcon" size={17} />
                   <input
                     type="text"
-                    className="FDAAdminInput with-icon"
+                    className={`FDAAdminInput with-icon ${errors.middleName ? 'input-error' : ''}`}
                     value={form.middleName}
-                    onChange={(e) => setForm({ ...form, middleName: e.target.value })}
+                    maxLength={50}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm((prev) => ({ ...prev, middleName: val }));
+                      if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                        setErrors((prev) => ({ ...prev, middleName: 'Middle Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                      } else if (val.trim().length > 0 && val.trim().length < 2) {
+                        setErrors((prev) => ({ ...prev, middleName: 'Middle Name must be at least 2 characters if provided.' }));
+                      } else {
+                        setErrors((prev) => ({ ...prev, middleName: undefined }));
+                      }
+                    }}
                   />
                 </div>
+                {errors.middleName && (
+                  <span className="FDAAdminFieldError">
+                    <AlertCircle size={12} /> {errors.middleName}
+                  </span>
+                )}
               </div>
 
               <div className="FDAAdminFormGroup">
@@ -866,7 +952,18 @@ function EditProfileModal({ open, user, onClose, onSaved }) {
                     type="text"
                     className={`FDAAdminInput with-icon ${errors.lastName ? 'input-error' : ''}`}
                     value={form.lastName}
-                    onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                    maxLength={50}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm((prev) => ({ ...prev, lastName: val }));
+                      if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                        setErrors((prev) => ({ ...prev, lastName: 'Last Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                      } else if (!val.trim()) {
+                        setErrors((prev) => ({ ...prev, lastName: 'Last Name is required.' }));
+                      } else {
+                        setErrors((prev) => ({ ...prev, lastName: undefined }));
+                      }
+                    }}
                   />
                 </div>
                 {errors.lastName && (
@@ -886,6 +983,7 @@ function EditProfileModal({ open, user, onClose, onSaved }) {
                     type="text"
                     className="FDAAdminInput with-icon"
                     value={form.employeeId}
+                    maxLength={50}
                     onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
                   />
                 </div>
@@ -902,7 +1000,19 @@ function EditProfileModal({ open, user, onClose, onSaved }) {
                     maxLength={11}
                     className={`FDAAdminInput with-icon ${errors.contactNumber ? 'input-error' : ''}`}
                     value={form.contactNumber}
-                    onChange={(e) => setForm({ ...form, contactNumber: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      setForm({ ...form, contactNumber: val });
+                      if (!val.trim()) {
+                        setErrors((prev) => ({ ...prev, contactNumber: 'Contact number is required.' }));
+                      } else if (val.trim().length < 11) {
+                        setErrors((prev) => ({ ...prev, contactNumber: 'Contact number must be at least 11 digits.' }));
+                      } else if (!val.startsWith('09')) {
+                        setErrors((prev) => ({ ...prev, contactNumber: 'Enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).' }));
+                      } else {
+                        setErrors((prev) => ({ ...prev, contactNumber: undefined }));
+                      }
+                    }}
                   />
                 </div>
                 {errors.contactNumber && (
@@ -947,6 +1057,7 @@ function EditProfileModal({ open, user, onClose, onSaved }) {
                     type="text"
                     className="FDAAdminInput with-icon"
                     value={form.department}
+                    maxLength={150}
                     onChange={(e) => setForm({ ...form, department: e.target.value })}
                   />
                 </div>
@@ -959,6 +1070,7 @@ function EditProfileModal({ open, user, onClose, onSaved }) {
                     type="text"
                     className="FDAAdminInput with-icon"
                     value={form.position}
+                    maxLength={150}
                     onChange={(e) => setForm({ ...form, position: e.target.value })}
                   />
                 </div>
@@ -1182,7 +1294,9 @@ export default function FDAAdminUserManagement() {
         const res = await apiFetch(`/personnel-management/${targetId}`, { method: 'DELETE' });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(extractErrorMessage(errData, 'Delete failed.'));
+          const httpErr = new Error(extractErrorMessage(errData, 'Delete failed.'));
+          httpErr.isHttpError = true;
+          throw httpErr;
         }
         setUsers((prev) => prev.filter((u) => u.id !== targetId));
         showToast('Personnel entry deleted.');
@@ -1192,8 +1306,11 @@ export default function FDAAdminUserManagement() {
         const res = await apiFetch(`/personnel-management/${targetId}/${path}`, { method: 'POST' });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(extractErrorMessage(errData, 'Action failed.'));
+          const httpErr = new Error(extractErrorMessage(errData, 'Action failed.'));
+          httpErr.isHttpError = true;
+          throw httpErr;
         }
+        const resData = await res.json().catch(() => ({}));
         setUsers((prev) =>
           prev.map((u) => {
             if (u.id !== targetId) return u;
@@ -1205,6 +1322,18 @@ export default function FDAAdminUserManagement() {
             }
             if (actionType === 'unlock') {
               return { ...u, status: 'Active', is_locked: false };
+            }
+            if (actionType === 'resend') {
+              return {
+                ...u,
+                status: 'Invited',
+                invitation_date: resData.invitation_date ?? u.invitation_date,
+              };
+            }
+            if (actionType === 'resetPassword') {
+              // Reset password emails a temporary password to the user;
+              // account remains Active and no table column fields change.
+              return u;
             }
             return u;
           })
@@ -1218,6 +1347,64 @@ export default function FDAAdminUserManagement() {
         );
       }
     } catch (err) {
+      // For network-level fetch failures (e.g. connection dropped right as commit finished):
+      // Verify actual status on the server before displaying a false failure.
+      if (!err.isHttpError) {
+        try {
+          const checkRes = await apiFetch('/personnel-management');
+          if (checkRes.ok) {
+            const list = await checkRes.json();
+            const record = list.find((u) => (u.user_id || u.id) === targetId);
+            const expectedStatusMap = {
+              suspend: 'suspended',
+              reactivate: 'active',
+              activate: 'active',
+              unlock: 'active',
+            };
+            const expected = expectedStatusMap[actionType];
+            const recordStatus = (record?.status || '').toString().trim().toLowerCase();
+
+            const isDeleteSuccess = actionType === 'delete' && !record;
+            const isStatusSuccess = expected && recordStatus === expected;
+            const isResendSuccess = actionType === 'resend' && Boolean(record);
+            const isResetPasswordSuccess = actionType === 'resetPassword' && Boolean(record);
+
+            if (isDeleteSuccess || isStatusSuccess || isResendSuccess || isResetPasswordSuccess) {
+              if (actionType === 'delete') {
+                setUsers((prev) => prev.filter((u) => u.id !== targetId));
+                showToast('Personnel entry deleted.');
+              } else {
+                setUsers((prev) =>
+                  prev.map((u) => {
+                    if (u.id !== targetId) return u;
+                    if (actionType === 'suspend') {
+                      return { ...u, status: 'Suspended', is_active: false };
+                    }
+                    if (actionType === 'reactivate' || actionType === 'activate') {
+                      return { ...u, status: 'Active', is_active: true };
+                    }
+                    if (actionType === 'unlock') {
+                      return { ...u, status: 'Active', is_locked: false };
+                    }
+                    return u;
+                  })
+                );
+                showToast(
+                  actionType === 'resetPassword'
+                    ? 'Temporary password emailed to the user.'
+                    : actionType === 'resend'
+                    ? 'Invitation link resent.'
+                    : 'Account updated.'
+                );
+              }
+              return;
+            }
+          }
+        } catch (verifyErr) {
+          console.warn('Status re-check failed:', verifyErr);
+        }
+      }
+
       showToast(err.message || 'Something went wrong.');
     }
   }

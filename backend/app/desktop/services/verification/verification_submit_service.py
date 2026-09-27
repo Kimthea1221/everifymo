@@ -15,6 +15,9 @@ from app.models.complaints import Complaint
 from app.desktop.services.notifications.notification_service import notify_fda_new_verification_request
 from app.desktop.services.notifications.notification_service import notify_fda_reminder_sent
 from app.desktop.services.notifications.notification_service import notify_fda_request_recalled
+from app.desktop.services.notifications.notification_service import notify_lea_peers_verification_sent
+from app.desktop.services.notifications.notification_service import notify_lea_peers_reminder_sent
+from app.desktop.services.notifications.notification_service import notify_lea_peers_request_recalled
 
 from app.core.complaint_status import transition_complaint_status
 
@@ -54,7 +57,8 @@ def _create_verification_request(
     db.flush()
 
     notify_fda_new_verification_request(db, complaint, priority)   # ADDED for notification to FDA personnel that a new verification request has been submitted
-
+    notify_lea_peers_verification_sent(db, complaint, priority, current_user) #Added for notification to LEA peers that a new verification request has been submitted
+    
     return new_request, complaint
 
 
@@ -199,7 +203,8 @@ def recall_verification_request(db: Session, request_id: UUID, current_user, htt
     request.recalled_by = current_user.user_id
 
     notify_fda_request_recalled(db, complaint) #Added for notification to FDA personnel that the verification request has been recalled
-
+    notify_lea_peers_request_recalled(db, complaint, current_user)  # ADDED for notification to LEA peers that the verification request has been recalled
+    
     # Captured before commit — commit() expires session objects.
     audit_region_code = get_user_region_code(db, current_user)
     audit_user_id = current_user.user_id
@@ -280,6 +285,7 @@ def resend_reminder(db: Session, request_id: UUID, current_user) -> Verification
 
     complaint = db.query(Complaint).filter(Complaint.complaint_id == request.complaint_id).first()
     notify_fda_reminder_sent(db, complaint, request.priority)  # ADDED for notification to FDA personnel that a reminder has been sent for the verification request
+    notify_lea_peers_reminder_sent(db, complaint, request.priority, current_user)  # ADDED for notification to LEA peers that a reminder has been sent for the verification request
 
     db.commit()
     db.refresh(request)

@@ -1,10 +1,9 @@
-
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from app.core.security import validate_password_strength
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    new_password: str
+    new_password: str = Field(..., min_length=8, max_length=64)
 
     @field_validator("new_password")
     @classmethod

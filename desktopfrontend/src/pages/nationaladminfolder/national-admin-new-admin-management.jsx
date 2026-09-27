@@ -2,6 +2,7 @@ import './national-admin-css.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiFetch } from '../../utils/apiFetch';
 import { createPortal } from 'react-dom';
+import { validateEmail } from '../../utils/emailValidation'; 
 import {
   Send,
   UserX,
@@ -397,9 +398,9 @@ function AddNationalAdminModal({ open, onClose, onAddSuccess }) {
     setEmailError('Email address is required.');
     hasError = true;
   } else {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setEmailError('Please enter a valid email address.');
+    const err = validateEmail(email.trim());
+    if (err) {
+      setEmailError(err);
       hasError = true;
     }
   }
@@ -460,9 +461,15 @@ function AddNationalAdminModal({ open, onClose, onAddSuccess }) {
                     className={`NAMInput with-icon ${firstNameError ? 'input-error' : ''}`}
                     placeholder="e.g. Juan"
                     value={firstName}
+                    maxLength={50}
                     onChange={(e) => {
-                      setFirstName(e.target.value);
-                      if (firstNameError) setFirstNameError('');
+                      const val = e.target.value;
+                      setFirstName(val);
+                      if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                        setFirstNameError('First Name can only contain letters, spaces, hyphens, apostrophes, and periods.');
+                      } else {
+                        setFirstNameError('');
+                      }
                     }}
                     disabled={sending}
                     autoFocus
@@ -482,9 +489,15 @@ function AddNationalAdminModal({ open, onClose, onAddSuccess }) {
                     className={`NAMInput with-icon ${lastNameError ? 'input-error' : ''}`}
                     placeholder="e.g. Dela Cruz"
                     value={lastName}
+                    maxLength={50}
                     onChange={(e) => {
-                      setLastName(e.target.value);
-                      if (lastNameError) setLastNameError('');
+                      const val = e.target.value;
+                      setLastName(val);
+                      if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                        setLastNameError('Last Name can only contain letters, spaces, hyphens, apostrophes, and periods.');
+                      } else {
+                        setLastNameError('');
+                      }
                     }}
                     disabled={sending}
                   />
@@ -505,18 +518,15 @@ function AddNationalAdminModal({ open, onClose, onAddSuccess }) {
                   className={`NAMInput with-icon ${emailError ? 'input-error' : ''}`}
                   placeholder="e.g. admin.national@everifymo.gov.ph"
                   value={email}
+                  maxLength={254}
                   onChange={(e) => {
                     const val = e.target.value;
                     setEmail(val);
                     if (!val.trim()) {
                       setEmailError('');
                     } else {
-                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                      if (!emailRegex.test(val.trim())) {
-                        setEmailError('Please enter a valid email address.');
-                      } else {
-                        setEmailError('');
-                      }
+                      const err = validateEmail(val.trim());
+                      setEmailError(err || '');
                     }
                   }}
                   disabled={sending}
@@ -768,7 +778,9 @@ useEffect(() => {
         const res = await apiFetch(`/national-admin-management/${targetId}`, { method: 'DELETE' });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(extractErrorMessage(errData, 'Delete failed.'));
+          const httpErr = new Error(extractErrorMessage(errData, 'Delete failed.'));
+          httpErr.isHttpError = true;
+          throw httpErr;
         }
         setNationalAdmins((prev) => prev.filter((a) => a.id !== targetId));
         showToast('Admin entry deleted.');
@@ -778,8 +790,11 @@ useEffect(() => {
         const res = await apiFetch(`/national-admin-management/${targetId}/${path}`, { method: 'POST' });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(extractErrorMessage(errData, 'Action failed.'));
+          const httpErr = new Error(extractErrorMessage(errData, 'Action failed.'));
+          httpErr.isHttpError = true;
+          throw httpErr;
         }
+        const resData = await res.json().catch(() => ({}));
         setNationalAdmins((prev) =>
           prev.map((a) => {
             if (a.id !== targetId) return a;
@@ -792,12 +807,71 @@ useEffect(() => {
             if (actionType === 'unlock') {
               return { ...a, status: 'Active', is_locked: false };
             }
+            if (actionType === 'resend') {
+              return {
+                ...a,
+                status: 'Invited',
+                invitation_date: resData.invitation_date ?? a.invitation_date,
+                expiration_date: resData.expiration_date ?? a.expiration_date,
+              };
+            }
             return a;
           })
         );
         showToast(actionType === 'resend' ? 'Invitation link resent.' : 'Account updated.');
       }
     } catch (err) {
+      // For network-level fetch failures (e.g. connection dropped right as commit finished):
+      // Verify actual status on the server before displaying a false failure.
+      if (!err.isHttpError) {
+        try {
+          const checkRes = await apiFetch('/national-admin-management');
+          if (checkRes.ok) {
+            const list = await checkRes.json();
+            const record = list.find((a) => (a.user_id || a.id) === targetId);
+            const expectedStatusMap = {
+              suspend: 'suspended',
+              reactivate: 'active',
+              activate: 'active',
+              unlock: 'active',
+            };
+            const expected = expectedStatusMap[actionType];
+            const recordStatus = (record?.status || '').toString().trim().toLowerCase();
+
+            const isDeleteSuccess = actionType === 'delete' && !record;
+            const isStatusSuccess = expected && recordStatus === expected;
+            const isResendSuccess = actionType === 'resend' && Boolean(record);
+
+            if (isDeleteSuccess || isStatusSuccess || isResendSuccess) {
+              if (actionType === 'delete') {
+                setNationalAdmins((prev) => prev.filter((a) => a.id !== targetId));
+                showToast('Admin entry deleted.');
+              } else {
+                setNationalAdmins((prev) =>
+                  prev.map((a) => {
+                    if (a.id !== targetId) return a;
+                    if (actionType === 'suspend') {
+                      return { ...a, status: 'Suspended', is_active: false };
+                    }
+                    if (actionType === 'reactivate' || actionType === 'activate') {
+                      return { ...a, status: 'Active', is_active: true };
+                    }
+                    if (actionType === 'unlock') {
+                      return { ...a, status: 'Active', is_locked: false };
+                    }
+                    return a;
+                  })
+                );
+                showToast(actionType === 'resend' ? 'Invitation link resent.' : 'Account updated.');
+              }
+              return;
+            }
+          }
+        } catch (verifyErr) {
+          console.warn('Status re-check failed:', verifyErr);
+        }
+      }
+
       showToast(err.message || 'Something went wrong.');
     }
   }

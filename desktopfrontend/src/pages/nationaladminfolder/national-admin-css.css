@@ -706,6 +706,13 @@
   color: #64748b;
   margin: 0;
   line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.NAMModalSubtitle code {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* ── Form Fields & Inputs ── */
@@ -1239,6 +1246,8 @@
   color: #1e293b;
   text-align: right;
   word-break: break-all;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 .NAMAuditJsonPre {
