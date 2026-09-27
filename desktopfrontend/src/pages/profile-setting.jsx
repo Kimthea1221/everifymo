@@ -476,6 +476,8 @@ function ProfileSetting() {
     } else {
       if (newPassword.length < 8) {
         newErrors.newPassword = 'New password must be at least 8 characters long.';
+      } else if (newPassword.length > 64) {
+        newErrors.newPassword = 'New password must be 64 characters or fewer.';
       } else if (!/[A-Z]/.test(newPassword)) {
         newErrors.newPassword = 'Password must include at least one uppercase letter.';
       } else if (!/[0-9]/.test(newPassword)) {
@@ -1288,6 +1290,7 @@ function ProfileSetting() {
                             value={security.newPassword}
                             onChange={handleSecurityChange}
                             placeholder="••••••••"
+                            maxLength={64}
                           />
                           <button
                             type="button"
@@ -1316,6 +1319,7 @@ function ProfileSetting() {
                             value={security.confirmPassword}
                             onChange={handleSecurityChange}
                             placeholder="••••••••"
+                            maxLength={64}
                           />
                           <button
                             type="button"
@@ -1337,7 +1341,7 @@ function ProfileSetting() {
                           Password Requirements
                         </div>
                         <ul className="ProfileSecurityTipsList">
-                          <li>Minimum length of 8 characters</li>
+                          <li>Minimum length of 8 characters (max 64)</li>
                           <li>Include upper &amp; lowercase letters</li>
                           <li>Include numbers &amp; special characters</li>
                         </ul>

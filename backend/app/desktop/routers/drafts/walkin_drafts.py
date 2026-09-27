@@ -4,6 +4,7 @@ from uuid import uuid4, UUID
 
 from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Query
 from sqlalchemy.orm import Session
+from pydantic import ValidationError  # ADD to imports at the top of the file, if not already present
 
 from app.database.sessions import get_db
 from app.models.walkin_intake_drafts import WalkinIntakeDraft
@@ -157,17 +158,23 @@ def save_walkin_draft(
             detail=f"You can upload up to {MAX_FILES_PER_DRAFT} files only.",
         )
     
-    # Repackage the loose Form() parameters back into a
-    # WalkinIntakeDraftSave object, so _determine_draft_status can
-    # reuse the exact same logic regardless of whether the request
-    # arrived as JSON or multipart form data.
-    data = WalkinIntakeDraftSave(
-        full_name=full_name, contact_number=contact_number, email=email,
-        id_type=id_type, address=address, product_name=product_name,
-        manufacturer=manufacturer, product_category=product_category,
-        place_of_purchase=place_of_purchase, date_of_purchase=date_of_purchase,
-        amount_paid=amount_paid, nature_of_complaint=nature_of_complaint,
-    )
+    # CHANGED — was a bare, unguarded construction; now catches a Pydantic
+    # validation failure and turns it into a clean HTTPException instead of
+    # letting it crash the request unhandled
+    try:
+        data = WalkinIntakeDraftSave(
+            full_name=full_name, contact_number=contact_number, email=email,
+            id_type=id_type, address=address, product_name=product_name,
+            manufacturer=manufacturer, product_category=product_category,
+            place_of_purchase=place_of_purchase, date_of_purchase=date_of_purchase,
+            amount_paid=amount_paid, nature_of_complaint=nature_of_complaint,
+        )
+    except ValidationError as e:
+        # Joins every failing field into one readable string — matches the
+        # plain-string `detail` shape the frontend's existing error handling
+        # already expects, rather than FastAPI's array-of-objects 422 format
+        errors = "; ".join(f"{err['loc'][-1]}: {err['msg']}" for err in e.errors())
+        raise HTTPException(status_code=422, detail=errors)
 
     status = _determine_draft_status(data, has_files=len(files) > 0)
 
@@ -316,13 +323,17 @@ def update_walkin_draft(
     for attachment in attachments_to_remove:
         db.delete(attachment)
 
-    data = WalkinIntakeDraftSave(
-        full_name=full_name, contact_number=contact_number, email=email,
-        id_type=id_type, address=address, product_name=product_name,
-        manufacturer=manufacturer, product_category=product_category,
-        place_of_purchase=place_of_purchase, date_of_purchase=date_of_purchase,
-        amount_paid=amount_paid, nature_of_complaint=nature_of_complaint,
-    )
+    try:
+        data = WalkinIntakeDraftSave(
+            full_name=full_name, contact_number=contact_number, email=email,
+            id_type=id_type, address=address, product_name=product_name,
+            manufacturer=manufacturer, product_category=product_category,
+            place_of_purchase=place_of_purchase, date_of_purchase=date_of_purchase,
+            amount_paid=amount_paid, nature_of_complaint=nature_of_complaint,
+        )
+    except ValidationError as e:
+        errors = "; ".join(f"{err['loc'][-1]}: {err['msg']}" for err in e.errors())
+        raise HTTPException(status_code=422, detail=errors)
 
     for field_name, value in data.model_dump().items():
         setattr(draft, field_name, value)
@@ -414,7 +425,7 @@ def delete_walkin_draft(
 @router.get("/", response_model=list[WalkinIntakeDraftResponse])
 def list_walkin_drafts(
     status: DraftStatus | None = Query(None),
-    search: str | None = Query(None),
+    search: str | None = Query(None, max_length=150),
     sort: SortOption = Query(SortOption.recently_edited),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
