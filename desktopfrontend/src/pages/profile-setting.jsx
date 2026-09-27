@@ -219,10 +219,22 @@ function ProfileSetting() {
   const isPersonnel = currentWorkspace === 'FDA' || currentWorkspace === 'LEA';
   const isNationalAdmin = currentWorkspace === 'NATIONAL_ADMIN';
 
-  const defaultMock = DEFAULT_MOCK_PROFILES[currentWorkspace] || DEFAULT_MOCK_PROFILES.NATIONAL_ADMIN;
-  const [savedProfile, setSavedProfile] = useState(defaultMock);
-  const [form, setForm] = useState(defaultMock);
-  const [loading, setLoading] = useState(false);
+  const EMPTY_PROFILE = {
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    employeeId: '',
+    email: '',
+    agency: '',
+    region: '',
+    contactNumber: '',
+    department: '',
+    position: '',
+  };
+  const [savedProfile, setSavedProfile] = useState(EMPTY_PROFILE);
+  const [form, setForm] = useState(EMPTY_PROFILE);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Security Credentials state (for Admin workspaces)
   const [security, setSecurity] = useState({
@@ -364,6 +376,7 @@ function ProfileSetting() {
   async function fetchProfile() {
     try {
       setLoading(true);
+      setLoadError(false);
       const response = await apiFetch('/profile', { cache: 'no-store' });
       if (response && response.ok) {
         const data = await response.json();
@@ -371,16 +384,10 @@ function ProfileSetting() {
         setSavedProfile(mapped);
         setForm(mapped);
       } else {
-        // Graceful fallback to default role mockup if offline/unauthenticated
-        const fallback = DEFAULT_MOCK_PROFILES[currentWorkspace] || DEFAULT_MOCK_PROFILES.NATIONAL_ADMIN;
-        setSavedProfile(fallback);
-        setForm(fallback);
+        setLoadError(true);
       }
     } catch (err) {
-      // Offline fallback
-      const fallback = DEFAULT_MOCK_PROFILES[currentWorkspace] || DEFAULT_MOCK_PROFILES.NATIONAL_ADMIN;
-      setSavedProfile(fallback);
-      setForm(fallback);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -691,9 +698,82 @@ function ProfileSetting() {
           
           <div className={layoutConfig.mainFeedClass}>
             <div className={`ProfileContainer ${layoutConfig.themeClass}`}>
-              
-              {/* Profile Header Banner */}
-              <div className={`ProfileHeaderCard ${layoutConfig.headerThemeClass}`}>
+              {loading ? (
+                <div className="ProfileSkeletonContainer">
+                  {/* Skeleton Header Banner */}
+                  <div className={`ProfileHeaderCard ${layoutConfig.headerThemeClass}`}>
+                    <div className="ProfileAvatarCircle">
+                      <User size={46} style={{ opacity: 0.35 }} />
+                    </div>
+                    <div className="ProfileHeaderInfo">
+                      <div className="ProfileHeaderTopLine">
+                        <div className="ProfileSkeletonBar ProfileSkeletonTitle" />
+                      </div>
+                      <div className="ProfileHeaderMeta">
+                        <div className="ProfileSkeletonBar ProfileSkeletonMeta" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skeleton Full-width Responsive Grid */}
+                  <div className="ProfileGrid">
+                    {/* Left Column Skeleton */}
+                    <div className="ProfileCard ProfileCardMain">
+                      <div className="ProfileCardHeader">
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonHeading" />
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonSubheading" />
+                      </div>
+                      <div className="ProfileSkeletonFormGroup">
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonLabel" />
+                        <div className="ProfileSkeletonInput" />
+                      </div>
+                      <div className="ProfileSkeletonFormGroup">
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonLabel" />
+                        <div className="ProfileSkeletonInput" />
+                      </div>
+                      <div className="ProfileSkeletonFormGroup">
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonLabel" />
+                        <div className="ProfileSkeletonInput" />
+                      </div>
+                    </div>
+
+                    {/* Right Column Skeleton */}
+                    <div className="ProfileCard ProfileCardSecurity">
+                      <div className="ProfileCardHeader">
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonHeading" />
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonSubheading" />
+                      </div>
+                      <div className="ProfileSkeletonFormGroup">
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonLabel" />
+                        <div className="ProfileSkeletonInput" />
+                      </div>
+                      <div className="ProfileSkeletonFormGroup">
+                        <div className="ProfileSkeletonBarDark ProfileSkeletonLabel" />
+                        <div className="ProfileSkeletonInput" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : loadError ? (
+                <div className="ProfileErrorStateCard">
+                  <AlertCircle size={44} className="ProfileErrorStateIcon" />
+                  <h3 className="ProfileErrorStateTitle">Unable to Load Profile</h3>
+                  <p className="ProfileErrorStateDesc">
+                    We couldn't retrieve your profile data. Please check your connection and try again.
+                  </p>
+                  <button
+                    type="button"
+                    className="ProfileBtn ProfileBtnPrimary"
+                    onClick={() => fetchProfile()}
+                    style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Profile Header Banner */}
+                  <div className={`ProfileHeaderCard ${layoutConfig.headerThemeClass}`}>
                 <div className="ProfileAvatarCircle">
                   <User size={46} />
                 </div>
@@ -1303,10 +1383,12 @@ function ProfileSetting() {
 
               </div>
 
+            </>
+          )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Personnel Request Reset Password Confirmation Modal */}
       {isRequestModalOpen && (
@@ -1390,6 +1472,105 @@ const styles = `
   @keyframes ProfileFadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Skeleton & Loading States */
+  @keyframes ProfilePulse {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 0.85; }
+  }
+
+  .ProfileSkeletonContainer {
+    width: 100%;
+  }
+
+  .ProfileSkeletonBar {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    animation: ProfilePulse 1.5s ease-in-out infinite;
+  }
+
+  .ProfileSkeletonBarDark {
+    background: #e2e8f0;
+    border-radius: 6px;
+    animation: ProfilePulse 1.5s ease-in-out infinite;
+  }
+
+  .ProfileSkeletonTitle {
+    width: 220px;
+    height: 28px;
+    margin-bottom: 6px;
+  }
+
+  .ProfileSkeletonMeta {
+    width: 160px;
+    height: 16px;
+  }
+
+  .ProfileSkeletonHeading {
+    width: 180px;
+    height: 20px;
+    margin-bottom: 8px;
+  }
+
+  .ProfileSkeletonSubheading {
+    width: 280px;
+    height: 14px;
+    margin-bottom: 24px;
+  }
+
+  .ProfileSkeletonFormGroup {
+    margin-bottom: 20px;
+  }
+
+  .ProfileSkeletonLabel {
+    width: 100px;
+    height: 14px;
+    margin-bottom: 8px;
+  }
+
+  .ProfileSkeletonInput {
+    width: 100%;
+    height: 42px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    animation: ProfilePulse 1.5s ease-in-out infinite;
+  }
+
+  /* Inline Error State */
+  .ProfileErrorStateCard {
+    background: #ffffff;
+    border: 1px solid #fed7aa;
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+  }
+
+  .ProfileErrorStateIcon {
+    color: #ea580c;
+    margin-bottom: 12px;
+  }
+
+  .ProfileErrorStateTitle {
+    font-size: 19px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 8px;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .ProfileErrorStateDesc {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    max-width: 440px;
   }
 
   /* ─────────────────────────────────────────────────────────────

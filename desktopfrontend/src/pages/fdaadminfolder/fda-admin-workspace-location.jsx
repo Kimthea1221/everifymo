@@ -418,13 +418,11 @@ export default function FDAAdminWorkspaceLocation() {
 
       {/* Set Workspace Location Modal */}
       {isModalOpen && (
-        <div
-          className="FDAAdminModalOverlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseModal();
-          }}
-        >
-          <div className="FDAAdminModal FdaWsLoc-Modal">
+        <div className="FDAAdminModalOverlay">
+          <div
+            className="FDAAdminModal FdaWsLoc-Modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="FDAAdminModalHeader">
               <h3 className="FDAAdminModalTitle">Set workspace location</h3>
               <p className="FDAAdminModalSubtitle">
@@ -456,6 +454,8 @@ export default function FDAAdminWorkspaceLocation() {
                     id="fda-ws-latitude"
                     type="number"
                     step="any"
+                    min="-90"
+                    max="90"
                     className={`FDAAdminInput ${formErrors.latitude ? 'input-error' : ''}`}
                     placeholder="e.g. 15.0794"
                     value={formData.latitude}
@@ -478,6 +478,8 @@ export default function FDAAdminWorkspaceLocation() {
                     id="fda-ws-longitude"
                     type="number"
                     step="any"
+                    min="-180"
+                    max="180"
                     className={`FDAAdminInput ${formErrors.longitude ? 'input-error' : ''}`}
                     placeholder="e.g. 120.6200"
                     value={formData.longitude}
@@ -499,7 +501,9 @@ export default function FDAAdminWorkspaceLocation() {
                   <input
                     id="fda-ws-radius"
                     type="number"
-                    step="any"
+                    step="1"
+                    min="1"
+                    max="50000"
                     className={`FDAAdminInput ${formErrors.radius_meters ? 'input-error' : ''}`}
                     placeholder="e.g. 500"
                     value={formData.radius_meters}
@@ -566,13 +570,11 @@ export default function FDAAdminWorkspaceLocation() {
 
       {/* Confirmation Modal */}
       {confirmData && (
-        <div
-          className="FdaWsLoc-ConfirmOverlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCancelConfirm();
-          }}
-        >
-          <div className="FdaWsLoc-ConfirmModal">
+        <div className="FdaWsLoc-ConfirmOverlay">
+          <div
+            className="FdaWsLoc-ConfirmModal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="FdaWsLoc-ConfirmIconBox">
               <MapPin size={26} />
             </div>
