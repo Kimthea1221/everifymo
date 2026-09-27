@@ -256,6 +256,7 @@ function LeaSavedDraft() {
                   placeholder="Search by Product Name or Product Category..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  maxLength={150}
                 />
               </div>
 
