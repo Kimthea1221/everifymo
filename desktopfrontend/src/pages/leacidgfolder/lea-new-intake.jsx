@@ -240,6 +240,14 @@ function LeaNewIntake() {
         if (Number(value) < 0) {
           return 'Amount Paid cannot be negative.'
         }
+        // ADDED — reject more than 2 decimal places (catches pasted values, since onChange only guards typed keystrokes)
+        if (!/^\d+(\.\d{1,2})?$/.test(String(value))) {
+          return 'Amount Paid can have at most 2 decimal places.'
+        }
+        // CHANGED — matches DECIMAL(10,2): 8 integer digits max
+        if (Number(value) > 99999999.99) {
+          return 'Amount Paid cannot exceed 99,999,999.99.'
+        }
       }
       return ''
     }
@@ -622,6 +630,7 @@ function LeaNewIntake() {
                       placeholder='Ex. Juan Dela cruz'
                       value={fullName}
                       onChange={(e) => handleChangeField('fullName', setFullName, e.target.value)}
+                      maxLength={100}
                       onBlur={() => handleBlur('fullName')}
                       className={errors.fullName ? 'InputErrorBorder' : ''}
                     />
@@ -795,12 +804,17 @@ function LeaNewIntake() {
                     <label htmlFor="amountPaid">Amount Paid (OPTIONAL)</label>
                     <input
                       id="amountPaid"
-                      type="number"
+                      type="text" // CHANGED — was "number"; type=number can't be fully locked down (see onChange)
+                      inputMode="decimal" // ADDED — still shows numeric keypad on mobile/tablet
                       placeholder='500.00'
-                      step="0.01"
                       min="0"
                       value={amountPaid}
-                      onChange={(e) => handleChangeField('amountPaid', setAmountPaid, e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        // CHANGED — now reliably blocks every invalid character, since type=text always reflects the real typed value
+                        if (val !== '' && !/^\d{0,8}(\.\d{0,2})?$/.test(val)) return
+                        handleChangeField('amountPaid', setAmountPaid, val)
+                      }}
                       onBlur={() => handleBlur('amountPaid')}
                       className={errors.amountPaid ? 'InputErrorBorder' : ''}
                     />

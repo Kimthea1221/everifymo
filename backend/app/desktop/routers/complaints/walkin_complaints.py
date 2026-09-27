@@ -56,7 +56,7 @@ def submit_draft(
 @direct_complaint_router.post("/", response_model=ComplaintResponse)
 def create_complaint_direct(
     request: Request,
-    full_name: str | None = Form(None),
+    full_name: str | None = Form(None, max_length=100),
     contact_number: str | None = Form(None),
     email: str | None = Form(None),
     id_type: str | None = Form(None),
