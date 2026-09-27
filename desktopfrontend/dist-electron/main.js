@@ -14,9 +14,32 @@ function c() {
 			contextIsolation: !0,
 			preload: i.join(a, "preload.cjs")
 		}
-	}), o.webContents.on("did-finish-load", () => {
-		s &&= (o.webContents.send("deep-link-token", s), null);
-	}), process.env.VITE_DEV_SERVER_URL ? o.loadURL(process.env.VITE_DEV_SERVER_URL) : o.loadFile(i.join(a, "../dist/index.html"));
+	});
+	mainWindow.webContents.on("did-finish-load", () => {
+		if (pendingDeepLink) {
+			mainWindow.webContents.send("deep-link-token", pendingDeepLink);
+			pendingDeepLink = null;
+		}
+	});
+	if (process.env.VITE_DEV_SERVER_URL) mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+	else mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+}
+console.log("argv:", process.argv);
+console.log("execPath:", process.execPath);
+if (process.env.VITE_DEV_SERVER_URL) app.setAsDefaultProtocolClient("producheck", process.execPath, [path.resolve(process.argv[1])]);
+else app.setAsDefaultProtocolClient("producheck");
+if (!app.requestSingleInstanceLock()) app.quit();
+else {
+	app.on("second-instance", (event, argv) => {
+		const url = argv.find((arg) => arg.startsWith("producheck://"));
+		if (url) handleDeepLink(url);
+	});
+	app.whenReady().then(() => {
+		Menu.setApplicationMenu(null);
+		createWindow();
+		const launchUrl = process.argv.find((arg) => arg.startsWith("producheck://"));
+		if (launchUrl) handleDeepLink(launchUrl);
+	});
 }
 console.log("argv:", process.argv), console.log("execPath:", process.execPath), process.env.VITE_DEV_SERVER_URL ? n.setAsDefaultProtocolClient("producheck", process.execPath, [i.resolve(process.argv[1])]) : n.setAsDefaultProtocolClient("producheck"), n.requestSingleInstanceLock() ? (n.on("second-instance", (e, t) => {
 	let n = t.find((e) => e.startsWith("producheck://"));
