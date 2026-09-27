@@ -395,6 +395,7 @@ function FDASavedDraft() {
                   type="text"
                   className="FdaSearchInput"
                   placeholder="Search Case ID, Product, or Manufacturer..."
+                  maxLength={150}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);

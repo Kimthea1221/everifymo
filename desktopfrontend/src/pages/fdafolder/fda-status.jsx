@@ -179,8 +179,8 @@ function FdaStatus() {
     return;
   }
 
-  let objectUrl = null;
-  let cancelled = false;
+    let objectUrl = null;
+    let cancelled = false;
 
   const loadAttachment = async () => {
     try {
@@ -203,11 +203,11 @@ function FdaStatus() {
   };
   loadAttachment();
 
-  return () => {
-    cancelled = true;
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
-  };
-}, [selectedComplaintId]);
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedComplaintId]);
 
   // Search + status filter combined
   const filteredComplaints = complaints.filter((c) => {
@@ -299,7 +299,7 @@ function FdaStatus() {
     // setStatusHistory((prev) => [entry, ...prev]);
     // setHistoryPage(1);
 
-      // send update status to the backend
+    // send update status to the backend
     try {
         const res = await apiFetch(`/complaints/${selectedComplaint.complaintId}/status`, {
           method: "PATCH",
@@ -518,31 +518,31 @@ function FdaStatus() {
                   <p>Select a complaint from the left list to review details and push a status update.</p>
                 </div>
               ) : (
-              <>
-                {!selectedComplaint.reporterEmail && (
-                  <div className="FdaNoticeBanner" style={{ marginTop: 16, marginBottom: 10 }}>
-                    <Mail size={18} />
-                    <div className="FdaNoticeBannerText">
-                      This complaint has no email on file (likely a submission from deleted account).
-                      The consumer will not receive an email notification when you push this update.
+                <>
+                  {!selectedComplaint.reporterEmail && (
+                    <div className="FdaNoticeBanner" style={{ marginTop: 16, marginBottom: 10 }}>
+                      <Mail size={18} />
+                      <div className="FdaNoticeBannerText">
+                        This complaint has no email on file (likely a submission from deleted account).
+                        The consumer will not receive an email notification when you push this update.
+                      </div>
+                    </div>
+
+                  )}
+
+                  <div className="FdaDetailPanelHeader">
+                    <div>
+                      <small>{selectedComplaint.caseReference}</small>
+                      <h2>{selectedComplaint.productTitle}</h2>
+                      <p>{selectedComplaint.manufacturer} · {selectedComplaint.region}</p>
+                    </div>
+                    <div>
+                      <small style={{ display: "block", marginBottom: 6, textAlign: "right" }}>Current</small>
+                      <span className="FdaBadge" style={getStatusBadgeStyle(selectedComplaint.status)}>
+                        {STATUS_LABELS[selectedComplaint.status]}
+                      </span>
                     </div>
                   </div>
-                  
-                )}
-                
-                <div className="FdaDetailPanelHeader">
-                  <div>
-                    <small>{selectedComplaint.caseReference}</small>
-                    <h2>{selectedComplaint.productTitle}</h2>
-                    <p>{selectedComplaint.manufacturer} · {selectedComplaint.region}</p>
-                  </div>
-                  <div>
-                    <small style={{ display: "block", marginBottom: 6, textAlign: "right" }}>Current</small>
-                    <span className="FdaBadge" style={getStatusBadgeStyle(selectedComplaint.status)}>
-                      {STATUS_LABELS[selectedComplaint.status]}
-                    </span>
-                  </div>
-                </div>
 
                 {FINAL_STATUSES.includes(selectedComplaint.status) ? (
                   <div className="FdaNoticeBanner" style={{ marginTop: 16 }}>
@@ -616,87 +616,87 @@ function FdaStatus() {
                       </div>
                     </div>
 
-                    {showAttachmentPreview && attachmentUrl && (
-                      <div className="FdaVerifModalOverlay" role="dialog" aria-modal="true">
-                        <div className="FdaVerifDocModalContainer">
-                          <div className="FdaVerifDocModalHeader">
-                            <div className="FdaVerifDocModalTitleGroup">
-                              <Paperclip size={18} className="FdaVerifGreenIcon" />
-                              <div>
-                                <h3>{selectedComplaint.attachmentName || "Attached evidence"}</h3>
+                        {showAttachmentPreview && attachmentUrl && (
+                          <div className="FdaVerifModalOverlay" role="dialog" aria-modal="true">
+                            <div className="FdaVerifDocModalContainer">
+                              <div className="FdaVerifDocModalHeader">
+                                <div className="FdaVerifDocModalTitleGroup">
+                                  <Paperclip size={18} className="FdaVerifGreenIcon" />
+                                  <div>
+                                    <h3>{selectedComplaint.attachmentName || "Attached evidence"}</h3>
+                                  </div>
+                                </div>
+                                <button className="FdaVerifIconButton" onClick={() => setShowAttachmentPreview(false)}>
+                                  <X size={18} />
+                                </button>
+                              </div>
+
+                              <div className="FdaVerifDocModalBody">
+                                <img
+                                  src={attachmentUrl}
+                                  alt={selectedComplaint.attachmentName || "Complaint evidence"}
+                                  className="FdaVerifDocImagePreview"
+                                />
+                              </div>
+
+                              <div className="FdaVerifModalFooter">
+                                <button className="FdaVerifBtnOutline" onClick={() => setShowAttachmentPreview(false)}>
+                                  Close Preview
+                                </button>
+                                <button
+                                  className="FdaVerifBtnDownloadAttachment"
+                                  onClick={() => {
+                                    const a = document.createElement("a");
+                                    a.href = attachmentUrl;
+                                    a.download = selectedComplaint.attachmentName || "evidence";
+                                    a.click();
+                                  }}
+                                >
+                                  <Download size={14} />
+                                  <span>Download Attachment</span>
+                                </button>
                               </div>
                             </div>
-                            <button className="FdaVerifIconButton" onClick={() => setShowAttachmentPreview(false)}>
-                              <X size={18} />
-                            </button>
                           </div>
+                        )}
+                      </div>
 
-                          <div className="FdaVerifDocModalBody">
-                            <img
-                              src={attachmentUrl}
-                              alt={selectedComplaint.attachmentName || "Complaint evidence"}
-                              className="FdaVerifDocImagePreview"
-                            />
-                          </div>
+                      {newStatus === "completed" && (
+                        <div className="FdaCompletedNotice">{COMPLETED_MESSAGE}</div>
+                      )}
 
-                          <div className="FdaVerifModalFooter">
-                            <button className="FdaVerifBtnOutline" onClick={() => setShowAttachmentPreview(false)}>
-                              Close Preview
-                            </button>
-                            <button
-                              className="FdaVerifBtnDownloadAttachment"
-                              onClick={() => {
-                                const a = document.createElement("a");
-                                a.href = attachmentUrl;
-                                a.download = selectedComplaint.attachmentName || "evidence";
-                                a.click();
-                              }}
-                            >
-                              <Download size={14} />
-                              <span>Download Attachment</span>
-                            </button>
-                          </div>
+                      {newStatus === "dismissed" && (
+                        <div className="FdaMessageBox">
+                          <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "rgba(31,41,55,0.6)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                            Reason for dismissal
+                          </label>
+                          <select
+                            value={dismissPreset}
+                            onChange={(e) => {
+                              setDismissPreset(e.target.value);
+                              setDismissNote(e.target.value);
+                            }}
+                          >
+                            <option value="">Choose a common reason (optional)...</option>
+                            {DISMISS_PRESETS.map((reason) => (
+                              <option key={reason} value={reason}>{reason}</option>
+                            ))}
+                          </select>
+                          <textarea
+                            placeholder="Write or edit the reason the consumer will see..."
+                            value={dismissNote}
+                            onChange={(e) => setDismissNote(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      <div className="FdaNoticeBanner">
+                        <BellRing size={18} />
+                        <div className="FdaNoticeBannerText">
+                          Pushing this update automatically syncs it to the consumer's browser extension
+                          and sends them an in-app + email notification. This isn't optional per update.
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  {newStatus === "completed" && (
-                    <div className="FdaCompletedNotice">{COMPLETED_MESSAGE}</div>
-                  )}
-
-                  {newStatus === "dismissed" && (
-                    <div className="FdaMessageBox">
-                      <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "rgba(31,41,55,0.6)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
-                        Reason for dismissal
-                      </label>
-                      <select
-                        value={dismissPreset}
-                        onChange={(e) => {
-                          setDismissPreset(e.target.value);
-                          setDismissNote(e.target.value);
-                        }}
-                      >
-                        <option value="">Choose a common reason (optional)...</option>
-                        {DISMISS_PRESETS.map((reason) => (
-                          <option key={reason} value={reason}>{reason}</option>
-                        ))}
-                      </select>
-                      <textarea
-                        placeholder="Write or edit the reason the consumer will see..."
-                        value={dismissNote}
-                        onChange={(e) => setDismissNote(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  <div className="FdaNoticeBanner">
-                    <BellRing size={18} />
-                    <div className="FdaNoticeBannerText">
-                      Pushing this update automatically syncs it to the consumer's browser extension
-                      and sends them an in-app + email notification. This isn't optional per update.
-                    </div>
-                  </div>
 
                   <div className="FdaNotificationPreview">
                     <label>Notification preview</label>
