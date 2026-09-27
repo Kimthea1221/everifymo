@@ -44,6 +44,25 @@ function buildHeaders(token, options) {
   return headers;
 }
 
+function forceLogout() {
+  const agency = localStorage.getItem('agency');
+  const role = localStorage.getItem('role');
+
+  let redirectPath = '#/universal-login?reason=session_expired';
+  if (agency === 'national_admin') {
+    redirectPath = '#/universal-login?tab=national-admin&reason=session_expired';
+  } else if (role === 'fda_admin' || role === 'lea_admin') {
+    redirectPath = '#/universal-login?tab=interagency-admin&reason=session_expired';
+  }
+
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('agency');
+  localStorage.removeItem('role');
+
+  window.location.hash = redirectPath;
+}
+
 export async function apiFetch(path, options = {}) {
   const accessToken = localStorage.getItem('access_token');
   let response = await fetch(`${BASE_URL}${path}`, {
@@ -51,22 +70,23 @@ export async function apiFetch(path, options = {}) {
     headers: buildHeaders(accessToken, options),
   });
 
-   if (response.status === 401) {
+  if (response.status === 401) {
     const newToken = await refreshAccessToken();
+
     if (!newToken) {
-      const agency = localStorage.getItem('agency');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('agency');
-      window.location.href = agency === 'superadmin'
-      ? '/universal-login?tab=national-admin'
-      : '/universal-login';
-      throw new Error('Session expired. Please log in again.');
+      forceLogout();
+      throw new Error('Session expired.');
     }
+
     response = await fetch(`${BASE_URL}${path}`, {
       ...options,
       headers: buildHeaders(newToken, options),
     });
+
+    if (response.status === 401) {
+      forceLogout();
+      throw new Error('Session expired.');
+    }
   }
 
   return response;

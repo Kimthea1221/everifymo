@@ -81,7 +81,7 @@ def verify_otp(request: NationalAdminOTPVerifyRequest, http_request: Request, db
     set_bypass_rls(db, True)
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
-        raise HTTPException(status_code=400, detail="User not found")
+        raise HTTPException(status_code=400, detail="Invalid credentials")
 
     try:
         otp_token = verify_otp_for_user(db, user, request.otp, http_request)

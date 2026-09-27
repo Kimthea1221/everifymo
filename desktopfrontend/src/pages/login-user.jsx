@@ -256,10 +256,34 @@ function Login(){
         }
 
         try {
+          const coords = await (new Promise((resolve) => {
+            if (!navigator.geolocation) {
+              resolve({ latitude: null, longitude: null, source: 'ip' });
+              return;
+            }
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                resolve({
+                  latitude: parseFloat(pos.coords.latitude.toFixed(6)),
+                  longitude: parseFloat(pos.coords.longitude.toFixed(6)),
+                  source: 'gps',
+                });
+              },
+              () => resolve({ latitude: null, longitude: null, source: 'ip' }),
+              { enableHighAccuracy: true, timeout: 6000 }
+            );
+          }));
+
           const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, otp: otpCode }),
+            body: JSON.stringify({
+              email,
+              otp: otpCode,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              source: coords.source,
+            }),
           });
 
           if (!response.ok) {

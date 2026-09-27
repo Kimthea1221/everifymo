@@ -346,16 +346,24 @@ function LeaWalkinComplaints() {
   const handleExportCSV = () => {
     const headers = ['Case ID', 'Product', 'Manufacturer', 'Complainant', 'Status', 'Category', 'Logged']
     const rows = filtered.map((c) => [
-      c.id,
-      c.product,
-      c.manufacturer,
-      c.complainant,
-      WcGetStatusLabel(c.status),
-      c.category,
-      c.logged,
+        c.id,
+        c.product,
+        c.manufacturer,
+        c.complainant,
+        WcGetStatusLabel(c.status),
+        c.category,
+        c.logged,
     ])
-    const escapeCell = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`
-    const csvContent = [headers, ...rows].map((row) => row.map(escapeCell).join(',')).join('\r\n')
+    const escapeCell = (val, isDate = false) => {
+        const escaped = String(val ?? '').replace(/"/g, '""')
+        // CHANGED — dates get the ="..." treatment so Excel can't
+        // auto-convert/reformat them and truncate the column (##### bug)
+        return isDate ? `"=""${escaped}"""` : `"${escaped}"`
+    }
+    const csvContent = [
+        headers.map((h) => escapeCell(h)).join(','),
+        ...rows.map((row) => row.map((val, i) => escapeCell(val, i === 6)).join(','))
+    ].join('\r\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
