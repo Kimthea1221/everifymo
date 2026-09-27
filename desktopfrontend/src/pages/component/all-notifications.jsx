@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   Lock,
   KeyRound,
-  Loader2
+  Loader2,
+  MapPin,
 } from 'lucide-react';
 import Sidebar from './sidebar';
 import TopBar from './top-bar';
@@ -125,6 +126,8 @@ const ADMIN_EVENT_META = {
   password_reset_requested:    { icon: 'key',    category: 'Personnel',  theme: 'bg-amber' },
   password_reset_completed:    { icon: 'key',    category: 'Personnel',  theme: 'bg-teal' },
   personnel_invited:           { icon: 'user',   category: 'Personnel',  theme: 'bg-blue' },
+  workspace_location_updated:  { icon: 'location', category: 'Workspace', theme: 'bg-teal' },
+  location_anomaly_detected:   { icon: 'location', category: 'Security',  theme: 'bg-red' },
 };
 
 // ── LEA/FDA personnel: rows carry no event_type field (see Notification
@@ -139,6 +142,12 @@ function getPersonnelMeta(title) {
   if (t.includes('case closed')) return { icon: 'complaint', category: 'Case', theme: 'bg-slate' };
   if (t.includes('takedown')) return { icon: 'takedown', category: 'Operation', theme: 'bg-amber' };
   if (t.includes('deadline') || t.includes('response needed')) return { icon: 'audit', category: 'SLA', theme: 'bg-red' };
+  if (t.includes('location outside') || t.includes('geofence') || t.includes('anomaly')) {
+    return { icon: 'location', category: 'Security', theme: 'bg-red' };
+  }
+  if (t.includes('workspace location') || t.includes('location updated')) {
+    return { icon: 'location', category: 'Workspace', theme: 'bg-teal' };
+  }
   // ADDED: personnel's own dual-write row for a profile edit by their
   // admin carries the literal title "Personnel profile updated" (see
   // personnel.py, edit_personnel_info) — had no match before this, was
@@ -160,6 +169,7 @@ function getNotificationIcon(type) {
     case 'report': return <FileText size={16} />;
     case 'lock': return <Lock size={16} />;
     case 'key': return <KeyRound size={16} />;
+    case 'location': return <MapPin size={16} />;
     case 'system':
     default: return <Bell size={16} />;
   }

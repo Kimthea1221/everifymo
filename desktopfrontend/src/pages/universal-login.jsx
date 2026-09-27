@@ -915,6 +915,29 @@ function UniversalLogin() {
   );
 }
 
+const getDeviceCoordinates = () => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve({ latitude: null, longitude: null, source: 'ip' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        resolve({
+          latitude: parseFloat(pos.coords.latitude.toFixed(6)),
+          longitude: parseFloat(pos.coords.longitude.toFixed(6)),
+          source: 'gps',
+        });
+      },
+      (err) => {
+        console.warn('Geolocation unavailable during login:', err);
+        resolve({ latitude: null, longitude: null, source: 'ip' });
+      },
+      { enableHighAccuracy: true, timeout: 6000 }
+    );
+  });
+};
+
 // ============================================================================
 // PERSONNEL LOGIN FORM
 // Supports both mock frontend testing and real API fallback
@@ -1136,10 +1159,18 @@ function PersonnelLoginForm({ navigate, onOtpStateChange }) {
 
       // REAL BACKEND OTP VERIFICATION
       try {
+        const coords = await getDeviceCoordinates();
+
         const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: personnelEmail.trim(), otp: otpCode }),
+          body: JSON.stringify({
+            email: personnelEmail.trim(),
+            otp: otpCode,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            source: coords.source,
+          }),
         });
 
         if (!response.ok) {
