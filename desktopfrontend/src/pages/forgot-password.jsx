@@ -33,7 +33,7 @@ function ForgotPassword() {
     const [forgotError, setForgotError] = useState('');
 
     const checks = {
-        length:    newPassword.length >= 8,
+        length:    newPassword.length >= 8 && newPassword.length <= 64,
         uppercase: /[A-Z]/.test(newPassword),
         number:    /[0-9]/.test(newPassword),
         special:   /[^A-Za-z0-9]/.test(newPassword),
@@ -814,6 +814,7 @@ function ForgotPassword() {
                                             setNewPassword(e.target.value);
                                             setForgotError('');
                                         }}
+                                        maxLength={64}
                                     />
                                     <button
                                         type="button"
@@ -841,6 +842,7 @@ function ForgotPassword() {
                                             setConfirmPassword(e.target.value);
                                             setForgotError('');
                                         }}
+                                        maxLength={64}
                                     />
                                     <button
                                         type="button"
@@ -869,7 +871,7 @@ function ForgotPassword() {
                                 <p className="CPReqTitle">Password requirements:</p>
                                 <ul className="CPReqList">
                                     <li className={`CPReqItem ${checks.length ? 'req-met' : 'req-unmet'}`}>
-                                        {checks.length ? '✅' : '❌'} At least 8 characters
+                                        {checks.length ? '✅' : '❌'} At least 8 characters (max 64)
                                     </li>
                                     <li className={`CPReqItem ${checks.uppercase ? 'req-met' : 'req-unmet'}`}>
                                         {checks.uppercase ? '✅' : '❌'} At least one uppercase letter
