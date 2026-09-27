@@ -417,7 +417,18 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                       className={`LEAAdminInput ${errors.firstName ? 'input-error' : ''}`}
                       placeholder="e.g. Dominic"
                       value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      maxLength={50}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, firstName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, firstName: 'First Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, firstName: 'First Name is required.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, firstName: undefined }));
+                        }
+                      }}
                     />
                   </div>
                   {errors.firstName && (
@@ -433,12 +444,28 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                     <User className="LEAAdminInputIcon" size={17} />
                     <input
                       type="text"
-                      className="LEAAdminInput"
+                      className={`LEAAdminInput ${errors.middleName ? 'input-error' : ''}`}
                       placeholder="e.g. Cruz (Optional)"
                       value={formData.middleName}
-                      onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                      maxLength={50}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, middleName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, middleName: 'Middle Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (val.trim().length > 0 && val.trim().length < 2) {
+                          setErrors((prev) => ({ ...prev, middleName: 'Middle Name must be at least 2 characters if provided.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, middleName: undefined }));
+                        }
+                      }}
                     />
                   </div>
+                  {errors.middleName && (
+                    <span className="LEAAdminFieldError">
+                      <AlertCircle size={12} /> {errors.middleName}
+                    </span>
+                  )}
                 </div>
 
                 <div className="LEAAdminFormGroup">
@@ -452,7 +479,18 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                       className={`LEAAdminInput ${errors.lastName ? 'input-error' : ''}`}
                       placeholder="e.g. Valdez"
                       value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      maxLength={50}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, lastName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, lastName: 'Last Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, lastName: 'Last Name is required.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, lastName: undefined }));
+                        }
+                      }}
                     />
                   </div>
                   {errors.lastName && (
@@ -473,6 +511,7 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                       className="LEAAdminInput"
                       placeholder="e.g. CIDG-ADM-0892 (Optional)"
                       value={formData.employeeId}
+                      maxLength={50}
                       onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                     />
                   </div>
@@ -493,6 +532,15 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '').slice(0, 11);
                         setFormData({ ...formData, contactNumber: val });
+                        if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Contact number is required.' }));
+                        } else if (val.trim().length < 11) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Contact number must be at least 11 digits.' }));
+                        } else if (!val.startsWith('09')) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09189876543).' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, contactNumber: undefined }));
+                        }
                       }}
                     />
                   </div>
@@ -515,7 +563,17 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                     className={`LEAAdminInput ${errors.email ? 'input-error' : ''}`}
                     placeholder="e.g. dominic.valdez@cidg.pnp.gov.ph"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    maxLength={254}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, email: val });
+                      if (!val.trim()) {
+                        setErrors((prev) => ({ ...prev, email: undefined }));
+                      } else {
+                        const err = validateEmail(val.trim());
+                        setErrors((prev) => ({ ...prev, email: err || undefined }));
+                      }
+                    }}
                   />
                 </div>
                 {errors.email && (
@@ -552,6 +610,7 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                       className="LEAAdminInput"
                       placeholder="e.g. Regional Administration (Optional)"
                       value={formData.department}
+                      maxLength={150}
                       onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     />
                   </div>
@@ -565,6 +624,7 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                       className="LEAAdminInput"
                       placeholder="e.g. Regional Director (Optional)"
                       value={formData.position}
+                      maxLength={150}
                       onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                     />
                   </div>
@@ -877,7 +937,9 @@ export default function LEAAdminAdminManagement() {
         const res = await apiFetch(`/admin-management/${targetId}`, { method: 'DELETE' });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(extractErrorMessage(errData, 'Delete failed.'));
+          const httpErr = new Error(extractErrorMessage(errData, 'Delete failed.'));
+          httpErr.isHttpError = true;
+          throw httpErr;
         }
         setAdmins((prev) => prev.filter((a) => a.id !== targetId));
         showToast('Admin entry deleted.');
@@ -887,8 +949,11 @@ export default function LEAAdminAdminManagement() {
         const res = await apiFetch(`/admin-management/${targetId}/${path}`, { method: 'POST' });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(extractErrorMessage(errData, 'Action failed.'));
+          const httpErr = new Error(extractErrorMessage(errData, 'Action failed.'));
+          httpErr.isHttpError = true;
+          throw httpErr;
         }
+        const resData = await res.json().catch(() => ({}));
         setAdmins((prev) =>
           prev.map((a) => {
             if (a.id !== targetId) return a;
@@ -901,12 +966,70 @@ export default function LEAAdminAdminManagement() {
             if (actionType === 'unlock') {
               return { ...a, status: 'Active', is_locked: false };
             }
+            if (actionType === 'resend') {
+              return {
+                ...a,
+                status: 'Invited',
+                invitation_date: resData.invitation_date ?? a.invitation_date,
+              };
+            }
             return a;
           })
         );
         showToast(actionType === 'resend' ? 'Invitation link resent.' : 'Account updated.');
       }
     } catch (err) {
+      // For network-level fetch failures (e.g. connection dropped right as commit finished):
+      // Verify actual status on the server before displaying a false failure.
+      if (!err.isHttpError) {
+        try {
+          const checkRes = await apiFetch('/admin-management');
+          if (checkRes.ok) {
+            const list = await checkRes.json();
+            const record = list.find((a) => (a.user_id || a.id) === targetId);
+            const expectedStatusMap = {
+              suspend: 'suspended',
+              reactivate: 'active',
+              activate: 'active',
+              unlock: 'active',
+            };
+            const expected = expectedStatusMap[actionType];
+            const recordStatus = (record?.status || '').toString().trim().toLowerCase();
+
+            const isDeleteSuccess = actionType === 'delete' && !record;
+            const isStatusSuccess = expected && recordStatus === expected;
+            const isResendSuccess = actionType === 'resend' && Boolean(record);
+
+            if (isDeleteSuccess || isStatusSuccess || isResendSuccess) {
+              if (actionType === 'delete') {
+                setAdmins((prev) => prev.filter((a) => a.id !== targetId));
+                showToast('Admin entry deleted.');
+              } else {
+                setAdmins((prev) =>
+                  prev.map((a) => {
+                    if (a.id !== targetId) return a;
+                    if (actionType === 'suspend') {
+                      return { ...a, status: 'Suspended', is_active: false };
+                    }
+                    if (actionType === 'reactivate' || actionType === 'activate') {
+                      return { ...a, status: 'Active', is_active: true };
+                    }
+                    if (actionType === 'unlock') {
+                      return { ...a, status: 'Active', is_locked: false };
+                    }
+                    return a;
+                  })
+                );
+                showToast(actionType === 'resend' ? 'Invitation link resent.' : 'Account updated.');
+              }
+              return;
+            }
+          }
+        } catch (verifyErr) {
+          console.warn('Status re-check failed:', verifyErr);
+        }
+      }
+
       showToast(err.message || 'Something went wrong.');
     }
   }
