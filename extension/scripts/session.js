@@ -1,4 +1,4 @@
-
+//session.js
 import {
   apiVerificationHistory,
   apiSubmitComplaint,
@@ -13,7 +13,11 @@ import {
   apiVerifyResetOtp,
   apiPasswordReset,
   apiConfirmPassReset,
-  UnauthorizedError
+  UnauthorizedError,
+  apiRefreshToken,
+  apiGetComplaints,
+  apiGetStatus,
+  getVerificationHistory 
 } from "../utils/api.js";
 
 
@@ -21,12 +25,44 @@ let _session = null; // null = guest, otherwise { username, email }
 
 // Every page must call this once before rendering anything that depends on login state
 export function whenSessionReady(callback) {
-  chrome.storage.local.get(['access_token', 'username', 'email'], (data) => {
-    _session = data.access_token 
-      ? { username: data.username, email: data.email, access_token: data.access_token }
+  chrome.storage.local.get(['access_token', 'refresh_token', 'username', 'email'], (data) => {
+    _session = data.access_token
+      ? { username: data.username, email: data.email, access_token: data.access_token, refresh_token: data.refresh_token }
       : null;
     callback();
   });
+}
+
+async function refreshSession() {
+  if (!_session || !_session.refresh_token) {
+    throw new Error("No refresh token available");
+  }
+
+  const data = await apiRefreshToken(_session.refresh_token);
+
+  _session.access_token = data.access_token;
+  _session.refresh_token = data.refresh_token;
+
+  return new Promise((resolve) => {
+    chrome.storage.local.set({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      username: _session.username,
+      email: _session.email
+    }, resolve);
+  });
+}
+
+async function callWithAuth(apiFn, ...args) {
+  try {
+    return await apiFn(...args, _session.access_token);
+  } catch (e) {
+    if (e instanceof UnauthorizedError) {
+      await refreshSession();
+      return await apiFn(...args, _session.access_token); // retry once
+    }
+    throw e;
+  }
 }
 
 export function isUserLoggedIn() {
@@ -41,21 +77,56 @@ export function getToken(){
   return _session ? _session.access_token : null;
 }
 
-export async function updateUsername(newUsername, callback) {
-  if (!_session) {
-    throw new Error("No active user");
+export async function getComplaintHistory() {
+  if (!isUserLoggedIn()) throw new Error("You must be signed in.");
+  try {
+    return await callWithAuth(apiGetComplaints);
+  } catch (e) {
+    if (e instanceof UnauthorizedError) logoutUser(() => window.location.reload());
+    throw e;
   }
+}
 
-  await apiUpdateUsername(newUsername, _session.access_token);
+export async function getComplaintStatus() {
+  if (!isUserLoggedIn()) throw new Error("You must be signed in.");
+  try {
+    return await callWithAuth(apiGetStatus);
+  } catch (e) {
+    if (e instanceof UnauthorizedError) logoutUser(() => window.location.reload());
+    throw e;
+  }
+}
 
-  _session.username = newUsername;
+export async function getProductVerificationHistory() {
+  if (!isUserLoggedIn()) throw new Error("You must be signed in.");
+  try {
+    return await callWithAuth(getVerificationHistory);
+  } catch (e) {
+    if (e instanceof UnauthorizedError) logoutUser(() => window.location.reload());
+    throw e;
+  }
+}
 
-  chrome.storage.local.set({
+export async function updateUsername(newUsername, callback) {
+  if (!_session) throw new Error("No active user");
+
+  try {
+    await callWithAuth(apiUpdateUsername, newUsername);
+    _session.username = newUsername;
+    chrome.storage.local.set({
       access_token: _session.access_token,
+      refresh_token: _session.refresh_token,
       username: newUsername,
       email: _session.email
-    }, () => callback(true)
-  );
+    }, () => callback(true));
+  } catch (e) {
+    if (e instanceof UnauthorizedError) {
+      logoutUser(() => window.location.reload());
+      callback(false, "Session expired. Please log in again.");
+      return;
+    }
+    callback(false, e.message);
+  }
 }
 
 export async function deleteAccount(password, callback) {
@@ -63,10 +134,17 @@ export async function deleteAccount(password, callback) {
     callback(false);
     return;
   }
-
-  apiDeleteAccount(password, _session.access_token)
-    .then(() => logoutUser(() => callback(true)))
-    .catch(e => callback(false, e.message));
+  try {
+    await callWithAuth(apiDeleteAccount, password);
+    logoutUser(() => callback(true));
+  } catch (e) {
+    if (e instanceof UnauthorizedError) {
+      logoutUser(() => window.location.reload());
+      callback(false, "Session expired. Please log in again.");
+      return;
+    }
+    callback(false, e.message);
+  }
 }
 
 //   getRegisteredUsers((users) => {
@@ -98,9 +176,9 @@ export function registerUser(user, callback) {
 export function loginUser(email, password, callback) {
   apiLogin(email, password)
       .then(data => {
-          _session = { username: data.username, email, access_token: data.access_token };
+          _session = { username: data.username, email, access_token: data.access_token, refresh_token: data.refresh_token };
           chrome.storage.local.set(
-              { access_token: data.access_token, token_type: data.token_type, username: data.username, email },
+              { access_token: data.access_token, refresh_token: data.refresh_token, token_type: data.token_type, username: data.username, email },
               () => callback(true)
           );
       }).catch(e => callback(false, e));
@@ -108,9 +186,9 @@ export function loginUser(email, password, callback) {
 
 export function googleLogin(token, callback) {
   apiGoogleLogin(token).then(data => {
-      _session = { username: data.username, email: data.email, access_token: data.access_token };
+      _session = { username: data.username, email: data.email, access_token: data.access_token, refresh_token: data.refresh_token };
       chrome.storage.local.set(
-        { access_token: data.access_token, token_type: data.token_type, username: data.username, email: data.email },
+        { access_token: data.access_token, refresh_token: data.refresh_token, token_type: data.token_type, username: data.username, email: data.email },
         () => callback(true)
       );
   }).catch(e => callback(false, e.message, e.email, e));
@@ -148,7 +226,7 @@ export function confirmPasswordReset(email, resetToken, newPassword, callback) {
 
 export function logoutUser(callback) {
   _session = null;
-  chrome.storage.local.remove(['access_token', 'token_type', 'username', 'email'], callback);
+  chrome.storage.local.remove(['access_token', 'refresh_token', 'token_type', 'username', 'email'], callback);
 }
 
 export function submitComplaint(complaints, callback) {
@@ -157,9 +235,7 @@ export function submitComplaint(complaints, callback) {
     return;
   }
 
-  const token = _session.access_token;
-
-  apiSubmitComplaint({ 
+  const payload = { 
     product_title: complaints.productName, 
     product_url: complaints.productUrl, 
     store_name: complaints.storeName, 
@@ -168,32 +244,35 @@ export function submitComplaint(complaints, callback) {
     verification_result: complaints.verificationResult,
     attachment_data: complaints.attachmentData,    
     attachment_name: complaints.attachmentName  
-  }, token)
-      .then(() => callback(true))
-      .catch(e => {
-        if (e instanceof UnauthorizedError) {
-          logoutUser(() => {
-            window.location.reload();
-          });
-        }
-        callback(false, e.message)
-      });
+  };
+
+  callWithAuth(apiSubmitComplaint, payload)
+    .then(() => callback(true))
+    .catch(e => {
+      if (e instanceof UnauthorizedError) {
+        logoutUser(() => window.location.reload());
+        callback(false, "Session expired. Please log in again.");
+        return;
+      }
+      callback(false, e.message);
+    });
 }
 
 export function submitVerification(product, callback) {
-  const token = _session ? _session.access_token : null;
-
-  apiVerificationHistory({
+  const payload = {
     product_title: product.productTitle,
     platform: product.productPlatform,
     verification_result: product.productStatus,
-  }, token).then(() => callback(true))
-           .catch(e => {
-              if (e instanceof UnauthorizedError) {
-                logoutUser(() => {
-                  window.location.reload();
-                });
-              }
-              callback(false, e.message)
-            });
+  };
+
+  callWithAuth(apiVerificationHistory, payload)
+    .then(() => callback(true))
+    .catch(e => {
+      if (e instanceof UnauthorizedError) {
+        logoutUser(() => window.location.reload());
+        callback(false, "Session expired. Please log in again.");
+        return;
+      }
+      callback(false, e.message);
+    });
 }

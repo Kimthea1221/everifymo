@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         isValid = false;
       } else if (!isStrongPassword(createPasswordValue)) {
-        setError(createPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
+        setError(createPasswordError, 'The password must be at least 8 characters long and include at least one uppercase letter and one number.');
         if (createPasswordInput) {
           createPasswordInput.classList.add('is-invalid');
         }
@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
           isValid = false;
         } else if (!isStrongPassword(newPassword)) {
-          setError(newPasswordError, 'Password must be at least 8 characters and include a letter and a number.');
+          setError(newPasswordError, 'The password must be at least 8 characters long and include at least one uppercase letter and one number.');
           if (newPasswordInput) newPasswordInput.classList.add('is-invalid');
           isValid = false;
         }
