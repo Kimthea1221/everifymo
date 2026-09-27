@@ -94,8 +94,10 @@ def _save_file_to_disk(file: UploadFile, draft_id) -> dict:
     actual_size = os.path.getsize(destination_path)
     if actual_size > MAX_FILE_SIZE_BYTES:
         os.remove(destination_path)
-        raise HTTPException(status_code=400, detail="File exceeds the 25 MB limit.")
-
+        raise HTTPException(
+                    status_code=400,
+                    detail=f"'{file.filename}' exceeds the 25 MB limit.",
+                )
     # Return exactly the fields DraftAttachment needs, so the caller
     # can build the row without repeating this logic.
     return {

@@ -52,6 +52,7 @@ AGENCY_DISPLAY_NAMES = {
 }
 
 TEMPLATE_PATH_CONVERTED_PRODUCT = Path(__file__).parent / "templates" / "converted_product_email.html"
+TEMPLATE_PATH_LOCATION_ANOMALY = TEMPLATES_DIR / "location_anomaly_email.html"
 
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -332,4 +333,81 @@ async def send_converted_product_email(
         print(f"Successfully sent conversion notice email to {to_email}")
     except Exception as e:
         print(f"Warning: Failed to send conversion email to {to_email}: {e}")
+
+
+async def send_location_anomaly_email(
+    to_email: str,
+    agency_name: str,
+    personnel_name: str,
+    personnel_email: str,
+    login_at: str,
+    formatted_distance: str,
+    workspace_name: str,
+    radius_meters: int,
+    detection_source: str,
+    region_name: str,
+) -> None:
+    is_lea = "LEA" in agency_name.upper() or "CIDG" in agency_name.upper()
+
+    if is_lea:
+        header_bg = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+        header_border = "#1d4ed8"
+        system_name = "EVerifyMo · LEA-CIDG Admin"
+        badge_bg = "#eff6ff"
+        badge_border = "#bfdbfe"
+        badge_text = "#1e40af"
+        footer_agency = "PNP Criminal Investigation and Detection Group (CIDG)"
+        footer_region = f"Regional Field Unit {region_name}"
+    else:
+        header_bg = "linear-gradient(135deg, #1f2937 0%, #1B4332 100%)"
+        header_border = "#065f46"
+        system_name = "EVerifyMo · FDA Admin"
+        badge_bg = "#ecfdf5"
+        badge_border = "#a7f3d0"
+        badge_text = "#065f46"
+        footer_agency = "Food and Drug Administration (FDA)"
+        footer_region = f"Regional Field Office {region_name}"
+
+    is_ip = "ip" in detection_source.lower()
+    ip_note_html = '<p style="margin:6px 0 0 0;font-size:11.5px;font-style:italic;opacity:0.85;">Note: Location is approximate when determined via IP address.</p>' if is_ip else ''
+
+    raw_html = TEMPLATE_PATH_LOCATION_ANOMALY.read_text(encoding="utf-8")
+    replacements = {
+        "HEADER_BG": header_bg,
+        "HEADER_BORDER": header_border,
+        "SYSTEM_NAME": system_name,
+        "PERSONNEL_NAME": personnel_name,
+        "PERSONNEL_EMAIL": personnel_email,
+        "LOGIN_AT": login_at,
+        "FORMATTED_DISTANCE": formatted_distance,
+        "WORKSPACE_NAME": workspace_name,
+        "RADIUS_METERS": str(radius_meters),
+        "DETECTION_SOURCE": detection_source,
+        "IP_NOTE_HTML": ip_note_html,
+        "BADGE_BG": badge_bg,
+        "BADGE_BORDER": badge_border,
+        "BADGE_TEXT": badge_text,
+        "FOOTER_AGENCY_NAME": footer_agency,
+        "FOOTER_AGENCY_REGION": footer_region,
+    }
+
+    for key, val in replacements.items():
+        raw_html = raw_html.replace("{{" + key + "}}", str(val))
+
+    subject = f"Security Alert: Location anomaly detected — {personnel_name}"
+
+    message = MessageSchema(
+        subject=subject,
+        recipients=[to_email],
+        body=raw_html,
+        subtype=MessageType.html,
+    )
+
+    try:
+        fm = FastMail(conf)
+        await fm.send_message(message)
+        print(f"Successfully sent location anomaly alert to {to_email}")
+    except Exception as e:
+        print(f"Warning: Failed to send location anomaly email to {to_email}: {e}")
+
 
