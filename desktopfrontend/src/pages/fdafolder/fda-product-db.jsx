@@ -81,7 +81,7 @@ function FdaActionDropdown({ id, activeDropdownId, setActiveDropdownId, onView, 
               top: `${menuPos.top}px`,
               left: `${menuPos.left}px`,
               zIndex: 9999,
-              width:`150px`,
+              width: `150px`,
             }}
           >
             {children}
@@ -491,9 +491,13 @@ function FDAProductDB() {
 
     if (!productForm.productName.trim()) {
       errors.productName = "Product Name is required";
+    } else if (productForm.productName.trim().length < 2) {
+      errors.productName = "Product Name must be at least 2 characters";
     }
     if (!productForm.manufacturer.trim()) {
       errors.manufacturer = "Manufacturer is required";
+    } else if (productForm.manufacturer.trim().length < 2) {
+      errors.manufacturer = "Manufacturer must be at least 2 characters";
     }
     if (!productForm.registrationNumber.trim()) {
       errors.registrationNumber = "Registration Number is required";
@@ -568,9 +572,13 @@ function FDAProductDB() {
 
     if (!productForm.productName.trim()) {
       errors.productName = "Product Name is required";
+    } else if (productForm.productName.trim().length < 2) {
+      errors.productName = "Product Name must be at least 2 characters";
     }
     if (!productForm.manufacturer.trim()) {
       errors.manufacturer = "Manufacturer is required";
+    } else if (productForm.manufacturer.trim().length < 2) {
+      errors.manufacturer = "Manufacturer must be at least 2 characters";
     }
     if (!productForm.registrationNumber.trim()) {
       errors.registrationNumber = "Registration Number is required";
@@ -655,6 +663,8 @@ function FDAProductDB() {
 
     if (!conversionDetails.advisoryDetails.trim()) {
       errors.advisoryDetails = "Advisory details are required";
+    } else if (conversionDetails.advisoryDetails.trim().length < 10) {
+      errors.advisoryDetails = "Advisory details must be at least 10 characters";
     }
 
     if (!conversionDetails.advisoryDate) {
@@ -735,6 +745,8 @@ function FDAProductDB() {
 
     if (!advisoryForm.productName.trim()) {
       errors.productName = "Product Name is required";
+    } else if (advisoryForm.productName.trim().length < 2) {
+      errors.productName = "Product Name must be at least 2 characters";
     }
 
     if (!advisoryForm.advisoryDate) {
@@ -809,6 +821,8 @@ function FDAProductDB() {
 
     if (!advisoryForm.productName.trim()) {
       errors.productName = "Product Name is required";
+    } else if (advisoryForm.productName.trim().length < 2) {
+      errors.productName = "Product Name must be at least 2 characters";
     }
 
     if (!advisoryForm.advisoryDate) {
@@ -893,6 +907,8 @@ function FDAProductDB() {
 
     if (!conversionDetails.manufacturer.trim()) {
       errors.manufacturer = "Manufacturer is required";
+    } else if (conversionDetails.manufacturer.trim().length < 2) {
+      errors.manufacturer = "Manufacturer must be at least 2 characters";
     }
 
     if (!conversionDetails.dateRegistered) {
@@ -1292,6 +1308,7 @@ function FDAProductDB() {
                   type="text"
                   placeholder="Search product name, manufacturer, or registration number..."
                   className="FdaSearchInput"
+                  maxLength={150}
                   value={searchRegistered}
                   maxLength={150}
                   onChange={(e) => {
@@ -1371,6 +1388,7 @@ function FDAProductDB() {
                   type="text"
                   placeholder="Search product name or advisory details..."
                   className="FdaSearchInput"
+                  maxLength={150}
                   value={searchAdvisory}
                   maxLength={150}
                   onChange={(e) => {
@@ -1705,12 +1723,14 @@ function FDAProductDB() {
                   <h2>Add Registered Product</h2>
                   <p>Register a new certified cosmetic product record</p>
                 </div>
-                <form onSubmit={handleAddProduct} className="FdaFormGrid">
+                <form noValidate onSubmit={handleAddProduct} className="FdaFormGrid">
                   <div className={`FdaFormGroup span-two ${formErrors.productName ? 'has-error' : ''}`}>
                     <label>Product Name *</label>
                     <input
                       type="text"
                       placeholder="e.g. Skin Whitening Soap"
+                      maxLength={150}
+                      minLength={2}
                       value={productForm.productName}
                       maxLength={150}
                       onChange={(e) => setProductForm({ ...productForm, productName: e.target.value })}
@@ -1723,6 +1743,8 @@ function FDAProductDB() {
                     <input
                       type="text"
                       placeholder="e.g. SkinCare Corp PH"
+                      maxLength={150}
+                      minLength={2}
                       value={productForm.manufacturer}
                       maxLength={150}
                       onChange={(e) => setProductForm({ ...productForm, manufacturer: e.target.value })}
@@ -1735,6 +1757,7 @@ function FDAProductDB() {
                     <input
                       type="text"
                       placeholder="FDA-COS-YYYY-XXXXX"
+                      maxLength={100}
                       value={productForm.registrationNumber}
                       maxLength={100}
                       onChange={(e) => setProductForm({ ...productForm, registrationNumber: e.target.value })}
@@ -1847,11 +1870,13 @@ function FDAProductDB() {
                   <h2>Edit Registered Product</h2>
                   <p>Update product registration record data</p>
                 </div>
-                <form onSubmit={handleEditProduct} className="FdaFormGrid">
+                <form noValidate onSubmit={handleEditProduct} className="FdaFormGrid">
                   <div className={`FdaFormGroup span-two ${formErrors.productName ? 'has-error' : ''}`}>
                     <label>Product Name *</label>
                     <input
                       type="text"
+                      maxLength={150}
+                      minLength={2}
                       value={productForm.productName}
                       maxLength={150}
                       onChange={(e) => setProductForm({ ...productForm, productName: e.target.value })}
@@ -1863,6 +1888,8 @@ function FDAProductDB() {
                     <label>Manufacturer *</label>
                     <input
                       type="text"
+                      maxLength={150}
+                      minLength={2}
                       value={productForm.manufacturer}
                       maxLength={150}
                       onChange={(e) => setProductForm({ ...productForm, manufacturer: e.target.value })}
@@ -1874,6 +1901,7 @@ function FDAProductDB() {
                     <label>Registration Number *</label>
                     <input
                       type="text"
+                      maxLength={100}
                       value={productForm.registrationNumber}
                       maxLength={100}
                       onChange={(e) => setProductForm({ ...productForm, registrationNumber: e.target.value })}
@@ -1925,12 +1953,14 @@ function FDAProductDB() {
                 <p className="FdaConfirmationMessage" style={{ margin: '12px 0 20px', fontSize: '13px' }}>
                   The registered product record will be archived, and a new advisory record will be created.
                 </p>
-                <form onSubmit={handleConvertToUnregistered} className="FdaFormGrid">
+                <form noValidate onSubmit={handleConvertToUnregistered} className="FdaFormGrid">
                   <div className={`FdaFormGroup span-two ${formErrors.advisoryDetails ? 'has-error' : ''}`}>
                     <label>Advisory Details *</label>
                     <textarea
                       rows={4}
                       placeholder="Enter details on why this product is flagged as unregistered/dangerous..."
+                      maxLength={2000}
+                      minLength={10}
                       value={conversionDetails.advisoryDetails}
                       maxLength={2000}
                       onChange={(e) => setConversionDetails({ ...conversionDetails, advisoryDetails: e.target.value })}
@@ -1953,6 +1983,7 @@ function FDAProductDB() {
                     <input
                       type="text"
                       placeholder="https://..."
+                      maxLength={500}
                       value={conversionDetails.sourceUrl}
                       maxLength={500}
                       onChange={(e) => setConversionDetails({ ...conversionDetails, sourceUrl: e.target.value })}
@@ -1983,12 +2014,14 @@ function FDAProductDB() {
                   <h2>Add Unregistered Product Advisory</h2>
                   <p>Flag an unregistered product and create a public advisory</p>
                 </div>
-                <form onSubmit={handleAddAdvisory} className="FdaFormGrid">
+                <form noValidate onSubmit={handleAddAdvisory} className="FdaFormGrid">
                   <div className={`FdaFormGroup span-two ${formErrors.productName ? 'has-error' : ''}`}>
                     <label>Product Name *</label>
                     <input
                       type="text"
                       placeholder="e.g. Dangerous Bleaching Agent"
+                      maxLength={150}
+                      minLength={2}
                       value={advisoryForm.productName}
                       maxLength={150}
                       onChange={(e) => setAdvisoryForm({ ...advisoryForm, productName: e.target.value })}
@@ -2001,6 +2034,7 @@ function FDAProductDB() {
                     <textarea
                       rows={5}
                       placeholder="Provide reasoning or laboratory results detailing safety hazards..."
+                      maxLength={2000}
                       value={advisoryForm.advisoryDetails}
                       maxLength={2000}
                       onChange={(e) => setAdvisoryForm({ ...advisoryForm, advisoryDetails: e.target.value })}
@@ -2023,6 +2057,7 @@ function FDAProductDB() {
                     <input
                       type="text"
                       placeholder="https://fda.gov.ph/advisories/..."
+                      maxLength={500}
                       value={advisoryForm.sourceUrl}
                       maxLength={500}
                       onChange={(e) => setAdvisoryForm({ ...advisoryForm, sourceUrl: e.target.value })}
@@ -2121,11 +2156,13 @@ function FDAProductDB() {
                   <h2>Edit Unregistered Product Advisory</h2>
                   <p>Update advisory details for flagged product</p>
                 </div>
-                <form onSubmit={handleEditAdvisory} className="FdaFormGrid">
+                <form noValidate onSubmit={handleEditAdvisory} className="FdaFormGrid">
                   <div className={`FdaFormGroup span-two ${formErrors.productName ? 'has-error' : ''}`}>
                     <label>Product Name *</label>
                     <input
                       type="text"
+                      maxLength={150}
+                      minLength={2}
                       value={advisoryForm.productName}
                       maxLength={150}
                       onChange={(e) => setAdvisoryForm({ ...advisoryForm, productName: e.target.value })}
@@ -2137,6 +2174,7 @@ function FDAProductDB() {
                     <label>Advisory Details</label>
                     <textarea
                       rows={5}
+                      maxLength={2000}
                       value={advisoryForm.advisoryDetails}
                       maxLength={2000}
                       onChange={(e) => setAdvisoryForm({ ...advisoryForm, advisoryDetails: e.target.value })}
@@ -2158,6 +2196,7 @@ function FDAProductDB() {
                     <label>Source URL *</label>
                     <input
                       type="text"
+                      maxLength={500}
                       value={advisoryForm.sourceUrl}
                       maxLength={500}
                       onChange={(e) => setAdvisoryForm({ ...advisoryForm, sourceUrl: e.target.value })}
@@ -2189,12 +2228,13 @@ function FDAProductDB() {
                 <p className="FdaConfirmationMessage" style={{ margin: '12px 0 20px', fontSize: '13px' }}>
                   A new registered product record will be created, and this advisory will be archived.
                 </p>
-                <form onSubmit={handleConvertToRegistered} className="FdaFormGrid">
+                <form noValidate onSubmit={handleConvertToRegistered} className="FdaFormGrid">
                   <div className={`FdaFormGroup span-two ${formErrors.registrationNumber ? 'has-error' : ''}`}>
                     <label>Registration Number *</label>
                     <input
                       type="text"
                       placeholder="FDA-COS-YYYY-XXXXX"
+                      maxLength={100}
                       value={conversionDetails.registrationNumber}
                       maxLength={100}
                       onChange={(e) => setConversionDetails({ ...conversionDetails, registrationNumber: e.target.value })}
@@ -2207,6 +2247,8 @@ function FDAProductDB() {
                     <input
                       type="text"
                       placeholder="e.g. ActiveBrand Inc"
+                      maxLength={150}
+                      minLength={2}
                       value={conversionDetails.manufacturer}
                       maxLength={150}
                       onChange={(e) => setConversionDetails({ ...conversionDetails, manufacturer: e.target.value })}
@@ -2260,9 +2302,9 @@ function FDAProductDB() {
                 <div className="FdaModalFooter" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                   {notification.type === 'confirm' ? (
                     <>
-                      <button 
-                        type="button" 
-                        className="BtnModalCancel" 
+                      <button
+                        type="button"
+                        className="BtnModalCancel"
                         onClick={() => {
                           setNotification({ ...notification, isOpen: false });
                           if (notification.onCancel) notification.onCancel();
@@ -2270,9 +2312,9 @@ function FDAProductDB() {
                       >
                         Cancel
                       </button>
-                      <button 
-                        type="button" 
-                        className="BtnModalSave" 
+                      <button
+                        type="button"
+                        className="BtnModalSave"
                         onClick={() => {
                           setNotification({ ...notification, isOpen: false });
                           if (notification.onConfirm) notification.onConfirm();
@@ -2282,9 +2324,9 @@ function FDAProductDB() {
                       </button>
                     </>
                   ) : (
-                    <button 
-                      type="button" 
-                      className="BtnModalSave" 
+                    <button
+                      type="button"
+                      className="BtnModalSave"
                       onClick={() => setNotification({ ...notification, isOpen: false })}
                     >
                       OK

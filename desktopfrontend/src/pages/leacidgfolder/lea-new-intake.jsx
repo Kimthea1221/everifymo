@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react' // ADDED useEffect: runs code on pag
 import { useLocation, useNavigate } from 'react-router-dom' // ADDED: read nav data + redirect
 
 // ADDED — backend URL in one place, so it's easy to update later
-const API_BASE = 'https://everify.store';
+import { apiFetch } from '../../utils/apiFetch';
 
 function LeaNewIntake() {
   const location = useLocation()  // ADDED
@@ -24,12 +24,9 @@ function LeaNewIntake() {
   useEffect(() => {
     if (!editingComplaintId) return  // brand new intake or draft edit — nothing to fetch
 
-    const token = localStorage.getItem('access_token')
     setLoading(true)
 
-    fetch(`${API_BASE}/complaints/${editingComplaintId}/walkin-detail`, {
-      headers: { authorization: `Bearer ${token}` },
-    })
+    apiFetch(`/complaints/${editingComplaintId}/walkin-detail`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
@@ -85,7 +82,7 @@ function LeaNewIntake() {
     }
 
     const isDocx = previewFile.name?.toLowerCase().endsWith('.docx') ||
-                   previewFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      previewFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
     if (isDocx) {
       setPreviewUrl(null)
@@ -201,12 +198,18 @@ function LeaNewIntake() {
       if (!value || !value.trim()) {
         return 'Product Name is required.'
       }
+      if (value.trim().length < 2) {
+        return 'Product Name must be at least 2 characters.'
+      }
       return ''
     }
 
     if (field === 'manufacturer') {
       if (!value || !value.trim()) {
         return 'Manufacturer/Seller is required.'
+      }
+      if (value.trim().length < 2) {
+        return 'Manufacturer/Seller must be at least 2 characters.'
       }
       return ''
     }
@@ -221,6 +224,9 @@ function LeaNewIntake() {
     if (field === 'placeOfPurchase') {
       if (!value || !value.trim()) {
         return 'Place of Purchase is required.'
+      }
+      if (value.trim().length < 2) {
+        return 'Place of Purchase must be at least 2 characters.'
       }
       return ''
     }
@@ -243,6 +249,14 @@ function LeaNewIntake() {
         if (Number(value) < 0) {
           return 'Amount Paid cannot be negative.'
         }
+        // ADDED — reject more than 2 decimal places (catches pasted values, since onChange only guards typed keystrokes)
+        if (!/^\d+(\.\d{1,2})?$/.test(String(value))) {
+          return 'Amount Paid can have at most 2 decimal places.'
+        }
+        // CHANGED — matches DECIMAL(10,2): 8 integer digits max
+        if (Number(value) > 99999999.99) {
+          return 'Amount Paid cannot exceed 99,999,999.99.'
+        }
       }
       return ''
     }
@@ -250,6 +264,9 @@ function LeaNewIntake() {
     if (field === 'natureOfComplaint') {
       if (!value || !value.trim()) {
         return 'Nature of Complaint is required.'
+      }
+      if (value.trim().length < 10) {
+        return 'Nature of Complaint must be at least 10 characters.'
       }
       return ''
     }
@@ -373,13 +390,13 @@ function LeaNewIntake() {
   useEffect(() => {
     if (!editingDraftId) return  // brand new intake — nothing to fetch
 
-    const token = localStorage.getItem('access_token')
     setLoading(true)
 
-    fetch(`${API_BASE}/drafts/walkin/${editingDraftId}`, {
-      headers: { authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
+    apiFetch(`/drafts/walkin/${editingDraftId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
       .then((data) => {
         setFullName(data.full_name ?? '')
         setContactNumber(data.contact_number ?? '')
@@ -510,7 +527,6 @@ function LeaNewIntake() {
     }
 
     setLoading(true)
-    const token = localStorage.getItem('access_token')
     const formData = buildFormData()
 
     if (editingDraftId) {
@@ -518,14 +534,13 @@ function LeaNewIntake() {
     }
 
     const url = editingDraftId
-      ? `${API_BASE}/drafts/walkin/${editingDraftId}`
-      : `${API_BASE}/drafts/walkin/`
+      ? `/drafts/walkin/${editingDraftId}`
+      : `/drafts/walkin/`
     const method = editingDraftId ? 'PUT' : 'POST'
 
     try {
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
-        headers: { authorization: `Bearer ${token}` },
         body: formData,
       })
       if (!res.ok) {
@@ -550,7 +565,6 @@ function LeaNewIntake() {
     }
 
     setLoading(true)
-    const token = localStorage.getItem('access_token')
 
     try {
       let res
@@ -558,18 +572,16 @@ function LeaNewIntake() {
         const formData = buildFormData()
         attachmentIdsToRemove.forEach((id) => formData.append('remove_attachment_ids', id))
 
-        res = await fetch(`${API_BASE}/complaints/walkin/${editingComplaintId}`, {
+        res = await apiFetch(`/complaints/walkin/${editingComplaintId}`, {
           method: 'PUT',
-          headers: { authorization: `Bearer ${token}` },
           body: formData,
         })
       } else if (editingDraftId) {
         const formData = buildFormData()
         attachmentIdsToRemove.forEach((id) => formData.append('remove_attachment_ids', id))
 
-        const updateRes = await fetch(`${API_BASE}/drafts/walkin/${editingDraftId}`, {
+        const updateRes = await apiFetch(`/drafts/walkin/${editingDraftId}`, {
           method: 'PUT',
-          headers: { authorization: `Bearer ${token}` },
           body: formData,
         })
 
@@ -579,15 +591,13 @@ function LeaNewIntake() {
           return
         }
 
-        res = await fetch(`${API_BASE}/drafts/walkin/${editingDraftId}/submit`, {
+        res = await apiFetch(`/drafts/walkin/${editingDraftId}/submit`, {
           method: 'POST',
-          headers: { authorization: `Bearer ${token}` },
         })
       } else {
         const formData = buildFormData()
-        res = await fetch(`${API_BASE}/complaints/walkin/`, {
+        res = await apiFetch('/complaints/walkin/', {
           method: 'POST',
-          headers: { authorization: `Bearer ${token}` },
           body: formData,
         })
       }
@@ -606,7 +616,7 @@ function LeaNewIntake() {
 
   }
 
-  return ( 
+  return (
     <div className='LeaDashboardMain'>
       <Sidebar sidebarType="LEA" />
       <div className='LeaContentContainer'>
@@ -632,6 +642,7 @@ function LeaNewIntake() {
                       placeholder='Ex. Juan Dela cruz'
                       value={fullName}
                       onChange={(e) => handleChangeField('fullName', setFullName, e.target.value)}
+                      maxLength={100}
                       onBlur={() => handleBlur('fullName')}
                       className={errors.fullName ? 'InputErrorBorder' : ''}
                     />
@@ -649,6 +660,7 @@ function LeaNewIntake() {
                       placeholder='Ex. 09XXXXXXXXX'
                       value={contactNumber}
                       onChange={(e) => handleChangeField('contactNumber', setContactNumber, e.target.value)}
+                      maxLength={11}
                       onBlur={() => handleBlur('contactNumber')}
                       className={errors.contactNumber ? 'InputErrorBorder' : ''}
                     />
@@ -668,6 +680,7 @@ function LeaNewIntake() {
                       placeholder='consumer@gmail.com'
                       value={email}
                       onChange={(e) => handleChangeField('email', setEmail, e.target.value)}
+                      maxLength={254}
                       onBlur={() => handleBlur('email')}
                       className={errors.email ? 'InputErrorBorder' : ''}
                     />
@@ -701,6 +714,7 @@ function LeaNewIntake() {
                   placeholder='Ex. Florida'
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                  maxLength={300}
                 />
               </div>
 
@@ -715,6 +729,8 @@ function LeaNewIntake() {
                       placeholder='Ex. Herbal Slim'
                       value={productName}
                       onChange={(e) => handleChangeField('productName', setProductName, e.target.value)}
+                      maxLength={150}
+                      minLength={2}
                       onBlur={() => handleBlur('productName')}
                       className={errors.productName ? 'InputErrorBorder' : ''}
                     />
@@ -732,6 +748,8 @@ function LeaNewIntake() {
                       placeholder='Ex. Naturefit labs'
                       value={manufacturer}
                       onChange={(e) => handleChangeField('manufacturer', setManufacturer, e.target.value)}
+                      maxLength={150}
+                      minLength={2}
                       onBlur={() => handleBlur('manufacturer')}
                       className={errors.manufacturer ? 'InputErrorBorder' : ''}
                     />
@@ -773,6 +791,8 @@ function LeaNewIntake() {
                       placeholder='Public market, online seller etc.'
                       value={placeOfPurchase}
                       onChange={(e) => handleChangeField('placeOfPurchase', setPlaceOfPurchase, e.target.value)}
+                      maxLength={300}
+                      minLength={2}
                       onBlur={() => handleBlur('placeOfPurchase')}
                       className={errors.placeOfPurchase ? 'InputErrorBorder' : ''}
                     />
@@ -805,12 +825,17 @@ function LeaNewIntake() {
                     <label htmlFor="amountPaid">Amount Paid (OPTIONAL)</label>
                     <input
                       id="amountPaid"
-                      type="number"
+                      type="text" // CHANGED — was "number"; type=number can't be fully locked down (see onChange)
+                      inputMode="decimal" // ADDED — still shows numeric keypad on mobile/tablet
                       placeholder='500.00'
-                      step="0.01"
                       min="0"
                       value={amountPaid}
-                      onChange={(e) => handleChangeField('amountPaid', setAmountPaid, e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        // CHANGED — now reliably blocks every invalid character, since type=text always reflects the real typed value
+                        if (val !== '' && !/^\d{0,8}(\.\d{0,2})?$/.test(val)) return
+                        handleChangeField('amountPaid', setAmountPaid, val)
+                      }}
                       onBlur={() => handleBlur('amountPaid')}
                       className={errors.amountPaid ? 'InputErrorBorder' : ''}
                     />
@@ -832,6 +857,8 @@ function LeaNewIntake() {
                   placeholder='Statement of the complainant.'
                   value={natureOfComplaint}
                   onChange={(e) => handleChangeField('natureOfComplaint', setNatureOfComplaint, e.target.value)}
+                  maxLength={2000}
+                  minLength={10}
                   onBlur={() => handleBlur('natureOfComplaint')}
                   className={errors.natureOfComplaint ? 'InputErrorBorder' : ''}
                 ></textarea>
@@ -946,9 +973,9 @@ function LeaNewIntake() {
               <div>
                 <button type="button" className='CancelButton' onClick={() => navigate(-1)}>Cancel</button>
                 {!editingComplaintId && (
-                <button type="button" className='DraftButton' disabled={loading} onClick={handleSaveAsDraft}>
-                  {loading ? 'Saving...' : 'Save as Draft'}
-                </button> 
+                  <button type="button" className='DraftButton' disabled={loading} onClick={handleSaveAsDraft}>
+                    {loading ? 'Saving...' : 'Save as Draft'}
+                  </button>
                 )}
                 <button type="submit" className='LogButton' disabled={loading}>
                   {loading ? 'Submitting...' : 'Log Complaint & Queue for FDA'}

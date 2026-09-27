@@ -1,7 +1,7 @@
 # backend/app/desktop/routers/complaints/walkin_complaints.py
 from uuid import UUID
 from datetime import date, datetime, timezone
-from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Request, Query
 from app.core.audit import write_audit_log, get_user_region_code
 from app.core.constants import AuditAction
 
@@ -56,7 +56,7 @@ def submit_draft(
 @direct_complaint_router.post("/", response_model=ComplaintResponse)
 def create_complaint_direct(
     request: Request,
-    full_name: str | None = Form(None),
+    full_name: str | None = Form(None, max_length=100),
     contact_number: str | None = Form(None),
     email: str | None = Form(None),
     id_type: str | None = Form(None),
@@ -109,7 +109,7 @@ def create_complaint_direct(
 def list_walkin_complaints(
     status: str | None = None,
     category: str | None = None,
-    search: str | None = None,
+    search: str | None = Query(None, max_length=150),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):

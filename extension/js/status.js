@@ -1,6 +1,5 @@
 // status.js
-import { whenSessionReady, isUserLoggedIn, getToken } from "../scripts/session.js";
-import { apiGetStatus } from "../utils/api.js";
+import { whenSessionReady, isUserLoggedIn, getComplaintStatus } from "../scripts/session.js";
 
 const STAGE_ORDER = ['open', 'under_review', 'takedown_requested'];
 const STAGE_LABELS = { open: 'OPEN', under_review: 'UNDER REVIEW', takedown_requested: 'TAKEDOWN REQUESTED' };
@@ -72,7 +71,14 @@ async function renderComplaintStatusPage() {
     return;
   }
 
-  const res = await apiGetStatus(getToken());
+  let res;
+  try {
+    res = await getComplaintStatus();
+  } catch (e) {
+    console.error(e);
+    return; 
+  }
+
   const complaints = res.map(c => ({
       id: c.complaint_id,
       stage: c.new_status,

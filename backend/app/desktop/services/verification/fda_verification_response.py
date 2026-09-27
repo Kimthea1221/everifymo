@@ -16,6 +16,9 @@ from app.core.complaint_status import transition_complaint_status
 from app.desktop.services.notifications.notification_service import (
     notify_lea_fda_responded,  
     notify_lea_fda_rejected,
+    notify_fda_peers_responded,  # ADDED
+    notify_fda_peers_rejected,   # ADDED
+
 )
 
 from app.models.users import User
@@ -124,7 +127,8 @@ def submit_fda_verification_response(
 
 
     # ADDED — notify LEA of the outcome, before commit, same transaction
-    notify_lea_fda_responded(db, complaint)
+    notify_lea_fda_responded(db, complaint) #ADDED for notification to LEA personnel that FDA has responded to the verification request
+    notify_fda_peers_responded(db, complaint, current_user)  # ADDED for notification to FDA personnel in the same region that a colleague has responded to the verification request
 
     # One commit at the end — if anything above raised, nothing here
     # has been written yet, so verification_requests and complaints
@@ -197,6 +201,7 @@ def reject_fda_verification_response(
     ).delete()
 
     notify_lea_fda_rejected(db, complaint, verification_request)  # ADDED for notification to LEA personnel that the verification request has been rejected
+    notify_fda_peers_rejected(db, complaint, current_user)  # ADDED for notification to FDA personnel in the same region that a colleague has rejected the verification request
 
     db.commit()
     db.refresh(verification_request)
