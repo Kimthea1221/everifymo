@@ -16,9 +16,9 @@ from app.desktop.schemas.complaints.complaints import SharedFileResponse
 # on the existing VerificationRequestDraft row.
 class VerificationRequestCreate(BaseModel):
     complaint_id: UUID
-    product_code: str | None = None
+    product_code: str | None = Field(None, max_length=100)
     priority: Priority
-    notes_to_fda: str
+    notes_to_fda: str = Field(..., min_length=10, max_length=2000)
 
 
 class VerificationRequestResponse(BaseModel):
@@ -69,8 +69,8 @@ class FdaVerificationSubmitRequest(BaseModel):
     verification_status: FdaVerificationStatusChoice
     cpr_number: str | None = Field(None, max_length=100)
     cpr_expiry: date | None = None
-    response_notes: str | None = None
-    unregistered_reason: str | None = None
+    response_notes: str | None = Field(None, max_length=2000)
+    unregistered_reason: str | None = Field(None, max_length=2000)
 
 
 # Built manually in the router from (VerificationRequest, Complaint)
@@ -90,7 +90,7 @@ class FdaVerificationSubmitResponse(BaseModel):
 
 
 class FdaVerificationRejectRequest(BaseModel):
-    rejection_reason: NonEmptyStr
+    rejection_reason: NonEmptyStr = Field(..., min_length=10, max_length=2000)
 
 
 class FdaVerificationRejectResponse(BaseModel):
@@ -263,7 +263,7 @@ class LeaFdaResponseDetailResponse(BaseModel):
 
 # Optional, confirm later if it becomes required.
 class LeaInitiateTakedownRequest(BaseModel):
-    field_operation_notes: str | None = None
+    field_operation_notes: str | None = Field(None, max_length=2000)
 
 class LeaFdaResponseActionResponse(BaseModel):
     request_id: UUID
