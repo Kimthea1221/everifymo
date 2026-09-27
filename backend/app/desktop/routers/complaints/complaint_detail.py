@@ -152,7 +152,7 @@ def get_dashboard_trends(
 def list_complaints(
     status: List[str] = Query(None),
     source: str | None = Query(None),
-    search: str | None = Query(None),
+    search: str | None = Query(None, max_length=150),
     category: str | None = Query(None),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -375,7 +375,7 @@ def close_case_endpoint(
     # GET /complaints/fda-reports
 @router.get("/fda-reports", response_model=list[FdaComplaintListItem])
 def list_fda_reports_endpoint(
-    search: str | None = None,
+    search: str | None = Query(None, max_length=150),
     category: str | None = None,
     status: str | None = None,
     source: str | None = None,

@@ -158,8 +158,14 @@ function LeaNewIntake() {
     }
   }
 
-  // Validate an individual field and return its error string (if any)
-  const validateSingleField = (field, value) => {
+  // lea-new-intake.jsx — validateSingleField
+  // CHANGED — added a second parameter so callers can distinguish
+  // "live typing feedback" (skip required/min-length) from
+  // "full submit validation" (enforce everything). Previously handleBlur
+  // and validateForm called this identically, so leaving a field early
+  // while typing showed the same "required"/"too short" errors that
+  // should only appear on a real submit attempt.
+  const validateSingleField = (field, value, { requireField = true } = {}) => {
     if (field === 'fullName') {
       if (value && value.trim()) {
         const nameRegex = /^[a-zA-Z\s.'\-]+$/
@@ -195,65 +201,80 @@ function LeaNewIntake() {
     }
 
     if (field === 'productName') {
-      if (!value || !value.trim()) {
-        return 'Product Name is required.'
-      }
-      if (value.trim().length < 2) {
-        return 'Product Name must be at least 2 characters.'
+      // CHANGED — required/min-length only enforced when requireField is true
+      if (requireField) {
+        if (!value || !value.trim()) {
+          return 'Product Name is required.'
+        }
+        if (value.trim().length < 2) {
+          return 'Product Name must be at least 2 characters.'
+        }
       }
       return ''
     }
 
     if (field === 'manufacturer') {
-      if (!value || !value.trim()) {
-        return 'Manufacturer/Seller is required.'
-      }
-      if (value.trim().length < 2) {
-        return 'Manufacturer/Seller must be at least 2 characters.'
+      if (requireField) {
+        if (!value || !value.trim()) {
+          return 'Manufacturer/Seller is required.'
+        }
+        if (value.trim().length < 2) {
+          return 'Manufacturer/Seller must be at least 2 characters.'
+        }
       }
       return ''
     }
 
     if (field === 'productCategory') {
-      if (!value || !value.trim()) {
-        return 'Category is required.'
+      if (requireField) {
+        if (!value || !value.trim()) {
+          return 'Category is required.'
+        }
       }
       return ''
     }
 
     if (field === 'placeOfPurchase') {
-      if (!value || !value.trim()) {
-        return 'Place of Purchase is required.'
-      }
-      if (value.trim().length < 2) {
-        return 'Place of Purchase must be at least 2 characters.'
+      if (requireField) {
+        if (!value || !value.trim()) {
+          return 'Place of Purchase is required.'
+        }
+        if (value.trim().length < 2) {
+          return 'Place of Purchase must be at least 2 characters.'
+        }
       }
       return ''
     }
 
     if (field === 'dateOfPurchase') {
-      if (!value || !value.trim()) {
-        return 'Date of Purchase is required.'
+      // Future-date check stays unconditional — that's a format problem,
+      // not a "not filled in yet" problem, so it's still useful mid-draft
+      if (requireField) {
+        if (!value || !value.trim()) {
+          return 'Date of Purchase is required.'
+        }
       }
-      const selectedDate = new Date(value)
-      const today = new Date()
-      today.setHours(23, 59, 59, 999)
-      if (selectedDate > today) {
-        return 'Date of Purchase cannot be in the future.'
+      if (value && value.trim()) {
+        const selectedDate = new Date(value)
+        const today = new Date()
+        today.setHours(23, 59, 59, 999)
+        if (selectedDate > today) {
+          return 'Date of Purchase cannot be in the future.'
+        }
       }
       return ''
     }
 
     if (field === 'amountPaid') {
+      // Unchanged — already correctly format-only (never required),
+      // no requireField gating needed here
       if (value !== '' && value !== null && value !== undefined) {
         if (Number(value) < 0) {
           return 'Amount Paid cannot be negative.'
         }
-        // ADDED — reject more than 2 decimal places (catches pasted values, since onChange only guards typed keystrokes)
         if (!/^\d+(\.\d{1,2})?$/.test(String(value))) {
           return 'Amount Paid can have at most 2 decimal places.'
         }
-        // CHANGED — matches DECIMAL(10,2): 8 integer digits max
         if (Number(value) > 99999999.99) {
           return 'Amount Paid cannot exceed 99,999,999.99.'
         }
@@ -262,20 +283,24 @@ function LeaNewIntake() {
     }
 
     if (field === 'natureOfComplaint') {
-      if (!value || !value.trim()) {
-        return 'Nature of Complaint is required.'
-      }
-      if (value.trim().length < 10) {
-        return 'Nature of Complaint must be at least 10 characters.'
+      if (requireField) {
+        if (!value || !value.trim()) {
+          return 'Nature of Complaint is required.'
+        }
+        if (value.trim().length < 10) {
+          return 'Nature of Complaint must be at least 10 characters.'
+        }
       }
       return ''
     }
 
     if (field === 'attachments') {
-      const { files: fList, existingAttachments: eList } = value || {}
-      const isEditingWithExisting = (editingDraftId || editingComplaintId)
-      if ((!fList || fList.length === 0) && (!isEditingWithExisting || !eList || eList.length === 0)) {
-        return 'Please attach at least one supporting document or photo.'
+      if (requireField) {
+        const { files: fList, existingAttachments: eList } = value || {}
+        const isEditingWithExisting = (editingDraftId || editingComplaintId)
+        if ((!fList || fList.length === 0) && (!isEditingWithExisting || !eList || eList.length === 0)) {
+          return 'Please attach at least one supporting document or photo.'
+        }
       }
       return ''
     }
@@ -286,17 +311,25 @@ function LeaNewIntake() {
   // Optional fields list for real-time format validation
   const optionalFields = ['fullName', 'contactNumber', 'email', 'amountPaid']
 
-  // Handles blurring an input — marks field as touched and computes error
+  // lea-new-intake.jsx — handleBlur
+  // CHANGED — pass requireField: false so leaving a field early only
+  // surfaces real format problems (bad email, negative amount, future
+  // date), never "required"/"too short" — those belong to a real submit
+  // attempt only, not to normal mid-draft typing
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }))
-    const fieldError = validateSingleField(field, getFieldValue(field))
+    const fieldError = validateSingleField(field, getFieldValue(field), { requireField: false })
     setErrors((prev) => ({ ...prev, [field]: fieldError }))
   }
 
-  // Handles value changes — updates state & performs real-time format validation on typing
+  // lea-new-intake.jsx — handleChangeField
+  // CHANGED — pass requireField: false, matching the same fix applied to
+  // handleBlur. Real-time typing feedback should only catch actual format
+  // problems (e.g. a future date, invalid characters) — not "required" or
+  // "too short," which should only block a real submit attempt.
   const handleChangeField = (field, setter, val) => {
     setter(val)
-    const err = validateSingleField(field, val)
+    const err = validateSingleField(field, val, { requireField: false })
 
     if (optionalFields.includes(field)) {
       setErrors((prev) => ({ ...prev, [field]: err }))
