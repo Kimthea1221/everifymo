@@ -22,7 +22,7 @@ class NotificationListResponse(BaseModel):
 
 class UnreadCountResponse(BaseModel):
     unread_count: int
-
+    latest_notification: NotificationResponse | None = None  # ADDED
 
 class MarkReadResponse(BaseModel):
     notification_id: UUID
