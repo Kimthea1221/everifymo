@@ -32,6 +32,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "closeEverifyModal" && modal) {
+    modal.style.display = "none";
+  }
+});
+
 document.addEventListener("mouseup", () => {
     clearTimeout(debounceTimer);
  
