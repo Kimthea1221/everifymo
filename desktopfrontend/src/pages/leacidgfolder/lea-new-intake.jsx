@@ -198,12 +198,18 @@ function LeaNewIntake() {
       if (!value || !value.trim()) {
         return 'Product Name is required.'
       }
+      if (value.trim().length < 2) {
+        return 'Product Name must be at least 2 characters.'
+      }
       return ''
     }
 
     if (field === 'manufacturer') {
       if (!value || !value.trim()) {
         return 'Manufacturer/Seller is required.'
+      }
+      if (value.trim().length < 2) {
+        return 'Manufacturer/Seller must be at least 2 characters.'
       }
       return ''
     }
@@ -218,6 +224,9 @@ function LeaNewIntake() {
     if (field === 'placeOfPurchase') {
       if (!value || !value.trim()) {
         return 'Place of Purchase is required.'
+      }
+      if (value.trim().length < 2) {
+        return 'Place of Purchase must be at least 2 characters.'
       }
       return ''
     }
@@ -255,6 +264,9 @@ function LeaNewIntake() {
     if (field === 'natureOfComplaint') {
       if (!value || !value.trim()) {
         return 'Nature of Complaint is required.'
+      }
+      if (value.trim().length < 10) {
+        return 'Nature of Complaint must be at least 10 characters.'
       }
       return ''
     }
@@ -648,6 +660,7 @@ function LeaNewIntake() {
                       placeholder='Ex. 09XXXXXXXXX'
                       value={contactNumber}
                       onChange={(e) => handleChangeField('contactNumber', setContactNumber, e.target.value)}
+                      maxLength={11}
                       onBlur={() => handleBlur('contactNumber')}
                       className={errors.contactNumber ? 'InputErrorBorder' : ''}
                     />
@@ -667,6 +680,7 @@ function LeaNewIntake() {
                       placeholder='consumer@gmail.com'
                       value={email}
                       onChange={(e) => handleChangeField('email', setEmail, e.target.value)}
+                      maxLength={254}
                       onBlur={() => handleBlur('email')}
                       className={errors.email ? 'InputErrorBorder' : ''}
                     />
@@ -700,6 +714,7 @@ function LeaNewIntake() {
                   placeholder='Ex. Florida'
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                  maxLength={300}
                 />
               </div>
 
@@ -714,6 +729,8 @@ function LeaNewIntake() {
                       placeholder='Ex. Herbal Slim'
                       value={productName}
                       onChange={(e) => handleChangeField('productName', setProductName, e.target.value)}
+                      maxLength={150}
+                      minLength={2}
                       onBlur={() => handleBlur('productName')}
                       className={errors.productName ? 'InputErrorBorder' : ''}
                     />
@@ -731,6 +748,8 @@ function LeaNewIntake() {
                       placeholder='Ex. Naturefit labs'
                       value={manufacturer}
                       onChange={(e) => handleChangeField('manufacturer', setManufacturer, e.target.value)}
+                      maxLength={150}
+                      minLength={2}
                       onBlur={() => handleBlur('manufacturer')}
                       className={errors.manufacturer ? 'InputErrorBorder' : ''}
                     />
@@ -772,6 +791,8 @@ function LeaNewIntake() {
                       placeholder='Public market, online seller etc.'
                       value={placeOfPurchase}
                       onChange={(e) => handleChangeField('placeOfPurchase', setPlaceOfPurchase, e.target.value)}
+                      maxLength={300}
+                      minLength={2}
                       onBlur={() => handleBlur('placeOfPurchase')}
                       className={errors.placeOfPurchase ? 'InputErrorBorder' : ''}
                     />
@@ -836,6 +857,8 @@ function LeaNewIntake() {
                   placeholder='Statement of the complainant.'
                   value={natureOfComplaint}
                   onChange={(e) => handleChangeField('natureOfComplaint', setNatureOfComplaint, e.target.value)}
+                  maxLength={2000}
+                  minLength={10}
                   onBlur={() => handleBlur('natureOfComplaint')}
                   className={errors.natureOfComplaint ? 'InputErrorBorder' : ''}
                 ></textarea>

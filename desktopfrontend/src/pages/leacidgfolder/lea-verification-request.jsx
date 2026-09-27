@@ -705,6 +705,11 @@ function LeaVerificationRequest() {
       return;
     }
 
+    if (complaintStatement.trim().length < 10) {
+      showError('Notes to FDA verifier must be at least 10 characters.');
+      return;
+    }
+
     try {
       let res;
       if (currentDraftId) {
@@ -1168,6 +1173,7 @@ function LeaVerificationRequest() {
                           className="LeaCategoriesSearchInput"
                           value={readySearch}
                           onChange={(e) => setReadySearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
@@ -1291,6 +1297,7 @@ function LeaVerificationRequest() {
                               placeholder="Barcode / lot number"
                               value={productCode}
                               onChange={(e) => setProductCode(e.target.value)}
+                              maxLength={100}
                             />
                           </div>
 
@@ -1314,6 +1321,8 @@ function LeaVerificationRequest() {
                             placeholder="Enter notes for FDA verification..."
                             value={complaintStatement}
                             onChange={(e) => setComplaintStatement(e.target.value)}
+                            maxLength={2000}
+                            minLength={10}
                           ></textarea>
                         </div>
 
@@ -1404,6 +1413,7 @@ function LeaVerificationRequest() {
                           className="LeaCategoriesSearchInput"
                           value={awaitingSearch}
                           onChange={(e) => setAwaitingSearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
@@ -1455,10 +1465,10 @@ function LeaVerificationRequest() {
 
                           {item.priority && (
                             <span className={`QueueStatusBadge ${(item.priority || '').toLowerCase() === 'standard'
-                                ? 'registered'
-                                : (item.priority || '').toLowerCase() === 'high'
-                                  ? 'rejected'
-                                  : 'unregistered'
+                              ? 'registered'
+                              : (item.priority || '').toLowerCase() === 'high'
+                                ? 'rejected'
+                                : 'unregistered'
                               }`}>
                               {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
                             </span>
@@ -1627,6 +1637,7 @@ function LeaVerificationRequest() {
                           className="LeaCategoriesSearchInput"
                           value={responseSearch}
                           onChange={(e) => setResponseSearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
@@ -1884,6 +1895,7 @@ function LeaVerificationRequest() {
                                     placeholder="Operation conducted at seller's address on 2026-05-18. Product siezed, takedown notice served."
                                     value={fdaTakedownNotes}
                                     onChange={(e) => setFdaTakedownNotes(e.target.value)}
+                                    maxLength={2000}
                                   ></textarea>
                                 </div>
 
@@ -1932,6 +1944,7 @@ function LeaVerificationRequest() {
                           className="LeaCategoriesSearchInput"
                           value={initiatedSearch}
                           onChange={(e) => setInitiatedSearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
@@ -2055,6 +2068,7 @@ function LeaVerificationRequest() {
                                 placeholder="Enter notes on field operation progress..."
                                 value={initiatedFieldNotes}
                                 onChange={(e) => setInitiatedFieldNotes(e.target.value)}
+                                maxLength={2000}
                               ></textarea>
                             </div>
                             <div className='ResponseBtn' style={{ marginTop: '20px' }}>
@@ -2090,6 +2104,7 @@ function LeaVerificationRequest() {
                           className="LeaSearchInput"
                           value={dismissedSearch}
                           onChange={(e) => setDismissedSearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                     </div>

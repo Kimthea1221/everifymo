@@ -459,6 +459,7 @@ useEffect(() => {
                 type="text"
                 placeholder="Search product, manufacturer, ID..."
                 className="FdaSearchInput"
+                maxLength={150}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);

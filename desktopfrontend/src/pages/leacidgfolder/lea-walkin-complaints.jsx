@@ -395,6 +395,7 @@ function LeaWalkinComplaints() {
                   placeholder="Search Case ID, Product or Complainant..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  maxLength={150}
                 />
               </div>
               <div className="DraftsFilterRight">
