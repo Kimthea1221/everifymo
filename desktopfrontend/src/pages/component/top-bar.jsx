@@ -806,6 +806,12 @@ function TopBar({ topbarType, role, agency }) {
                     color: #4b5563;
                     margin-bottom: 4px;
                     line-height: 1.4;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    word-break: break-word;
                 }
 
                 .NotifItemTime {
@@ -1227,7 +1233,7 @@ function TopBar({ topbarType, role, agency }) {
                       >
                         <div className='NotifContent'>
                           <div className='NotifItemTitle'>{notif.title}</div>
-                          <div className='NotifItemMsg'>{notif.message}</div>
+                          <div className='NotifItemMsg' title={notif.message}>{notif.message}</div>
                           <div className='NotifItemTime'>{notif.time}</div>
                         </div>
                         {!notif.isRead && <div className='NotifBadgeDot'></div>}
