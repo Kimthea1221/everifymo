@@ -218,7 +218,7 @@ function LeaSavedDraft() {
             </div>
           </div>
 
-          <div className="VerificationTabs" style={{ marginBottom: '20px' }}>
+          <div className="VerificationTabs">
             <div className="VerificationTabsButton">
               <button
                 className={`ButtonTab ${activeTab === 'All' ? 'active' : ''}`}
