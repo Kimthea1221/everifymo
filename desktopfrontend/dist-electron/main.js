@@ -29,18 +29,18 @@ function createWindow() {
 }
 console.log("argv:", process.argv);
 console.log("execPath:", process.execPath);
-if (process.env.VITE_DEV_SERVER_URL) app.setAsDefaultProtocolClient("producheck", process.execPath, [path.resolve(process.argv[1])]);
-else app.setAsDefaultProtocolClient("producheck");
+if (process.env.VITE_DEV_SERVER_URL) app.setAsDefaultProtocolClient("icmda", process.execPath, [path.resolve(process.argv[1])]);
+else app.setAsDefaultProtocolClient("icmda");
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
 	app.on("second-instance", (event, argv) => {
-		const url = argv.find((arg) => arg.startsWith("producheck://"));
+		const url = argv.find((arg) => arg.startsWith("icmda://"));
 		if (url) handleDeepLink(url);
 	});
 	app.whenReady().then(() => {
 		Menu.setApplicationMenu(null);
 		createWindow();
-		const launchUrl = process.argv.find((arg) => arg.startsWith("producheck://"));
+		const launchUrl = process.argv.find((arg) => arg.startsWith("icmda://"));
 		if (launchUrl) handleDeepLink(launchUrl);
 	});
 }
