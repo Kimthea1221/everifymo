@@ -677,7 +677,7 @@ function FDAVerification() {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fdaSearchQuery, fdaPriorityFilter]);
+  }, [fdaSearchQuery, fdaPriorityFilter, dataRefreshTrigger]);
 
 
   // ADDED — whenever selectedQueueItem changes (either from a manual card click
@@ -894,6 +894,31 @@ function FDAVerification() {
           triggerAlert(errMsg, 'danger');
           return;
         }
+
+        const draftData = await res.json().catch(() => null);
+
+        // Update active queue item and queue list to reflect saved draft
+        if (currentItem) {
+          const updatedItem = {
+            ...currentItem,
+            has_draft: true,
+            draft_id: draftData?.draft_id ?? currentItem.draft_id,
+            draft_status: draftData?.draft_status ?? 'draft',
+          };
+          setSelectedQueueItem(updatedItem);
+          setSelectedQueueDetail((prev) => (prev ? { ...prev, has_draft: true, draft_id: draftData?.draft_id ?? prev.draft_id } : prev));
+          setFdaQueueList((prev) =>
+            prev.map((item) =>
+              item.request_id === currentItem.request_id
+                ? { ...item, has_draft: true, draft_id: draftData?.draft_id ?? item.draft_id }
+                : item
+            )
+          );
+        }
+
+        // Re-fetch badge counts and trigger queue refresh (same mechanism as Submit/Reject)
+        fetchCounts();
+        setDataRefreshTrigger((prev) => prev + 1);
 
         triggerAlert(`Draft saved successfully for Case ID ${currentItem.case_reference}.`, 'success');
         setFdaModalConfig(null);
