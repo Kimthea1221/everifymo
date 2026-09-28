@@ -1113,19 +1113,16 @@ function PersonnelLoginForm({ navigate, onOtpStateChange, sessionMessage  }) {
   useEffect(() => {
     const key = rememberedEmailKey(personnelAgency);
     if (!key) {
-      setPersonnelEmail('');
-      setPersonnelRememberMe(false);
       return;
     }
 
     const savedEmail = localStorage.getItem(key);
 
-    if (savedEmail) {
+    if (savedEmail && personnelEmail.trim() === '') {
+      // Only auto-fill if the user hasn't already typed something —
+      // never overwrite or clear an in-progress email
       setPersonnelEmail(savedEmail);
       setPersonnelRememberMe(true);
-    } else {
-      setPersonnelEmail('');
-      setPersonnelRememberMe(false);
     }
   }, [personnelAgency]);
 
@@ -1241,9 +1238,13 @@ function PersonnelLoginForm({ navigate, onOtpStateChange, sessionMessage  }) {
     if (personnelErrors.password) setPersonnelErrors((prev) => ({ ...prev, password: '' }));
   }
 
- function handlePersonnelAgencyChange(value) {
-  setPersonnelAgency(value);
-  setPersonnelPassword('');
+ function handlePersonnelAgencyChange(newAgency) {
+  if (personnelAgency && personnelAgency !== newAgency) {
+    // Agency was already selected, and it's genuinely changing — clear password only
+    setPersonnelPassword('');
+  }
+  // If personnelAgency was empty (first-time selection) or newAgency === personnelAgency, do nothing to password
+  setPersonnelAgency(newAgency);
 
   if (personnelErrors.agency) {
     setPersonnelErrors((prev) => ({ ...prev, agency: '' }));
