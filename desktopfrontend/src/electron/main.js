@@ -21,7 +21,7 @@ function createWindow() {
   })
 
   // Open DevTools
-  //mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 
   // Stash the token here if it arrives before React has finished loading and
   // listening — we'll deliver it below, once did-finish-load confirms React is ready.
@@ -45,7 +45,7 @@ console.log('argv:', process.argv)
 console.log('execPath:', process.execPath)
 
 if (process.env.VITE_DEV_SERVER_URL) {
-    // Dev mode needs extra info so Windows knows how to relaunch our dev setup
+  // Dev mode needs extra info so Windows knows how to relaunch our dev setup
   app.setAsDefaultProtocolClient('icmda', process.execPath, [path.resolve(process.argv[1])])
 } else {
   app.setAsDefaultProtocolClient('icmda')
@@ -55,7 +55,7 @@ if (process.env.VITE_DEV_SERVER_URL) {
 // Only one copy of the app should ever run at once
 const gotLock = app.requestSingleInstanceLock()
 
-if (!gotLock) {   
+if (!gotLock) {
   app.quit()  // Another copy is already running — quit this redundant one immediately
 } else {
   // Windows/Linux: app was already running, link was clicked again
@@ -74,7 +74,7 @@ if (!gotLock) {
   })
 }
 
-    // temporary testing TT remove before packaging or handing off
+// temporary testing TT remove before packaging or handing off
 /* app.whenReady().then(() => {
   createWindow()
 

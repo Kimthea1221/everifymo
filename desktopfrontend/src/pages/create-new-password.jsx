@@ -44,7 +44,7 @@ function CreateNewPassword() {
   const [submitting, setSubmitting] = useState(false);
 
   const checks = {
-    length: form.newPassword.length >= 8,
+    length: form.newPassword.length >= 8 && form.newPassword.length <= 64,
     uppercase: /[A-Z]/.test(form.newPassword),
     number: /[0-9]/.test(form.newPassword),
     special: /[^A-Za-z0-9]/.test(form.newPassword),
@@ -200,6 +200,7 @@ function CreateNewPassword() {
                   placeholder="Enter new password"
                   value={form.newPassword}
                   onChange={handleChange}
+                  maxLength={64}
                 />
                 <button
                   type="button"
@@ -225,6 +226,7 @@ function CreateNewPassword() {
                   placeholder="Confirm your password"
                   value={form.confirmPassword}
                   onChange={handleChange}
+                  maxLength={64}
                 />
                 <button
                   type="button"
@@ -254,7 +256,7 @@ function CreateNewPassword() {
               <p className="CNPReqTitle">Password requirements:</p>
               <ul className="CNPReqList">
                 <li className={`CNPReqItem ${checks.length ? 'req-met' : 'req-unmet'}`}>
-                  {checks.length ? '✅' : '❌'} At least 8 characters
+                  {checks.length ? '✅' : '❌'} At least 8 characters (max 64)
                 </li>
                 <li className={`CNPReqItem ${checks.uppercase ? 'req-met' : 'req-unmet'}`}>
                   {checks.uppercase ? '✅' : '❌'} At least one uppercase letter

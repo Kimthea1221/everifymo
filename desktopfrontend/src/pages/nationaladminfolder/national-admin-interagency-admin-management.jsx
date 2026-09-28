@@ -406,8 +406,62 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
     if (name === 'contactNumber') {
       const digitsOnly = value.replace(/\D/g, '').slice(0, 11);
       setFormData((prev) => ({ ...prev, [name]: digitsOnly }));
-      if (formErrors[name]) {
-        setFormErrors((prev) => ({ ...prev, [name]: '' }));
+
+      if (!digitsOnly) {
+        setFormErrors((prev) => ({ ...prev, contactNumber: 'Contact number is required.' }));
+      } else if (digitsOnly.length < 11) {
+        setFormErrors((prev) => ({ ...prev, contactNumber: 'Contact number must be at least 11 digits.' }));
+      } else if (!digitsOnly.startsWith('09')) {
+        setFormErrors((prev) => ({ ...prev, contactNumber: 'Enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).' }));
+      } else {
+        setFormErrors((prev) => ({ ...prev, contactNumber: undefined }));
+      }
+      return;
+    }
+
+    if (name === 'email') {
+      setFormData((prev) => ({ ...prev, email: value }));
+      if (!value.trim()) {
+        setFormErrors((prev) => ({ ...prev, email: '' }));
+      } else {
+        const err = validateEmail(value.trim());
+        setFormErrors((prev) => ({ ...prev, email: err || '' }));
+      }
+      return;
+    }
+
+    if (name === 'firstName') {
+      setFormData((prev) => ({ ...prev, firstName: value }));
+      if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(value)) {
+        setFormErrors((prev) => ({ ...prev, firstName: 'First Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+      } else if (!value.trim()) {
+        setFormErrors((prev) => ({ ...prev, firstName: 'First Name is required.' }));
+      } else {
+        setFormErrors((prev) => ({ ...prev, firstName: undefined }));
+      }
+      return;
+    }
+
+    if (name === 'middleName') {
+      setFormData((prev) => ({ ...prev, middleName: value }));
+      if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(value)) {
+        setFormErrors((prev) => ({ ...prev, middleName: 'Middle Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+      } else if (value.trim().length > 0 && value.trim().length < 2) {
+        setFormErrors((prev) => ({ ...prev, middleName: 'Middle Name must be at least 2 characters if provided.' }));
+      } else {
+        setFormErrors((prev) => ({ ...prev, middleName: undefined }));
+      }
+      return;
+    }
+
+    if (name === 'lastName') {
+      setFormData((prev) => ({ ...prev, lastName: value }));
+      if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(value)) {
+        setFormErrors((prev) => ({ ...prev, lastName: 'Last Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+      } else if (!value.trim()) {
+        setFormErrors((prev) => ({ ...prev, lastName: 'Last Name is required.' }));
+      } else {
+        setFormErrors((prev) => ({ ...prev, lastName: undefined }));
       }
       return;
     }
@@ -516,6 +570,7 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
                     className={`NAMInput with-icon ${formErrors.firstName ? 'input-error' : ''}`}
                     placeholder="e.g. Juan"
                     value={formData.firstName}
+                    maxLength={50}
                     onChange={handleInputChange}
                     disabled={sending}
                     autoFocus
@@ -535,13 +590,19 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
                   <input
                     type="text"
                     name="middleName"
-                    className="NAMInput with-icon"
+                    className={`NAMInput with-icon ${formErrors.middleName ? 'input-error' : ''}`}
                     placeholder="Optional"
                     value={formData.middleName}
+                    maxLength={50}
                     onChange={handleInputChange}
                     disabled={sending}
                   />
                 </div>
+                {formErrors.middleName && (
+                  <span className="NAMFieldError">
+                    <AlertCircle size={12} /> {formErrors.middleName}
+                  </span>
+                )}
               </div>
 
               <div className="NAMFormGroup">
@@ -556,6 +617,7 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
                     className={`NAMInput with-icon ${formErrors.lastName ? 'input-error' : ''}`}
                     placeholder="e.g. Dela Cruz"
                     value={formData.lastName}
+                    maxLength={50}
                     onChange={handleInputChange}
                     disabled={sending}
                   />
@@ -580,6 +642,7 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
                     className={`NAMInput with-icon ${formErrors.employeeId ? 'input-error' : ''}`}
                     placeholder="e.g. EMP-2026-001"
                     value={formData.employeeId}
+                    maxLength={50}
                     onChange={handleInputChange}
                     disabled={sending}
                   />
@@ -629,6 +692,7 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
                   className={`NAMInput with-icon ${formErrors.email ? 'input-error' : ''}`}
                   placeholder="e.g. admin.officer@agency.gov.ph"
                   value={formData.email}
+                  maxLength={254}
                   onChange={handleInputChange}
                   disabled={sending}
                 />
@@ -715,6 +779,7 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
                     className={`NAMInput with-icon ${formErrors.department ? 'input-error' : ''}`}
                     placeholder="e.g. Operations Division"
                     value={formData.department}
+                    maxLength={150}
                     onChange={handleInputChange}
                     disabled={sending}
                   />
@@ -736,6 +801,7 @@ function AddRegionalAdminModal({ open, onClose, onAddSuccess, regions, regionsLo
                     className={`NAMInput with-icon ${formErrors.position ? 'input-error' : ''}`}
                     placeholder="e.g. Regional Admin Officer"
                     value={formData.position}
+                    maxLength={150}
                     onChange={handleInputChange}
                     disabled={sending}
                   />
@@ -1068,6 +1134,7 @@ export default function NationalAdminRegionalAdminManagement() {
           httpErr.isHttpError = true;
           throw httpErr;
         }
+        const resData = await res.json().catch(() => ({}));
         setRegionalAdmins((prev) =>
           prev.map((a) => {
             if (a.id !== targetId) return a;
@@ -1079,6 +1146,14 @@ export default function NationalAdminRegionalAdminManagement() {
             }
             if (actionType === 'unlock') {
               return { ...a, status: 'Active', is_locked: false };
+            }
+            if (actionType === 'resend') {
+              return {
+                ...a,
+                status: 'Invited',
+                invitation_date: resData.invitation_date ?? a.invitation_date,
+                expiration_date: resData.expiration_date ?? a.expiration_date,
+              };
             }
             return a;
           })

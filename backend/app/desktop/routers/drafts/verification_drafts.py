@@ -171,7 +171,7 @@ def delete_verification_draft(
 @router.get("/", response_model=list[VerificationRequestDraftResponse])
 def list_verification_drafts(
     status: DraftStatus | None = Query(None),
-    search: str | None = Query(None),
+    search: str | None = Query(None, max_length=150),
     sort: SortOption = Query(SortOption.recently_edited),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
