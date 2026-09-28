@@ -218,7 +218,7 @@ function LeaSavedDraft() {
             </div>
           </div>
 
-          <div className="VerificationTabs" style={{ marginBottom: '20px' }}>
+          <div className="VerificationTabs">
             <div className="VerificationTabsButton">
               <button
                 className={`ButtonTab ${activeTab === 'All' ? 'active' : ''}`}
@@ -256,6 +256,7 @@ function LeaSavedDraft() {
                   placeholder="Search by Product Name or Product Category..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  maxLength={150}
                 />
               </div>
 
@@ -487,7 +488,7 @@ function LeaSavedDraft() {
       {/* ADDED — View Draft Modal (read-only), same modal classes as the delete confirm modal */}
       {viewModalData && (
         <div className='ModalOverlay'>
-          <div className='ModalBox'>
+          <div className='ModalBox' style={{ width: '580px', maxWidth: '90vw' }}>
             <h3>Draft Details</h3>
             <p><strong>Type:</strong> {GetDraftTypeLabel(viewModalData.draft_type)}</p>
             <p><strong>Product Category:</strong> {viewModalData.product_category}</p>

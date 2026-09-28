@@ -3,7 +3,7 @@ import logging
 import mimetypes
 from typing import Annotated, List
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pathlib import Path
@@ -21,6 +21,8 @@ from app.core.constants import AuditAction
 
 from fastapi.responses import FileResponse
 
+from app.desktop.schemas.complaints.complaints import StatusUpdateRequest
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -35,14 +37,10 @@ STATUS_LABELS = {
     "dismissed": "Dismissed",
 }
 
-class StatusUpdateRequest(BaseModel):
-    status: str
-    change_note: str | None = None
-
 FINAL_STATUSES = {"completed", "dismissed"}
 
 ALLOWED_TRANSITIONS = {
-    "open": {"under_review"},
+    "open": {"under_review", "takedown_requested", "completed", "dismissed"},
     "under_review": {"takedown_requested", "completed", "dismissed"},
     "takedown_requested": {"completed", "dismissed"},  # no going back to under_review
 }
@@ -52,6 +50,7 @@ async def update_complaint_status(
     complaint_id: UUID,
     payload: StatusUpdateRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_personnel), 
 ):
@@ -138,18 +137,15 @@ async def update_complaint_status(
         )
 
     if recipient_email:
-        try:
-            await send_status_update_email(
-                to_email=recipient_email,
-                product_title=complaint.product_title,
-                case_reference=complaint.case_reference,
-                new_status_label=STATUS_LABELS.get(complaint.status, complaint.status),
-                new_status_code=complaint.status,
-                change_note=payload.change_note,
-            )
-        except Exception as e:
-            logger.error(f"Failed to send status update email for {complaint.complaint_id}: {e}")
-            notification_warning = "Status was updated, but the email notification failed to send."
+        background_tasks.add_task(
+            send_status_update_email,
+            to_email=recipient_email,
+            product_title=complaint.product_title,
+            case_reference=complaint.case_reference,
+            new_status_label=STATUS_LABELS.get(complaint.status, complaint.status),
+            new_status_code=complaint.status,
+            change_note=payload.change_note,
+        )
 
     return {
         "complaintId": str(complaint.complaint_id),

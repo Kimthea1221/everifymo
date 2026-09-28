@@ -545,37 +545,42 @@ function LeaVerificationRequest() {
 
   // ADDED (Part 1) — server-side fetch for Closed Cases tab.
   // Search input is debounced (300ms); all other filter/page changes fire immediately.
-  // Only runs when the Closed Cases tab is active.
+  // ADDED — GET /verification-requests/closed-cases
+  // Fetch: Closed Cases list
+  const fetchClosedList = async () => {
+    if (!hasLoadedClosedOnce) {
+      setClosedLoading(true);
+    }
+
+    const params = new URLSearchParams();
+    if (dismissedSearch.trim()) params.set('search', dismissedSearch.trim());
+    if (filterCategory) params.set('category', filterCategory);
+    const reasonClosedParam = mapReasonClosedToBackend(filterReasonClosed);
+    if (reasonClosedParam) params.set('reason_closed', reasonClosedParam);
+    if (filterDateFrom) params.set('date_from', filterDateFrom);
+    if (filterDateTo) params.set('date_to', filterDateTo);
+    params.set('page', String(closedPage));
+    params.set('page_size', String(CLOSED_PAGE_SIZE));
+
+    try {
+      const res = await apiFetch(`/verification-requests/closed-cases?${params.toString()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setClosedList(data.items);
+      setClosedTotal(data.total);
+      setHasLoadedClosedOnce(true);
+    } catch {
+      showError('Could not load closed cases.');
+    } finally {
+      setClosedLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab !== 'Closed Cases') return;
 
     const timer = setTimeout(() => {
-      if (!hasLoadedClosedOnce) {
-        setClosedLoading(true);
-      }
-
-      const params = new URLSearchParams();
-      if (dismissedSearch.trim()) params.set('search', dismissedSearch.trim());
-      if (filterCategory) params.set('category', filterCategory);
-      const reasonClosedParam = mapReasonClosedToBackend(filterReasonClosed);
-      if (reasonClosedParam) params.set('reason_closed', reasonClosedParam);
-      if (filterDateFrom) params.set('date_from', filterDateFrom);
-      if (filterDateTo) params.set('date_to', filterDateTo);
-      params.set('page', String(closedPage));
-      params.set('page_size', String(CLOSED_PAGE_SIZE));
-
-      apiFetch(`/verification-requests/closed-cases?${params.toString()}`)
-        .then((res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        })
-        .then((data) => {
-          setClosedList(data.items);
-          setClosedTotal(data.total);
-          setHasLoadedClosedOnce(true);
-        })
-        .catch(() => showError('Could not load closed cases.'))
-        .finally(() => setClosedLoading(false));
+      fetchClosedList();
     }, 300);
 
     return () => clearTimeout(timer);
@@ -705,6 +710,11 @@ function LeaVerificationRequest() {
       return;
     }
 
+    if (complaintStatement.trim().length < 10) {
+      showError('Notes to FDA verifier must be at least 10 characters.');
+      return;
+    }
+
     try {
       let res;
       if (currentDraftId) {
@@ -744,6 +754,9 @@ function LeaVerificationRequest() {
         showError(msg);
         return;
       }
+
+      await fetchReadyList();
+      await fetchLeaCounts();
 
       showSuccess('Verification request sent to FDA.');
       // Reset compose form state
@@ -814,7 +827,8 @@ function LeaVerificationRequest() {
         setProductCode('');
         setComplaintStatement('');
         setPriority('standard');
-        fetchReadyList();
+        await fetchReadyList();
+        await fetchLeaCounts();
       },
       onCancel: () => {
         setModalConfig(null);
@@ -950,6 +964,8 @@ function LeaVerificationRequest() {
             if (actionType === 'Recall Request') {
               setAwaitingList(awaitingList.filter((r) => r.request_id !== id));
               setSelectedAwaitingFda(null);
+              await fetchReadyList();
+              await fetchLeaCounts();
             }
 
             setSuccessMessage(successText);
@@ -976,8 +992,9 @@ function LeaVerificationRequest() {
             setSuccessMessage(successText);
             setModalConfig(null);
             setTimeout(() => setSuccessMessage(''), 3000);
-            fetchFdaResponseList();
-            fetchLeaCounts();
+            await fetchFdaResponseList();
+            await fetchClosedList();
+            await fetchLeaCounts();
           } catch {
             showError('Something went wrong. Please try again.');
             setModalConfig(null);
@@ -1003,8 +1020,9 @@ function LeaVerificationRequest() {
             setModalConfig(null);
             setFdaTakedownNotes('');
             setTimeout(() => setSuccessMessage(''), 3000);
-            fetchFdaResponseList();
-            fetchLeaCounts();
+            await fetchFdaResponseList();
+            await fetchInitiatedList();
+            await fetchLeaCounts();
           } catch {
             showError('Something went wrong. Please try again.');
             setModalConfig(null);
@@ -1031,8 +1049,9 @@ function LeaVerificationRequest() {
             // CHANGED (Part 0) — reset initiatedFieldNotes, not the old shared fieldOperationNotes
             setInitiatedFieldNotes('');
             setTimeout(() => setSuccessMessage(''), 3000);
-            fetchInitiatedList();
-            fetchLeaCounts();
+            await fetchInitiatedList();
+            await fetchClosedList();
+            await fetchLeaCounts();
           } catch {
             showError('Something went wrong. Please try again.');
             setModalConfig(null);
@@ -1168,6 +1187,7 @@ function LeaVerificationRequest() {
                           className="LeaCategoriesSearchInput"
                           value={readySearch}
                           onChange={(e) => setReadySearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
@@ -1291,6 +1311,7 @@ function LeaVerificationRequest() {
                               placeholder="Barcode / lot number"
                               value={productCode}
                               onChange={(e) => setProductCode(e.target.value)}
+                              maxLength={100}
                             />
                           </div>
 
@@ -1314,6 +1335,8 @@ function LeaVerificationRequest() {
                             placeholder="Enter notes for FDA verification..."
                             value={complaintStatement}
                             onChange={(e) => setComplaintStatement(e.target.value)}
+                            maxLength={2000}
+                            minLength={10}
                           ></textarea>
                         </div>
 
@@ -1404,6 +1427,7 @@ function LeaVerificationRequest() {
                           className="LeaCategoriesSearchInput"
                           value={awaitingSearch}
                           onChange={(e) => setAwaitingSearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
@@ -1455,10 +1479,10 @@ function LeaVerificationRequest() {
 
                           {item.priority && (
                             <span className={`QueueStatusBadge ${(item.priority || '').toLowerCase() === 'standard'
-                                ? 'registered'
-                                : (item.priority || '').toLowerCase() === 'high'
-                                  ? 'rejected'
-                                  : 'unregistered'
+                              ? 'registered'
+                              : (item.priority || '').toLowerCase() === 'high'
+                                ? 'rejected'
+                                : 'unregistered'
                               }`}>
                               {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
                             </span>
@@ -1627,6 +1651,7 @@ function LeaVerificationRequest() {
                           className="LeaCategoriesSearchInput"
                           value={responseSearch}
                           onChange={(e) => setResponseSearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
@@ -1884,6 +1909,7 @@ function LeaVerificationRequest() {
                                     placeholder="Operation conducted at seller's address on 2026-05-18. Product siezed, takedown notice served."
                                     value={fdaTakedownNotes}
                                     onChange={(e) => setFdaTakedownNotes(e.target.value)}
+                                    maxLength={2000}
                                   ></textarea>
                                 </div>
 
@@ -1932,6 +1958,7 @@ function LeaVerificationRequest() {
                           className="LeaCategoriesSearchInput"
                           value={initiatedSearch}
                           onChange={(e) => setInitiatedSearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EDEDED', padding: '5px 10px', borderRadius: '6px' }}>
@@ -2055,6 +2082,7 @@ function LeaVerificationRequest() {
                                 placeholder="Enter notes on field operation progress..."
                                 value={initiatedFieldNotes}
                                 onChange={(e) => setInitiatedFieldNotes(e.target.value)}
+                                maxLength={2000}
                               ></textarea>
                             </div>
                             <div className='ResponseBtn' style={{ marginTop: '20px' }}>
@@ -2090,6 +2118,7 @@ function LeaVerificationRequest() {
                           className="LeaSearchInput"
                           value={dismissedSearch}
                           onChange={(e) => setDismissedSearch(e.target.value)}
+                          maxLength={150}
                         />
                       </div>
                     </div>
@@ -2297,7 +2326,7 @@ function LeaVerificationRequest() {
                              reason_detail replaces the hardcoded ternary strings */}
       {viewCaseModalData && (
         <div className="ModalOverlay">
-          <div className="ModalViewButton" style={{ width: '600px' }}>
+          <div className="ModalViewButton" style={{ width: '740px', maxWidth: '92vw' }}>
             <h4 style={{ fontFamily: 'Poppins', fontSize: '20px', fontWeight: '700', color: '#13213C', marginBottom: '16px' }}>
               Case Details — {viewCaseModalData.case_reference}
             </h4>

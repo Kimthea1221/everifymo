@@ -324,11 +324,17 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
 
   function validate() {
     const errs = {};
-    if (!formData.firstName.trim()) errs.firstName = 'First Name is required.';
-    if (!formData.lastName.trim()) errs.lastName = 'Last Name is required.';
+    if (!formData.firstName.trim() || formData.firstName.trim().length < 1) {
+      errs.firstName = 'First Name is required.';
+    }
+    if (!formData.lastName.trim() || formData.lastName.trim().length < 1) {
+      errs.lastName = 'Last Name is required.';
+    }
 
     if (!formData.contactNumber.trim()) {
-      errs.contactNumber = 'Contact Number is required.';
+      errs.contactNumber = 'Contact number is required.';
+    } else if (formData.contactNumber.trim().length < 11) {
+      errs.contactNumber = 'Contact number must be 11 digits.';
     } else {
       const digits = formData.contactNumber.replace(/\D/g, '');
       if (digits.length !== 11 || !digits.startsWith('09')) {
@@ -341,6 +347,22 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
     } else {
       const err = validateEmail(formData.email.trim());
       if (err) errs.email = err;
+    }
+
+    if (formData.middleName.trim().length > 0 && formData.middleName.trim().length < 2) {
+      errs.middleName = 'Middle Name must be at least 2 characters if provided.';
+    }
+
+    if (formData.employeeId.trim().length > 0 && formData.employeeId.trim().length < 3) {
+      errs.employeeId = 'Employee ID must be at least 3 characters if provided.';
+    }
+
+    if (formData.department.trim().length > 0 && formData.department.trim().length < 2) {
+      errs.department = 'Department must be at least 2 characters if provided.';
+    }
+
+    if (formData.position.trim().length > 0 && formData.position.trim().length < 2) {
+      errs.position = 'Position must be at least 2 characters if provided.';
     }
 
     return errs;
@@ -419,7 +441,19 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                       className={`FDAAdminInput ${errors.firstName ? 'input-error' : ''}`}
                       placeholder="e.g. Gabriel"
                       value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      maxLength={50}
+                      minLength={1}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, firstName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, firstName: 'First Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, firstName: 'First Name is required.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, firstName: undefined }));
+                        }
+                      }}
                     />
                   </div>
                   {errors.firstName && (
@@ -435,12 +469,29 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                     <User className="FDAAdminInputIcon" size={17} />
                     <input
                       type="text"
-                      className="FDAAdminInput"
+                      className={`FDAAdminInput ${errors.middleName ? 'input-error' : ''}`}
                       placeholder="e.g. Jose (Optional)"
                       value={formData.middleName}
-                      onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                      maxLength={50}
+                      minLength={2}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, middleName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, middleName: 'Middle Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (val.trim().length > 0 && val.trim().length < 2) {
+                          setErrors((prev) => ({ ...prev, middleName: 'Middle Name must be at least 2 characters if provided.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, middleName: undefined }));
+                        }
+                      }}
                     />
                   </div>
+                  {errors.middleName && (
+                    <span className="FDAAdminFieldError">
+                      <AlertCircle size={12} /> {errors.middleName}
+                    </span>
+                  )}
                 </div>
 
                 <div className="FDAAdminFormGroup">
@@ -454,7 +505,19 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                       className={`FDAAdminInput ${errors.lastName ? 'input-error' : ''}`}
                       placeholder="e.g. Alvarez"
                       value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      maxLength={50}
+                      minLength={1}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, lastName: val }));
+                        if (!/^[A-Za-zÀ-ÿ\s'.-]*$/.test(val)) {
+                          setErrors((prev) => ({ ...prev, lastName: 'Last Name can only contain letters, spaces, hyphens, apostrophes, and periods.' }));
+                        } else if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, lastName: 'Last Name is required.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, lastName: undefined }));
+                        }
+                      }}
                     />
                   </div>
                   {errors.lastName && (
@@ -472,12 +535,27 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                     <Fingerprint className="FDAAdminInputIcon" size={17} />
                     <input
                       type="text"
-                      className="FDAAdminInput"
+                      className={`FDAAdminInput ${errors.employeeId ? 'input-error' : ''}`}
                       placeholder="e.g. FDA-ADM-0104 (Optional)"
                       value={formData.employeeId}
-                      onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                      maxLength={50}
+                      minLength={3}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, employeeId: val }));
+                        if (val.trim().length > 0 && val.trim().length < 3) {
+                          setErrors((prev) => ({ ...prev, employeeId: 'Employee ID must be at least 3 characters if provided.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, employeeId: undefined }));
+                        }
+                      }}
                     />
                   </div>
+                  {errors.employeeId && (
+                    <span className="FDAAdminFieldError">
+                      <AlertCircle size={12} /> {errors.employeeId}
+                    </span>
+                  )}
                 </div>
 
                 <div className="FDAAdminFormGroup">
@@ -489,12 +567,22 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                     <input
                       type="tel"
                       maxLength={11}
+                      minLength={11}
                       className={`FDAAdminInput ${errors.contactNumber ? 'input-error' : ''}`}
                       placeholder="e.g. 09171234567"
                       value={formData.contactNumber}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '').slice(0, 11);
-                        setFormData({ ...formData, contactNumber: val });
+                        setFormData((prev) => ({ ...prev, contactNumber: val }));
+                        if (!val.trim()) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Contact number is required.' }));
+                        } else if (val.trim().length < 11) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Contact number must be at least 11 digits.' }));
+                        } else if (!val.startsWith('09')) {
+                          setErrors((prev) => ({ ...prev, contactNumber: 'Enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, contactNumber: undefined }));
+                        }
                       }}
                     />
                   </div>
@@ -517,7 +605,17 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                     className={`FDAAdminInput ${errors.email ? 'input-error' : ''}`}
                     placeholder="e.g. gabriel.alvarez@fda.gov.ph"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    maxLength={254}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, email: val });
+                      if (!val.trim()) {
+                        setErrors((prev) => ({ ...prev, email: undefined }));
+                      } else {
+                        const err = validateEmail(val.trim());
+                        setErrors((prev) => ({ ...prev, email: err || undefined }));
+                      }
+                    }}
                   />
                 </div>
                 {errors.email && (
@@ -551,12 +649,27 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                     <Building2 className="FDAAdminInputIcon" size={17} />
                     <input
                       type="text"
-                      className="FDAAdminInput"
+                      className={`FDAAdminInput ${errors.department ? 'input-error' : ''}`}
                       placeholder="e.g. Regional Administration (Optional)"
                       value={formData.department}
-                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      maxLength={150}
+                      minLength={2}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, department: val }));
+                        if (val.trim().length > 0 && val.trim().length < 2) {
+                          setErrors((prev) => ({ ...prev, department: 'Department must be at least 2 characters if provided.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, department: undefined }));
+                        }
+                      }}
                     />
                   </div>
+                  {errors.department && (
+                    <span className="FDAAdminFieldError">
+                      <AlertCircle size={12} /> {errors.department}
+                    </span>
+                  )}
                 </div>
                 <div className="FDAAdminFormGroup">
                   <label className="FDAAdminLabel">Position</label>
@@ -564,12 +677,27 @@ function AddAdminFlow({ open, onClose, onCreated, myProfile }) {
                     <Briefcase className="FDAAdminInputIcon" size={17} />
                     <input
                       type="text"
-                      className="FDAAdminInput"
+                      className={`FDAAdminInput ${errors.position ? 'input-error' : ''}`}
                       placeholder="e.g. Regional Administrator (Optional)"
                       value={formData.position}
-                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                      maxLength={150}
+                      minLength={2}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, position: val }));
+                        if (val.trim().length > 0 && val.trim().length < 2) {
+                          setErrors((prev) => ({ ...prev, position: 'Position must be at least 2 characters if provided.' }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, position: undefined }));
+                        }
+                      }}
                     />
                   </div>
+                  {errors.position && (
+                    <span className="FDAAdminFieldError">
+                      <AlertCircle size={12} /> {errors.position}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -878,7 +1006,9 @@ export default function FDAAdminAdminManagement() {
         const res = await apiFetch(`/admin-management/${targetId}`, { method: 'DELETE' });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(extractErrorMessage(errData, 'Delete failed.'));
+          const httpErr = new Error(extractErrorMessage(errData, 'Delete failed.'));
+          httpErr.isHttpError = true;
+          throw httpErr;
         }
         setAdmins((prev) => prev.filter((a) => a.id !== targetId));
         showToast('Admin entry deleted.');
@@ -888,8 +1018,11 @@ export default function FDAAdminAdminManagement() {
         const res = await apiFetch(`/admin-management/${targetId}/${path}`, { method: 'POST' });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(extractErrorMessage(errData, 'Action failed.'));
+          const httpErr = new Error(extractErrorMessage(errData, 'Action failed.'));
+          httpErr.isHttpError = true;
+          throw httpErr;
         }
+        const resData = await res.json().catch(() => ({}));
         setAdmins((prev) =>
           prev.map((a) => {
             if (a.id !== targetId) return a;
@@ -902,12 +1035,70 @@ export default function FDAAdminAdminManagement() {
             if (actionType === 'unlock') {
               return { ...a, status: 'Active', is_locked: false };
             }
+            if (actionType === 'resend') {
+              return {
+                ...a,
+                status: 'Invited',
+                invitation_date: resData.invitation_date ?? a.invitation_date,
+              };
+            }
             return a;
           })
         );
         showToast(actionType === 'resend' ? 'Invitation link resent.' : 'Account updated.');
       }
     } catch (err) {
+      // For network-level fetch failures (e.g. connection dropped right as commit finished):
+      // Verify actual status on the server before displaying a false failure.
+      if (!err.isHttpError) {
+        try {
+          const checkRes = await apiFetch('/admin-management');
+          if (checkRes.ok) {
+            const list = await checkRes.json();
+            const record = list.find((a) => (a.user_id || a.id) === targetId);
+            const expectedStatusMap = {
+              suspend: 'suspended',
+              reactivate: 'active',
+              activate: 'active',
+              unlock: 'active',
+            };
+            const expected = expectedStatusMap[actionType];
+            const recordStatus = (record?.status || '').toString().trim().toLowerCase();
+
+            const isDeleteSuccess = actionType === 'delete' && !record;
+            const isStatusSuccess = expected && recordStatus === expected;
+            const isResendSuccess = actionType === 'resend' && Boolean(record);
+
+            if (isDeleteSuccess || isStatusSuccess || isResendSuccess) {
+              if (actionType === 'delete') {
+                setAdmins((prev) => prev.filter((a) => a.id !== targetId));
+                showToast('Admin entry deleted.');
+              } else {
+                setAdmins((prev) =>
+                  prev.map((a) => {
+                    if (a.id !== targetId) return a;
+                    if (actionType === 'suspend') {
+                      return { ...a, status: 'Suspended', is_active: false };
+                    }
+                    if (actionType === 'reactivate' || actionType === 'activate') {
+                      return { ...a, status: 'Active', is_active: true };
+                    }
+                    if (actionType === 'unlock') {
+                      return { ...a, status: 'Active', is_locked: false };
+                    }
+                    return a;
+                  })
+                );
+                showToast(actionType === 'resend' ? 'Invitation link resent.' : 'Account updated.');
+              }
+              return;
+            }
+          }
+        } catch (verifyErr) {
+          console.warn('Status re-check failed:', verifyErr);
+        }
+      }
+
       showToast(err.message || 'Something went wrong.');
     }
   }
@@ -986,6 +1177,7 @@ export default function FDAAdminAdminManagement() {
                   className="FDAAdminSearchInput"
                   placeholder="Search by name, email, employee ID, region..."
                   value={searchQuery}
+                  maxLength={150}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);

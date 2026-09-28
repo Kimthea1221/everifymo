@@ -677,7 +677,7 @@ function FDAVerification() {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fdaSearchQuery, fdaPriorityFilter]);
+  }, [fdaSearchQuery, fdaPriorityFilter, dataRefreshTrigger]);
 
 
   // ADDED — whenever selectedQueueItem changes (either from a manual card click
@@ -805,9 +805,28 @@ function FDAVerification() {
         triggerAlert('CPR Registration Number and Official FDA Verification Remarks are required for a Registered determination.', 'danger');
         return;
       }
+      if (fdaOfficialRemarks.trim().length < 10) {
+        triggerAlert('Official FDA Verification Remarks must be at least 10 characters.', 'danger');
+        return;
+      }
+      if (fdaCprExpiry) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        if (fdaCprExpiry <= todayStr) {
+          triggerAlert('CPR Expiry Date must be in the future.', 'danger');
+          return;
+        }
+      }
     } else if (statusLower === 'unregistered') {
       if (!fdaUnregisteredReason.trim()) {
         triggerAlert('Reason Product is Not Registered is required for an Unregistered determination.', 'danger');
+        return;
+      }
+      if (fdaUnregisteredReason.trim().length < 10) {
+        triggerAlert('Reason Product is Not Registered must be at least 10 characters.', 'danger');
         return;
       }
     }
@@ -828,6 +847,10 @@ function FDAVerification() {
     if (!currentItem) return;
     if (!fdaRejectionReason.trim()) {
       triggerAlert('Please provide a rejection reason before rejecting this request.', 'danger');
+      return;
+    }
+    if (fdaRejectionReason.trim().length < 10) {
+      triggerAlert('Rejection reason must be at least 10 characters.', 'danger');
       return;
     }
 
@@ -871,6 +894,31 @@ function FDAVerification() {
           triggerAlert(errMsg, 'danger');
           return;
         }
+
+        const draftData = await res.json().catch(() => null);
+
+        // Update active queue item and queue list to reflect saved draft
+        if (currentItem) {
+          const updatedItem = {
+            ...currentItem,
+            has_draft: true,
+            draft_id: draftData?.draft_id ?? currentItem.draft_id,
+            draft_status: draftData?.draft_status ?? 'draft',
+          };
+          setSelectedQueueItem(updatedItem);
+          setSelectedQueueDetail((prev) => (prev ? { ...prev, has_draft: true, draft_id: draftData?.draft_id ?? prev.draft_id } : prev));
+          setFdaQueueList((prev) =>
+            prev.map((item) =>
+              item.request_id === currentItem.request_id
+                ? { ...item, has_draft: true, draft_id: draftData?.draft_id ?? item.draft_id }
+                : item
+            )
+          );
+        }
+
+        // Re-fetch badge counts and trigger queue refresh (same mechanism as Submit/Reject)
+        fetchCounts();
+        setDataRefreshTrigger((prev) => prev + 1);
 
         triggerAlert(`Draft saved successfully for Case ID ${currentItem.case_reference}.`, 'success');
         setFdaModalConfig(null);
@@ -1173,6 +1221,7 @@ function FDAVerification() {
                       type="text"
                       className="FdaVerifSearchInput"
                       placeholder="Search Case ID, Product, or Manufacturer..."
+                      maxLength={150}
                       value={fdaSearchQuery}
                       onChange={(e) => { setFdaSearchQuery(e.target.value); setQueuePage(1); }}
                       id="fda-verification-search-input"
@@ -1624,6 +1673,7 @@ function FDAVerification() {
                                       type="text"
                                       className="FdaVerifTextInput"
                                       placeholder="e.g. FDA-CPR-2024-99812"
+                                      maxLength={100}
                                       value={fdaCprNumber}
                                       onChange={(e) => setFdaCprNumber(e.target.value)}
                                       id="fda-input-cpr-number"
@@ -1652,6 +1702,8 @@ function FDAVerification() {
                                     className="FdaVerifTextarea"
                                     rows={3}
                                     placeholder="Enter official remarks confirming registration status, CPR validity, manufacturer License to Operate (LTO) details, and compliance notes..."
+                                    maxLength={2000}
+                                    minLength={10}
                                     value={fdaOfficialRemarks}
                                     onChange={(e) => setFdaOfficialRemarks(e.target.value)}
                                     id="fda-textarea-registered-remarks"
@@ -1680,6 +1732,8 @@ function FDAVerification() {
                                     className="FdaVerifTextarea"
                                     rows={3}
                                     placeholder="Provide detailed rationale (e.g., No CPR or LTO found in FDA database, counterfeit CPR code on label, revoked registration, prohibited ingredients)..."
+                                    maxLength={2000}
+                                    minLength={10}
                                     value={fdaUnregisteredReason}
                                     onChange={(e) => setFdaUnregisteredReason(e.target.value)}
                                     id="fda-textarea-unregistered-reason"
@@ -1695,6 +1749,7 @@ function FDAVerification() {
                                     className="FdaVerifTextarea"
                                     rows={2}
                                     placeholder="Recommended enforcement steps for LEA-CIDG (e.g. Initiate market seizure, request online domain takedown, issue public health warning)..."
+                                    maxLength={2000}
                                     value={fdaAdvisoryRemarks}
                                     onChange={(e) => setFdaAdvisoryRemarks(e.target.value)}
                                     id="fda-textarea-unregistered-remarks"
@@ -1725,6 +1780,8 @@ function FDAVerification() {
                               className="FdaVerifTextarea FdaVerifTextareaReject"
                               rows={4}
                               placeholder="Explain clearly why the request is rejected (e.g. Incomplete product photos, missing lot number, duplicate case submission, unreadable label images)..."
+                              maxLength={2000}
+                              minLength={10}
                               value={fdaRejectionReason}
                               onChange={(e) => setFdaRejectionReason(e.target.value)}
                               id="fda-textarea-rejection-reason"
@@ -1828,6 +1885,7 @@ function FDAVerification() {
                       type="text"
                       placeholder="Search Case ID, Product or Manufacturer..."
                       className="FdaSearchInput"
+                      maxLength={150}
                       value={completedSearch}
                       onChange={(e) => { setCompletedSearch(e.target.value); setCompletedPage(1); }}
                       id="fda-completed-search-input"
@@ -2072,6 +2130,7 @@ function FDAVerification() {
                       type="text"
                       placeholder="Search Case ID, Product or Manufacturer..."
                       className="FdaSearchInput"
+                      maxLength={150}
                       value={rejectedSearch}
                       onChange={(e) => { setRejectedSearch(e.target.value); setRejectedPage(1); }}
                       id="fda-rejected-search-input"

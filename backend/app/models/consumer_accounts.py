@@ -34,6 +34,9 @@ class ConsumerAccount(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
+    refresh_token = Column(String, nullable=True)
+    refresh_token_expires = Column(DateTime(timezone=True), nullable=True)
+
     __table_args__ = (
         Index(
             "consumer_account_username_verified_uidx",

@@ -395,6 +395,7 @@ function FDASavedDraft() {
                   type="text"
                   className="FdaSearchInput"
                   placeholder="Search Case ID, Product, or Manufacturer..."
+                  maxLength={150}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -732,7 +733,7 @@ function FDASavedDraft() {
                 DRAFT STATUS badge reads the real draft_status value (not hardcoded "Draft"). */}
       {viewModalData && (
         <div className="FdaVerifModalOverlay">
-          <div className="FdaRecordModalContainer" style={{ width: "560px" }}>
+          <div className="FdaRecordModalContainer" style={{ width: "700px", maxWidth: "96vw" }}>
             <div className="FdaRecordModalHeader">
               <div className="FdaRecordModalTitleGroup">
                 <Eye size={20} className="FdaVerifGreenIcon" />

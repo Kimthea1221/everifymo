@@ -28,8 +28,19 @@ def _base_styles():
     return styles
 
 
+# CHANGED — wrap every cell value in a Paragraph so ReportLab actually
+# performs text-flow wrapping within the column width. A plain string
+# placed directly in a Table cell never wraps, regardless of whether it
+# contains spaces — this is what caused the overflow in every test case.
 def _info_table(rows):
-    table = Table(rows, colWidths=[1.9 * inch, 3.9 * inch])
+    styles = getSampleStyleSheet()
+    cell_style = ParagraphStyle(name="ICMDACell", fontSize=9, leading=12)
+
+    wrapped_rows = [
+        [label, Paragraph(str(value), cell_style)]
+        for label, value in rows
+    ]
+    table = Table(wrapped_rows, colWidths=[1.9 * inch, 3.9 * inch])
     table.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9),

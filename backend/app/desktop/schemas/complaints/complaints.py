@@ -5,7 +5,7 @@ from decimal import Decimal
 from app.desktop.schemas.drafts.drafts import DraftStatus, Priority
 
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.core.formatting import format_file_size
 
@@ -149,7 +149,7 @@ class LeaInitiatedCaseDetailResponse(BaseModel):
 
 
 class LeaCloseCaseRequest(BaseModel):
-    field_operation_notes: str | None = None
+    field_operation_notes: str | None = Field(None, max_length=2000)
 
 
 class LeaCloseCaseResponse(BaseModel):
@@ -183,3 +183,8 @@ class FdaComplaintDetailResponse(BaseModel):
     created_at: datetime
     description: str | None
     attached_files: list[SharedFileResponse]
+
+# fda-status description schema
+class StatusUpdateRequest(BaseModel):
+    status: str
+    change_note: str | None = Field(default=None, max_length=500)

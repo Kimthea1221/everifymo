@@ -630,6 +630,7 @@
   border-radius: 12px;
   padding: 32px;
   width: 400px;
+  max-width: 90vw;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
@@ -649,6 +650,8 @@
   color: #555;
   margin-bottom: 24px;
   line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .ModalActions {
@@ -699,7 +702,7 @@
   background: #FDFDFD;
   border-radius: 12px;
   padding: 32px 32px 0 32px;
-  width: 700px;
+  width: 750px;
   max-width: 92vw;
   max-height: 90vh;
   overflow-y: auto;
@@ -1159,17 +1162,10 @@
 
 .VerificationTabs {
     display: flex;
-    gap: 8px;
     margin-bottom: 20px;
     width: 100%;
     max-width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.VerificationTabs::-webkit-scrollbar {
-    display: none;
+    overflow: visible;
 }
 
 .VerificationTabsButton {
@@ -1185,6 +1181,14 @@
     gap: 4px;
     flex-wrap: nowrap;
     white-space: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.VerificationTabsButton::-webkit-scrollbar {
+    display: none;
 }
 
 .ButtonTab {
@@ -1594,6 +1598,10 @@
     border-bottom: 1px solid #EDEDED;
 }
 
+.CaseInfoGrid > div {
+    min-width: 0;
+}
+
 .CaseInfoGrid label {
     display: block;
     font-size: 11px;
@@ -1606,6 +1614,8 @@
     margin: 0;
     font-size: 14px;
     font-weight: 600;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 /* New Verification Request section — Awaiting FDA tab.
    Matches the "Confirmed Rejected Product" style: tinted outer container
@@ -1986,6 +1996,8 @@
 }
 .ReasonDetail{
   font-size: 14px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .ResponseUpdateBox{
   width: 100%;
@@ -2845,6 +2857,7 @@
   border-radius: 12px;
   padding: 32px;
   width: 450px;
+  max-width: 90vw;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   font-family: 'Inter', sans-serif;
 }
@@ -2862,6 +2875,8 @@
   color: #555;
   margin-bottom: 24px;
   line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* modal action buttons row */

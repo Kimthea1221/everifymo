@@ -61,7 +61,7 @@ function UniversalLogin() {
   }
 
   return (
-    <div>
+    <div style={{ width: '100%', overflowX: 'hidden' }}>
       <div className="universal-login-page">
         <div className="universal-login-glass-container">
           {/* LEFT PANEL — original large branding and logos preserved */}
@@ -77,7 +77,7 @@ function UniversalLogin() {
             <div className="universal-login-hero">
               <h1>WELCOME! <br /></h1>
               <h4>
-                This is Interagency <span>Complaint Management </span> <br />
+                This is Interagency <span>Complaint Management</span>{' '}
                 System Desktop Application (<span>ICMDA</span>)
               </h4>
             </div>
@@ -93,7 +93,7 @@ function UniversalLogin() {
 
           {/* RIGHT SIDE — compact white card with role toggle at top */}
           <div className="universal-login-right-wrapper">
-            <div className="universal-login-right-panel" style={isShowingOtp ? { justifyContent: 'center' } : undefined}>
+            <div className="universal-login-right-panel">
               {/* TOP GLASS SEGMENTED ROLE TOGGLE — hidden while on OTP screen */}
               {!isShowingOtp && (
                 <div className="universal-login-tabs-container">
@@ -146,12 +146,12 @@ function UniversalLogin() {
         /* ===== LARGE OUTER GLASS CONTAINER (RESTORED TO PREVIOUS FULL SIZE) ===== */
         .universal-login-page {
           background-color: #1D3439;
-          width: 100vw;
+          width: 100%;
           min-height: 100vh;
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 40px 24px;
+          padding: clamp(16px, 3vh, 40px) clamp(16px, 2.5vw, 24px);
           color: #fdfdfd;
           overflow-x: hidden;
           box-sizing: border-box;
@@ -163,14 +163,15 @@ function UniversalLogin() {
           justify-content: space-between;
           align-items: stretch;
           width: min(95vw, 1450px);
-          min-height: 750px;
+          height: min(92vh, 750px);
+          min-height: 0;
           background: rgba(253, 253, 253, 0.07);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 16px;
           border: 1px solid rgba(255, 255, 255, 0.16);
-          padding: 48px 56px;
-          gap: 36px;
+          padding: clamp(20px, 3vh, 48px) clamp(24px, 3.5vw, 56px);
+          gap: clamp(16px, 2.5vw, 36px);
           box-sizing: border-box;
         }
 
@@ -240,7 +241,7 @@ function UniversalLogin() {
           font-weight: 600;
         }
         .universal-login-hero h4 {
-          font-size: 1.45rem;
+          font-size: clamp(1rem, 1.4vw, 1.45rem);
           color: rgba(255, 255, 255, 0.82);
           font-weight: 600;
           margin-top: 12px;
@@ -317,14 +318,15 @@ function UniversalLogin() {
         /* ===== SMALLER COMPACT WHITE LOGIN CARD ===== */
         .universal-login-right-panel {
           width: 510px;
+          min-width: min(510px, 100%);
           max-width: 100%;
-          min-height: 620px;
+          min-height: 580px;
           height: auto;
           background: #ffffff;
           padding: 24px 28px;
           border-radius: 16px;
           box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-          flex-shrink: 0;
+          flex-shrink: 1;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
@@ -361,7 +363,8 @@ function UniversalLogin() {
 
         .universal-login-otp-header {
           text-align: center;
-          margin-bottom: 10px;
+          margin-top: 12px;
+          margin-bottom: 8px;
         }
         .universal-login-otp-header h2, .universal-login-otp-header h3 {
           font-size: 24px;
@@ -710,6 +713,7 @@ function UniversalLogin() {
         .universal-login-otp-container {
           display: flex;
           flex-direction: column;
+          margin-top: 36px;
           animation: universalLoginFadeIn 0.35s ease-out forwards;
         }
       .universal-login-otp-instructions {
@@ -759,7 +763,7 @@ function UniversalLogin() {
         .universal-login-interagency-otp-instructions {
           font-size: 13.5px;
           color: #475569;
-          margin-bottom: 40px;
+          margin-bottom: 20px;
           line-height: 1.45;
           text-align: center;
         }
@@ -854,10 +858,11 @@ function UniversalLogin() {
         @keyframes universalLoginFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
         /* ===== RESPONSIVENESS ===== */
-        @media (max-width: 1023px) {
+        @media (max-width: 820px) {
           .universal-login-glass-container {
             flex-direction: column;
             width: min(92vw, 640px);
+            height: auto;
             min-height: auto;
             padding: 36px 28px;
             gap: 32px;
@@ -883,7 +888,8 @@ function UniversalLogin() {
           .universal-login-right-panel {
             width: 100%;
             max-width: 100%;
-            min-height: 480px;
+            min-width: 0;
+            min-height: 570px;
             height: auto;
             max-height: none;
             padding: 22px 20px;
@@ -891,6 +897,126 @@ function UniversalLogin() {
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
+          }
+        }
+
+        @media (max-height: 720px) {
+          .universal-login-page {
+            padding: 16px 20px;
+          }
+          .universal-login-glass-container {
+            padding: 20px 28px;
+            gap: 20px;
+          }
+          .universal-login-left-panel {
+            gap: 12px;
+            padding: 4px 0;
+          }
+          .universal-login-agency img {
+            width: 44px;
+            height: 44px;
+          }
+          .universal-login-agency-top img,
+          .universal-login-fda-logo {
+            width: 48px;
+            height: 48px;
+          }
+          .universal-login-agency h3 {
+            font-size: 0.85rem;
+          }
+          .universal-login-hero {
+            margin: 8px 0;
+          }
+          .universal-login-hero h1 {
+            font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+          }
+          .universal-login-hero h4 {
+            font-size: clamp(0.9rem, 1.2vw, 1.15rem);
+            margin-top: 6px;
+          }
+          .universal-login-right-panel {
+            padding: 16px 22px;
+            min-height: 445px;
+            height: auto;
+          }
+          .universal-login-tabs-container {
+            height: 38px;
+            margin-bottom: 14px;
+          }
+          .universal-login-tab-btn {
+            font-size: 12px;
+            gap: 4px;
+          }
+          .universal-login-card-header {
+            margin-bottom: 12px;
+          }
+          .universal-login-card-header h2 {
+            font-size: 20px;
+          }
+          .universal-login-card-header small {
+            font-size: 13px;
+          }
+          .universal-login-card-header p {
+            font-size: 12px;
+            margin-bottom: 8px;
+          }
+          .universal-login-form-group {
+            margin-bottom: 8px;
+          }
+          .universal-login-form-group label,
+          .universal-login-personnel-form label,
+          .universal-login-admin-form label {
+            font-size: 13px;
+            margin-bottom: 4px;
+          }
+          .universal-login-input-wrapper input,
+          .universal-login-admin-input-wrapper input,
+          .universal-login-password-wrapper input,
+          .universal-login-admin-password-wrapper input,
+          .universal-login-select {
+            min-height: 38px;
+            padding-top: 8px !important;
+            padding-bottom: 8px !important;
+            font-size: 13px;
+          }
+          .universal-login-inter-buttons {
+            min-height: 38px;
+            padding: 6px 10px;
+            font-size: 12.5px;
+          }
+          .universal-login-remember-me,
+          .universal-login-admin-remember-row {
+            margin-bottom: 8px;
+          }
+          .universal-login-submit-btn {
+            margin-top: 14px;
+            padding: 8px 12px;
+            font-size: 13.5px;
+          }
+          .universal-login-otp-header h2,
+          .universal-login-otp-header h3 {
+            font-size: 20px;
+            margin-bottom: 2px;
+          }
+          .universal-login-otp-header p {
+            font-size: 13px;
+            margin-bottom: 10px;
+          }
+          .universal-login-otp-instructions {
+            font-size: 13px;
+            margin-bottom: 10px;
+          }
+          .universal-login-otp-digit-input,
+          .universal-login-admin-otp-digit-input,
+          .universal-login-interagency-otp-digit-input {
+            width: 44px;
+            height: 48px;
+            font-size: 18px;
+          }
+          .universal-login-back-btn,
+          .universal-login-admin-back-btn {
+            margin-top: 12px;
+            font-size: 13px;
           }
         }
 
@@ -906,7 +1032,7 @@ function UniversalLogin() {
           .universal-login-right-panel {
             padding: 18px 14px;
             border-radius: 14px;
-            min-height: auto;
+            min-height: 535px;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -987,19 +1113,16 @@ function PersonnelLoginForm({ navigate, onOtpStateChange, sessionMessage  }) {
   useEffect(() => {
     const key = rememberedEmailKey(personnelAgency);
     if (!key) {
-      setPersonnelEmail('');
-      setPersonnelRememberMe(false);
       return;
     }
 
     const savedEmail = localStorage.getItem(key);
 
-    if (savedEmail) {
+    if (savedEmail && personnelEmail.trim() === '') {
+      // Only auto-fill if the user hasn't already typed something —
+      // never overwrite or clear an in-progress email
       setPersonnelEmail(savedEmail);
       setPersonnelRememberMe(true);
-    } else {
-      setPersonnelEmail('');
-      setPersonnelRememberMe(false);
     }
   }, [personnelAgency]);
 
@@ -1115,9 +1238,13 @@ function PersonnelLoginForm({ navigate, onOtpStateChange, sessionMessage  }) {
     if (personnelErrors.password) setPersonnelErrors((prev) => ({ ...prev, password: '' }));
   }
 
- function handlePersonnelAgencyChange(value) {
-  setPersonnelAgency(value);
-  setPersonnelPassword('');
+ function handlePersonnelAgencyChange(newAgency) {
+  if (personnelAgency && personnelAgency !== newAgency) {
+    // Agency was already selected, and it's genuinely changing — clear password only
+    setPersonnelPassword('');
+  }
+  // If personnelAgency was empty (first-time selection) or newAgency === personnelAgency, do nothing to password
+  setPersonnelAgency(newAgency);
 
   if (personnelErrors.agency) {
     setPersonnelErrors((prev) => ({ ...prev, agency: '' }));
@@ -1884,20 +2011,18 @@ function InteragencyAdminLoginForm({ navigate, onOtpStateChange, sessionMessage 
   useEffect(() => {
     const key = rememberedEmailKey(agency);
     if (!key) {
-      setEmail('');
-      setRememberMe(false);
       return;
     }
-
     const savedEmail = localStorage.getItem(key);
-
-    if (savedEmail) {
+    if (savedEmail && email.trim() === '') {
+      // Only auto-fill if the user hasn't already typed something —
+      // never overwrite or clear an in-progress email
       setEmail(savedEmail);
       setRememberMe(true);
-    } else {
-      setEmail('');
-      setRememberMe(false);
     }
+    // If there's no saved email for this agency, or the user already has
+    // something typed, leave the email field exactly as it is — do not
+    // clear it and do not touch rememberMe in that case.
   }, [agency]);
 
   // OTP state
@@ -1936,10 +2061,13 @@ function InteragencyAdminLoginForm({ navigate, onOtpStateChange, sessionMessage 
     return () => clearInterval(interval);
   }, [lockoutSeconds]);
 
-function handleAgencyChange(value) {
-  setAgency(value);
-  setPassword('');
-
+function handleAgencyChange(newAgency) {
+  if (agency && agency !== newAgency) {
+    // Agency was already selected, and it's genuinely changing — clear password only
+    setPassword('');
+  }
+  // If agency was empty (first-time selection) or newAgency === agency, do nothing to password
+  setAgency(newAgency);
   if (errors.agency) {
     setErrors((prev) => ({ ...prev, agency: '' }));
   }
