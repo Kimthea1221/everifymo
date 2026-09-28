@@ -630,6 +630,7 @@
   border-radius: 12px;
   padding: 32px;
   width: 400px;
+  max-width: 90vw;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
@@ -649,6 +650,8 @@
   color: #555;
   margin-bottom: 24px;
   line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .ModalActions {
@@ -1594,6 +1597,10 @@
     border-bottom: 1px solid #EDEDED;
 }
 
+.CaseInfoGrid > div {
+    min-width: 0;
+}
+
 .CaseInfoGrid label {
     display: block;
     font-size: 11px;
@@ -1606,6 +1613,8 @@
     margin: 0;
     font-size: 14px;
     font-weight: 600;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 /* New Verification Request section — Awaiting FDA tab.
    Matches the "Confirmed Rejected Product" style: tinted outer container
@@ -1986,6 +1995,8 @@
 }
 .ReasonDetail{
   font-size: 14px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .ResponseUpdateBox{
   width: 100%;
@@ -2845,6 +2856,7 @@
   border-radius: 12px;
   padding: 32px;
   width: 450px;
+  max-width: 90vw;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   font-family: 'Inter', sans-serif;
 }
@@ -2862,6 +2874,8 @@
   color: #555;
   margin-bottom: 24px;
   line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* modal action buttons row */

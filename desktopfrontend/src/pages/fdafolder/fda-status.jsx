@@ -1,5 +1,5 @@
 // desktopfrontend/src/pages/fdafolder/fda-status.jsx   
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "../component/sidebar";
 import TopBar from "../component/top-bar";
 import './fda-css.css';
@@ -143,23 +143,27 @@ function FdaStatus() {
     complaints.find((c) => c.complaintId === selectedComplaintId) || null;
 
   // Fetch complaints from the backend 
-  useEffect(() => {
-    const fetchComplaints = async () => {
-      try {
-        const res = await apiFetch("/complaints-status-update");
-        if (!res.ok) throw new Error("Failed to load complaints");
-        const data = await res.json();
-        setComplaints(data);
-        if (data.length > 0) setSelectedComplaintId(data[0].complaintId);
-      } catch (err) {
-        setToastVariant("danger");
-        setToastError("Could not load complaints. Please refresh.");
-      } finally {
-        setIsLoading(false);
+  const fetchComplaints = useCallback(async (preserveSelection = true) => {
+    try {
+      const res = await apiFetch("/complaints-status-update");
+      if (!res.ok) throw new Error("Failed to load complaints");
+      const data = await res.json();
+      setComplaints(data);
+      if (!preserveSelection && data.length > 0) {
+        setSelectedComplaintId((prev) => prev || data[0].complaintId);
       }
-    };
-    fetchComplaints();
+      return data;
+    } catch (err) {
+      alert("Could not load complaints. Please refresh.");
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchComplaints(false);
+  }, [fetchComplaints]);
 
   useEffect(() => {
     if (!selectedComplaint) return;
@@ -170,7 +174,7 @@ function FdaStatus() {
     // setAttachmentPreview(null);
     // setAttachmentName(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedComplaintId]);
+  }, [selectedComplaintId, selectedComplaint?.status]);
 
   useEffect(() => {
   if (!selectedComplaint?.hasAttachment) {
@@ -314,15 +318,14 @@ function FdaStatus() {
             change_note: outgoingMessage,
             // Optional — null when no file was attached. Backend needs to
             // accept these two fields; see fda-status.jsx attachment notes.
-            // attachment_data: attachmentPreview,
-            // attachment_name: attachmentName,
+            attachment_data: attachmentPreview,
+            attachment_name: attachmentName,
           }),
         });
   
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          setToastVariant("danger");
-          setToastError(err.detail || "Failed to update status. Please try again.");
+          alert(err.detail || "Failed to update status. Please try again.");
           return;
         }
   
@@ -336,38 +339,40 @@ function FdaStatus() {
               : c
           )
         );
-  
-        if (updatedComplaint.notificationWarning) {
-          setToastVariant("warning");
-          setToastError(updatedComplaint.notificationWarning);
-        } else {
-          setToastVariant("success");
-          setToastError(`Status updated to ${STATUS_LABELS[updatedComplaint.status] || updatedComplaint.status}.`);
-        }
+          // Re-fetch complaints list to synchronize true server state
+        await fetchComplaints(true);
 
-        const entry = {
-          historyId: `h${Date.now()}`,
-          caseReference: selectedComplaint.caseReference,
-          productTitle: selectedComplaint.productTitle,
-          previousStatus,
-          newStatus,
-          changeNote: outgoingMessage || "",
-          changedBy: "current desktop user", 
-          changedAt: new Date().toLocaleString(),
-        };
-        setStatusHistory((prev) => [entry, ...prev]);
-        setHistoryPage(1);
-        // setAttachmentFile(null);
-        // setAttachmentPreview(null);
-        // setAttachmentName(null);
-        setNewStatus("");
+        const nextStatus =
+          updatedComplaint.status === "open" ? "under_review" : updatedComplaint.status;
+        setNewStatus(nextStatus);
         setDismissPreset("");
         setDismissNote("");
-      } catch (err) {
-        setToastVariant("danger");
-        setToastError("Network error — please check your connection and try again.");
-      }
-    };
+        
+        if (updatedComplaint.notificationWarning) {
+          setIsToastWarning(true);
+          setToastError(updatedComplaint.notificationWarning);
+        }
+
+      const entry = {
+        historyId: `h${Date.now()}`,
+        caseReference: selectedComplaint.caseReference,
+        productTitle: selectedComplaint.productTitle,
+        previousStatus,
+        newStatus,
+        changeNote: outgoingMessage || "",
+        changedBy: "current desktop user",
+        changedAt: new Date().toLocaleString(),
+      };
+      setStatusHistory((prev) => [entry, ...prev]);
+      setHistoryPage(1);
+      setAttachmentFile(null);
+      setAttachmentPreview(null);
+      setAttachmentName(null);
+    } catch (err) {
+      setIsToastWarning(false);
+      alert("Network error — please check your connection and try again.");
+    }
+  };
 
   const totalHistoryPages = Math.ceil(statusHistory.length / HISTORY_PER_PAGE) || 1;
   const safeHistoryPage = Math.min(Math.max(1, historyPage), totalHistoryPages);

@@ -716,6 +716,13 @@
   color: #64748b;
   margin: 0;
   line-height: 1.45;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.LEAAdminModalSubtitle code {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .LEAAdminModalCloseBtn {
@@ -1004,6 +1011,8 @@
   color: #0f172a;
   text-align: right;
   word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 /* ── View Details Modal — Wider, Flex-Column, Fixed Header/Footer ── */

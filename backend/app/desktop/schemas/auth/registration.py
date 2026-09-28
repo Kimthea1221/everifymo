@@ -29,8 +29,8 @@ class RegistrationCompleteRequest(BaseModel):
     """Password-only now — the admin who created this account already
     supplied first/last/position/employee_id/contact_number/department."""
     invite_token: str
-    password: str = Field(..., min_length=8)
-    confirm_password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8, max_length=64)
+    confirm_password: str = Field(..., min_length=8, max_length=64)
 
     @field_validator("password")
     @classmethod

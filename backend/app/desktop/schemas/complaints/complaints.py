@@ -5,7 +5,7 @@ from decimal import Decimal
 from app.desktop.schemas.drafts.drafts import DraftStatus, Priority
 
 
-from pydantic import BaseModel, ConfigDict, computed_field, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.core.formatting import format_file_size
 
@@ -149,7 +149,7 @@ class LeaInitiatedCaseDetailResponse(BaseModel):
 
 
 class LeaCloseCaseRequest(BaseModel):
-    field_operation_notes: str | None = None
+    field_operation_notes: str | None = Field(None, max_length=2000)
 
 
 class LeaCloseCaseResponse(BaseModel):
