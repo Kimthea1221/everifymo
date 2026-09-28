@@ -1,4 +1,4 @@
-'''import csv
+import csv
 import sys
 from pathlib import Path
 import pandas as pd
@@ -14,8 +14,8 @@ def clean_title(title: str) -> str:
 # Get backend folder root relative to this file
 # __file__ is backend/app/desktop/services/Product_database/csv_sync.py
 BACKEND_DIR = Path(__file__).resolve().parents[4]
-REGISTERED_CSV_PATH = BACKEND_DIR / "nlp" / "dataset" / "Registered_cleaned.csv"
-UNREGISTERED_CSV_PATH = BACKEND_DIR / "nlp" / "dataset" / "Unregistered_cleaned.csv"
+REGISTERED_CSV_PATH = BACKEND_DIR / "nlp" / "datasets" / "Registered_cleaned.csv"
+UNREGISTERED_CSV_PATH = BACKEND_DIR / "nlp" / "datasets" / "Unregistered_cleaned.csv"
 
 def sync_registered_products_to_csv(db: Session):
     """
@@ -167,4 +167,3 @@ def sync_unregistered_advisories_to_csv(db: Session):
         print(f"Successfully synced database changes to {UNREGISTERED_CSV_PATH}.", file=sys.stderr)
     except Exception as e:
         print(f"Warning: Error syncing unregistered advisories to CSV: {e}", file=sys.stderr)
-        '''
