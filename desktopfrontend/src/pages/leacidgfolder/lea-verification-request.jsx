@@ -545,37 +545,42 @@ function LeaVerificationRequest() {
 
   // ADDED (Part 1) — server-side fetch for Closed Cases tab.
   // Search input is debounced (300ms); all other filter/page changes fire immediately.
-  // Only runs when the Closed Cases tab is active.
+  // ADDED — GET /verification-requests/closed-cases
+  // Fetch: Closed Cases list
+  const fetchClosedList = async () => {
+    if (!hasLoadedClosedOnce) {
+      setClosedLoading(true);
+    }
+
+    const params = new URLSearchParams();
+    if (dismissedSearch.trim()) params.set('search', dismissedSearch.trim());
+    if (filterCategory) params.set('category', filterCategory);
+    const reasonClosedParam = mapReasonClosedToBackend(filterReasonClosed);
+    if (reasonClosedParam) params.set('reason_closed', reasonClosedParam);
+    if (filterDateFrom) params.set('date_from', filterDateFrom);
+    if (filterDateTo) params.set('date_to', filterDateTo);
+    params.set('page', String(closedPage));
+    params.set('page_size', String(CLOSED_PAGE_SIZE));
+
+    try {
+      const res = await apiFetch(`/verification-requests/closed-cases?${params.toString()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setClosedList(data.items);
+      setClosedTotal(data.total);
+      setHasLoadedClosedOnce(true);
+    } catch {
+      showError('Could not load closed cases.');
+    } finally {
+      setClosedLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab !== 'Closed Cases') return;
 
     const timer = setTimeout(() => {
-      if (!hasLoadedClosedOnce) {
-        setClosedLoading(true);
-      }
-
-      const params = new URLSearchParams();
-      if (dismissedSearch.trim()) params.set('search', dismissedSearch.trim());
-      if (filterCategory) params.set('category', filterCategory);
-      const reasonClosedParam = mapReasonClosedToBackend(filterReasonClosed);
-      if (reasonClosedParam) params.set('reason_closed', reasonClosedParam);
-      if (filterDateFrom) params.set('date_from', filterDateFrom);
-      if (filterDateTo) params.set('date_to', filterDateTo);
-      params.set('page', String(closedPage));
-      params.set('page_size', String(CLOSED_PAGE_SIZE));
-
-      apiFetch(`/verification-requests/closed-cases?${params.toString()}`)
-        .then((res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        })
-        .then((data) => {
-          setClosedList(data.items);
-          setClosedTotal(data.total);
-          setHasLoadedClosedOnce(true);
-        })
-        .catch(() => showError('Could not load closed cases.'))
-        .finally(() => setClosedLoading(false));
+      fetchClosedList();
     }, 300);
 
     return () => clearTimeout(timer);
@@ -750,6 +755,9 @@ function LeaVerificationRequest() {
         return;
       }
 
+      await fetchReadyList();
+      await fetchLeaCounts();
+
       showSuccess('Verification request sent to FDA.');
       // Reset compose form state
       setCurrentDraftId(null);
@@ -819,7 +827,8 @@ function LeaVerificationRequest() {
         setProductCode('');
         setComplaintStatement('');
         setPriority('standard');
-        fetchReadyList();
+        await fetchReadyList();
+        await fetchLeaCounts();
       },
       onCancel: () => {
         setModalConfig(null);
@@ -955,6 +964,8 @@ function LeaVerificationRequest() {
             if (actionType === 'Recall Request') {
               setAwaitingList(awaitingList.filter((r) => r.request_id !== id));
               setSelectedAwaitingFda(null);
+              await fetchReadyList();
+              await fetchLeaCounts();
             }
 
             setSuccessMessage(successText);
@@ -981,8 +992,9 @@ function LeaVerificationRequest() {
             setSuccessMessage(successText);
             setModalConfig(null);
             setTimeout(() => setSuccessMessage(''), 3000);
-            fetchFdaResponseList();
-            fetchLeaCounts();
+            await fetchFdaResponseList();
+            await fetchClosedList();
+            await fetchLeaCounts();
           } catch {
             showError('Something went wrong. Please try again.');
             setModalConfig(null);
@@ -1008,8 +1020,9 @@ function LeaVerificationRequest() {
             setModalConfig(null);
             setFdaTakedownNotes('');
             setTimeout(() => setSuccessMessage(''), 3000);
-            fetchFdaResponseList();
-            fetchLeaCounts();
+            await fetchFdaResponseList();
+            await fetchInitiatedList();
+            await fetchLeaCounts();
           } catch {
             showError('Something went wrong. Please try again.');
             setModalConfig(null);
@@ -1036,8 +1049,9 @@ function LeaVerificationRequest() {
             // CHANGED (Part 0) — reset initiatedFieldNotes, not the old shared fieldOperationNotes
             setInitiatedFieldNotes('');
             setTimeout(() => setSuccessMessage(''), 3000);
-            fetchInitiatedList();
-            fetchLeaCounts();
+            await fetchInitiatedList();
+            await fetchClosedList();
+            await fetchLeaCounts();
           } catch {
             showError('Something went wrong. Please try again.');
             setModalConfig(null);

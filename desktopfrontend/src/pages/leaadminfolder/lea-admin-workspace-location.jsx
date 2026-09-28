@@ -418,13 +418,11 @@ export default function LEAAdminWorkspaceLocation() {
 
       {/* Set Workspace Location Modal */}
       {isModalOpen && (
-        <div
-          className="LEAAdminModalOverlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseModal();
-          }}
-        >
-          <div className="LEAAdminModal LeaWsLoc-Modal">
+        <div className="LEAAdminModalOverlay">
+          <div
+            className="LEAAdminModal LeaWsLoc-Modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="LEAAdminModalHeader">
               <h3 className="LEAAdminModalTitle">Set workspace location</h3>
               <p className="LEAAdminModalSubtitle">
@@ -566,13 +564,11 @@ export default function LEAAdminWorkspaceLocation() {
 
       {/* Confirmation Modal */}
       {confirmData && (
-        <div
-          className="LeaWsLoc-ConfirmOverlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCancelConfirm();
-          }}
-        >
-          <div className="LeaWsLoc-ConfirmModal">
+        <div className="LeaWsLoc-ConfirmOverlay">
+          <div
+            className="LeaWsLoc-ConfirmModal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="LeaWsLoc-ConfirmIconBox">
               <MapPin size={26} />
             </div>

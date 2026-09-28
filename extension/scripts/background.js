@@ -1,5 +1,39 @@
 ﻿console.log("Background service worker started");
 
+async function authorizedFetch(url, options = {}) {
+  let { access_token, refresh_token } = await chrome.storage.local.get(['access_token', 'refresh_token']);
+
+  const buildOptions = (token) => ({
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  });
+
+  let res = await fetch(url, buildOptions(access_token));
+
+  if (res.status === 401 && refresh_token) {
+    const refreshRes = await fetch(
+      `https://everify.store/auth/refresh?refresh_token=${encodeURIComponent(refresh_token)}`,
+      { method: 'POST' }
+    );
+
+    if (refreshRes.ok) {
+      const refreshData = await refreshRes.json();
+      await chrome.storage.local.set({
+        access_token: refreshData.access_token,
+        refresh_token: refreshData.refresh_token
+      });
+      res = await fetch(url, buildOptions(refreshData.access_token)); // retry once
+    } else {
+      await chrome.storage.local.remove(['access_token', 'refresh_token', 'token_type', 'username', 'email']);
+    }
+  }
+
+  return res;
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "checkAuth") {
     chrome.storage.local.get(['access_token'], (data) => {
@@ -18,8 +52,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     //
     (async () => {
       try {
-        const { access_token } = await chrome.storage.local.get(['access_token']);
-
         const response = await fetch('https://everify.store/verify', {
           method: 'POST',
           headers: {
@@ -49,12 +81,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         
         sendResponse({ status: 'success', data: data });
 
-        const res = await fetch('https://everify.store/submitVerification', {
+        const res = await authorizedFetch('https://everify.store/submitVerification', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(access_token ? { 'Authorization': `Bearer ${access_token}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             product_title: message.title,
             platform: message.platform,
@@ -97,7 +126,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return;
         }
 
-        const response = await fetch('https://everify.store/marketplace-detections', {
+        const response = await fetch('https://everify.store/marketplace-detections', { // http://localhost:8001 https://everify.store
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -119,14 +148,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'submitComplaint') {
     (async () => {
       try {
-        const { access_token } = await chrome.storage.local.get(['access_token']);
-
-        const res = await fetch('https://everify.store/submitComplaint', {
+        const res = await authorizedFetch('https://everify.store/submitComplaint', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(access_token ? { 'Authorization': `Bearer ${access_token}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             product_title: message.data.productName,
             product_url: message.data.productUrl,
