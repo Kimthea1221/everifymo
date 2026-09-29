@@ -1,6 +1,5 @@
 # ADDED: imports and local artifact loading for standalone module execution.
 import pickle
-import re
 import sys
 from pathlib import Path
 
@@ -38,24 +37,11 @@ sbert_unregistered_embeddings_finetuned = np.load(
 registered = pd.read_pickle(ASSET_DIR / "Registered_cleaned.pkl")
 unregistered = pd.read_pickle(ASSET_DIR / "Unregistered_cleaned.pkl")
 
-# ADDED: set of every brand name in the registered database, built once at startup.
-registered_brands = {
-    b.strip().lower()
-    for b in registered["BRAND_NAME"].dropna().astype(str)
-    if b.strip()
-}
-
-
-# ADDED: whole-word check. The phrase must not be glued to other letters/digits on either side.
-def contains_whole_word(text, phrase):
-    pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
-    return re.search(pattern, text) is not None
-
 
 # UNCHANGED: original retrieval helpers and functions.
 def add_missing_cosine_scores(combined, embeddings, query_vec):
     """Fill in cosine similarity for candidates that BM25 found but FAISS didn't surface."""
-    q = query_vec[0] 
+    q = query_vec[0]
     for idx, scores in combined.items():
         if "faiss_score" not in scores:
             scores["faiss_score"] = float(np.dot(q, embeddings[idx]))
@@ -124,31 +110,28 @@ def retrieve(query, protected_vocab=None):
         "unregistered": candidates_unreg
     }
 
+
 def evaluate_match(query):
-    threshold = 0.75
+    threshold = 0.7
 
     result = retrieve(query)
 
-    # CHANGED: registered candidates sorted best-to-worst so we can walk down the list.
-    sorted_registered = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)
+    top_registered = max(result["registered"], key=lambda x: x.get("faiss_score", 0), default=None)
+    top_unregistered = max(result["unregistered"], key=lambda x: x.get("faiss_score", 0), default=None)
 
     # ---- Top 5 registered candidates, for visibility only — does not affect verdict ----
-    top5_registered = sorted_registered[:5]
-
-    
-    brand_flag = False
-    top_registered = None
-    for cand in sorted_registered:
-        if brand_conflicts(query, cand["index"], registered):
-            brand_flag = True  
-            continue
-        top_registered = cand   
-        break
-
-    top_unregistered = max(result["unregistered"], key=lambda x: x.get("faiss_score", 0), default=None)
+    top5_registered = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)[:5]
 
     reg_score = top_registered["faiss_score"] if top_registered else -1
     unreg_score = top_unregistered["faiss_score"] if top_unregistered else -1
+
+    # ---- Brand-conflict check (unchanged) ---- #
+    brand_flag = False
+    if top_registered:
+        conflict = brand_conflicts(query, top_registered["index"], registered)
+        if conflict:
+            brand_flag = True
+            reg_score = -1
 
     print(f"Query: {query}")
 
@@ -172,12 +155,7 @@ def evaluate_match(query):
         verdict = "unregistered"
         winning_score = unreg_score
     else:
-   
-        if not brand_in_registered(query):
-            print(f"\n  → VERDICT: NO CONFIDENT MATCH (brand not in registered database)")
-            verdict = "no_match"
-            winning_score = max(reg_score, unreg_score)
-        elif reg_score >= unreg_score:
+        if reg_score >= unreg_score:
             print(f"\n  → VERDICT: REGISTERED")
             verdict = "registered"
             winning_score = reg_score
@@ -199,6 +177,7 @@ def evaluate_match(query):
 
     # ===== Brand-conflict check — Track 1 ===== #
 
+
 def brand_conflicts(query, candidate_index, registered_df):
     """
     Checks whether the top registered candidate's actual brand name
@@ -213,14 +192,8 @@ def brand_conflicts(query, candidate_index, registered_df):
     brand_clean = brand.strip().lower()
     query_clean = query.strip().lower()
 
-    return not contains_whole_word(query_clean, brand_clean)
-
-
-
-def brand_in_registered(query):
-    query_clean = query.strip().lower()
-    
-    return any(contains_whole_word(query_clean, brand) for brand in registered_brands)
+    # simple substring check — brand name must appear somewhere in the query
+    return brand_clean not in query_clean
 
 
 if __name__ == "__main__":
