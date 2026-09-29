@@ -1,6 +1,8 @@
 # ADDED: imports and local artifact loading for standalone module execution.
 import pickle
+import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -36,6 +38,42 @@ sbert_unregistered_embeddings_finetuned = np.load(
 
 registered = pd.read_pickle(ASSET_DIR / "Registered_cleaned.pkl")
 unregistered = pd.read_pickle(ASSET_DIR / "Unregistered_cleaned.pkl")
+
+
+VOCAB = Counter()
+for col in ("PRODUCT_NAME", "BRAND_NAME"):
+    for t in registered[col].dropna():
+        VOCAB.update(str(t).split())
+
+MIN_TOKENS = 3
+MIN_KNOWN_RATIO = 0.4
+
+
+def _is_gibberish_token(t):
+    if len(t) > 3 and not re.search(r"[aeiouy]", t):
+        return True
+    if re.search(r"(.)\1{3,}", t):
+        return True
+    return False
+
+
+def validate_query(query):
+    toks = clean_title(query).split()
+
+    if len(toks) < MIN_TOKENS:
+        return False, "Title too short to verify"
+
+    alpha = [t for t in toks if re.search(r"[a-z]", t)]
+    if len(alpha) < 2:
+        return False, "Not enough readable words"
+
+    if sum(_is_gibberish_token(t) for t in alpha) / len(alpha) > 0.5:
+        return False, "Text looks like gibberish"
+
+    if sum(t in VOCAB for t in alpha) / len(alpha) < MIN_KNOWN_RATIO:
+        return False, "Unrecognized words"
+
+    return True, None
 
 
 # UNCHANGED: original retrieval helpers and functions.
@@ -114,6 +152,22 @@ def retrieve(query, protected_vocab=None):
 def evaluate_match(query):
     threshold = 0.7
 
+    valid, reason = validate_query(query)
+    if not valid:
+        print(f"Query: {query}")
+        print(f"\n  → VERDICT: NO MATCH ({reason})")
+        return {
+            "query": query,
+            "verdict": "no_match",
+            "reason": reason,
+            "score": None,
+            "threshold": threshold,
+            "brand_conflict_flagged": False,
+            "top_registered": None,
+            "top_unregistered": None,
+            "top5_registered": []
+        }
+
     result = retrieve(query)
 
     top_registered = max(result["registered"], key=lambda x: x.get("faiss_score", 0), default=None)
@@ -167,6 +221,7 @@ def evaluate_match(query):
     return {
         "query": query,
         "verdict": verdict,
+        "reason": None,
         "score": winning_score,
         "threshold": threshold,
         "brand_conflict_flagged": brand_flag,
@@ -190,7 +245,7 @@ def brand_conflicts(query, candidate_index, registered_df):
         return False
 
     brand_clean = brand.strip().lower()
-    query_clean = query.strip().lower()
+    query_clean = clean_title(query)
 
     # simple substring check — brand name must appear somewhere in the query
     return brand_clean not in query_clean
