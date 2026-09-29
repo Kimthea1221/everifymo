@@ -14,9 +14,33 @@ function c() {
 			contextIsolation: !0,
 			preload: i.join(a, "preload.cjs")
 		}
-	}), o.webContents.openDevTools(), o.webContents.on("did-finish-load", () => {
-		s &&= (o.webContents.send("deep-link-token", s), null);
-	}), process.env.VITE_DEV_SERVER_URL ? o.loadURL(process.env.VITE_DEV_SERVER_URL) : o.loadFile(i.join(a, "../dist/index.html"));
+	});
+	mainWindow.webContents.openDevTools();
+	mainWindow.webContents.on("did-finish-load", () => {
+		if (pendingDeepLink) {
+			mainWindow.webContents.send("deep-link-token", pendingDeepLink);
+			pendingDeepLink = null;
+		}
+	});
+	if (process.env.VITE_DEV_SERVER_URL) mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+	else mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+}
+console.log("argv:", process.argv);
+console.log("execPath:", process.execPath);
+if (process.env.VITE_DEV_SERVER_URL) app.setAsDefaultProtocolClient("icmda", process.execPath, [path.resolve(process.argv[1])]);
+else app.setAsDefaultProtocolClient("icmda");
+if (!app.requestSingleInstanceLock()) app.quit();
+else {
+	app.on("second-instance", (event, argv) => {
+		const url = argv.find((arg) => arg.startsWith("icmda://"));
+		if (url) handleDeepLink(url);
+	});
+	app.whenReady().then(() => {
+		Menu.setApplicationMenu(null);
+		createWindow();
+		const launchUrl = process.argv.find((arg) => arg.startsWith("icmda://"));
+		if (launchUrl) handleDeepLink(launchUrl);
+	});
 }
 console.log("argv:", process.argv), console.log("execPath:", process.execPath), process.env.VITE_DEV_SERVER_URL ? n.setAsDefaultProtocolClient("icmda", process.execPath, [i.resolve(process.argv[1])]) : n.setAsDefaultProtocolClient("icmda"), n.requestSingleInstanceLock() ? (n.on("second-instance", (e, t) => {
 	let n = t.find((e) => e.startsWith("icmda://"));
