@@ -1,5 +1,6 @@
 # ADDED: imports and local artifact loading for standalone module execution.
 import pickle
+import re
 import sys
 from pathlib import Path
 
@@ -36,6 +37,19 @@ sbert_unregistered_embeddings_finetuned = np.load(
 
 registered = pd.read_pickle(ASSET_DIR / "Registered_cleaned.pkl")
 unregistered = pd.read_pickle(ASSET_DIR / "Unregistered_cleaned.pkl")
+
+# ADDED: set of every brand name in the registered database, built once at startup.
+registered_brands = {
+    b.strip().lower()
+    for b in registered["BRAND_NAME"].dropna().astype(str)
+    if b.strip()
+}
+
+
+# ADDED: whole-word check. The phrase must not be glued to other letters/digits on either side.
+def contains_whole_word(text, phrase):
+    pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
+    return re.search(pattern, text) is not None
 
 
 # UNCHANGED: original retrieval helpers and functions.
@@ -115,22 +129,27 @@ def evaluate_match(query):
 
     result = retrieve(query)
 
-    top_registered = max(result["registered"], key=lambda x: x.get("faiss_score", 0), default=None)
-    top_unregistered = max(result["unregistered"], key=lambda x: x.get("faiss_score", 0), default=None)
+    # CHANGED: registered candidates sorted best-to-worst so we can walk down the list.
+    sorted_registered = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)
 
     # ---- Top 5 registered candidates, for visibility only — does not affect verdict ----
-    top5_registered = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)[:5]
+    top5_registered = sorted_registered[:5]
+
+    # CHANGED: best registered candidate that does NOT have a brand conflict.
+    # Conflicting candidates are skipped one by one instead of only checking the top one.
+    brand_flag = False
+    top_registered = None
+    for cand in sorted_registered:
+        if brand_conflicts(query, cand["index"], registered):
+            brand_flag = True   # at least one candidate was thrown away
+            continue
+        top_registered = cand   # first (highest) one that survives
+        break
+
+    top_unregistered = max(result["unregistered"], key=lambda x: x.get("faiss_score", 0), default=None)
 
     reg_score = top_registered["faiss_score"] if top_registered else -1
     unreg_score = top_unregistered["faiss_score"] if top_unregistered else -1
-
-    # ---- Brand-conflict check (unchanged) ---- #
-    brand_flag = False
-    if top_registered:
-        conflict = brand_conflicts(query, top_registered["index"], registered)
-        if conflict:
-            brand_flag = True
-            reg_score = -1
 
     print(f"Query: {query}")
 
@@ -154,7 +173,12 @@ def evaluate_match(query):
         verdict = "unregistered"
         winning_score = unreg_score
     else:
-        if reg_score >= unreg_score:
+        # CHANGED: both sides reached the threshold -> the brand decides.
+        if not brand_in_registered(query):
+            print(f"\n  → VERDICT: NO CONFIDENT MATCH (brand not in registered database)")
+            verdict = "no_match"
+            winning_score = max(reg_score, unreg_score)
+        elif reg_score >= unreg_score:
             print(f"\n  → VERDICT: REGISTERED")
             verdict = "registered"
             winning_score = reg_score
@@ -190,8 +214,15 @@ def brand_conflicts(query, candidate_index, registered_df):
     brand_clean = brand.strip().lower()
     query_clean = query.strip().lower()
 
-    # simple substring check — brand name must appear somewhere in the query
-    return brand_clean not in query_clean
+    # CHANGED: whole-word check — brand name must appear as its own word in the query
+    return not contains_whole_word(query_clean, brand_clean)
+
+
+# ADDED: checks whether the query mentions any brand that exists in the registered database.
+def brand_in_registered(query):
+    query_clean = query.strip().lower()
+    # same whole-word style as brand_conflicts, so both checks behave consistently
+    return any(contains_whole_word(query_clean, brand) for brand in registered_brands)
 
 
 if __name__ == "__main__":
