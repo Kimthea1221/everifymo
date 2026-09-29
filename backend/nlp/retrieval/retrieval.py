@@ -48,6 +48,11 @@ for col in ("PRODUCT_NAME", "BRAND_NAME"):
 MIN_TOKENS = 3
 MIN_KNOWN_RATIO = 0.4
 
+BRAND_INDEX = {str(b): list(v) for b, v in registered.groupby("BRAND_NAME").indices.items()}
+
+BRAND_BONUS = 0.05
+BRAND_THRESHOLD = 0.65
+
 
 def _is_gibberish_token(t):
     if len(t) > 3 and not re.search(r"[aeiouy]", t):
@@ -74,6 +79,42 @@ def validate_query(query):
         return False, "Unrecognized words"
 
     return True, None
+
+
+def trim_listing_title(text):
+    return re.split(r"\s[-–|]\s", text, maxsplit=1)[0].strip()
+
+
+def brand_row_indices(cleaned_query):
+    toks = cleaned_query.split()
+    rows = []
+    for n in range(1, 5):
+        for i in range(len(toks) - n + 1):
+            g = " ".join(toks[i:i + n])
+            if len(g) >= 3 and g in BRAND_INDEX:
+                rows.extend(BRAND_INDEX[g])
+    return list(dict.fromkeys(rows))
+
+
+def score_brand_rows(cleaned_query, rows):
+    qv = finetuned_model.encode([cleaned_query]).astype("float32")
+    faiss.normalize_L2(qv)
+    q_tokens = set(cleaned_query.split())
+    scored = []
+    for idx in rows:
+        cos = float(np.dot(qv[0], sbert_registered_embeddings_finetuned[idx]))
+        name_tokens = set(str(registered.loc[idx, "PRODUCT_NAME"]).split())
+        contain = len(name_tokens & q_tokens) / max(len(name_tokens), 1)
+        score = min(1.0, max(cos, 0.5 * cos + 0.5 * contain) + BRAND_BONUS)
+        scored.append({
+            "index": idx,
+            "title": registered.loc[idx, "full_product_info"],
+            "faiss_score": score,
+            "cosine": cos,
+            "containment": contain,
+            "brand_match": True
+        })
+    return sorted(scored, key=lambda x: x["faiss_score"], reverse=True)
 
 
 # UNCHANGED: original retrieval helpers and functions.
@@ -169,14 +210,25 @@ def evaluate_match(query):
             "top5_registered": []
         }
 
+    cleaned_query = clean_title(search_query)
     result = retrieve(search_query)
 
-    ranked_registered = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)
-    brand_ok = [c for c in ranked_registered if not brand_conflicts(search_query, c["index"], registered)]
+    brand_rows = brand_row_indices(cleaned_query)
+    brand_flag = False
 
-    top_registered = brand_ok[0] if brand_ok else None
-    brand_flag = top_registered is None and bool(ranked_registered)
+    if brand_rows:
+        ranked_registered = score_brand_rows(cleaned_query, brand_rows)
+        active_threshold = BRAND_THRESHOLD
+    else:
+        ranked = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)
+        ranked_registered = [c for c in ranked if not brand_conflicts(search_query, c["index"], registered)]
+        brand_flag = not ranked_registered and bool(ranked)
+        active_threshold = threshold
+
+    top_registered = ranked_registered[0] if ranked_registered else None
     top_unregistered = max(result["unregistered"], key=lambda x: x.get("faiss_score", 0), default=None)
+
+    # ---- Top 5 registered candidates, for visibility only — does not affect verdict ----
     top5_registered = ranked_registered[:5]
 
     reg_score = top_registered["faiss_score"] if top_registered else -1
@@ -188,7 +240,7 @@ def evaluate_match(query):
     for i, c in enumerate(top5_registered, 1):
         print(f"    {i}. {c['title']} (score: {c.get('faiss_score', 0):.4f})")
 
-    reg_qualifies = reg_score >= threshold
+    reg_qualifies = reg_score >= active_threshold
     unreg_qualifies = unreg_score >= threshold
 
     if not reg_qualifies and not unreg_qualifies:
@@ -204,7 +256,7 @@ def evaluate_match(query):
         verdict = "unregistered"
         winning_score = unreg_score
     else:
-        if reg_score >= unreg_score:
+        if reg_score + (0.1 if brand_rows else 0) >= unreg_score:
             print(f"\n  → VERDICT: REGISTERED")
             verdict = "registered"
             winning_score = reg_score
@@ -218,7 +270,7 @@ def evaluate_match(query):
         "verdict": verdict,
         "reason": None,
         "score": winning_score,
-        "threshold": threshold,
+        "threshold": active_threshold,
         "brand_conflict_flagged": brand_flag,
         "top_registered": top_registered,
         "top_unregistered": top_unregistered,
