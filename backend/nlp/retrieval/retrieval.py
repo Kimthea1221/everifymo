@@ -125,7 +125,7 @@ def retrieve(query, protected_vocab=None):
     }
 
 def evaluate_match(query):
-    threshold = 0.7
+    threshold = 0.75
 
     result = retrieve(query)
 
@@ -135,15 +135,14 @@ def evaluate_match(query):
     # ---- Top 5 registered candidates, for visibility only — does not affect verdict ----
     top5_registered = sorted_registered[:5]
 
-    # CHANGED: best registered candidate that does NOT have a brand conflict.
-    # Conflicting candidates are skipped one by one instead of only checking the top one.
+    
     brand_flag = False
     top_registered = None
     for cand in sorted_registered:
         if brand_conflicts(query, cand["index"], registered):
-            brand_flag = True   # at least one candidate was thrown away
+            brand_flag = True  
             continue
-        top_registered = cand   # first (highest) one that survives
+        top_registered = cand   
         break
 
     top_unregistered = max(result["unregistered"], key=lambda x: x.get("faiss_score", 0), default=None)
@@ -173,7 +172,7 @@ def evaluate_match(query):
         verdict = "unregistered"
         winning_score = unreg_score
     else:
-        # CHANGED: both sides reached the threshold -> the brand decides.
+   
         if not brand_in_registered(query):
             print(f"\n  → VERDICT: NO CONFIDENT MATCH (brand not in registered database)")
             verdict = "no_match"
@@ -214,14 +213,13 @@ def brand_conflicts(query, candidate_index, registered_df):
     brand_clean = brand.strip().lower()
     query_clean = query.strip().lower()
 
-    # CHANGED: whole-word check — brand name must appear as its own word in the query
     return not contains_whole_word(query_clean, brand_clean)
 
 
-# ADDED: checks whether the query mentions any brand that exists in the registered database.
+
 def brand_in_registered(query):
     query_clean = query.strip().lower()
-    # same whole-word style as brand_conflicts, so both checks behave consistently
+    
     return any(contains_whole_word(query_clean, brand) for brand in registered_brands)
 
 
