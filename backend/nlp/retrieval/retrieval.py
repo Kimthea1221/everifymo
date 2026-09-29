@@ -151,8 +151,9 @@ def retrieve(query, protected_vocab=None):
 
 def evaluate_match(query):
     threshold = 0.7
+    search_query = trim_listing_title(query)
 
-    valid, reason = validate_query(query)
+    valid, reason = validate_query(search_query)
     if not valid:
         print(f"Query: {query}")
         print(f"\n  → VERDICT: NO MATCH ({reason})")
@@ -168,24 +169,18 @@ def evaluate_match(query):
             "top5_registered": []
         }
 
-    result = retrieve(query)
+    result = retrieve(search_query)
 
-    top_registered = max(result["registered"], key=lambda x: x.get("faiss_score", 0), default=None)
+    ranked_registered = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)
+    brand_ok = [c for c in ranked_registered if not brand_conflicts(search_query, c["index"], registered)]
+
+    top_registered = brand_ok[0] if brand_ok else None
+    brand_flag = top_registered is None and bool(ranked_registered)
     top_unregistered = max(result["unregistered"], key=lambda x: x.get("faiss_score", 0), default=None)
-
-    # ---- Top 5 registered candidates, for visibility only — does not affect verdict ----
-    top5_registered = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)[:5]
+    top5_registered = ranked_registered[:5]
 
     reg_score = top_registered["faiss_score"] if top_registered else -1
     unreg_score = top_unregistered["faiss_score"] if top_unregistered else -1
-
-    # ---- Brand-conflict check (unchanged) ---- #
-    brand_flag = False
-    if top_registered:
-        conflict = brand_conflicts(query, top_registered["index"], registered)
-        if conflict:
-            brand_flag = True
-            reg_score = -1
 
     print(f"Query: {query}")
 
