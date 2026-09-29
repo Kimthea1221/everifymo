@@ -48,7 +48,16 @@ for col in ("PRODUCT_NAME", "BRAND_NAME"):
 MIN_TOKENS = 3
 MIN_KNOWN_RATIO = 0.4
 
-BRAND_INDEX = {str(b): list(v) for b, v in registered.groupby("BRAND_NAME").indices.items()}
+
+def _compact(s):
+    return re.sub(r"[^a-z0-9]", "", str(s).lower())
+
+
+BRAND_INDEX = {}
+for b, v in registered.groupby("BRAND_NAME").indices.items():
+    key = _compact(b)
+    if key:
+        BRAND_INDEX.setdefault(key, []).extend(v)
 
 BRAND_BONUS = 0.05
 BRAND_THRESHOLD = 0.65
@@ -85,15 +94,17 @@ def trim_listing_title(text):
     return re.split(r"\s[-–|]\s", text, maxsplit=1)[0].strip()
 
 
-def brand_row_indices(cleaned_query):
-    toks = cleaned_query.split()
+def brand_row_indices(query):
+    toks = re.sub(r"[^a-z0-9\s]", " ", query.lower()).split()
     rows = []
-    for n in range(1, 5):
+    for n in range(1, 6):
         for i in range(len(toks) - n + 1):
-            g = " ".join(toks[i:i + n])
-            if len(g) >= 3 and g in BRAND_INDEX:
-                rows.extend(BRAND_INDEX[g])
-    return list(dict.fromkeys(rows))
+            window = toks[i:i + n]
+            for variant in (window, list(dict.fromkeys(window))):
+                key = "".join(variant)
+                if len(key) >= 3 and key in BRAND_INDEX:
+                    rows.extend(BRAND_INDEX[key])
+    return list(dict.fromkeys(int(r) for r in rows))
 
 
 def score_brand_rows(cleaned_query, rows):
@@ -213,7 +224,7 @@ def evaluate_match(query):
     cleaned_query = clean_title(search_query)
     result = retrieve(search_query)
 
-    brand_rows = brand_row_indices(cleaned_query)
+    brand_rows = brand_row_indices(search_query)
     brand_flag = False
 
     if brand_rows:
@@ -291,8 +302,8 @@ def brand_conflicts(query, candidate_index, registered_df):
     if not isinstance(brand, str) or not brand.strip():
         return False
 
-    brand_clean = brand.strip().lower()
-    query_clean = clean_title(query)
+    brand_clean = _compact(brand)
+    query_clean = _compact(query)
 
     # simple substring check — brand name must appear somewhere in the query
     return brand_clean not in query_clean
