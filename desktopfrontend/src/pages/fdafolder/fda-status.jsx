@@ -121,7 +121,7 @@ function FdaStatus() {
 
   useEffect(() => {
     if (!toastError) return;
-    const duration = toastVariant === "warning" ? 8000 : 4000;
+    const duration = toastVariant === "warning" ? 8000 : toastVariant === "success" ? 5000 : 4000;
     const timer = setTimeout(() => {
       setToastError(null);
     }, duration);
@@ -326,8 +326,22 @@ function FdaStatus() {
   
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
+
+          let message;
+          if (typeof err.detail === "string") {
+            message = err.detail;
+          } else if (Array.isArray(err.detail)) {
+            // FastAPI 422 validation errors
+            message = err.detail.map((d) => d.msg).join("; ");
+          } else if (res.status >= 500) {
+            message = "Something went wrong on the server. Please refresh and check the complaint's status before trying again.";
+          } else {
+            message = "Failed to update status. Please try again.";
+          }
+
           setToastVariant("danger");
           setToastError(err.detail || "Failed to update status. Please try again.");
+          await fetchComplaints(true);
           return;
         }
   
@@ -349,10 +363,18 @@ function FdaStatus() {
         setNewStatus(nextStatus);
         setDismissPreset("");
         setDismissNote("");
-        
+
         if (updatedComplaint.notificationWarning) {
           setToastVariant("warning");
           setToastError(updatedComplaint.notificationWarning);
+        } else {
+          const label = STATUS_LABELS[updatedComplaint.status];
+          setToastVariant("success");
+          setToastError(
+            selectedComplaint.reporterEmail
+              ? `${selectedComplaint.caseReference} updated to "${label}". The consumer has been notified.`
+              : `${selectedComplaint.caseReference} updated to "${label}". No email on file, so no email was sent.`
+          );
         }
 
       const entry = {
@@ -371,8 +393,13 @@ function FdaStatus() {
       // setAttachmentPreview(null);
       // setAttachmentName(null);
     } catch (err) {
+      console.error("Push update failed:", err);
       setToastVariant("danger");
-      setToastError("Network error — please check your connection and try again.");
+      setToastError(
+        err instanceof TypeError
+          ? "Network error — please check your connection and try again."
+          : "Something went wrong while updating. Please refresh and check the complaint's status."
+      );
     }
   };
 
