@@ -91,7 +91,11 @@ def validate_query(query):
 
 
 def trim_listing_title(text):
-    return re.split(r"\s[-–|]\s", text, maxsplit=1)[0].strip()
+    text = text.replace("|", " ")
+    head = re.split(r"\s[-–—]\s", text, maxsplit=1)[0].strip()
+    if len(head.split()) >= 3:
+        return head
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def brand_row_indices(query):
