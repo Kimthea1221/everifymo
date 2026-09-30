@@ -153,8 +153,9 @@ function FdaStatus() {
         setSelectedComplaintId((prev) => prev || data[0].complaintId);
       }
       return data;
-    } catch (err) {
-      alert("Could not load complaints. Please refresh.");
+    }  catch (err) {
+      setToastVariant("danger");
+      setToastError("Could not load complaints. Please refresh.");
       return [];
     } finally {
       setIsLoading(false);
@@ -318,14 +319,15 @@ function FdaStatus() {
             change_note: outgoingMessage,
             // Optional — null when no file was attached. Backend needs to
             // accept these two fields; see fda-status.jsx attachment notes.
-            attachment_data: attachmentPreview,
-            attachment_name: attachmentName,
+            // attachment_data: attachmentPreview,
+            // attachment_name: attachmentName,
           }),
         });
   
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          alert(err.detail || "Failed to update status. Please try again.");
+          setToastVariant("danger");
+          setToastError(err.detail || "Failed to update status. Please try again.");
           return;
         }
   
@@ -349,7 +351,7 @@ function FdaStatus() {
         setDismissNote("");
         
         if (updatedComplaint.notificationWarning) {
-          setIsToastWarning(true);
+          setToastVariant("warning");
           setToastError(updatedComplaint.notificationWarning);
         }
 
@@ -365,12 +367,12 @@ function FdaStatus() {
       };
       setStatusHistory((prev) => [entry, ...prev]);
       setHistoryPage(1);
-      setAttachmentFile(null);
-      setAttachmentPreview(null);
-      setAttachmentName(null);
+      // setAttachmentFile(null);
+      // setAttachmentPreview(null);
+      // setAttachmentName(null);
     } catch (err) {
-      setIsToastWarning(false);
-      alert("Network error — please check your connection and try again.");
+      setToastVariant("danger");
+      setToastError("Network error — please check your connection and try again.");
     }
   };
 
