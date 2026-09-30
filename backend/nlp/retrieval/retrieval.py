@@ -3,6 +3,7 @@ import math
 import pickle
 import re
 import sys
+import unicodedata
 from collections import Counter
 from difflib import get_close_matches
 from pathlib import Path
@@ -63,9 +64,17 @@ UNIT_WORDS = {
 RECALL_MIN = 0.75
 PRECISION_MIN = 0.4
 
+GENERIC_DF = 100
+LEADING_NOISE = {"new", "cheapest", "lazmall", "hot", "sale", "promo", "official", "bestseller"}
+SEGMENT_SPLIT = re.compile(r"\s\+\s|[:;,]|\swith\s|\splus\s")
+
+
+def _ascii(s):
+    return unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode("ascii")
+
 
 def _compact(s):
-    return re.sub(r"[^a-z0-9]", "", str(s).lower())
+    return re.sub(r"[^a-z0-9]", "", _ascii(s).lower())
 
 
 BRAND_INDEX = {}
@@ -106,15 +115,26 @@ def validate_query(query):
 
 
 def trim_listing_title(text):
-    text = text.replace("|", " ")
+    text = re.sub(r"[【】\[\]|]", " ", text)
     head = re.split(r"\s[-–—]\s", text, maxsplit=1)[0].strip()
-    if len(head.split()) >= 3:
-        return head
-    return re.sub(r"\s+", " ", text).strip()
+    text = head if len(head.split()) >= 3 else re.sub(r"\s+", " ", text).strip()
+    words = text.split()
+    while words and re.sub(r"[^a-z]", "", words[0].lower()) in LEADING_NOISE:
+        words.pop(0)
+    return " ".join(words)
+
+
+def query_segments(search_query):
+    segs = []
+    for part in SEGMENT_SPLIT.split(search_query.lower()):
+        c = clean_title(part)
+        if len(c.split()) >= 3:
+            segs.append(c)
+    return segs
 
 
 def brand_row_indices(query):
-    toks = re.sub(r"[^a-z0-9\s]", " ", query.lower()).split()
+    toks = re.sub(r"[^a-z0-9\s]", " ", _ascii(query).lower()).split()
     rows = []
     for n in range(1, 6):
         for i in range(len(toks) - n + 1):
@@ -122,6 +142,8 @@ def brand_row_indices(query):
             for variant in (window, list(dict.fromkeys(window))):
                 key = "".join(variant)
                 if len(key) >= 3 and key in BRAND_INDEX:
+                    if len(variant) == 1 and i > 1 and DF.get(variant[0], 0) >= GENERIC_DF:
+                        continue
                     rows.extend(BRAND_INDEX[key])
     return list(dict.fromkeys(int(r) for r in rows))
 
@@ -146,29 +168,42 @@ def _weighted_coverage(tokens, pool):
     return hit / total if total else 0.0
 
 
-def score_brand_rows(cleaned_query, rows):
-    qv = finetuned_model.encode([cleaned_query]).astype("float32")
-    faiss.normalize_L2(qv)
-    q_set = set(_content_tokens(cleaned_query.split()))
+def score_brand_rows(cleaned_query, rows, search_query=""):
+    variants = [cleaned_query]
+    for seg in query_segments(search_query):
+        if seg != cleaned_query:
+            variants.append(seg)
+
+    vecs = finetuned_model.encode(variants).astype("float32")
+    faiss.normalize_L2(vecs)
+
     scored = []
     for idx in rows:
-        cos = float(np.dot(qv[0], sbert_registered_embeddings_finetuned[idx]))
+        brand_set = set(_content_tokens(str(registered.loc[idx, "BRAND_NAME"]).split()))
         name_set = set(_content_tokens(str(registered.loc[idx, "PRODUCT_NAME"]).split()))
-        recall = _weighted_coverage(name_set, q_set)
-        precision = _weighted_coverage(q_set, name_set)
-        if recall >= RECALL_MIN and precision >= PRECISION_MIN:
-            score = min(1.0, max(cos, 0.5 * cos + 0.5 * recall) + BRAND_BONUS)
-        else:
-            score = cos * min(recall, precision)
-        scored.append({
-            "index": idx,
-            "title": registered.loc[idx, "full_product_info"],
-            "faiss_score": score,
-            "cosine": cos,
-            "containment": recall,
-            "precision": precision,
-            "brand_match": True
-        })
+
+        best = None
+        for variant, vec in zip(variants, vecs):
+            q_set = set(_content_tokens(variant.split()))
+            cos = float(np.dot(vec, sbert_registered_embeddings_finetuned[idx]))
+            recall = _weighted_coverage(name_set, q_set | brand_set)
+            precision = _weighted_coverage(q_set, name_set)
+            if recall >= RECALL_MIN and precision >= PRECISION_MIN:
+                score = min(1.0, max(cos, 0.5 * cos + 0.5 * recall) + BRAND_BONUS)
+            else:
+                score = cos * min(recall, precision)
+            if best is None or score > best["faiss_score"]:
+                best = {
+                    "index": idx,
+                    "title": registered.loc[idx, "full_product_info"],
+                    "faiss_score": score,
+                    "cosine": cos,
+                    "containment": recall,
+                    "precision": precision,
+                    "brand_match": True,
+                    "matched_text": variant
+                }
+        scored.append(best)
     return sorted(scored, key=lambda x: x["faiss_score"], reverse=True)
 
 
@@ -272,7 +307,7 @@ def evaluate_match(query):
     brand_flag = False
 
     if brand_rows:
-        ranked_registered = score_brand_rows(cleaned_query, brand_rows)
+        ranked_registered = score_brand_rows(cleaned_query, brand_rows, search_query)
         active_threshold = BRAND_THRESHOLD
     else:
         ranked = sorted(result["registered"], key=lambda x: x.get("faiss_score", 0), reverse=True)
