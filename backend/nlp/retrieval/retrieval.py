@@ -115,9 +115,16 @@ def validate_query(query):
 
 
 def trim_listing_title(text):
-    text = re.sub(r"[【】\[\]|]", " ", text)
-    head = re.split(r"\s[-–—]\s", text, maxsplit=1)[0].strip()
-    text = head if len(head.split()) >= 3 else re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"[【】\[\]]", " ", text)
+    parts = [p.strip() for p in re.split(r"\s[-–—]\s|\s*\|\s*", text) if p.strip()]
+
+    head = ""
+    for p in parts:
+        head = f"{head} {p}".strip()
+        if len(head.split()) >= 3:
+            break
+
+    text = head or re.sub(r"\s+", " ", text).strip()
     words = text.split()
     while words and re.sub(r"[^a-z]", "", words[0].lower()) in LEADING_NOISE:
         words.pop(0)
