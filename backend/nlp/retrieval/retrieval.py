@@ -1,8 +1,10 @@
 # ADDED: imports and local artifact loading for standalone module execution.
+import math
 import pickle
 import re
 import sys
 from collections import Counter
+from difflib import get_close_matches
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -47,6 +49,19 @@ for col in ("PRODUCT_NAME", "BRAND_NAME"):
 
 MIN_TOKENS = 3
 MIN_KNOWN_RATIO = 0.4
+
+DF = Counter()
+for t in registered["PRODUCT_NAME"].dropna():
+    DF.update(set(str(t).split()))
+N_DOCS = len(registered)
+
+UNIT_WORDS = {
+    "milliliter", "milligram", "kilogram", "gram", "piece", "pieces",
+    "ml", "mg", "kg", "g", "pc", "pcs"
+}
+
+RECALL_MIN = 0.75
+PRECISION_MIN = 0.4
 
 
 def _compact(s):
@@ -111,22 +126,47 @@ def brand_row_indices(query):
     return list(dict.fromkeys(int(r) for r in rows))
 
 
+def _idf(t):
+    return math.log((N_DOCS + 1) / (DF.get(t, 0) + 1)) + 1
+
+
+def _content_tokens(tokens):
+    return [t for t in tokens if not t.isdigit() and t not in UNIT_WORDS]
+
+
+def _weighted_coverage(tokens, pool):
+    pool_list = list(pool)
+    total = 0.0
+    hit = 0.0
+    for t in tokens:
+        w = _idf(t)
+        total += w
+        if t in pool or get_close_matches(t, pool_list, n=1, cutoff=0.85):
+            hit += w
+    return hit / total if total else 0.0
+
+
 def score_brand_rows(cleaned_query, rows):
     qv = finetuned_model.encode([cleaned_query]).astype("float32")
     faiss.normalize_L2(qv)
-    q_tokens = set(cleaned_query.split())
+    q_set = set(_content_tokens(cleaned_query.split()))
     scored = []
     for idx in rows:
         cos = float(np.dot(qv[0], sbert_registered_embeddings_finetuned[idx]))
-        name_tokens = set(str(registered.loc[idx, "PRODUCT_NAME"]).split())
-        contain = len(name_tokens & q_tokens) / max(len(name_tokens), 1)
-        score = min(1.0, max(cos, 0.5 * cos + 0.5 * contain) + BRAND_BONUS)
+        name_set = set(_content_tokens(str(registered.loc[idx, "PRODUCT_NAME"]).split()))
+        recall = _weighted_coverage(name_set, q_set)
+        precision = _weighted_coverage(q_set, name_set)
+        if recall >= RECALL_MIN and precision >= PRECISION_MIN:
+            score = min(1.0, max(cos, 0.5 * cos + 0.5 * recall) + BRAND_BONUS)
+        else:
+            score = cos * min(recall, precision)
         scored.append({
             "index": idx,
             "title": registered.loc[idx, "full_product_info"],
             "faiss_score": score,
             "cosine": cos,
-            "containment": contain,
+            "containment": recall,
+            "precision": precision,
             "brand_match": True
         })
     return sorted(scored, key=lambda x: x["faiss_score"], reverse=True)
